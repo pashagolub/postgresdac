@@ -1,0 +1,16 @@
+ Wrappers for TNT Unicode Controls installation.
+
+1. This package uses the TNT Unicode Controls components
+   from TntWare (http://www.tntware.com/). Before installing
+   Wrappers for TNT Unicode Controls you should download the
+   TNT Unicode Controls at http://www.tntware.com/delphicontrols/unicode/.
+
+2. Install TNT Unicode Controls. See TNT Unicode Controls
+   documentation for details.
+
+3. Open PostgresDAC_TNT_XXX.dpk (XXX stands for your Delphi
+   version) and click the 'Install' button.
+
+4. The new 'PostgresDAC TNT Wrappers' components palette
+   page will appear after the installation. It contains 3 components:
+   TPSQLTableTNT, TPSQLQueryTNT, TPSQLStoredProcTNT.
