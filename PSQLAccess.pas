@@ -4801,6 +4801,8 @@ var
   PEsc: PChar;
   S: string;
   BlSZ: integer;
+  i: integer;
+  byName: boolean;
 
   function GetDateTime: string;
   var ts: string;
@@ -4818,26 +4820,41 @@ var
 
 begin
   Temp := '';
+  i := 0;
   while SQLText <> '' do
   begin
     if (Temp <> '') and (SQLText[1] in [' ',#9]) then Temp := Temp + ' ';
     GetToken(SQLText, Token);
-    if Token = ':' then
+    //Added: handle of ? params
+    if (Token = ':') or (Token = '?') then
     begin
-      GetToken(SQLText, Token);
+      if Token = ':' then begin
+         GetToken(SQLText, Token);
+         ByName := True;
+      end else begin
+         ByName := False;
+      end;
       if (Token <> '') and (Token[1] = '[') then
       begin
          if Token[Length(Token)] = ']' then
-            Token := Copy(Token, 2, Length(Token)-2) else
+            Token := Copy(Token, 2, Length(Token)-2)
+         else
             Token := Copy(Token, 2, Length(Token)-1);
       end else
       if (Token <> '') and (Token[1] in ['"','''']) then
       begin
          if Token[1] = Token[Length(Token)] then
-            Token := Copy(Token, 2, Length(Token)-2) else
+            Token := Copy(Token, 2, Length(Token)-2)
+         else
             Token := Copy(Token, 2, Length(Token)-1);
       end;
-      Param := Params.ParamByName(Token);
+      // if Params is set with ":" then select param by name
+      if ByName then begin
+         Param := Params.ParamByName(Token);
+      end else begin
+         Param := Params[i];
+         Inc(i);
+      end;
       If (VarType(Param.Value) = varEmpty) or (VarType(Param.Value) = varNull) then
         Value := 'NULL'
       else
@@ -4874,7 +4891,6 @@ begin
   end;
   SQLQuery := Trim(Temp);
 end;
-
 Procedure TNativeDataSet.RelRecordLock(bAll: Bool);
 begin
   FIsLocked := FALSE;

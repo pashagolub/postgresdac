@@ -12,7 +12,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       PSQLCP, ExtCtrls;
 
 const                  
-    VERSION : string = '2.4.0';
+    VERSION : string = '2.4.1-Dev';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -5559,18 +5559,18 @@ var
   begin
     while not CheckOpen(Engine.OpenIndexList(DBHandle, NativeTableName, GetTableTypeName, FCursor)) do {Retry};
     try
-      while Engine.GetNextRecord(FCursor, dbiNoLock, @IndexDesc, NIL) = 0 do
-        if IndexDesc.bMaintained then
-        begin
-          DecodeIndexDesc(IndexDesc, Src, IdxName, Flds, DescFlds, Opts);
-          with IndexDefs.AddIndexDef do
+        while Engine.GetNextRecord(FCursor, dbiNoLock, @IndexDesc, NIL) = 0 do
+          if IndexDesc.bMaintained then
           begin
-            Name := IdxName;
-            Fields := Flds;
-            DescFields := DescFlds;
-            Options := Opts;
+            DecodeIndexDesc(IndexDesc, Src, IdxName, Flds, DescFlds, Opts);
+            with IndexDefs.AddIndexDef do
+            begin
+              Name := IdxName;
+              Fields := Flds;
+              DescFields := DescFlds;
+              Options := Opts;
+            end;
           end;
-        end;
     finally
       Engine.CloseCursor(FCursor);
     end;
