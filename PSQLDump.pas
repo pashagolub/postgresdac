@@ -661,8 +661,10 @@ end;
 
 procedure TPSQLRestore.RestoreFromFile(const FileName: string; Log: TStrings);
 var tmpLogFile: array[0..MAX_PATH] of char;
+    tmpPath: array[0..MAX_PATH] of char;
 begin
-  If GetTempFileName('.','pgr',0,tmpLogFile) = 0 then
+  If (GetTempPath(MAX_PATH, tmpPath) = 0) or
+     (GetTempFileName(tmpPath,'pgr',0,tmpLogFile) = 0) then
     raise EPSQLRestoreException.Create('Can''t create temporary log file');
   try
     RestoreFromFile(FileName,tmpLogFile);
@@ -675,6 +677,7 @@ end;
 
 procedure TPSQLRestore.RestoreFromFile(const FileName, LogFileName: string);
 var tmpOutFile: array[0..MAX_PATH] of char;
+    tmpPath: array[0..MAX_PATH] of char;
 begin
   CheckDependencies;
 
@@ -685,7 +688,9 @@ begin
    Restore(FileName,FRestoreStrOptions[rsoFileName],LogFileName)
   else
      begin
-       If GetTempFileName('.','pgr',0,tmpOutFile) = 0 then
+
+       If (GetTempPath(MAX_PATH, tmpPath) = 0) or
+          (GetTempFileName(tmpPath,'pgr',0,tmpOutFile) = 0) then
          raise EPSQLRestoreException.Create('Can''t create temporary out file');
        try
          Restore(FileName,tmpOutFile,logFileName);
