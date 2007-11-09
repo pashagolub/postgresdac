@@ -27,10 +27,11 @@ function EscapeMask(const AMask, EscapeChars: string): string;
 
 implementation
 
-uses RTLConsts;
-
 const
   MaxCards = 30;
+
+resourcestring
+  SInvalidMask = '''%s'' is an invalid mask at (%d)';
 
 type
   PMaskSet = ^TMaskSet;
