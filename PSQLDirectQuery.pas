@@ -16,6 +16,8 @@ type
     FStatement : PPGresult;
     FAbout : TPSQLDACAbout;
     FRecNo: integer;
+    FEOF: boolean;
+    FBOF: boolean;
 
     procedure FreeHandle();
     function GetActive(): boolean;
@@ -25,8 +27,6 @@ type
     procedure SetRecNo(const Value: integer);
     function GetRecordCount: integer;
     function GetIsEmpty: boolean;
-    function GetEOF: boolean;
-    function GetBOF: boolean;
     procedure SetSQL(const Value: TStrings);
     function GetFieldValue(aIndex: integer): string;
     function GetFieldsCount : integer;
@@ -61,8 +61,8 @@ type
     property RecNo : integer read GetRecNo write SetRecNo;//current cursor position
     property RecordCount : integer read GetRecordCount;
     property IsEmpty : boolean read GetIsEmpty;
-    property Eof : boolean read GetEOF;
-    property Bof : boolean read GetBOF;
+    property Eof : boolean read FEOF;
+    property Bof : boolean read FBOF;
     property FieldsCount : integer read GetFieldsCount; 
     property FieldValues[aIndex : integer]: string read GetFieldValue;
     property FieldNames[aIndex : integer]: string read GetFieldName;
@@ -172,23 +172,9 @@ begin
   Result := FStatement <> nil;
 end;
 //----------------------------------------------------------------------------------------------------------------------
-function TPSQLCustomDirectQuery.GetBOF: boolean;
-begin
-  CheckOpen();
-
-  Result := FRecNo = 0;
-end;
-//----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.GetDatabase: TPSQLDatabase;
 begin
   Result := FDatabase;
-end;
-//----------------------------------------------------------------------------------------------------------------------
-function TPSQLCustomDirectQuery.GetEOF: boolean;
-begin
-  CheckOpen();
-
-  Result := FRecNo >= GetRecordCount - 1;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.GetFieldName(aIndex: integer): string;
@@ -285,7 +271,7 @@ begin
     raise EPSQLDatabaseError.Create(FDatabase.Engine(), 0);
   end;
 
-  FRecNo := 0;
+  RecNo := 0;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TPSQLCustomDirectQuery.Prior;
@@ -328,7 +314,10 @@ procedure TPSQLCustomDirectQuery.SetRecNo(const Value: integer);
 begin
   CheckOpen();
 
-  if (Value < 0) or (Value >= GetRecordCount()) then
+  FEOF := Value >= GetRecordCount();
+  FBOF := Value < 0;
+
+  if FEOF or FBOF then
     Exit;
 
   FRecNo := Value;
