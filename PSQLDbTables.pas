@@ -11,7 +11,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       {$IFDEF DELPHI_6}Variants,{$ENDIF}StdVCL, PSQLAccess, PSQLTypes,
       PSQLCP, ExtCtrls;
 
-const                  
+const
     VERSION : string = '2.4.1-Dev';
 
 { TDBDataSet flags }          
@@ -2777,7 +2777,7 @@ begin
           FType := ftAutoInc;
           FRequired := False;
         end;
-      fldFLOAT:
+      fldFLOAT:                                                                                   
         if iSubType = fldstMONEY then FType := ftCurrency;
       fldBCD:
         begin
@@ -2789,6 +2789,11 @@ begin
           FSize := iUnits1;
           if (iSubType >= fldstMEMO) and (iSubType <= fldstBFILE) then
             FType := BlobTypeMap[iSubType];
+        end;
+      fldUUID:
+        begin
+          FSize := PSQLTypes.UUIDLEN;
+          FType := ftGuid;
         end;
     end;
     with FieldDefs.AddFieldDef do

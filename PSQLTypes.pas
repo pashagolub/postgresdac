@@ -95,6 +95,7 @@ const
   NAMEDATALEN      = 32;
   TIMESTAMPTZLEN   = length('2006-02-28 09:08:08.677444+02');
   TIMETZLEN        = length('13:45:35.4880123457+13:40');
+  UUIDLEN          = length('{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}');
   OIDNAMELEN       = 36;
   INV_WRITE        = $00020000;
   INV_READ         = $00040000;
@@ -925,7 +926,8 @@ const
   MAXLOGFLDTYPES     = 24;              { Number of logical fieldtypes }
   {$ENDIF}
   //POSTGRES SPECIFIC    //pasha_golub 19.03.06
-  fldTIMESTAMPTZ     = MAXLOGFLDTYPES+1; {Timestamp with time zone}
+  fldTIMESTAMPTZ     = MAXLOGFLDTYPES + 1; {Timestamp with time zone}
+  fldUUID            = MAXLOGFLDTYPES + 2;
 
 
 { Sub Types (Logical) }
@@ -2451,6 +2453,10 @@ begin
     FIELD_TYPE_BIT:   begin
                          BdeType := fldZSTRING;
                          LogSize := phSize+1;
+                      end;
+    FIELD_TYPE_UUID:   begin
+                         BdeType := fldUUID;
+                         LogSize := UUIDLEN+1;
                       end;
   else
     begin

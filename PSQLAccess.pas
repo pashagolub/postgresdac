@@ -982,6 +982,7 @@ begin
                        end;
     FIELD_TYPE_TIMETZ: StrLCopy(Dest,Src,iField.FieldLength); //TIME WITH TIME ZONE
 
+    FIELD_TYPE_UUID: StrLCopy(Dest,Src,iField.FieldLength);
     FIELD_TYPE_TIMESTAMPTZ: StrLCopy(Dest,Src,iField.FieldLength);
     FIELD_TYPE_TIMESTAMP:
                           begin
@@ -1037,6 +1038,7 @@ begin
       FIELD_TYPE_REGPROC:  StrLCopy(Dest,Src,iField.FieldLength);
       FIELD_TYPE_INTERVAL: StrLCopy(Dest,Src,iField.FieldLength); //Time INTERVAL
       FIELD_TYPE_TIMETZ:   StrLCopy(Dest,Src,iField.FieldLength); //Time WITH TIME ZONE
+      FIELD_TYPE_UUID:     StrLCopy(Dest,Src,iField.FieldLength); 
       FIELD_TYPE_DATE:     begin
                              try
                                 TimeStamp.Date := LongInt(Src^);
@@ -2786,6 +2788,7 @@ begin
         FIELD_TYPE_TIMESTAMP: Inc(Result,SizeOf(TDateTime));
         FIELD_TYPE_TIMESTAMPTZ:Inc(Result, TIMESTAMPTZLEN+1);
         FIELD_TYPE_TIMETZ:Inc(Result,TIMETZLEN+1);
+        FIELD_TYPE_UUID:  Inc(Result,UUIDLEN+1);
         FIELD_TYPE_FLOAT4,
         FIELD_TYPE_NUMERIC,
         FIELD_TYPE_FLOAT8:Inc(Result,SizeOf(Double));
@@ -4037,7 +4040,8 @@ begin
          fldINT32:    Result := Result + '=' + IntToStr(LongInt(Src^));
          fldINT64:    Result := Result + '=' + IntToStr(Int64(Src^));
          fldFloat:    Result := Result + '=' + SQLFloatToStr(Double(Src^));
-         fldZSTRING:  Result := Result + '=' + StrValue(Src);
+         fldZSTRING, fldUUID:
+                      Result := Result + '=' + StrValue(Src);
          fldDate:     Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),1)+ '''';
          fldTime:     Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),2)+ '''';
          fldTIMESTAMP:Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),0)+ '''';
@@ -4086,7 +4090,8 @@ begin
            fldINT32:   Values := Values + IntToStr(LongInt(Src^))+', ';
            fldINT64:   Values := Values + IntToStr(Int64(Src^))+', ';
            fldFloat:   Values := Values + SQLFloatToStr(Double(Src^))+', ';
-           fldZSTRING: begin
+           fldZSTRING, fldUUID:
+                       begin
                           if Fld.NativeType = FIELD_TYPE_BIT then
                              Values := Values + 'B'+StrValue(Src)+', ' else
                              Values := Values + StrValue(Src)+', ';
@@ -4144,7 +4149,8 @@ begin
          fldINT32:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(LongInt(Src^));
          fldINT64:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(Int64(Src^));
          fldFloat:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + SQLFloatToStr(Double(Src^));
-         fldZSTRING:  Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + StrValue(Src);
+         fldZSTRING,
+         fldUUID:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + StrValue(Src);
          fldDate:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
          fldTime:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),2));
          fldTIMESTAMP:Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),0));
@@ -4198,7 +4204,7 @@ begin
                                   Values := Values+'"'+Fld.FieldName+'"'+'='+'''' + BlobValue(Src,Fld)+ ''''+', ';
                            end;
                      end;
-         fldZSTRING: begin
+         fldZSTRING, fldUUID: begin
                         if Fld.FieldNull then
                            Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
                            begin
