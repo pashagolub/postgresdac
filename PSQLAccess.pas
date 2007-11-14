@@ -6823,7 +6823,7 @@ begin
                          BoolChar := 'F'
                         else
                          BoolChar := 'T';
-                        Result := ord(boolchar) - ord(S2[1]);
+                        Result := ord(boolchar) - ord(UpCase(S2[1]));
                        end
 
       else Result := CompWithoutLen(PChar(S1), PChar(S2));
