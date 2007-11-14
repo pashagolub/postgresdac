@@ -1,0 +1,59 @@
+package PostgresDAC11;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST ON}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'PostgreSQL Direct Access Components'}
+{$IMPLICITBUILD OFF}
+
+requires
+  vcl,
+  vcldb,
+  dcldb,
+  bdertl,
+  dsnap;
+
+contains
+  PSQLTypes in 'PSQLTypes.pas',
+  PSQLAccess in 'PSQLAccess.pas',
+  PSQLCOMP in 'PSQLCOMP.pas',
+  PSQLDbTables in 'PSQLDbTables.pas',
+  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},
+  PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
+  PSQLCP in 'PSQLCP.pas',
+  PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
+  PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
+  psqlBatch in 'psqlBatch.pas',
+  PSQLMacroQuery in 'PSQLMacroQuery.pas',
+  PSQLMigrator in 'PSQLMigrator.pas',
+  PSQLMonitor in 'PSQLMonitor.pas',
+  PSQLTools in 'PSQLTools.pas',
+  PSQLDump in 'PSQLDump.pas',
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
+  PSQLMetaData in 'PSQLMetaData.pas',
+  PSQLConsts in 'PSQLConsts.pas',
+  PSQLCommon in 'PSQLCommon.pas',
+  PSQLCopy in 'PSQLCopy.pas',
+  PSQLDirectQuery in 'PSQLDirectQuery.pas',
+  PSQLExtMask in 'PSQLExtMask.pas';
+
+end.
