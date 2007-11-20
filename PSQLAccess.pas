@@ -585,7 +585,6 @@ Type
       StandartClause  : TStrings;
       LimitClause     : TStrings;
       AutoReExec      : Boolean;
-      FBaseDesc       : TBLBaseDesc;
       FLimit          : Integer;
       FOffset         : Integer;
       MasterCursor    : Pointer;
@@ -633,9 +632,9 @@ Type
     	procedure InternalSortBy(const Fields: array of Integer; const IsReverseOrder : array of boolean);
       function GetRecNo: integer;
       Procedure InternalReadBuffer;
-      Function GetTableName: PChar;
-      Procedure SetTableName(Name : PChar);
-      function CheckUniqueKey(var KeyNumber : integer): Boolean;       
+      Function GetTableName: string;
+      Procedure SetTableName(Name : string);
+      function CheckUniqueKey(var KeyNumber : integer): Boolean;
       procedure GetKeys(Unique: Boolean;var FieldList: TFieldArray; var FieldCount: Integer);
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
       function GetInsertSQL(Table: string; PRecord: Pointer): string;
@@ -671,6 +670,7 @@ Type
      private
       FByteaAsEscString: boolean;
       FOIDAsInt: boolean;
+      FTableName: string;
       Property KeyNumber: SmallInt Read FKeyNumber Write SetKeyNumber;
       property RecordCount : LongInt Read GetRecCount;
       Property Fields : TPSQLFields Read  FFieldDescs;
@@ -758,7 +758,7 @@ Type
 
       Property RecordNumber : LongInt Read GetRecordNumber Write SetRecordNumber;
       Property RecordState: TRecordState  Read  FRecordState Write FRecordState;
-      Property TableName : PChar Read  GetTableName Write SetTableName;
+      Property TableName : string Read  GetTableName Write SetTableName;
 
       property OIDAsInt: boolean read FOIDAsInt write FOIDAsInt;
       property ByteaAsEscString: boolean read FByteaAsEscString write FByteaAsEscString;
@@ -4048,7 +4048,7 @@ begin
        end;
   end;
   if Result <> '' then
-    Result := 'DELETE FROM ' + QuoteIdentifier(Table) + ' WHERE ' + Result;
+    Result := 'DELETE FROM ' + Table + ' WHERE ' + Result;
 end;
 
 procedure TNativeDataSet.FreeBlobStreams(PRecord: Pointer);
@@ -4109,7 +4109,7 @@ begin
   Delete(Values,Length(Values)-1,2);
   if (Fields <> '') and (Values <> '') then
   begin
-   Result := 'INSERT INTO ' + QuoteIdentifier(Table) + ' (' + Fields + ') VALUES ('+Values+')'
+   Result := 'INSERT INTO ' + Table + ' (' + Fields + ') VALUES ('+Values+')'
   end
 end;
 
@@ -4233,7 +4233,7 @@ begin
   Delete(VALUES,Length(Values)-1,2);
   if VALUES <> '' then
    begin
-    Result := 'UPDATE ' + QuoteIdentifier(Table) + ' SET '+VALUES+Where
+    Result := 'UPDATE ' + Table + ' SET '+VALUES+Where
    end
   else
    Result := '';
@@ -4247,8 +4247,8 @@ end;
 Procedure TNativeDataSet.InsertRecord( eLock : DBILockType; PRecord : Pointer );
 var
   SQL : String;
-  ATable,
-  Aliace : String;
+  {ATable,
+  Aliace : String;}
   Query : TNativeDataSet;
   AffRecord : Longint;
   OldQueryFlag: boolean;
@@ -4262,10 +4262,10 @@ begin
   CheckUniqueKey(KN);
   Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
   try
-    if SQLQuery <> '' then
+    {if SQLQuery <> '' then
        ATable := GetTable(SQLQuery,Aliace) else
-       ATable := TableName;
-  SQL :=GetINSERTSQL(ATable,PRecord);
+       ATable := TableName;}
+  SQL :=GetINSERTSQL(TableName,PRecord);
       if Sql <> '' then
       begin
           Query.SQLQuery := SQL;
@@ -4297,8 +4297,6 @@ end;
 Procedure TNativeDataSet.ModifyRecord(OldRecord,PRecord : Pointer; bFreeLock : Bool; ARecNo : Longint);
 var
   SQL : String;
-  ATable,
-  Aliace : String;
   Query : TNativeDataSet;
   AffRecord : Longint;
   OldQueryFlag: boolean;
@@ -4311,11 +4309,10 @@ begin
   CheckUniqueKey(KN);
   Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
   try
-    if SQLQuery <> '' then
-       ATable := GetTable(SQLQuery,Aliace) else
-       ATable := TableName;
+    {if SQLQuery <> '' then
+       ATable := GetTable(SQLQuery,Aliace) else}
     try
-    SQL :=GetUpdateSQL(ATable,OldRecord,PRecord);
+    SQL :=GetUpdateSQL(TableName,OldRecord,PRecord);
       if Sql <> '' then
       begin
          Query.SQLQuery := SQL;
@@ -4354,8 +4351,8 @@ end;
 Procedure TNativeDataSet.DeleteRecord(PRecord : Pointer);
 var
   SQL : String;
-  ATable,
-  Aliace : String;
+ { ATable,
+  Aliace : String;}
   Query : TNativeDataSet;
   AffRecord : Longint;
   RN : LongInt;
@@ -4365,10 +4362,10 @@ begin
   AffRecord := 0;
   InternalBuffer := PRecord;
   Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
-  if SQLQuery <> '' then
+  {if SQLQuery <> '' then
      ATable := GetTable(SQLQuery,Aliace) else
-     ATable := TableName;
-  SQL :=GetDeleteSQL(ATable,PRecord);
+     ATable := TableName;}
+  SQL :=GetDeleteSQL(TableName,PRecord);
   if Sql <> '' then
   begin
       Query.SQLQuery := SQL;
@@ -4393,15 +4390,23 @@ begin
   FIsLocked := FALSE;
 end;
 
-Function TNativeDataSet.GetTableName : PChar;
+Function TNativeDataSet.GetTableName : string;
+var IsOK: boolean;
+    s: string;
 begin
-  Result := @FBaseDesc.szName;
+  Result := FTablename;
+  if (Length(Result) = 0) and isQuery and (FOMode <> dbiREADONLY) then
+   begin
+    s := Format('SELECT %u::regclass',[FieldTable(0)]);
+    Result := FConnect.SelectStringDirect(PChar(s),IsOK,0);
+    if IsOK then
+     FTableName := Result;
+   end;
 end;
 
-Procedure TNativeDataSet.SetTableName(Name : PChar);
+Procedure TNativeDataSet.SetTableName(Name : string);
 begin
-  If Assigned(Name) then
-    With FBaseDesc Do StrLCopy(@szName,Name,SizeOf(szName)-1);
+  FTableName := Name;
 end;
 
 function TNativeDataSet.GetSQLClause: PChar;
@@ -5236,7 +5241,7 @@ end;
 procedure TNativeDataSet.Clone(bReadOnly : Bool; bUniDirectional : Bool; var hCurNew : hDBICur);
 begin
   if FConnect = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
-  TNativeConnect(FConnect).OpenTable(TableName,FIndexName,0,FOMode,dbiOPENSHARED,hCurNew,0,0);
+  TNativeConnect(FConnect).OpenTable(PChar(TableName),FIndexName,0,FOMode,dbiOPENSHARED,hCurNew,0,0);
   TNativeDataSet(hCurNew).MasterCursor := Self;
 end;
 
