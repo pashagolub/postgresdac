@@ -338,7 +338,8 @@ Type
       function GetTableProps(hDB: hDBIDB; const TableName: string; var Owner,
                         Comment, Tablespace: string; var HasOIDs: boolean;
                         var TableOid: cardinal):DBIResult;
-      function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AValue: string; var AFieldType: word): DBIResult;
+      function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; var AParam: TParam): DBIResult;
+      function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AParam: TParam): DBIResult;
       function GetLastInsertId(hCursor: hDBICur; const FieldNum: integer; var ID: integer): DBIResult;
 
       function CheckBuffer(hCursor: hDBICur; PRecord: Pointer): DBIResult;
@@ -684,7 +685,7 @@ Type
       //insert, update, delete stuff
       function StrValue(P : Pointer):String;
       function MemoValue(P : Pointer):String;
-      function BlobValue(P : Pointer; Fld: TPSQLField):String;
+      function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
     Public
       SQLQuery : String;
       ROWID    : OID;
@@ -763,7 +764,8 @@ Type
       property OIDAsInt: boolean read FOIDAsInt write FOIDAsInt;
       property ByteaAsEscString: boolean read FByteaAsEscString write FByteaAsEscString;
 
-      function FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AFieldType: word): string;
+      procedure FieldOldValue(AFieldName: string; var AParam: TParam);
+      procedure FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam);
 
       property IsLocked: boolean read FIsLocked write FIsLocked;
       property LastOperationTime: cardinal read FLastOperationTime;
@@ -3572,7 +3574,7 @@ begin
   Result := '';
   if FStatement = nil then Exit;
   Result := StrPas(PQgetvalue(FStatement,GetRecNo,FieldNum));
-  if Fieldtype(FieldNum) = 1042 then
+  if Fieldtype(FieldNum) = FIELD_TYPE_BPCHAR then
      Result := TrimRight(Result);
 end;
 
@@ -4902,6 +4904,7 @@ begin
   end;
   SQLQuery := Trim(Temp);
 end;
+
 Procedure TNativeDataSet.RelRecordLock(bAll: Bool);
 begin
   FIsLocked := FALSE;
@@ -7448,147 +7451,124 @@ begin
 end;
 
 
-function TPSQLEngine.GetFieldValueFromBuffer(hCursor: hDBICur;
-  PRecord: Pointer; AFieldName: string; var AValue: string; var AFieldType: word): DBIResult;
+function TPSQLEngine.GetFieldOldValue(hCursor: hDBICur; AFieldName: string; var AParam: TParam): DBIResult;
 begin
   Try
-    AValue := TNativeDataSet(hCursor).FieldValueFromBuffer(PRecord, AFieldName, AFieldType);
+    TNativeDataSet(hCursor).FieldOldValue(AFieldName, AParam);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
   end;
 end;
 
-function TNativeDataSet.FieldValueFromBuffer(PRecord: Pointer;
-  AFieldName: string; var AFieldType: word): string;
+function TPSQLEngine.GetFieldValueFromBuffer(hCursor: hDBICur;
+  PRecord: Pointer; AFieldName: string; var AParam: TParam): DBIResult;
+begin
+  Try
+    TNativeDataSet(hCursor).FieldValueFromBuffer(PRecord, AFieldName, AParam);
+    Result := DBIERR_NONE;
+  Except
+    Result := CheckError;
+  end;
+end;
+
+
+procedure TNativeDataSet.FieldOldValue(AFieldName: string; var AParam: TParam);
+var AFNum, Len: integer;
+    FVal: PChar;
+
+    function MapNativeTypeToDelphi(const OID: integer): integer;
+    begin
+      case OID of
+        FIELD_TYPE_BOOL    :  Result := fldBOOL;
+        FIELD_TYPE_BYTEA,
+        FIELD_TYPE_TEXT    :  Result := fldBLOB;
+        FIELD_TYPE_INT2    :  Result := fldINT16;
+        //oids mapped to integer cause they must appear in SQL as id of Large Object
+        FIELD_TYPE_OID,
+        FIELD_TYPE_INT4    :  Result := fldINT32;
+        FIELD_TYPE_INT8    :  Result := fldINT64;
+        FIELD_TYPE_DATE    :  Result := fldDATE;
+        FIELD_TYPE_TIME    :  Result := fldTIME;
+        FIELD_TYPE_TIMESTAMP: Result := fldTIMESTAMP;
+        FIELD_TYPE_FLOAT4,
+        FIELD_TYPE_FLOAT8  :  Result := fldFLOAT;
+        FIELD_TYPE_NUMERIC :  Result := fldBCD;
+       else
+        Result := fldZSTRING;
+      end;
+    end;
+
+begin
+ AFNum := FieldIndex(AFieldName);
+ if AFNum = -1 then Exit;
+ If FieldIsNull(AFNum) then
+  begin                                        
+   AParam.Value := Null;
+   Exit;
+  end;
+ if FieldType(AFNum) = FIELD_TYPE_BYTEA then
+  begin
+     FVal := PQUnescapeBytea(FieldBuffer(AFNum),Len);
+     try
+      AParam.SetBlobData(FVal, Len);
+     finally
+      PQFreeMem(FVal);
+     end;
+  end
+ else
+   AParam.Value := Field(AFNum);
+end;
+
+
+procedure TNativeDataSet.FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam);
 var
   I    : Integer;
   Fld    : TPSQLField;
   Src    : Pointer;
 
-      function StrValue(P : Pointer):String;
-      begin
-          Result := '';
-          if P <> nil then
-             Result := StrPas(PChar(P));
-      end;
-
-      function MemoValue(P : Pointer):String;
-      var
-         Buffer : PChar;
-         SZ : Integer;
-      begin
-          Result := '';
-          if TBlobItem(P^).Blob <> nil then
-          begin
-            if TBlobItem(P^).Blob.Size = 0 then exit;
-            SZ := TBlobItem(P^).Blob.Size;
-            GetMem(Buffer, SZ+1);
-            ZeroMemory(Buffer,SZ+1);
-            TBlobItem(P^).Blob.Seek(0,0);
-            TBlobItem(P^).Blob.Read(Buffer^, SZ);
-            Result := (StrPas(PChar(Buffer)));
-            FreeMem(Buffer, SZ+1);
-          end;
-      end;
-
-      function BlobValue(P : Pointer):String;
-      var
-         Buffer, PEsc : PChar;
-         SZ : Integer;
-         Res : LongInt;
-         Off, BlSZ: Integer;
-      begin
-          Result := '0';
-          if TBlobItem(P^).Blob <> nil then
-          begin
-            if TBlobItem(P^).Blob.Size = 0 then exit;
-            SZ := TBlobItem(P^).Blob.Size;
-            Buffer := AllocMem(SZ);
-            TBlobItem(P^).Blob.Seek(0,0);
-            TBlobItem(P^).Blob.Read(Buffer^, SZ);
-            If Fld.NativeBLOBType = nbtBytea then
-             begin
-               PEsc := PQEscapeBytea(Buffer,SZ,BlSZ);
-              try
-               Result := Copy(PEsc,1,BlSZ);
-              finally
-               PQFreeMem(PEsc);
-              end;
-             end
-            else   //nbtOID in other case
-             begin
-                FLocalBHandle := -1;
-                //BLOB Trans
-                FConnect.BeginBLOBTran;
-                FBlobHandle := lo_creat(FConnect.Handle,INV_WRITE or INV_READ);
-                if FBlobHandle = 0 then
-                  begin
-                   FConnect.RollbackBLOBTran;
-                   Raise EPSQLException.CreateMsg(FConnect,'Can''t create BLOB! lo_creat operation failed!');
-                  end;
-                FLocalBHandle := lo_open(FConnect.Handle,FBlobHandle, INV_WRITE);
-                Off := 0;
-               try
-                repeat
-                  BlSZ := Min(MAX_BLOB_SIZE,SZ - off);
-                  Res  := lo_write(FConnect.Handle,FLocalBHandle, Buffer+off, BLSZ);
-                  If Res < 0 then
-                     Raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
-                  else
-                     Inc(Off, Res);
-                until (off >= SZ);
-               except
-                lo_close(FConnect.Handle,FlocalBHandle);
-                //BLOB Trans
-                If not FConnect.InTransaction then
-                  FConnect.RollbackBLOBTran;
-                FLocalBHandle := -1;
-                raise;
-               end;
-                lo_close(FConnect.Handle,FlocalBHandle);
-                //BLOB Trans
-                FConnect.CommitBLOBTran;
-                FLocalBHandle := -1;
-                Result := IntToStr(FBlobHandle);
-                FreeMem(Buffer, SZ);
-              end;
-           end;
-      end;
-
 begin
-  Result := '';
+
   for I := 1 to FFieldDescs.Count do
   begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
     If CompareText(Fld.FieldName, AFieldName)<>0 then Continue;
-    AFieldType := Fld.FieldType;
+    //AParam.DataType := DataTypeMap[Fld.FieldType];
     Src := Fld.FieldValue;
     Inc(PChar(Src));
     If Fld.FieldNull then
-     AFieldType := MAXLOGFLDTYPES + 1
+     AParam.Value := Null
     else
      begin
        case Fld.FieldType of
-           fldBOOL:    Result := IntToStr(SmallInt(Src^));
-           fldINT16:   Result := IntToStr(SmallInt(Src^));
-           fldINT32:   Result := IntToStr(LongInt(Src^));
-           fldINT64:   Result := IntToStr(Int64(Src^));
-           fldFloat:   Result := SQLFloatToStr(Double(Src^));
+           fldBOOL:    AParam.AsBoolean := Boolean(SmallInt(Src^));
+           fldINT16:   AParam.AsSmallInt := SmallInt(Src^);
+           fldINT32:   AParam.AsInteger := LongInt(Src^);
+           fldINT64:   begin
+                         AParam.Value := Int64(Src^);
+                         AParam.DataType := DataTypeMap[Fld.FieldType];
+                       end;
+           fldFloat:   AParam.AsFloat := Double(Src^);
            fldZSTRING: begin
                           if Fld.NativeType = FIELD_TYPE_BIT then
-                             Result := 'B'+StrValue(Src)
+                             AParam.AsString := 'B'+StrValue(Src)
                           else
-                             Result := StrValue(Src);
+                             AParam.AsString := StrValue(Src);
                        end;
            fldBLOB:    if Fld.FieldSubType = fldstMemo then
-                          Result := MemoValue(Src)
+                          AParam.AsMemo := MemoValue(Src)
                        else
-                          Result := BlobValue(Src);
-           fldDate:    Result := DateTimeToSqlDate(TDateTime(Src^),1);
-           fldTime:    Result := DateTimeToSqlDate(TDateTime(Src^),2);
-           fldTIMESTAMP:Result := DateTimeToSqlDate(TDateTime(Src^),0);
+                          if Fld.NativeBLOBType = nbtOID then
+                            AParam.AsInteger := StrToInt(BlobValue(Src, Fld))
+                          else
+                            if not Assigned(TBlobItem(Src^).Blob) or (TBlobItem(Src^).Blob.Size = 0) then
+                              AParam.Value := Null
+                            else
+                              AParam.LoadFromStream(TBlobItem(Src^).Blob, ftBlob);
+           fldDate:    AParam.AsDate := TDateTime(Src^);
+           fldTime:    AParam.AsTime := TDateTime(Src^);
+           fldTIMESTAMP: AParam.AsDateTime := TDateTime(Src^);
        end; //case
      end; //else
      Break;
@@ -8053,7 +8033,7 @@ begin
     end;
 end;
 
-function TNativeDataSet.BlobValue(P : Pointer; Fld: TPSQLField):String;
+function TNativeDataSet.BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
 var
    Buffer, PEsc : PChar;
    SZ : Integer;
@@ -8072,12 +8052,17 @@ begin
       TBlobItem(P^).Blob.Read(Buffer^, SZ);
       If Fld.NativeBLOBType = nbtBytea then
         begin
-          PEsc := PQEscapeBytea(Buffer,SZ,BlSZ);
-         try
-          Result := Copy(PEsc,1,BlSZ);
-         finally
-          PQFreeMem(PEsc);
-         end;
+          If NeedEscape then
+           begin
+             PEsc := PQEscapeBytea(Buffer,SZ,BlSZ);
+             try
+              Result := Copy(PEsc,1,BlSZ);
+             finally
+              PQFreeMem(PEsc);
+             end;
+           end
+          else
+           Result := Copy(Buffer,1,SZ);
         end
       else    //nbtOID in other case
         begin

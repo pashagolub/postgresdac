@@ -4303,8 +4303,18 @@ end;
 {$IFNDEF DELPHI_4}
 { TPSQLDataSet.IProviderSupport }
 Procedure TPSQLDataSet.PSGetAttributes(List : TList);
+var
+  Attr: PPacketAttribute;
 begin
-  inherited PSGetAttributes(List);
+  inherited PSGetAttributes(List); //29.11.2007
+  New(Attr);
+  List.Add(Attr);
+  with Attr^ do
+  begin
+    Name := 'LCID';
+    Value := Integer(-1);
+    IncludeInDelta := False;
+  end;
 end;
 
 Function TPSQLDataSet.PSIsSQLBased: Boolean;
@@ -5071,8 +5081,6 @@ var
   Param: TPSQLParam;
   PName: String;
   Field: TField;
-  Value: string;
-  FType: word;
 begin
   if not Assigned(FDataSet) then Exit;
   with Query[UpdateKind] do
@@ -5082,26 +5090,18 @@ begin
       Param := Params[I];
       PName := Param.Name;
       Old := CompareText(Copy(PName, 1, 4), 'OLD_') = 0;
-      if  Old and (UpdateKind in [ukInsert,ukDelete]) then
+      if Old and (UpdateKind in [ukInsert,ukDelete]) then
         DatabaseError(Format(SNoParameterValue,[Param.Name]));
       if Old then
         System.Delete(PName, 1, 4);
       Field := FDataSet.FindField(PName);
       if not Assigned(Field) then Continue;
-      If Field.IsBlob  then
-        DatabaseError(Format(SNoParameterValue,[Param.Name]));
       if Old then
-        Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle,FDataset.FOldBuffer,PName, Value, FType))
+        Check(FDataset.Engine,FDataset.Engine.GetFieldOldValue(FDataset.Handle, PName, Param))
       else
-          Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle,FDataset.ActiveBuffer,PName, Value, Ftype));
-      if FType in [0..MAXLOGFLDTYPES] then
-       Param.DataType := DataTypeMap[FType]
-      else
-        Param.DataType := ftADT;
-      if Field.IsNull then//mi:2007-01-20  #402
-        Param.Value := Null
-      else
-        Param.Value := Value;
+        Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle, FDataset.ActiveBuffer, PName, Param));
+      if Param.DataType = ftUnknown then
+        Param.DataType := ftString;
     end;
   end;
 end;
