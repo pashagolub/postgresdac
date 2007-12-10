@@ -6703,147 +6703,149 @@ var
   I, K   : Integer;
   Cmp : Integer;
 
-function Compare1(const S1: String; const S2 : String; FldType : integer):Integer;
+    function Compare1(const S1: String; const S2 : String; FldType : integer):Integer;
 
-    function CompWithLen(const S1,S2 : PChar):Integer;
-    var
-      I : Integer;
-      P1,P2 : PChar;
-    begin
-      Result := 0;
-      P1 := S1;
-      P2 := S2;
-      if (StrLen(P1) < StrLen(P2)) then
-        Result := -1 else
-
-        if (StrLen(P1) > StrLen(P2)) then
-          Result := 1 else
-
-          begin
-            for I :=0 to Min(StrLen(P1),StrLen(P2)) do
-              begin
-                if P1^ > P2^ then
-                  begin
-                    Result := 1;
-                    Break;
-                  end else
-
-                  if P1^ < P2^ then
-                    begin
-                      Result := -1;
-                      Break;
-                    end;
-                  Inc(P1); Inc(P2);
-              end;
-          end;
-    end;
-
-    function CompWithoutLen(const S1,S2 : PChar):Integer;
-    var
-      I : Integer;
-      P1,P2 : PChar;
-      Len : Integer;
-    begin
-      Result := 0;
-      P1 := S1;
-      P2 := S2;
-      if (StrLen(P1) < StrLen(P2)) then
-         Result := -1 else
-         if (StrLen(P1) > StrLen(P2)) then
-            Result := 1;
-      Len := Min(StrLen(P1),StrLen(P2));
-      for I :=0 to Len-1 do
+        function CompWithLen(const S1,S2 : PChar):Integer;
+        var
+          I : Integer;
+          P1,P2 : PChar;
         begin
-          if P1^ > P2^ then
-          begin
-             Result := 1;
-             Break;
-          end else
-          if P1^ < P2^ then
-          begin
-             Result := -1;
-             Break;
-          end else
-          if P1^ = P2^ then
-          begin
-             if MaskSearch(S2,S1+'%') then
-             begin
-                Result := 0;
-                Break;
-             end;
-          end;
-          Inc(P1); Inc(P2);
+          Result := 0;
+          P1 := S1;
+          P2 := S2;
+          if (StrLen(P1) < StrLen(P2)) then
+            Result := -1 else
+
+            if (StrLen(P1) > StrLen(P2)) then
+              Result := 1 else
+
+              begin
+                for I :=0 to Min(StrLen(P1),StrLen(P2)) do
+                  begin
+                    if P1^ > P2^ then
+                      begin
+                        Result := 1;
+                        Break;
+                      end else
+
+                      if P1^ < P2^ then
+                        begin
+                          Result := -1;
+                          Break;
+                        end;
+                      Inc(P1); Inc(P2);
+                  end;
+              end;
         end;
-    end;
 
-    function SqlDateToBDEDateTime(const Value: string): string;
-    var
-      Year, Month, Day: String;
-      Temp: string;
+        function CompWithoutLen(const S1,S2 : PChar):Integer;
+        var
+          I : Integer;
+          P1,P2 : PChar;
+          Len : Integer;
+        begin
+          Result := 0;
+          P1 := S1;
+          P2 := S2;
+          if (StrLen(P1) < StrLen(P2)) then
+             Result := -1 else
+             if (StrLen(P1) > StrLen(P2)) then
+                Result := 1;
+          Len := Min(StrLen(P1),StrLen(P2));
+          for I :=0 to Len-1 do
+            begin
+              if P1^ > P2^ then
+              begin
+                 Result := 1;
+                 Break;
+              end else
+              if P1^ < P2^ then
+              begin
+                 Result := -1;
+                 Break;
+              end else
+              if P1^ = P2^ then
+              begin
+                 if MaskSearch(S2,S1+'%') then
+                 begin
+                    Result := 0;
+                    Break;
+                 end;
+              end;
+              Inc(P1); Inc(P2);
+            end;
+        end;
+
+        function SqlDateToBDEDateTime(const Value: string): string;
+        var
+          Year, Month, Day: String;
+          Temp: string;
+        begin
+          Temp   := Value;
+          Result := '';
+          if Length(Temp) >= 10 then
+          begin
+            Year  := Copy(Temp,1,4);
+            Month := Copy(Temp,6,2);
+            Day   := Copy(Temp,9,2);
+            Result := Format('%s-%s-%s',[Month,Day,Year]);
+            Temp := Copy(Temp,12,8);
+          end;
+          if Length(Temp) >= 8 then
+            Result := Result + ' ' + Temp;
+        end;
+
+    var BoolChar: char;
+
     begin
-      Temp   := Value;
-      Result := '';
-      if Length(Temp) >= 10 then
-      begin
-        Year  := Copy(Temp,1,4);
-        Month := Copy(Temp,6,2);
-        Day   := Copy(Temp,9,2);
-        Result := Format('%s-%s-%s',[Month,Day,Year]);
-        Temp := Copy(Temp,12,8);
-      end;
-      if Length(Temp) >= 8 then
-        Result := Result + ' ' + Temp;
+        case FldType of
+          FIELD_TYPE_INT2,
+          FIELD_TYPE_INT4,
+          FIELD_TYPE_INT8,
+          FIELD_TYPE_OIDVECTOR,
+          FIELD_TYPE_OID: Result := CompWithLen(PChar(S1), PChar(S2));
+
+          FIELD_TYPE_FLOAT4,
+          FIELD_TYPE_FLOAT8,
+          FIELD_TYPE_NUMERIC: if AStrictConformity then
+                                  Result := CompWithLen(PChar(StringReplace(S1, DecimalSeparator,
+                                                                '.', [rfReplaceAll])),
+                                            PChar(S2))
+                              else
+                                  Result := CompWithoutLen(
+                                            PChar(StringReplace(S1, DecimalSeparator,
+                                                                '.', [rfReplaceAll])),
+                                            PChar(S2));
+
+          FIELD_TYPE_DATE,
+          FIELD_TYPE_TIMESTAMP,
+          FIELD_TYPE_TIMESTAMPTZ: if AStrictConformity then
+                                    Result := CompWithLen(PChar(S1), PChar(SqlDateToBDEDateTime(S2)))
+                                  else
+                                    Result := CompWithoutLen(PChar(S1), PChar(SqlDateToBDEDateTime(S2)));
+
+          FIELD_TYPE_BOOL: begin
+                            If S1 = '' then
+                             BoolChar := 'F'
+                            else
+                             BoolChar := 'T';
+                            Result := ord(boolchar) - ord(UpCase(S2[1]));
+                           end
+
+          else
+                            if AStrictConformity then
+                              Result := CompWithLen(PChar(S1), PChar(S2))
+                             else
+                              Result := CompWithoutLen(PChar(S1), PChar(S2))
+        end
     end;
 
-var BoolChar: char;
-
-begin
-  If AStrictConformity then
-    Result := CompWithLen(PChar(S1), PChar(S2))
-  else
-    case FldType of
-      FIELD_TYPE_VARCHAR,
-      FIELD_TYPE_BPCHAR,
-      FIELD_TYPE_CHAR: Result := CompWithoutLen(PChar(S1), PChar(S2));
-
-      FIELD_TYPE_INT2,
-      FIELD_TYPE_INT4,
-      FIELD_TYPE_INT8,
-      FIELD_TYPE_OIDVECTOR,
-      FIELD_TYPE_OID: Result := CompWithLen(PChar(S1), PChar(S2));
-
-      FIELD_TYPE_FLOAT4,
-      FIELD_TYPE_FLOAT8,
-      FIELD_TYPE_NUMERIC: Result := CompWithoutLen(
-                                        PChar(StringReplace(S1, DecimalSeparator,
-                                                            '.', [rfReplaceAll])),
-                                        PChar(S2));
-
-      FIELD_TYPE_TIME,
-      FIELD_TYPE_TIMETZ: Result := CompWithoutLen(PChar(S1), PChar(S2));
-
-      FIELD_TYPE_DATE,
-      FIELD_TYPE_TIMESTAMP,
-      FIELD_TYPE_TIMESTAMPTZ: Result := CompWithoutLen(PChar(S1), PChar(SqlDateToBDEDateTime(S2)));
-
-      FIELD_TYPE_BOOL: begin
-                        If S1 = '' then
-                         BoolChar := 'F'
-                        else
-                         BoolChar := 'T';
-                        Result := ord(boolchar) - ord(UpCase(S2[1]));
-                       end
-
-      else Result := CompWithoutLen(PChar(S1), PChar(S2));
-    end
-end;
-
-function FldVal(CurRow: integer; aIndex: Integer): String;
-begin
-  result:='';
-  if (aIndex>-1) and (aIndex<= FieldCount-1) then //are we in range?
-    result:=StrPas(PQGetValue(Fstatement,CurRow,aIndex)); //else we access current row
-end;
+    function FldVal(CurRow: integer; aIndex: Integer): String;
+    begin
+      result:='';
+      if (aIndex>-1) and (aIndex<= FieldCount-1) then //are we in range?
+        result:=StrPas(PQGetValue(Fstatement,CurRow,aIndex)); //else we access current row
+    end;
 
 Var
   P1,P2 : String;
