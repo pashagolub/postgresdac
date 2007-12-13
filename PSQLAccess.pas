@@ -7554,12 +7554,12 @@ begin
            fldFloat:   AParam.AsFloat := Double(Src^);
            fldZSTRING: begin
                           if Fld.NativeType = FIELD_TYPE_BIT then
-                             AParam.AsString := 'B'+StrValue(Src)
+                             AParam.AsString := 'B' + PChar(Src)
                           else
-                             AParam.AsString := StrValue(Src);
+                             AParam.AsString := PChar(Src);
                        end;
            fldBLOB:    if Fld.FieldSubType = fldstMemo then
-                          AParam.AsMemo := MemoValue(Src)
+                          AParam.LoadFromStream(TBlobItem(Src^).Blob, ftMemo)
                        else
                           if Fld.NativeBLOBType = nbtOID then
                             AParam.AsInteger := StrToInt(BlobValue(Src, Fld))
