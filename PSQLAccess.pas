@@ -7558,14 +7558,14 @@ begin
                           else
                              AParam.AsString := PChar(Src);
                        end;
-           fldBLOB:    if Fld.FieldSubType = fldstMemo then
-                          AParam.LoadFromStream(TBlobItem(Src^).Blob, ftMemo)
-                       else
-                          if Fld.NativeBLOBType = nbtOID then
+           fldBLOB:    if Fld.NativeBLOBType = nbtOID then
                             AParam.AsInteger := StrToInt(BlobValue(Src, Fld))
+                       else
+                          if not Assigned(TBlobItem(Src^).Blob) or (TBlobItem(Src^).Blob.Size = 0) then
+                            AParam.Value := Null
                           else
-                            if not Assigned(TBlobItem(Src^).Blob) or (TBlobItem(Src^).Blob.Size = 0) then
-                              AParam.Value := Null
+                            if Fld.FieldSubType = fldstMemo then
+                              AParam.LoadFromStream(TBlobItem(Src^).Blob, ftMemo)
                             else
                               AParam.LoadFromStream(TBlobItem(Src^).Blob, ftBlob);
            fldDate:    AParam.AsDate := TDateTime(Src^);
