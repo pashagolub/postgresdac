@@ -4,4 +4,6 @@
 @echo ************************ TortoiseSVN *****************************
 @echo ******************************************************************
 
-@"C:\Program Files\TortoiseSVN\bin\TortoiseProc.exe" /command:update /path:"../PostgresDAC" /notempfile /closeonend:2
+@FOR /F "usebackq" %%i IN (`cd`) DO SET PATHLOCAL=%%i
+
+@"C:\Program Files\TortoiseSVN\bin\TortoiseProc.exe" /command:update /path:"%PATHLOCAL%" /notempfile /closeonend:2
