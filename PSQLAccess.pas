@@ -3280,9 +3280,9 @@ begin
     if (StandartClause.Count = 0) and (SQLQuery = '') then
     begin
       isQuery := False;
-      StandartClause.Add('Select * from ' + TableName);
+      StandartClause.Add('SELECT * FROM ' + TableName);
       if FOpen then ClearIndexInfo;
-      limitClause.Add('limit 1');
+      limitClause.Add('LIMIT 1');
       FSystemNeed := true;
       InternalOpen;
       FSystemNeed := False;
@@ -4481,9 +4481,9 @@ begin
            ATableName := TableName;
         if ATableName = '' then Exit;
         ATableName := StringReplace(ATableName,'"','',[rfReplaceAll]);
-        sSqlQuery := 'select t1.relname AS name, i.indisunique as "unique", i.indkey as fields, i.indisprimary'+
-                     ' from "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'+
-                     ' where i.indexrelid=t1.oid'+
+        sSqlQuery := 'SELECT t1.relname AS name, i.indisunique as "unique", i.indkey as fields, i.indisprimary'+
+                     ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'+
+                     ' WHERE i.indexrelid=t1.oid'+
                      ' AND i.indrelid=t2.oid'+
                      ' AND t2.relname = ''%s''';
                      //' AND i.indexprs IS NULL';
@@ -4502,12 +4502,12 @@ begin
     else //if we have version >= 7.4.1
       begin
        ATableOID := FieldTable(0);
-       sSqlQuery := 'select t1.relname AS name,'+
+       sSqlQuery := 'SELECT t1.relname AS name,'+
                     ' i.indisunique as "unique",'+
                     ' i.indkey as fields,'+
                     ' i.indisprimary'+
-                    ' from "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'+
-                    ' where i.indexrelid=t1.oid'+
+                    ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'+
+                    ' WHERE i.indexrelid=t1.oid'+
                     ' AND i.indrelid=t2.oid'+
                     ' AND t2.oid = %u'+
                     ' AND i.indexprs IS NULL';
@@ -7539,6 +7539,12 @@ begin
     //AParam.DataType := DataTypeMap[Fld.FieldType];
     Src := Fld.FieldValue;
     Inc(PChar(Src));
+    if not Fld.FieldChanged then //field was not changed, we put there old value
+                                 //08.01.2008
+     begin
+      FieldOldValue(AFieldName, AParam);
+      Exit;
+     end;
     If Fld.FieldNull then
      AParam.Value := Null
     else

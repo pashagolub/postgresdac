@@ -3269,7 +3269,7 @@ var
   UseStartKey, UseEndKey, UseKey: Boolean;
 begin
    Result := FALSE;
-  if not (BuffersEqual(FKeyBuffers[kiRangeStart], FKeyBuffers[kiCurRangeStart],SizeOf(TKeyBuffer) + FRecordSize) and
+   if not (BuffersEqual(FKeyBuffers[kiRangeStart], FKeyBuffers[kiCurRangeStart],SizeOf(TKeyBuffer) + FRecordSize) and
           BuffersEqual(FKeyBuffers[kiRangeEnd], FKeyBuffers[kiCurRangeEnd],SizeOf(TKeyBuffer) + FRecordSize)) then
   begin
     IndexBuffer := AllocMem(KeySize * 2);
@@ -3718,7 +3718,7 @@ var
   {}    Fld.Value := VarValue;
   {}end;
 
-  function IsLongintFld:boolean;
+  {function IsLongintFld:boolean;
   var i:integer;
   begin
     i:=0;
@@ -3726,7 +3726,7 @@ var
           not (TField(Fields[i]) is TLargeIntField) do
      inc(i);
     Result := i <> Fields.Count-1
-  end;
+  end;}
 
 begin
   CheckBrowseMode;
@@ -3736,7 +3736,7 @@ begin
   try
     GetFieldList(Fields, KeyFields);
     CaseInsensitive := loCaseInsensitive in Options;
-    if MapsToIndex(Fields, CaseInsensitive) or IsLongintFld
+    if MapsToIndex(Fields, CaseInsensitive){ or IsLongintFld}
        then
         LookupCursor := FHandle else
         LookupCursor := GetLookupCursor(KeyFields, CaseInsensitive);
@@ -3747,7 +3747,6 @@ begin
       try
         Engine.InitRecord(LookupCursor, Buffer);
         FieldCount := Fields.Count;
-//changed by pasha_golub 13.01.05
         if FieldCount = 1 then
         begin
             if VarIsArray(KeyValues) then
@@ -3756,7 +3755,6 @@ begin
         end else
             for I := 0 to FieldCount - 1 do
                 SetFieldValue(TField(Fields[I]), KeyValues[I]);
-//end of changes 13.01.05
         PartialLength := 0;
         if (loPartialKey in Options) and
           (TField(Fields.Last).DataType = ftString) then
