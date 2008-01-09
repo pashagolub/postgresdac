@@ -339,7 +339,7 @@ Type
                         Comment, Tablespace: string; var HasOIDs: boolean;
                         var TableOid: cardinal):DBIResult;
       function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; var AParam: TParam): DBIResult;
-      function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AParam: TParam): DBIResult;
+      function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
       function GetLastInsertId(hCursor: hDBICur; const FieldNum: integer; var ID: integer): DBIResult;
 
       function CheckBuffer(hCursor: hDBICur; PRecord: Pointer): DBIResult;
@@ -765,7 +765,7 @@ Type
       property ByteaAsEscString: boolean read FByteaAsEscString write FByteaAsEscString;
 
       procedure FieldOldValue(AFieldName: string; var AParam: TParam);
-      procedure FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam);
+      procedure FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean);
 
       property IsLocked: boolean read FIsLocked write FIsLocked;
       property LastOperationTime: cardinal read FLastOperationTime;
@@ -7464,10 +7464,10 @@ begin
 end;
 
 function TPSQLEngine.GetFieldValueFromBuffer(hCursor: hDBICur;
-  PRecord: Pointer; AFieldName: string; var AParam: TParam): DBIResult;
+  PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
 begin
   Try
-    TNativeDataSet(hCursor).FieldValueFromBuffer(PRecord, AFieldName, AParam);
+    TNativeDataSet(hCursor).FieldValueFromBuffer(PRecord, AFieldName, AParam, UnchangedAsNull);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
@@ -7523,7 +7523,8 @@ begin
 end;
 
 
-procedure TNativeDataSet.FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam);
+procedure TNativeDataSet.FieldValueFromBuffer(PRecord: Pointer; AFieldName: string;
+      var AParam: TParam; const UnchangedAsNull: boolean);
 var
   I    : Integer;
   Fld    : TPSQLField;
@@ -7539,8 +7540,8 @@ begin
     //AParam.DataType := DataTypeMap[Fld.FieldType];
     Src := Fld.FieldValue;
     Inc(PChar(Src));
-    if not Fld.FieldChanged then //field was not changed, we put there old value
-                                 //08.01.2008
+    if not Fld.FieldChanged and not UnchangedAsNull then //field was not changed, we put there old value
+                                                         //08.01.2008
      begin
       FieldOldValue(AFieldName, AParam);
       Exit;

@@ -5097,7 +5097,7 @@ begin
       if Old then
         Check(FDataset.Engine,FDataset.Engine.GetFieldOldValue(FDataset.Handle, PName, Param))
       else
-        Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle, FDataset.ActiveBuffer, PName, Param));
+        Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle, FDataset.ActiveBuffer, PName, Param, UpdateKind <> ukModify));
       if Param.DataType = ftUnknown then
         Param.DataType := ftString;
     end;
