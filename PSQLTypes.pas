@@ -226,6 +226,7 @@ const
     PSEUDO_TYPE_LANGHANDLER       = 2280;
     PSEUDO_TYPE_RECORD            = 2249;
     PSEUDO_TYPE_CSTRING           = 2275;
+    PSEUDO_TYPE_A_CSTRING         = 1263; //10.01.2008
     PSEUDO_TYPE_INTERNAL          = 2281;
     PSEUDO_TYPE_ANYENUM		        = 3500; //09.10.2007
     PSEUDO_ANY_ARRAY              = 2277;
