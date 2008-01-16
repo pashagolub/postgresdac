@@ -102,12 +102,12 @@ const
   {SEEK_SET         = 0;
   SEEK_CUR         = 1;
   SEEK_END         = 2;}
-  DELIMITERS       :string = ' .:;,+-<>/*%^=()[]|&~@#$\`{}!?'#10#13;
+  DELIMITERS       : string = ' .:;,+-<>/*%^=()[]|&~@#$\`{}!?'#10#13;
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
   MAX_BLOB_SIZE    = 8192; //Max Blob size for read and write operation
   MAX_ENCODING_ID  = 36; //Max encoding id for pg_encoding_to_char
-  InvalidOid       = 0;
+  InvalidOid       : cardinal = 0;
 var
   DLL                  : string = 'libpq.dll';
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;

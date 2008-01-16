@@ -589,7 +589,7 @@ Type
       FLimit          : Integer;
       FOffset         : Integer;
       MasterCursor    : Pointer;
-      FBlobHandle     : Integer;
+      FBlobHandle     : cardinal;
       FlocalBHandle   : Integer;
       FBlobOpen       : Boolean;
       FOIDTable       : TList;
@@ -4595,7 +4595,7 @@ begin
         lo_close(FConnect.Handle, FLocalBHandle);
         //BLOB Trans
         FConnect.CommitBLOBTran;
-        FBlobHandle := -1;
+        FBlobHandle := InvalidOid;
        end;
        FBlobOpen := False;
      end;
