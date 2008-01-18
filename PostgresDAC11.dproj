@@ -47,7 +47,6 @@
     <DCCReference Include="dbrtl.dcp" />
     <DCCReference Include="dcldb.dcp" />
     <DCCReference Include="dsnap.dcp" />
-    <DCCReference Include="DumpTypes.pas" />
     <DCCReference Include="psqlAboutFrm.pas">
       <Form>PSQLAboutComp</Form>
     </DCCReference>

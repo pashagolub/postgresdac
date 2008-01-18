@@ -20,7 +20,6 @@ USEUNIT("psqlBatch.pas");
 USEUNIT("PSQLMacroQuery.pas");
 USEUNIT("PSQLMigrator.pas");
 USEUNIT("PSQLMonitor.pas");
-USEUNIT("DumpTypes.pas");
 USEUNIT("PSQLDump.pas");
 USEUNIT("PSQLTools.pas");
 USEFORMNS("PSQLStoredProcFrm.pas", Psqlstoredprocfrm, PSQLStoredProcProp);

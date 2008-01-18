@@ -7,7 +7,7 @@
     <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj 
       PSQLConnFrm.obj PSQLCP.obj PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj 
       PSQLupdsqled.obj psqlBatch.obj PSQLMacroQuery.obj PSQLMigrator.obj 
-      PSQLMonitor.obj PSQLTools.obj DumpTypes.obj PSQLDump.obj 
+      PSQLMonitor.obj PSQLTools.obj PSQLDump.obj 
       PSQLStoredProcFrm.obj PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj 
       PSQLDirectQuery.obj"/>
     <RESFILES value="PostgresDACB6.res"/>
@@ -85,7 +85,6 @@
       <FILE FILENAME="PSQLMigrator.pas" FORMNAME="" UNITNAME="PSQLMigrator" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLMonitor.pas" FORMNAME="" UNITNAME="PSQLMonitor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLTools.pas" FORMNAME="" UNITNAME="PSQLTools" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="DumpTypes.pas" FORMNAME="" UNITNAME="DumpTypes" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLDump.pas" FORMNAME="" UNITNAME="PSQLDump" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLStoredProcFrm.pas" FORMNAME="PSQLStoredProcProp" UNITNAME="PSQLStoredProcFrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLCopy.pas" FORMNAME="" UNITNAME="PSQLCopy" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

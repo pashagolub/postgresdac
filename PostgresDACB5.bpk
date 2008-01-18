@@ -7,7 +7,7 @@
     <OBJFILES value="psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj PSQLConnFrm.obj PSQLCP.obj 
       PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj PSQLupdsqled.obj 
       psqlBatch.obj PSQLMacroQuery.obj PSQLMigrator.obj PSQLMonitor.obj 
-      DumpTypes.obj PSQLDump.obj PSQLTools.obj PSQLStoredProcFrm.obj 
+      PSQLDump.obj PSQLTools.obj PSQLStoredProcFrm.obj 
       PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj PSQLDirectQuery.obj 
       PostgresDACB5.obj"/>
     <RESFILES value="PostgresDACB5.res"/>
