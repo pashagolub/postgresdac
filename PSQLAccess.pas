@@ -4558,7 +4558,7 @@ begin
   begin
      if FieldBuffer(FieldNo-1) <> nil then
      begin
-        FBlobHandle := StrToInt(Self.Field(FieldNo-1));
+        FBlobHandle := StrToUInt(Self.Field(FieldNo-1)); //17.01.2008
         if FBlobHandle <> 0 then
         begin
            //BLOB Trans
@@ -7566,7 +7566,7 @@ begin
                              AParam.AsString := PChar(Src);
                        end;
            fldBLOB:    if Fld.NativeBLOBType = nbtOID then
-                            AParam.AsInteger := StrToInt(BlobValue(Src, Fld))
+                            AParam.AsInteger := StrToUInt(BlobValue(Src, Fld))
                        else
                           if not Assigned(TBlobItem(Src^).Blob) or (TBlobItem(Src^).Blob.Size = 0) then
                             AParam.Value := Null
@@ -8103,7 +8103,7 @@ begin
           lo_close(FConnect.Handle,FlocalBHandle);
           //BLOB Trans
           FConnect.CommitBLOBTran;
-          Result := IntToStr(FBlobHandle);
+          Result := UIntToStr(FBlobHandle);
         end;
       end;
 end;

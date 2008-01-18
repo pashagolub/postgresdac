@@ -1695,6 +1695,8 @@ Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
                         Var BdeSubType : Word; Var LogSize : Integer;
                         var LocArray : Boolean);
 
+function UIntToStr(C: cardinal): string;
+function StrToUInt(S: string): cardinal;
 
 implementation
 
@@ -2355,6 +2357,18 @@ end;
 //    Inc(I);
 //  end;
 //end;
+
+function UIntToStr(C: cardinal): string;
+begin
+  Result := IntToStr(C);
+end;
+
+function StrToUInt(S: string): cardinal;
+var E: integer;
+begin
+  Val(S,Result,E);
+  If E <> 0 then raise EConvertError.Create(S + ' is not valid cardinal value');
+end;
 
 Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
                 Var BdeSubType : Word; Var LogSize : Integer;

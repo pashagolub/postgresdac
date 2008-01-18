@@ -364,9 +364,10 @@ end;
 
 procedure TPSQLDump.DumpToFile(const FileName: string; Log: TStrings);
 var
-   tmpLogFile: array[0..MAX_PATH] of char;
+   tmpPath, tmpLogFile: array[0..MAX_PATH] of char;
 begin
-  If GetTempFileName('.','pgd',0,tmpLogFile) = 0 then
+  If (GetTempPath(MAX_PATH, tmpPath) = 0) or
+     (GetTempFileName(tmpPath,'pgd',0,tmpLogFile) = 0) then
     raise EPSQLDumpException.Create('Can''t create temporary log file');
   try
     DumpToFile(FileName,tmpLogFile);
@@ -486,11 +487,12 @@ end;
 
 procedure TPSQLDump.DumpToStream(Stream: TStream; Log: TStrings);
 var
-   tmpLogFile: array[0..MAX_PATH] of char;
+   tmpPath, tmpLogFile: array[0..MAX_PATH] of char;
 begin
   tmpLogFile := '';
-  If Assigned(Log) then
-    If GetTempFileName('.','pgd',0,tmpLogFile) = 0 then
+  if Assigned(Log) then
+    if (GetTempPath(MAX_PATH, tmpPath) = 0) or
+       (GetTempFileName(tmpPath,'pgd',0,tmpLogFile) = 0) then
       raise EPSQLDumpException.Create('Can''t create temporary log file');
   try
     DumpToStream(Stream,tmpLogFile);
@@ -505,10 +507,11 @@ end;
 
 procedure TPSQLDump.DumpToStream(Stream: TStream; LogFileName: string);
 var
-   tmpTargetFile: array[0..MAX_PATH] of char;
+   tmpPath, tmpTargetFile: array[0..MAX_PATH] of char;
    FS: TFileStream;
 begin
-  If GetTempFileName('.','pgd',0,tmpTargetFile) = 0 then
+  if (GetTempPath(MAX_PATH, tmpPath) = 0) or
+     (GetTempFileName(tmpPath,'pgd',0,tmpTargetFile) = 0) then
     raise EPSQLDumpException.Create('Can''t create temporary target file');
   try
     DumpToFile(tmpTargetFile,LogFileName);
