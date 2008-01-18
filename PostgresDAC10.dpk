@@ -1,4 +1,4 @@
-package PostgresDAC11;
+package PostgresDAC10;
 
 {$R *.res}
 {$ALIGN 8}
@@ -24,7 +24,6 @@ package PostgresDAC11;
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$IMPLICITBUILD OFF}
-{$DEFINE RELEASE}
 
 requires
   vcl,

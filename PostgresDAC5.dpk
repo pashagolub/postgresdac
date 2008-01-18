@@ -1,17 +1,17 @@
-package PostgresDAC11;
+package PostgresDAC5;
 
-{$R *.res}
-{$ALIGN 8}
+{$R *.RES}
+{$ALIGN ON}
 {$ASSERTIONS OFF}
 {$BOOLEVAL OFF}
-{$DEBUGINFO OFF}
+{$DEBUGINFO ON}
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
 {$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION ON}
+{$OPTIMIZATION OFF}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 {$REFERENCEINFO OFF}
@@ -24,16 +24,12 @@ package PostgresDAC11;
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$IMPLICITBUILD OFF}
-{$DEFINE RELEASE}
 
 requires
-  vcl,
-  vcldb,
-  dcldb,
-  bdertl,
-  rtl,
-  dsnap,
-  dbrtl;
+  vcl50,
+  VCLDB50,
+  DCLDB50,
+  VCLBDE50;
 
 contains
   PSQLTypes in 'PSQLTypes.pas',
@@ -49,12 +45,10 @@ contains
   PSQLMacroQuery in 'PSQLMacroQuery.pas',
   PSQLMigrator in 'PSQLMigrator.pas',
   PSQLMonitor in 'PSQLMonitor.pas',
-  PSQLTools in 'PSQLTools.pas',
-  PSQLDump in 'PSQLDump.pas',
   DumpTypes in 'DumpTypes.pas',
-  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas',
-  PSQLConsts in 'PSQLConsts.pas',
-  PSQLMetaData in 'PSQLMetaData.pas',
+  PSQLDump in 'PSQLDump.pas',
+  PSQLTools in 'PSQLTools.pas',
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
   PSQLCopy in 'PSQLCopy.pas',
   PSQLCommon in 'PSQLCommon.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',

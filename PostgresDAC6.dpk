@@ -1,17 +1,17 @@
-package PostgresDAC11;
+package PostgresDAC6;
 
 {$R *.res}
 {$ALIGN 8}
 {$ASSERTIONS OFF}
 {$BOOLEVAL OFF}
-{$DEBUGINFO OFF}
+{$DEBUGINFO ON}
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
 {$LOCALSYMBOLS OFF}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION ON}
+{$OPTIMIZATION OFF}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
 {$REFERENCEINFO OFF}
@@ -24,16 +24,12 @@ package PostgresDAC11;
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$IMPLICITBUILD OFF}
-{$DEFINE RELEASE}
 
 requires
   vcl,
   vcldb,
   dcldb,
-  bdertl,
-  rtl,
-  dsnap,
-  dbrtl;
+  bdertl;
 
 contains
   PSQLTypes in 'PSQLTypes.pas',
@@ -52,9 +48,7 @@ contains
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
   DumpTypes in 'DumpTypes.pas',
-  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas',
-  PSQLConsts in 'PSQLConsts.pas',
-  PSQLMetaData in 'PSQLMetaData.pas',
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
   PSQLCopy in 'PSQLCopy.pas',
   PSQLCommon in 'PSQLCommon.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
