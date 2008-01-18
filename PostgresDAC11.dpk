@@ -51,12 +51,11 @@ contains
   PSQLMonitor in 'PSQLMonitor.pas',
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
-  DumpTypes in 'DumpTypes.pas',
-  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas',
-  PSQLConsts in 'PSQLConsts.pas',
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
   PSQLMetaData in 'PSQLMetaData.pas',
-  PSQLCopy in 'PSQLCopy.pas',
+  PSQLConsts in 'PSQLConsts.pas',
   PSQLCommon in 'PSQLCommon.pas',
+  PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas';
 

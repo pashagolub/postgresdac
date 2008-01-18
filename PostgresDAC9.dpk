@@ -24,7 +24,6 @@ package PostgresDAC9;
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$IMPLICITBUILD OFF}
-{$DEFINE EUREKALOG}
 {%File 'PSQLMigrator.txvpck'}
 {%File 'PSQLMacroQuery.txvpck'}
 {%File 'PSQLTypes.txvpck'}
@@ -37,13 +36,11 @@ package PostgresDAC9;
 {%File 'PSQLConnFrm.txvpck'}
 {%File 'PSQLCP.txvpck'}
 {%File 'PSQLCOMP.txvpck'}
-{%File 'DumpTypes.txvpck'}
 {%File 'PSQLDbTables.txvpck'}
 {%File 'psqlAboutFrm.txvpck'}
 {%File 'PSQLMonitor.txvpck'}
 {%File 'default.txvpck'}
 {%File 'ModelSupport\default.txvpck'}
-{%File 'ModelSupport\Unit1\Unit1.txvpck'}
 
 requires
   vcl,
@@ -69,10 +66,11 @@ contains
   PSQLMonitor in 'PSQLMonitor.pas',
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
-  DumpTypes in 'DumpTypes.pas',
-  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas',
-  PSQLCopy in 'PSQLCopy.pas',
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
+  PSQLMetaData in 'PSQLMetaData.pas',
+  PSQLConsts in 'PSQLConsts.pas',
   PSQLCommon in 'PSQLCommon.pas',
+  PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas';
 
