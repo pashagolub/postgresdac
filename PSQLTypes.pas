@@ -393,6 +393,7 @@ type
   TPQerrorMessage  = function(Handle: PPGconn): PChar; cdecl;
   TPQsocket        = function(Handle: PPGconn): Integer; cdecl;
   TPQbackendPID    = function(Handle: PPGconn): Integer; cdecl;
+  TPQparameterStatus = function(Handle: PPGconn; paramName: PChar): PChar; cdecl;
   TPQserverVersion = function(Handle: PPGconn): Integer; cdecl;
   TPQtransactionStatus  = function(Handle: PPGconn): TTransactionStatusType; cdecl;
   TPQtrace         = procedure(Handle: PPGconn; DebugPort: Pointer); cdecl;
@@ -401,7 +402,6 @@ type
   TPQexec          = function(Handle: PPGconn; Query: PChar): PPGresult; cdecl;
   TPQresultErrorField = function(Result: PPGresult;fieldcode:integer): PChar; cdecl;
   TPQnotifies      = function(Handle: PPGconn): PPGnotify; cdecl;
-  //TPQnotifyFree    = procedure(Handle: PPGnotify);cdecl; 04.10.2007
   TPQsendQuery     = function(Handle: PPGconn; Query: PChar): Integer; cdecl;
   TPQgetResult     = function(Handle: PPGconn): PPGresult; cdecl;
   TPQisBusy        = function(Handle: PPGconn): Integer; cdecl;
@@ -480,6 +480,7 @@ var
   PQstatus:        TPQstatus;
   PQerrorMessage:  TPQerrorMessage;
   PQsocket:        TPQsocket;
+  PQparameterStatus: TPQparameterStatus;
   PQserverVersion: TPQserverVersion;
   PQbackendPID:    TPQbackendPID;
   PQtransactionStatus: TPQtransactionStatus;
@@ -489,7 +490,6 @@ var
   PQexec:          TPQexec;
   PQresultErrorField:TPQresultErrorField;
   PQnotifies:      TPQnotifies;
-  //PQnotifyFree:    TPQnotifyFree; //04.10.2007
   PQsendQuery:     TPQsendQuery;
   PQgetResult:     TPQgetResult;
   PQisBusy:        TPQisBusy;
@@ -2552,13 +2552,13 @@ begin
          @PQerrorMessage := GetPSQLProc('PQerrorMessage');
          @PQsocket       := GetPSQLProc('PQsocket');
          @PQbackendPID   := GetPSQLProc('PQbackendPID');
+         @PQparameterStatus := GetPSQLProc('PQparameterStatus');
          @PQserverVersion:= GetPSQLProc('PQserverVersion');
          @PQtrace        := GetPSQLProc('PQtrace');
          @PQuntrace      := GetPSQLProc('PQuntrace');
          @PQsetNoticeProcessor := GetPSQLProc('PQsetNoticeProcessor');
          @PQexec         := GetPSQLProc('PQexec');
          @PQnotifies     := GetPSQLProc('PQnotifies');
-         //@PQnotifyFree   := GetPSQLProc('PQnotifyFree'); 04.10.2007
          @PQsendQuery    := GetPSQLProc('PQsendQuery');
          @PQgetResult    := GetPSQLProc('PQgetResult');
          @PQisBusy       := GetPSQLProc('PQisBusy');

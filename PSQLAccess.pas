@@ -6532,33 +6532,17 @@ end;
 
 
 function TNativeConnect.GetServerVersion: string;
-var
-   sql : String;
-   RES : PPGresult;
 begin
-  If FServerVersion = '' then
-    Result := ''
-  else
+  If FServerVersion > '' then
    begin
     Result := FServerVersion;
     Exit;
    end;
+
   InternalConnect;
-  Sql := 'SELECT version()';
-  RES := PQexec(Handle,PChar(Sql));
-  if Assigned(RES) then
-   try
-    CheckResult;
-    if PQntuples(RES) > 0 then
-     begin
-      Result := PQgetvalue(RES,0,0);
-      FServerVersion := Result;
-      If Pos('POSTGRES',AnsiUpperCase(FServerVersion))=0 then
-       raise EPSQLPlatformException.Create('Wrong server platform. Are you sure you''re trying to connect to Postgres server?');
-     end;
-   finally
-    PQclear(RES);
-   end;
+
+  Result := PQparameterStatus(Handle, 'server_version');
+  FServerVersion := Result;
 end;
 
 function TNativeDataSet.FieldVal(FieldNo: Integer; FieldPtr : Pointer):String;
@@ -7555,8 +7539,12 @@ begin
            fldINT16:   AParam.AsSmallInt := SmallInt(Src^);
            fldINT32:   AParam.AsInteger := LongInt(Src^);
            fldINT64:   begin
+                        {$IFDEF DELPHI_5}
+                         AParam.AsString := IntToStr(Int64(Src^));
+                        {$ELSE}
                          AParam.Value := Int64(Src^);
                          AParam.DataType := DataTypeMap[Fld.FieldType];
+                        {$ENDIF}
                        end;
            fldFloat:   AParam.AsFloat := Double(Src^);
            fldZSTRING: begin
@@ -7777,6 +7765,7 @@ procedure TNativeDataSet.InternalSortBy(const Fields: array of Integer;
 
 var aRecNum: integer;
     i: integer;
+    OldDecimalSeparator: char;
 
     function CmpRecords(Index1, Index2: integer): integer;
     var i: integer;
@@ -7800,54 +7789,60 @@ var aRecNum: integer;
       
     begin
      Result := 0;
-     for i:= Low(Fields) to High(Fields) do
-      begin
-        If PQGetIsNull(FStatement,Index1,Fields[I]) = 1 then
-          If PQGetIsNull(FStatement,Index2,Fields[I]) = 1 then
-           Result := 0
+     OldDecimalSeparator := DecimalSeparator;
+     DecimalSeparator := '.';
+     try
+       for i:= Low(Fields) to High(Fields) do
+        begin
+          If PQGetIsNull(FStatement,Index1,Fields[I]) = 1 then
+            If PQGetIsNull(FStatement,Index2,Fields[I]) = 1 then
+             Result := 0
+            else
+             Result := -1
           else
-           Result := -1
-        else
-          If PQGetIsNull(FStatement,Index2,Fields[I]) = 1 then
-           Result := 1
-          else
-           case PQFType(FStatement,Fields[I]) of
-            FIELD_TYPE_INT2,
-            FIELD_TYPE_INT4,
-            FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
-                                       StrToInt64Def(FVal(Index2),0);
+            If PQGetIsNull(FStatement,Index2,Fields[I]) = 1 then
+             Result := 1
+            else
+             case PQFType(FStatement,Fields[I]) of
+              FIELD_TYPE_INT2,
+              FIELD_TYPE_INT4,
+              FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
+                                         StrToInt64Def(FVal(Index2),0);
 
-            FIELD_TYPE_FLOAT4,
-            FIELD_TYPE_FLOAT8,
-            FIELD_TYPE_NUMERIC:
-                             try
-                              Result := Sign(StrToFloat(FVal(Index1)) -
-                                       StrToFloat(FVal(Index2)));
-                             except
-                              //D5 have no StrToFloatDef
-                              on E: EConvertError do
-                               Result := 0;
-                             end;
+              FIELD_TYPE_FLOAT4,
+              FIELD_TYPE_FLOAT8,
+              FIELD_TYPE_NUMERIC:
+                               try
+                                Result := Sign(StrToFloat(FVal(Index1)) -
+                                         StrToFloat(FVal(Index2)));
+                               except
+                                //D5 have no StrToFloatDef
+                                on E: EConvertError do
+                                 Result := 0;
+                               end;
 
-            FIELD_TYPE_BOOL: Result :=  ord(FVal(Index1)[1]) -
-                                        ord(FVal(Index2)[1]);
+              FIELD_TYPE_BOOL: Result :=  ord(FVal(Index1)[1]) -
+                                          ord(FVal(Index2)[1]);
 
-            FIELD_TYPE_OID: If FOIDAsInt then
-                              Result := StrToIntDef(FVal(Index1),InvalidOid) -
-                                        StrToIntDef(FVal(Index2),InvalidOid)
-                            else
-                              Result := 0;
-            FIELD_TYPE_TEXT,
-            FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
+              FIELD_TYPE_OID: If FOIDAsInt then
+                                Result := StrToIntDef(FVal(Index1),InvalidOid) -
+                                          StrToIntDef(FVal(Index2),InvalidOid)
+                              else
+                                Result := 0;
+              FIELD_TYPE_TEXT,
+              FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
 
-           else
-             //datetime fields will be compared here also
-             //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
-             Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
-           end;
-        If IsReverseOrder[i] then
-          Result := -Result;
-        If Result <> 0 then Break;
+             else
+               //datetime fields will be compared here also
+               //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
+               Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
+             end;
+          If IsReverseOrder[i] then
+            Result := -Result;
+          If Result <> 0 then Break;
+        end;
+      finally
+        DecimalSeparator := OldDecimalSeparator;
       end;
     end;
 
