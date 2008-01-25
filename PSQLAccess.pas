@@ -4151,6 +4151,10 @@ begin
          fldINT32:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(LongInt(Src^));
          fldINT64:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(Int64(Src^));
          fldFloat:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + SQLFloatToStr(Double(Src^));
+         fldBLOB:     if Fld.FieldSubType = fldstMemo then
+                          Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + MemoValue(Src)
+                      else
+                          Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + BlobValue(Src, Fld);
          fldZSTRING,
          fldUUID:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + StrValue(Src);
          fldDate:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
@@ -4171,71 +4175,32 @@ begin
     if not Fld.FieldChanged then continue;
     Src := Fld.FieldValue;
     Inc(PChar(Src));
-    case Fld.FieldType of
-         fldBOOL:    begin
-                         if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'='+''''+IntToStr(SmallInt(Src^))+''''+', ';
-                     end;
-         fldINT16:   begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'='+IntToStr(SmallInt(Src^))+', ';
-                     end;
-         fldINT32:   begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'=' + IntToStr(LongInt(Src^))+', ';
-                     end;
-         fldINT64:   begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'=' + IntToStr(Int64(Src^))+', ';
-                     end;
-         fldFloat:   begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'=' + SQLFloatToStr(Double(Src^))+', ';
-                     end;
-         fldBLOB:    begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           begin
-                               if Fld.FieldSubType = fldstMemo then
-                                  Values := Values+'"'+Fld.FieldName+'"'+'=' + MemoValue(Src)+ ', ' else
-                                  Values := Values+'"'+Fld.FieldName+'"'+'='+'''' + BlobValue(Src,Fld)+ ''''+', ';
-                           end;
-                     end;
-         fldZSTRING, fldUUID: begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           begin
-                              if Fld.NativeType = FIELD_TYPE_BIT then
-                                 Values := Values+'"'+Fld.FieldName+'"'+'= B' + StrValue(Src)+', ' else
+    if Fld.FieldNull then
+       Values := Values+'"'+Fld.FieldName+'"'+'=NULL, '
+    else
+      case Fld.FieldType of
+         fldBOOL:   Values := Values+'"'+Fld.FieldName+'"'+'='+''''+IntToStr(SmallInt(Src^))+''''+', ';
+         fldINT16:  Values := Values+'"'+Fld.FieldName+'"'+'='+IntToStr(SmallInt(Src^))+', ';
+         fldINT32:  Values := Values+'"'+Fld.FieldName+'"'+'=' + IntToStr(LongInt(Src^))+', ';
+         fldINT64:  Values := Values+'"'+Fld.FieldName+'"'+'=' + IntToStr(Int64(Src^))+', ';
+         fldFloat:  Values := Values+'"'+Fld.FieldName+'"'+'=' + SQLFloatToStr(Double(Src^))+', ';
+         fldBLOB:   if Fld.FieldSubType = fldstMemo then
+                       Values := Values+'"'+Fld.FieldName+'"'+'=' + MemoValue(Src)+ ', '
+                    else
+                       Values := Values+'"'+Fld.FieldName+'"'+'='+'''' + BlobValue(Src,Fld)+ ''''+', ';
+         fldZSTRING, fldUUID: if Fld.NativeType = FIELD_TYPE_BIT then
+                                 Values := Values+'"'+Fld.FieldName+'"'+'= B' + StrValue(Src)+', '
+                              else
                                  Values := Values+'"'+Fld.FieldName+'"'+'='+ StrValue(Src)+', ';
-                           end;
-                     end;
-         fldDate:    begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
-                     end;
-         fldTime:    begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
-                     end;
-         fldTIMESTAMP:begin
-                        if Fld.FieldNull then
-                           Values := Values+'"'+Fld.FieldName+'"'+'=NULL, ' else
-                           Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
-                      end;
-    end;
+         fldDate:   Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
+         fldTime:   Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
+         fldTIMESTAMP: Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
+      end;
   end;
   Delete(VALUES,Length(Values)-1,2);
   if VALUES <> '' then
    begin
-    Result := 'UPDATE ' + Table + ' SET '+VALUES+Where
+    Result := 'UPDATE ' + Table + ' SET '+ VALUES + Where
    end
   else
    Result := '';
