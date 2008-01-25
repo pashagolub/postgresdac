@@ -75,9 +75,6 @@ Type
 
   end;
 
-  EPSQLPlatformException = class(Exception);
-
-
 {****************************************************************************}
 {                       TNativeConnect                                       }
 {****************************************************************************}
@@ -6001,12 +5998,6 @@ begin
        FNativeErrorsourcefunc:= EPSQLException(ExceptObject).FPSQLErrorsourcefunc;
   end
   else
-   If ExceptObject is EPSQLPlatformException then
-    begin
-     FNativeMsg := EPSQLPlatformException(ExceptObject).Message;
-     Result := 1002;
-    end
-   else
      Raise ExceptObject;
 end;
 
