@@ -3028,10 +3028,6 @@ end;
 
 Procedure TPSQLDataSet.InternalPost;
 begin
-  {$IFDEF DELPHI_6}
-  inherited;
-  {$ENDIF}//pasha_golub 10.08.06
-
   If Assigned(FUpdateObject) then
    begin
      if State = dsEdit then
@@ -3042,6 +3038,11 @@ begin
    end //if assigned
   else
     begin
+      {$IFDEF DELPHI_6}
+      inherited; //mi:2008-02-13 Moved from begining of the method. Actually there is only CheckRequiredFields there.
+                 //              So we don't need it if dataset is being updated by UpdateObject
+      {$ENDIF}//pasha_golub 10.08.06
+      
       if State = dsEdit then
         Check(Engine, Engine.ModifyRecord(FHandle,FOldBuffer, ActiveBuffer, TRUE,RecNo))
       else
