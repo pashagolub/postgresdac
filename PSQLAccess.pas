@@ -3356,7 +3356,6 @@ begin
   if FStatement <> nil then PQclear(FStatement);
   FStatement := nil;
   FOpen := False;
-  IsQuery := False;
   SetLength(FFieldMinSizes,0);
 end;
 
@@ -4359,7 +4358,7 @@ var IsOK: boolean;
     s: string;
 begin
   Result := FTablename;
-  if (Length(Result) = 0) and isQuery and (FOMode <> dbiREADONLY) then
+  if (Length(Result) = 0) and (FOMode <> dbiREADONLY) then
    begin
     s := Format('SELECT %u::regclass',[FieldTable(0)]);
     Result := FConnect.SelectStringDirect(PChar(s),IsOK,0);

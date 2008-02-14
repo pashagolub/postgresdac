@@ -12,7 +12,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       PSQLCP, ExtCtrls;
 
 const
-    VERSION : string = '2.4.1';
+    VERSION : string = '2.4.2';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
