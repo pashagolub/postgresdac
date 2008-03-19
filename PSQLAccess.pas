@@ -4652,59 +4652,67 @@ Procedure TNativeDataSet.GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Lo
 var
   Field : TPSQLField;
 
-    Function BlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
-    var
-      L,N : integer;
-      Len : LongInt;
+    function CachedBlobGet(Offset, Length: longint; buff, Dest: pointer): longint;
     begin
-     Result :=0;
      if PChar(buff)^=#1 then
-     begin
+      begin
         Inc(PChar(buff));
         with TBlobItem(buff^) do
         begin
            Blob.Seek(Offset, 0);
            Result:=Blob.Read(Dest^, Length)
         end;
-     end else
-     begin
-      if Field.FieldSubType = fldstMemo then
-      begin
-         if PChar(FieldBuffer(ColumnNumber-1)+Offset) <> nil then
-         begin
-            Move(PChar(FieldBuffer(ColumnNumber-1)+Offset)^,Dest^,Length);
-            Result := Length;
-         end;
-      end else
-      begin
-       if FBlobOpen then
+      end
+     else
+      Result := 0;
+    end;
+
+    function BlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
+    var
+      L,N : integer;
+      Len : LongInt;
+    begin
+     Result := CachedBlobGet(Offset, Length, buff, Dest);
+     if Result = 0 then
        begin
-        lo_lseek(FConnect.Handle,FLocalBHandle,Offset,0);
-        L := 0;
-        Len := Length;
-        if Length > MAX_BLOB_SIZE then
+        if Field.FieldSubType = fldstMemo then
         begin
-         repeat
-          if Len > MAX_BLOB_SIZE then
-             N  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest)+L, MAX_BLOB_SIZE) else
-             N  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest)+L, Len);
-          Dec(Len,MAX_BLOB_SIZE);
-          Inc(L, N);
-         until N < MAX_BLOB_SIZE;
-         Result := L;
+           if PChar(FieldBuffer(ColumnNumber-1)+Offset) <> nil then
+           begin
+              Move(PChar(FieldBuffer(ColumnNumber-1)+Offset)^,Dest^,Length);
+              Result := Length;
+           end;
         end else
-           Result  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest), Length);
+        begin
+         if FBlobOpen then
+         begin
+          lo_lseek(FConnect.Handle,FLocalBHandle,Offset,0);
+          L := 0;
+          Len := Length;
+          if Length > MAX_BLOB_SIZE then
+          begin
+           repeat
+            if Len > MAX_BLOB_SIZE then
+               N  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest)+L, MAX_BLOB_SIZE) else
+               N  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest)+L, Len);
+            Dec(Len,MAX_BLOB_SIZE);
+            Inc(L, N);
+           until N < MAX_BLOB_SIZE;
+           Result := L;
+          end else
+             Result  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest), Length);
+         end;
+        end;
        end;
       end;
-     end;
-    end;
 
    Function ByteaBlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
    var P: PChar;
        Len: integer;
    begin
-    Result :=0;
-    if PChar(FieldBuffer(ColumnNumber-1)+Offset) <> nil then
+    Result := CachedBlobGet(Offset, Length, buff, Dest);
+
+    if (Result = 0) and Assigned(PChar(FieldBuffer(ColumnNumber-1)+Offset)) then
      begin
       P := PQUnescapeBytea(PChar(FieldBuffer(ColumnNumber-1)),Len);
      try
