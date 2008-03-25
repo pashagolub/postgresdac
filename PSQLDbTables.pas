@@ -367,6 +367,9 @@ type
     FBlockBufOfs: Integer;
     FLastParentPos: Integer;
     FBlockReadBuf: PChar;
+    FBlockBufSize: Integer;
+    FBlockBufCount: Integer;
+    FBlockReadCount: Integer;
     FOldBuffer : PChar;
     FParentDataSet: TPSQLDataSet;
     FUpdateObject: TPSQLSQLUpdateObject;
@@ -400,6 +403,8 @@ type
     function GetStmtHandle: HDBIStmt;
     procedure SetSortFieldNames(const Value: string);
     function GetSortFieldNames: string;
+
+
   protected
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
       {$IFNDEF DELPHI_4}
@@ -418,6 +423,8 @@ type
   Protected
     {$ENDIF}
     Function  Engine : TPSQLEngine; Virtual; Abstract;
+    procedure SetBlockReadSize(Value: Integer); override;
+    procedure BlockReadNext; override;
     {$IFDEF DELPHI_4}
     function BCDToCurr(BCD: Pointer; var Curr: Currency): Boolean; Override;
     function CurrToBCD(const Curr: Currency; BCD: Pointer; Precision,  Decimals: Integer): Boolean; Override;
@@ -3163,6 +3170,103 @@ begin
     Result := (Engine.SetToBookmark(FHandle, Bookmark) = DBIERR_NONE) and
       (Engine.GetRecord(FHandle, dbiNOLOCK, nil, nil) = DBIERR_NONE)
   end;
+end;
+
+procedure TPSQLDataSet.SetBlockReadSize(Value: Integer);
+
+  function CanBlockRead: Boolean;
+  var
+    i: Integer;
+  begin
+    Result := (BufferCount <= 1) and (DataSetField = nil);
+    if Result then
+      for i := 0 to FieldCount - 1 do
+        if (Fields[i].DataType in [ftDataSet, ftReference]) then
+        begin
+          Result := False;
+          break;
+        end;
+  end;
+
+  procedure FreeBuffer;
+  begin
+    if FBlockReadBuf <> nil then
+    begin
+      FreeMem(FBlockReadBuf);
+      FBlockReadBuf := nil;
+    end;
+  end;
+
+const
+  DEFBLOCKSIZE  = 64 * 1024;
+var
+  Size: Integer;
+begin
+  if Value <> BlockReadSize then
+  begin
+    if Value > 0 then
+    begin
+      if EOF or not CanBlockRead then Exit;
+      FreeBuffer;
+      UpdateCursorPos;
+
+//mi:2008-03-25 #0766 curMAKECRACK flag set native dataset to tsEmpty mode. But we need to set it in tsFirst mode!
+//      Engine.SetEngProp(HDBIObj(FHandle), curMAKECRACK, 0);
+      TNativeDataSet(FHandle).RecordState := tsFirst;
+
+      if Value = MaxInt then
+        Size := DEFBLOCKSIZE
+      else
+        Size := Value * FRecordSize;
+
+      FBlockReadBuf := AllocMem(Size);
+      FBlockBufSize := Size div FRecordSize;
+      FBlockBufOfs := FBlockBufSize; { Force read of data }
+      FBlockBufCount := FBlockBufSize;
+      FBlockReadCount := 0;
+
+      inherited;
+
+      BlockReadNext();
+    end
+    else
+    begin
+      inherited;
+//      CursorPosChanged;
+//      Resync([]);
+      FreeBuffer;
+    end;
+  end;
+end;
+
+procedure TPSQLDataSet.BlockReadNext;
+var
+  Status: DbiResult;
+begin
+  if FBlockBufOfs >= FBlockBufCount - 1 then
+  begin
+    if FBlockBufCount < FBlockBufSize then
+      Last()
+    else
+    begin
+      Status := Engine.ReadBlock(FHandle, FBlockBufCount, FBlockReadBuf);
+
+      if (Status <> DBIERR_NONE) and (Status <> DBIERR_EOF) then
+        Check(Engine,Status);
+
+      if (FBlockBufCount = 0) and (Status = DBIERR_EOF) then
+        Last();
+      Inc(FBlockReadCount, FBlockBufCount);
+      FBlockBufOfs := 0;
+    end
+  end
+  else
+    Inc(FBlockBufOfs);
+
+  if CalcFieldsSize > 0 then
+    GetCalcFields(TempBuffer);
+
+  DataEvent(deDataSetScroll, -1);
 end;
 
 Procedure TPSQLDataSet.GetIndexInfo;

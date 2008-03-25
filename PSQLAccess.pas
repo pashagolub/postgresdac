@@ -259,6 +259,7 @@ Type
       Function SetToBegin(hCursor: hDBICur): DBIResult;
       Function SetToEnd(hCursor: hDBICur): DBIResult;
       Function RelRecordLock(hCursor: hDBICur;bAll: Bool): DBIResult;
+      function ReadBlock(hCursor: hDBICur; var iRecords: Integer;  pBuf: Pointer): DBIResult;
       Function InitRecord(hCursor: hDBICur;PRecord: Pointer ): DBIResult;
       Function InsertRecord(hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer): DBIResult;
       Function AppendRecord(hCursor: hDBICur;PRecord:Pointer): DBIResult;
@@ -683,6 +684,7 @@ Type
       function StrValue(P : Pointer):String;
       function MemoValue(P : Pointer):String;
       function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
+    procedure ReadBlock(var iRecords: Integer; pBuf: Pointer);
     Public
       SQLQuery : String;
       ROWID    : OID;
@@ -3915,6 +3917,32 @@ begin
   Result := FConnect.Success;
 end;
 
+procedure TNativeDataSet.ReadBlock(var iRecords : Longint; pBuf : Pointer);
+var
+  M     : MemPtr;
+  i     : Word;
+  Limit : longint;
+begin
+  Limit     := iRecords;
+  iRecords  := 0;
+
+  CheckParam(pBuf = nil, DBIERR_INVALIDPARAM);
+
+  M := pBuf;
+  i := 0;
+
+  repeat
+    GetNextRecord(dbiNOLOCK, @M^[ i ], NIL);
+    Inc(iRecords);
+
+    if iRecords >= Limit then
+      Break
+    else
+      Inc(i,GetWorkBufferSize);
+
+  until False;
+end;
+
 Procedure TNativeDataSet.ForceReread;
 var
   P : TPSQLBookMark;
@@ -5485,6 +5513,16 @@ Function TPSQLEngine.GetBookMark(hCur: hDBICur;pBookMark : Pointer) : DBIResult;
 begin
   Try
     TNativeDataSet(hCur).GetBookMark(pBookMark);
+    Result := DBIERR_NONE;
+  Except
+    Result := CheckError;
+  end;
+end;
+
+Function TPSQLEngine.ReadBlock(hCursor : hDBICur; var iRecords : Longint; pBuf : Pointer): DBIResult;
+begin
+  Try
+    TNativeDataset(hCursor).ReadBlock(iRecords, pBuf);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
