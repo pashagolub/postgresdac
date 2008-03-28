@@ -782,6 +782,7 @@ begin
     try
      CheckDB.DatabaseName := FRestoreStrOptions[rsoDBName];
      CheckDB.Host := FDatabase.Host;
+     CheckDB.Port := FDatabase.Port;
      CheckDB.UserName := FDatabase.UserName;
      CheckDB.UserPassword := FDatabase.UserPassword;
      CheckDB.Connected := True;
