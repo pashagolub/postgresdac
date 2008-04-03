@@ -7769,11 +7769,16 @@ var aRecNum: integer;
     OldDecimalSeparator: char;
 
     function CmpRecords(Index1, Index2: integer): integer;
-    var i: integer;
+    var i, Idx1IsNull, Idx2IsNull: integer;
+      s1, s2: string;
 
       function FVal(Index: integer): string;
       begin
-       Result := pqGetValue(FStatement,FSortingIndex[Index],Fields[I])
+       Result := strPas(pqGetValue(FStatement,FSortingIndex[Index],Fields[I]));
+       if Result = '' then
+         ShowMessage(Format('oid: %s; Row: %d; Column: %d', [String(pqGetValue(FStatement, FSortingIndex[Index], 0)),
+                                                             FSortingIndex[Index],
+                                                             Fields[I]]));
       end;
 
       {$IFDEF DELPHI_5}
@@ -7787,7 +7792,7 @@ var aRecNum: integer;
           Result := 1;
       end;
       {$ENDIF}
-      
+
     begin
      Result := 0;
      OldDecimalSeparator := DecimalSeparator;
@@ -7795,16 +7800,13 @@ var aRecNum: integer;
      try
        for i:= Low(Fields) to High(Fields) do
         begin
-          If PQGetIsNull(FStatement,Index1,Fields[I]) = 1 then
-            If PQGetIsNull(FStatement,Index2,Fields[I]) = 1 then
-             Result := 0
-            else
-             Result := -1
+          Idx1IsNull := PQGetIsNull(FStatement,FSortingIndex[Index1],Fields[I]);
+          Idx2IsNull := PQGetIsNull(FStatement,FSortingIndex[Index2],Fields[I]);
+          case Idx1IsNull + Idx2IsNull of
+           2: Result := 0;
+           1: Result := Idx1IsNull - Idx2IsNull;
           else
-            If PQGetIsNull(FStatement,Index2,Fields[I]) = 1 then
-             Result := 1
-            else
-             case PQFType(FStatement,Fields[I]) of
+           case PQFType(FStatement,Fields[I]) of
               FIELD_TYPE_INT2,
               FIELD_TYPE_INT4,
               FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
@@ -7814,8 +7816,10 @@ var aRecNum: integer;
               FIELD_TYPE_FLOAT8,
               FIELD_TYPE_NUMERIC:
                                try
-                                Result := Sign(StrToFloat(FVal(Index1)) -
-                                         StrToFloat(FVal(Index2)));
+                                s1 := FVal(Index1);
+                                s2 := FVal(Index2);
+                                Result := Sign(StrToFloat(s1) -
+                                         StrToFloat(s2));
                                except
                                 //D5 have no StrToFloatDef
                                 on E: EConvertError do
@@ -7833,11 +7837,12 @@ var aRecNum: integer;
               FIELD_TYPE_TEXT,
               FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
 
-             else
+            else
                //datetime fields will be compared here also
                //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
                Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
-             end;
+            end;
+          end;
           If IsReverseOrder[i] then
             Result := -Result;
           If Result <> 0 then Break;
