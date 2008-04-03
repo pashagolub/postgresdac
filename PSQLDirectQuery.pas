@@ -105,6 +105,7 @@ end;
 //----------------------------------------------------------------------------------------------------------------------
 destructor TPSQLCustomDirectQuery.Destroy();
 begin
+  SetDatabase(nil);  //03.04.2008
   FreeHandle();
   FSQL.Free();
 
