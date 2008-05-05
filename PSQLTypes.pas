@@ -436,7 +436,7 @@ type
   TPQgetisnull     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQclear         = procedure(Result: PPGresult); cdecl;
   TPQmakeEmptyPGresult  = function(Handle: PPGconn; status: ExecStatusType): PPGresult; cdecl;
-  TPQEscapeBytea   = function(from: PChar; from_length: integer; var to_length: integer):PChar; cdecl;
+  TPQEscapeByteaConn   = function(Handle: PPGconn; from: PChar; from_length: integer; var to_length: integer):PChar; cdecl;
   TPQUnEscapeBytea = function(from: PChar; var to_length: integer):PChar; cdecl;
   TPQEscapeStringConn = function(Handle: PPGconn; to_str: PChar; const from_str: Pchar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
@@ -524,7 +524,7 @@ var
   PQgetisnull:     TPQgetisnull;
   PQclear:         TPQclear;
   PQmakeEmptyPGresult:  TPQmakeEmptyPGresult;
-  PQEscapeBytea:   TPQEscapeBytea;
+  PQEscapeByteaConn:   TPQEscapeByteaConn;
   PQUnEscapeBytea: TPQUnEscapeBytea;
   PQEscapeStringConn: TPQEscapeStringConn;
   PQFreeMem:       TPQFreeMem;
@@ -2595,7 +2595,7 @@ begin
          @PQclear        := GetPSQLProc('PQclear');
          @PQmakeEmptyPGresult := GetPSQLProc('PQmakeEmptyPGresult');
          @PQtransactionStatus := GetPSQLProc('PQtransactionStatus');
-         @PQEscapeBytea  := GetPSQLProc('PQescapeBytea');
+         @PQEscapeByteaConn  := GetPSQLProc('PQescapeByteaConn');
          @PQUnEscapeBytea:= GetPSQLProc('PQunescapeBytea');
          @PQEscapeStringConn:=GetPSQLProc('PQescapeStringConn');
          @PQFreeMem      := GetPSQLProc('PQfreemem');

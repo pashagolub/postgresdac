@@ -4809,7 +4809,6 @@ var
   Token, Temp, Value: string;
   Param: TParam;
   PEsc: PChar;
-  S: string;
   BlSZ: integer;
   i: integer;
   byName: boolean;
@@ -4872,8 +4871,7 @@ begin
           ftADT: Value := 'DEFAULT';
           ftBLOB: begin
                     BlSZ := 0;
-                    S := Param.AsString;
-                    PEsc := PQEscapeBytea(PChar(S),length(S),BlSZ);
+                    PEsc := PQEscapeByteaConn(FConnect.Handle, PChar(Param.AsString), Param.GetDataSize, BlSZ);
                     try
                      Value := '''' + Copy(PEsc,1,BlSZ) + '''';
                     //we don't use AnsiQuotedStr cause PQEscape will never miss quote inside
@@ -6687,6 +6685,7 @@ function TNativeDataSet.findrows(const Fields: array of Integer;
 var
   I, K   : Integer;
   Cmp : Integer;
+  IsSorted: boolean; //05.05.2008
 
     function Compare1(const S1: String; const S2 : String; FldType : integer):Integer;
 
@@ -6827,9 +6826,11 @@ var
 
     function FldVal(CurRow: integer; aIndex: Integer): String;
     begin
-      result:='';
-      if (aIndex>-1) and (aIndex<= FieldCount-1) then //are we in range?
-        result:=StrPas(PQGetValue(Fstatement,CurRow,aIndex)); //else we access current row
+      if IsSorted then CurRow := FSortingIndex[CurRow]; //05.05.2008
+      if (aIndex > -1) and (aIndex <= FieldCount-1) then //are we in range?
+        Result := StrPas(PQGetValue(Fstatement,CurRow,aIndex))
+      else
+        Result := '';
     end;
 
 Var
@@ -6838,6 +6839,7 @@ Var
 Begin
  try
   Cmp := 0;
+  IsSorted := IsSortedLocally;
   for I := 0 to GetRecCount-1 do
     begin
       Cmp := 0;
@@ -7908,7 +7910,7 @@ begin
   Result := RecNo;
   nGetRecCount := GetRecCount();  
   if nGetRecCount > 0 then 
-    If (High(FSortingIndex) = nGetRecCount-1) then Result := FSortingIndex[RecNo]; 
+    if (High(FSortingIndex) = nGetRecCount-1) then Result := FSortingIndex[RecNo]; 
 end;
 
 function TNativeDataSet.IsSortedLocally: boolean;
@@ -8064,7 +8066,7 @@ begin
         begin
           If NeedEscape then
            begin
-             PEsc := PQEscapeBytea(Buffer,SZ,BlSZ);
+             PEsc := PQEscapeByteaConn(FConnect.Handle,Buffer,SZ,BlSZ);
              try
               Result := Copy(PEsc,1,BlSZ);
              finally
