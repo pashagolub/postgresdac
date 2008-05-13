@@ -1,20 +1,26 @@
 
-In order to run applications using PostgresDAC, the PostgreSQL client
+In order to run applications using PostgresDAC 2.4.2, the PostgreSQL 8.3.1 client
 library must be available on a computer, it includes the following
 files:
 
- - comerr32.dll
- - krb5_32.dll
- - libeay32.dll
- - libiconv-2.dll
- - libintl-2.dll
- - libpq.dll
- - ssleay32.dll
+    comerr32.dll
+    gssapi32.dll
+    k5sprt32.dll
+    krb5_32.dll
+    libeay32.dll
+    libiconv2.dll
+    libintl3.dll
+    libpq.dll
+    msvcr71.dll
+    pg_dump.dll
+    pg_restore.dll
+    ssleay32.dll
+    zlib1.dll
 
 Copy these files to a directory on your PATH environment variable
 (e.g. Windows\System32) or place them in the directory where the
 client application is installed.
 
 Alternatively, you can make use of the installation package from
-PostgreSQL.org and install only the client libraries.
+PostgreSQL.org and install only the v8.3.1 client libraries.
 
