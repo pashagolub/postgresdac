@@ -339,6 +339,7 @@ Type
       function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; var AParam: TParam): DBIResult;
       function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
       function GetLastInsertId(hCursor: hDBICur; const FieldNum: integer; var ID: integer): DBIResult;
+      function GetFieldTypeOID(hCursor: hDBICur; const FieldNum: integer): cardinal;
 
       function CheckBuffer(hCursor: hDBICur; PRecord: Pointer): DBIResult;
       function Reset(hDb: hDBIDb): DBIResult;
@@ -648,7 +649,7 @@ Type
       function FieldSize(FieldNum: Integer): Integer;
       function FieldMaxSize(FieldNum: Integer): Integer;
       function FieldMinSize(FieldNum: Integer): Integer;
-      function FieldType(FieldNum: Integer): Integer;
+      function FieldType(FieldNum: Integer): cardinal;
       function FieldTable(FieldNum: integer): cardinal;
       function FieldPosInTable(FieldNum: integer): Integer;
       function FieldIsNull(FieldNum: Integer): Boolean;
@@ -3551,9 +3552,9 @@ begin
     Result := FFieldMinSizes[FieldNum];
 end;
 
-function TNativeDataSet.FieldType(FieldNum: Integer): Integer;
+function TNativeDataSet.FieldType(FieldNum: Integer): cardinal;
 begin
-  Result := 0;
+  Result := InvalidOid;
   if FStatement <> nil then
      Result := PQftype(FStatement, FieldNum);
   case Result of
@@ -8241,6 +8242,11 @@ begin
   finally
    PQClear(Stmt);
   end;
+end;
+
+function TPSQLEngine.GetFieldTypeOID(hCursor: hDBICur; const FieldNum: integer): cardinal;
+begin
+  Result := TNativeDataset(hCursor).FieldType(FieldNum);
 end;
 
 initialization

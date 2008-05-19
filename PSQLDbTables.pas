@@ -544,6 +544,7 @@ type
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
     function GetLastInsertID(const FieldNum: integer): integer;
+    function GetFieldTypeOID(const FieldNum: integer): cardinal;
     Procedure ApplyUpdates;
     Function  BookmarkValid(Bookmark: TBookmark): Boolean; Override;
     Procedure Cancel; Override;
@@ -5054,6 +5055,15 @@ begin
     not TNativeDataSet(FHandle).IsSortedLocally then
   FSortFieldNames := '';
  Result := FSortFieldNames;
+end;
+
+function TPSQLDataSet.GetFieldTypeOID(const FieldNum: integer): cardinal;
+begin
+ CheckActive;
+ If Assigned(FHandle) then
+    Result := Engine.GetFieldTypeOID(FHandle, FieldNum)
+ else
+    Result := InvalidOID;
 end;
 
 { TPSQLUpdateSQL }
