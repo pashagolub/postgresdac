@@ -2176,7 +2176,7 @@ begin
       Hour := StrToIntDef(Copy(Temp,1,2),0);
       Min  := StrToIntDef(Copy(Temp,4,2),0);
       Sec  := StrToIntDef(Copy(Temp,7,2),0);
-      MSec := StrToIntDef(Copy(Temp,10,3),0);
+      MSec := StrToIntDef(Copy(Copy(Temp,10,3) + '000',1,3),0); //19.05.2008: for cases when trailing 0 are missing
       Result := EncodeTime(Hour, Min, Sec, Msec);
     end;
   except
@@ -2226,7 +2226,7 @@ begin
       Hour := StrToIntDef(Copy(Value, 12, 2), 0);
       Min  := StrToIntDef(Copy(Value, 15, 2), 0);
       Sec  := StrToIntDef(Copy(Value, 18, 2), 0);
-      Msec := StrToIntDef(Copy(Value, 21, 3), 0);
+      Msec := StrToIntDef(Copy(Copy(Value, 21, 3) + '000',1,3), 0); //19.05.2008: for cases when trailing 0 are missing
       Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, MSec);
     end;
 end;

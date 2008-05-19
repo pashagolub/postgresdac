@@ -1040,7 +1040,7 @@ begin
       FIELD_TYPE_REGPROC:  StrLCopy(Dest,Src,iField.FieldLength);
       FIELD_TYPE_INTERVAL: StrLCopy(Dest,Src,iField.FieldLength); //Time INTERVAL
       FIELD_TYPE_TIMETZ:   StrLCopy(Dest,Src,iField.FieldLength); //Time WITH TIME ZONE
-      FIELD_TYPE_UUID:     StrLCopy(Dest,Src,iField.FieldLength); 
+      FIELD_TYPE_UUID:     StrLCopy(Dest,Src,iField.FieldLength);
       FIELD_TYPE_DATE:     begin
                              try
                                 TimeStamp.Date := LongInt(Src^);
@@ -5032,6 +5032,7 @@ var
   bBlank    : bool;
   Buff : Array[0..255] of Char;
   CurBuffer : PChar;
+  TimeStamp: TTimeStamp;
 begin
     For i := 0 to iFields-1 do
      if Fields[FKeyDesc.aiKeyFld[i]].FieldNull then
@@ -5050,6 +5051,7 @@ begin
       else
         NativeToDelphi(Field, CurBuffer, @Buff, bBlank);
       Inc(CurBuffer,Field.FieldLength+1);
+      if bBlank then Continue; //19.05.2008
       if RangeClause.Count > 0  then WHERE := 'and ' else WHERE := 'where ';
       WHERE := WHERE + AnsiQuotedStr(Field.FieldName,'"');
       if bKeyIncl then
@@ -5062,9 +5064,22 @@ begin
       case Field.Fieldtype of
         fldINT16: FldVal := IntToStr(PSmallInt(@Buff)^);
         fldINT32: FldVal := IntToStr(PLongInt(@Buff)^);
-        fldFLOAT: FldVal := FloatToStr(PDouble(@Buff)^);
-        fldBOOL: IF PBoolean(@Buff)^ then FldVal := 'True' else FldVal := 'False';
-        fldZSTRING: FldVal := '''' + StrPas(@Buff) + '''';
+        fldFLOAT: FldVal := SQLFloatToStr(PDouble(@Buff)^);
+        fldBOOL:  if PBoolean(@Buff)^ then FldVal := 'True' else FldVal := 'False';
+        fldZSTRING, fldUUID: FldVal := StrValue(@Buff);
+        fldINT64: FldVal := IntToStr(PInt64(@Buff)^);
+        fldDate:
+                  begin
+                    TimeStamp.Date := PLongInt(@Buff)^;
+                    TimeStamp.Time := 0;
+                    FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),1) + '''';
+                  end;
+        fldTime:  begin
+                    TimeStamp.Date := DateDelta;
+                    TimeStamp.Time := PLongInt(@Buff)^;
+                    FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),2) + '''';
+                  end;
+        fldTIMESTAMP: FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(MSecsToTimeStamp(PDouble(@Buff)^)),0) + '''';
       end;
       WHERE := WHERE + Trim(FldVal);
       RangeClause.Add(WHERE);
@@ -6839,7 +6854,7 @@ Var
 
 Begin
  try
-  Cmp := 0;
+  Cmp := -1;
   IsSorted := IsSortedLocally;
   for I := 0 to GetRecCount-1 do
     begin
@@ -7916,7 +7931,7 @@ end;
 
 function TNativeDataSet.IsSortedLocally: boolean;
 begin
- Result := High(FSortingIndex)=GetRecCount-1;
+ Result := (High(FSortingIndex) > -1) and (High(FSortingIndex) = GetRecCount-1);  //19.05.2008
 end;
 
 procedure TPSQLIndexes.SetNeedUpdate(const Value: boolean);
