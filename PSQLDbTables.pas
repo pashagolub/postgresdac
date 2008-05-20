@@ -3625,7 +3625,7 @@ begin
   Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, NIL, PFGENFilter(FilterFunc), Result));
 end;
 
-{$WARNINGS OFF}
+
 Function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
   Options: TLocateOptions; Priority: Integer): HDBIFilter;
 var
@@ -3643,7 +3643,7 @@ begin
   Filter := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
   {$ENDIF}
   try
-    if Fields.Count = 1 then
+    if (Fields.Count = 1) and not VarIsArray(Values) then
     begin
       Node := Filter.NewCompareNode(TField(Fields[0]), {$IFDEF DELPHI_4}canEQ {$ELSE}coEQ {$ENDIF}, Values);
       Expr := Node;
@@ -3662,7 +3662,7 @@ begin
     Filter.Free;
   end;
 end;
-{$WARNINGS ON}
+
 
 Procedure TPSQLDataSet.SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
 begin
