@@ -4891,7 +4891,7 @@ begin
            varCurrency : Value := SQLFloatToStr(VarAsType(Param.Value, varDouble));
            varBoolean  : if Param.Value then Value := '''Y''' else Value := '''N''';
          else
-           Value := AnsiQuotedStr(VarAsType(Param.Value, varString),'''');
+           Value := StrValue(PChar(Param.AsString)); //05.06.2008
          end;
         end;
       Temp := Temp + Value;
