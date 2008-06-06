@@ -826,7 +826,7 @@ function QuoteIdentifier(IdentifierName: string): string;
 Implementation
 
 Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
-     DbConsts;
+     DbConsts, PSQLExtMask;
 
 {**************************************************************************}
 {                     Utility Objects                                      }
@@ -2420,7 +2420,7 @@ end;
 
 Function TPSQLFilter.PerformLikeCompare(Const Value, Mask : String; CaseSen : Boolean) : Boolean;
 begin
-   Result := MaskSearch(Value, Mask, CaseSen);//PaGo 30.05.2007
+   Result := PSQLExtMask.MatchesMask(Value, Mask, CaseSen);
 end;
 
 Function TPSQLFilter.PerformInCompare(AOp1, AOp2 : Variant) : Boolean;
