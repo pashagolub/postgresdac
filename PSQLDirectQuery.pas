@@ -242,9 +242,9 @@ begin
   else if NewRecNo < 0 then
     FRecNo := 0;
 
-  FRecNo := NewRecNo;
+  Result := NewRecNo - FRecNo;
 
-  Result := abs(NewRecNo - FRecNo);
+  RecNo := NewRecNo;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TPSQLCustomDirectQuery.Next;
