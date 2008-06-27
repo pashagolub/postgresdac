@@ -184,7 +184,7 @@ begin
 end;
 
 procedure TCustomPSQLCopy.DoClientSideCopyPut(Stream: TStream);
-var Result: PPGresult;
+var Result, Result2: PPGresult;
     Count: cardinal;
     Buffer: array[Word] of char;
     AConnect: TNativeConnect;
@@ -204,8 +204,17 @@ begin
           AConnect.CheckResult(Result)
         else
           Count := Stream.Read(Buffer,Length(Buffer));
-       If PQputCopyEnd(AConnect.Handle) <= 0 then
-         AConnect.CheckResult(Result);
+       if PQputCopyEnd(AConnect.Handle) <= 0 then
+         AConnect.CheckResult(Result)
+       else
+        begin
+         Result2 := PQgetResult(AConnect.Handle);
+         try
+          AConnect.CheckResult(Result2);
+         finally
+          PQClear(Result2);
+         end;
+        end;
        if Assigned(FAfterCopyPut) then
          FAfterCopyPut(Self);
      end
