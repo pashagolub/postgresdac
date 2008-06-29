@@ -195,33 +195,40 @@ begin
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := PQexec(AConnect.Handle, PChar(GetSQLStatement));
   try
-    Stream.Position := 0;
-    if PQresultStatus(Result) = PGRES_COPY_IN then
-      begin
-       Count := Stream.Read(Buffer,Length(Buffer));
-       while Count > 0 do
-        if PQputCopyData(AConnect.Handle, Buffer, Count) <= 0 then
-          AConnect.CheckResult(Result)
-        else
-          Count := Stream.Read(Buffer,Length(Buffer));
-       if PQputCopyEnd(AConnect.Handle) <= 0 then
-         AConnect.CheckResult(Result)
-       else
+    try
+      Stream.Position := 0;
+      if PQresultStatus(Result) = PGRES_COPY_IN then
         begin
-         Result2 := PQgetResult(AConnect.Handle);
-         try
-          AConnect.CheckResult(Result2);
-         finally
-          PQClear(Result2);
-         end;
-        end;
-       if Assigned(FAfterCopyPut) then
-         FAfterCopyPut(Self);
-     end
-    else
-      AConnect.CheckResult(Result);
-  finally
-    PQClear(Result);
+         Count := Stream.Read(Buffer,Length(Buffer));
+         while Count > 0 do
+          if PQputCopyData(AConnect.Handle, Buffer, Count) <= 0 then
+            AConnect.CheckResult(Result)
+          else
+            Count := Stream.Read(Buffer,Length(Buffer));
+         if PQputCopyEnd(AConnect.Handle) <= 0 then
+           AConnect.CheckResult(Result)
+         else
+          begin
+           Result2 := PQgetResult(AConnect.Handle);
+           try
+            AConnect.CheckResult(Result2);
+           finally
+            PQClear(Result2);
+           end;
+          end;
+         if Assigned(FAfterCopyPut) then
+           FAfterCopyPut(Self);
+       end
+      else
+        AConnect.CheckResult(Result);
+    finally
+      PQClear(Result);
+    end;
+  except
+   on E: EPSQLException do
+      raise EPSQLDatabaseError.Create(FDatabase.Engine, FDatabase.Engine.CheckError);
+   else
+      raise;
   end;
 end;
 

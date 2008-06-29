@@ -6042,7 +6042,7 @@ begin
        FNativeStatus := EPSQLException(ExceptObject).PSQLErrorCode;
        Result := 1001;
       end;
-    FNativeMsg := EPSQLException(ExceptObject).PSQLErrorMsg;
+       FNativeMsg := EPSQLException(ExceptObject).PSQLErrorMsg;
        FNativeErrorPos:= EPSQLException(ExceptObject).FPSQLErrorPos;
        FNativeErrorContext:= EPSQLException(ExceptObject).FPSQLErrorContext;
        FNativeErrorseverity:= EPSQLException(ExceptObject).FPSQLErrorseverity;
