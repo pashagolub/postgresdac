@@ -231,13 +231,15 @@ begin
   FRecNo := Pred(GetRecordCount());
 end;
 //----------------------------------------------------------------------------------------------------------------------
-function TPSQLCustomDirectQuery.MoveBy(aDistance: integer):integer;
+function TPSQLCustomDirectQuery.MoveBy(aDistance: integer): integer;
 var
-  NewRecNo : integer;
+  NewRecNo: integer;
 begin
+  CheckOpen();
+
   NewRecNo := FRecNo + aDistance;
 
-  if  NewRecNo >= GetRecordCount() then
+  if NewRecNo >= GetRecordCount() then
     FRecNo := Pred(GetRecordCount())
   else if NewRecNo < 0 then
     FRecNo := 0;
@@ -245,6 +247,9 @@ begin
   Result := NewRecNo - FRecNo;
 
   RecNo := NewRecNo;
+
+  if EOF or BOF then
+    Result := 0;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TPSQLCustomDirectQuery.Next;

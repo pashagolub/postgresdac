@@ -7346,7 +7346,6 @@ begin
    Sql := Format(Sql,['spcname,','pg_tablespace as tsp,','tsp.oid = dattablespace AND'])
   else
    Sql := Format(Sql,['','','']);
- try
   RES := PQexec(Handle,PChar(Sql));
   if Assigned(RES) then
    try
@@ -7359,11 +7358,9 @@ begin
       If SV >= 800000 then
         Tablespace := PQgetvalue(RES,0,3);
      end;
-   except
+   finally
     PQclear(RES);
    end;
-  except
-  end;
 end;
 
 
