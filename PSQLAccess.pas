@@ -149,9 +149,9 @@ Type
     Procedure OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
     function GetCharSet: string;
     procedure GetCharSetList(var List: TStrings);
-    procedure SetCharSet(const CharSet: string);
+    function SetCharSet(const CharSet: string): string;
     function GetTimeout: cardinal;
-    procedure SetTimeout(const Timeout: cardinal);
+    function SetTimeout(const Timeout: cardinal): cardinal;
     function GetServerVersion: string;
     function GetserverVersionAsInt: integer;
     procedure GetUserProps(const UserName: string; var SuperUser, CanCreateDB,
@@ -294,9 +294,9 @@ Type
       function GetDatabases(hDb: hDBIdb; pszWild: PChar; List : TStrings):DBIResult;
       function GetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
       function GetCharacterSets(hDb : hDBIDb; List: TStrings):DBIResult;
-      function SetCharacterSet(hDb : hDBIDb; const CharSet : string):DBIResult;
+      function SetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
       function GetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
-      function SetCommandTimeout(hDb : hDBIDb; const Timeout : cardinal):DBIResult;
+      function SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
       Function OpenFieldList(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur): DBIResult;
       Function OpenIndexList(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur): DBIResult;
       Function EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : PChar; pszDriverType : PChar): DBIResult;
@@ -1802,24 +1802,10 @@ begin
 end;
 
 function TNativeConnect.GetCharSet: string;
-var
-   sql : String;
-   RES : PPGresult;
 begin
   Result := 'Undefined';
   InternalConnect;
-  Sql := 'SELECT pg_client_encoding()';
-  RES := PQexec(Handle,PChar(Sql));
-  if Assigned(RES) then
-   try
-    CheckResult;
-    if PQntuples(RES) > 0 then
-      Result := PQgetvalue(RES,0,0);
-   except
-    PQclear(RES);
-    raise;
-   end;
-  PQclear(RES);
+  Result := PQparameterStatus(Handle, 'client_encoding');
 end;
 
 procedure TNativeConnect.EmptyTable(hCursor : hDBICur; pszTableName : PChar);
@@ -7147,23 +7133,22 @@ begin
 end;
 
 
-procedure TNativeConnect.SetCharSet(const CharSet: string);
+function TNativeConnect.SetCharSet(const CharSet: string): string;
 var
    sql : String;
    RES : PPGresult;
 begin
   If (CharSet = '') then Exit;
   InternalConnect;
-  Sql := '  SET client_encoding TO ' + CharSet;
+  Sql := Format('SELECT set_config(''client_encoding'', ''%s'', false)', [CharSet]);
   RES := PQexec(Handle,PChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
-   except
+    Result := PQgetvalue(RES, 0, 0);
+   finally
     PQclear(RES);
-    raise;
    end;
-  PQclear(RES);
 end;
 
 procedure TNativeConnect.GetCharSetList(var List: TStrings);
@@ -7198,22 +7183,22 @@ begin
   PQclear(RES);
 end;
 
-function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; const CharSet: string): DBIResult;
+function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; var CharSet: string): DBIResult;
 begin
    try
      Database := hDb;
-     TNativeConnect(hDb).SetCharSet(CharSet);
+     CharSet := TNativeConnect(hDb).SetCharSet(CharSet);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
    end;
 end;
 
-function TPSQLEngine.SetCommandTimeout(hDb : hDBIDb; const Timeout : cardinal):DBIResult;
+function TPSQLEngine.SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
 begin
    try
      Database := hDb;
-     TNativeConnect(hDb).SetTimeout(Timeout);
+     Timeout := TNativeConnect(hDb).SetTimeout(Timeout);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
@@ -7609,11 +7594,12 @@ begin
    end;
 end;
 
-procedure TNativeConnect.SetTimeout(const Timeout: cardinal);
+function TNativeConnect.SetTimeout(const Timeout: cardinal): cardinal;
 var
    sql : String;
    RES : PPGresult;
 begin
+  Result := 0;
   If GetserverVersionAsInt <= 070302 then
    Exit;
   InternalConnect;
@@ -7622,6 +7608,7 @@ begin
   if Assigned(RES) then
    try
     CheckResult;
+    Result := StrToInt(PQgetvalue(Res, 0, 0));
    finally
     PQclear(RES);
    end;

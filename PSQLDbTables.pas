@@ -12,7 +12,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       PSQLCP, ExtCtrls;
 
 const
-    VERSION : string = '2.4.2';
+    VERSION : string = '2.4.3-Dev';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -161,6 +161,7 @@ type
       FSSLMode: TSSLMode;
       function GetNotifyItem(Index: Integer): TObject;
       function GetNotifyCount: Integer;
+      procedure FillAddonInfo;
       Procedure CheckActive;
       Procedure CheckInactive;
       Procedure CheckDatabase(var Password: String);
@@ -189,6 +190,10 @@ type
       procedure SetDummyBool(Value: boolean);
       procedure SetDummyInt(Value: cardinal);
       procedure SetSSLMode(const Value: TSSLMode);
+    function GetDatabaseID: cardinal;
+    function GetIsTemplate: boolean;
+    function GetDBOwner: string;
+    function GetTablespace: string;
     Protected
       Procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
@@ -209,7 +214,6 @@ type
       function  Engine : TPSQLEngine;
       function Execute(const SQL: string; Params: TParams = NIL; Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
       function GetBackendPID: Integer;
-      function GetCharSet: string;
       function SelectString(aSQL : string; var IsOk : boolean; aFieldName : string):string; overload;
       function SelectString(aSQL : string; var IsOk : boolean; aFieldNumber : integer = 0):string; overload;
       function SelectStringDef(aSQL : string; aDefaultValue : string; aFieldName : string):string; overload;
@@ -255,25 +259,25 @@ type
       property Comment: string read FComment write SetDummyStr stored False;
       property Connected;
       property ConnectionTimeout: cardinal read FConnectionTimeout write SetConnectionTimeout default 15;
-      property DatabaseID: cardinal read FDatabaseID write SetDummyInt stored False;
+      property DatabaseID: cardinal read GetDatabaseID write SetDummyInt stored False;
       property DatabaseName: String read FDatabaseName write SetDatabaseName;
       property Exclusive: Boolean read FExclusive write SetExclusive default FALSE;
       property HandleShared: Boolean read FHandleShared write FHandleShared default FALSE;
       property Host : String read FHost write SetHost;
-      property IsTemplate: boolean read FIsTemplate write SetDummyBool stored False;
+      property IsTemplate: boolean read GetIsTemplate write SetDummyBool stored False;
       property KeepConnection: Boolean read FKeepConnection write SetKeepConnection default TRUE;
       property LoginPrompt;
       property OEMConvert: Boolean read FOEMConvert write FOEMConvert default False;
       property OnAdd: TNotifyEvent read FOnAdd;
       property OnLogin: TBaseDatabaseLoginEvent read FOnLogin write FOnLogin;
       property OnNotice: TDatabaseNoticeEvent read FOnNotice write FOnNotice;
-      property Owner: string read FOwner write SetDummyStr stored False;
+      property Owner: string read GetDBOwner write SetDummyStr stored False;
       property Params: TStrings read FParams write SetParams;
       property Port : Cardinal read FPort write SetServerPort default PSQL_PORT;
       property ReadOnly: Boolean read FReadOnly write SetReadOnly default FALSE;
       property ServerVersion: string read FServerVersion write SetDummyStr stored False;
       property SSLMode: TSSLMode read FSSLMode write SetSSLMode default sslPrefer;
-      property Tablespace: string read FTablespace write SetDummyStr stored False;
+      property Tablespace: string read GetTablespace write SetDummyStr stored False;
       property TransIsolation: TTransIsolation read FTransIsolation write FTransIsolation default tiReadCommitted;
       property UserName : String read FUserName write SetUserName;
       property UserPassword : String read FUserPassword write SetUserPassword;
@@ -1396,6 +1400,7 @@ begin
   FDirectQueryList := TList.Create;
   FCheckIfActiveOnParamChange := True; //SSH Tunneling stuff
   FConnectionTimeout := 15;
+  FDatabaseID := 0;
 end;
 
 destructor TPSQLDatabase.Destroy;
@@ -1618,6 +1623,7 @@ begin
     FTablespace := '';
     FComment := '';
     FServerVersion := '';
+    FOwner := '';
   end;
 end;
 
@@ -1762,14 +1768,6 @@ begin
   ParamList.Assign(FParams);
 end;
 
-procedure FillAddonInfo;
-begin
-  Engine.GetCommandTimeout(FHandle, FCommandTimeout);
-  FCharSet := GetCharSet;
-  Engine.GetDBProps(FHandle,FDatabaseName, FOwner, FTablespace,
-        FIsTemplate,FDatabaseId, FComment);
-end;
-
 begin
   if FHandle = nil then
   begin
@@ -1799,10 +1797,7 @@ begin
         Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
       Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
       IF Assigned(FHandle) then
-       begin
         PQSetNoticeProcessor(TNativeConnect(FHandle).Handle,NoticeProcessor,Self);
-        FillAddonInfo;
-       end;
     Finally
        ParamList.Free
     end;
@@ -2062,13 +2057,6 @@ begin
  end;
 end;
 
-function TPSQLDatabase.GetCharSet: string;
-begin
-  if Connected then
-    Engine.GetCharacterSet(Handle,Result) else
-    result := '';
-end;
-
 procedure TPSQLDatabase.SetCharSet(CharSet: string);
 begin
   If FCharSet <> CharSet then
@@ -2290,6 +2278,37 @@ begin
   Result := SelectString(aSQL, IsOk, aFieldName);
   if not IsOk then
     Result := aDefaultValue;
+end;
+
+procedure TPSQLDatabase.FillAddonInfo;
+begin
+  if not Connected or (FDatabaseID > 0) then Exit;
+  Engine.GetDBProps(FHandle,FDatabaseName, FOwner, FTablespace,
+        FIsTemplate,FDatabaseId, FComment);
+end;
+
+function TPSQLDatabase.GetDatabaseID: cardinal;
+begin
+ FillAddonInfo;
+ Result := FDatabaseID;
+end;
+
+function TPSQLDatabase.GetIsTemplate: boolean;
+begin
+ FillAddonInfo;
+ Result := FIsTemplate;
+end;
+
+function TPSQLDatabase.GetDbOwner: string;
+begin
+ FillAddonInfo;
+ Result := FOwner;
+end;
+
+function TPSQLDatabase.GetTablespace: string;
+begin
+ FillAddonInfo;
+ Result := FTablespace;
 end;
 
 { TPSQLDataSet }
