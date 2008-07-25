@@ -270,7 +270,7 @@ begin
   if Trim(FSQL.Text) = EmptyStr then
     raise EPSQLDirectQueryException.Create(SEmptySQLStatement);
 
-  FStatement := PQexec(TNativeConnect(FDatabase.Handle).Handle, PChar(FSQL.Text));
+  FStatement := {$IFDEF M_DEBUG}PSQLAccess.{$ENDIF}PQexec(TNativeConnect(FDatabase.Handle).Handle, PChar(FSQL.Text));
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then
   begin
     FreeHandle();

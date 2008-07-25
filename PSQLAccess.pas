@@ -823,6 +823,10 @@ function BDETOPSQLStr(Field : TPSQLField): String;
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
 function QuoteIdentifier(IdentifierName: string): string;
 
+{$IFDEF M_DEBUG}
+function PQExec(Handle: PPGconn; Query: PChar): PPGresult;
+{$ENDIF}
+
 Implementation
 
 Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
