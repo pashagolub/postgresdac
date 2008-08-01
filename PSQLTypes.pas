@@ -99,9 +99,6 @@ const
   OIDNAMELEN       = 36;
   INV_WRITE        = $00020000;
   INV_READ         = $00040000;
-  {SEEK_SET         = 0;
-  SEEK_CUR         = 1;
-  SEEK_END         = 2;}
   DELIMITERS       : string = ' .:;,+-<>/*%^=()[]|&~@#$\`{}!?'#10#13;
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
@@ -109,7 +106,7 @@ const
   MAX_ENCODING_ID  = 36; //Max encoding id for pg_encoding_to_char
   InvalidOid       : cardinal = 0;
 var
-  DLL                  : string = 'libpq.dll';
+  PSQL_DLL             : string = 'libpq.dll';
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
   OEMConv              : Boolean; //Global OEM->ANSI Variable
 
@@ -1549,8 +1546,6 @@ type
     ConnectionTimeout: cardinal;
   end;
 
-//  TConnectOption = (coLongPassword, coFoundRows, coLongFlag, coConnectDatabase,coNoSchema, coCompress, coODBC, coLocalFiles, coIgnoreSpaces);
-//  TConnectOptions = set of TConnectOption;
 
   PPGFIELD_INFO = ^TPGFIELD_INFO;
   TPGField_Info = record
@@ -1655,34 +1650,16 @@ function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
-//function StrToBool(TrueVal : TTrueArray;FalseVal : TFalsearray;Value : String): boolean;
 procedure GetToken(var Buffer, Token: string);
-//function FullTrim(S: string): string;
 Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; pValChk : pVCHKDesc; var LocArray : Boolean);
 
 procedure LoadPSQLLibrary;
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
 
-//new Reliase
-  { ScanStr находит первое вхождение символа Ch в строку S, начиная с символа
-  номер StartPos. Возвращает номер найденного символа или ноль, если символ Ch
-  в строке S не найден.}
 function ScanStr(const S: string; Ch: Char; StartPos: Integer = 1): Integer;
-  { TestMask проверяет, удовлетворяет ли строка S маске Mask, предполагая,
-  что символы MaskChar из строки Mask могут быть заменены в строке S любыми
-  другими символами. При сравнении регистр символов принимается во внимание.
-  Если строка S удовлетворяет маске, функция возвращает True, иначе False.
-  Например, Q_TestMask('ISBN 5-09-007017-2','ISBN ?-??-??????-?','?') вернет
-  значение True. }
 function TestMask(const S, Mask: string; MaskChar: Char = 'X'): Boolean;
-  { MaskSearch проверяет, удовлетворяет ли строка S маске Mask, предполагая,
-  что символы MaskChar из строки Mask могут быть заменены в строке S любыми
-  другими символами, а символы WildCard могут быть заменены любым количеством
-  других символов. При сравнении большие и маленькие буквы различаются. Символ
-  WildCard должен быть отличен от #0. Если строка S удовлетворяет маске,
-  функция возвращает True, иначе False. Например, следующий вызов функции
-  вернет True: MaskSearch('abc12345_infQ_XL.dat','abc*_???Q_*.d*at'). }
+
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
@@ -2532,7 +2509,7 @@ Procedure LoadPSQLLibrary; Far;
 begin
    If ( SQLLibraryHandle <= HINSTANCE_ERROR ) then
    begin
-      SQLLibraryHandle := LoadLibrary(PChar(Dll) );
+      SQLLibraryHandle := LoadLibrary(PChar(PSQL_DLL) );
       If ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
@@ -2625,7 +2602,7 @@ end;
 Procedure CheckLibraryLoaded;
 begin
   if SQLLibraryHandle <= HINSTANCE_ERROR then
-      raise EPSQLDatabaseError.CreateFmt('Error loading client library %s', [DLL]);
+      raise EPSQLDatabaseError.CreateFmt('Error loading client library %s', [PSQL_DLL]);
 end;
 
 //New Reliase

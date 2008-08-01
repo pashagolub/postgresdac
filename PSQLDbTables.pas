@@ -1778,7 +1778,7 @@ begin
       CheckDB;
       OEMConv := FOEMConvert;
       if (SQLLibraryHandle = HINSTANCE_ERROR) then
-        EPSQLDatabaseError.CreateFmt('Error Loading DLL %s', [DLL]);
+        EPSQLDatabaseError.CreateFmt('Error Loading DLL %s', [PSQL_DLL]);
       {$IFDEF TRIAL}
         with TPSQLAboutComp.Create(Application) do
         try
