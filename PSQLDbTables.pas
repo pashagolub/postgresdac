@@ -12,7 +12,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       PSQLCP, ExtCtrls;
 
 const
-    VERSION : string = '2.4.2a';
+    VERSION : string = '2.4.3-Dev';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -5215,6 +5215,7 @@ var
   Field: TField;
 begin
   if not Assigned(FDataSet) then Exit;
+  Query[UpdateKind].Database := FDataset.Database; //01.08.2008
   with Query[UpdateKind] do
   begin
     for I := 0 to Params.Count - 1 do
