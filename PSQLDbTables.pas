@@ -37,14 +37,17 @@ const
     fldBLOB, fldBLOB, fldCURSOR, fldZSTRING, fldZSTRING, fldINT64, fldADT,
     fldArray, fldREF, fldTABLE, fldBLOB, fldBLOB, fldUNKNOWN, fldUNKNOWN,
     fldUNKNOWN, fldZSTRING{$IFDEF DELPHI_6}, fldDATETIME, fldBCD{$ENDIF}
-    {$IFDEF DELPHI_10}, fldZSTRING, fldBLOB, fldDATETIME, fldINT32{$ENDIF});
+    {$IFDEF DELPHI_10}, fldZSTRING, fldBLOB, fldDATETIME, fldINT32{$ENDIF}
+    {$IFDEF DELPHI_12}, fldINT32, fldUNKNOWN, fldUNKNOWN, fldFLOAT,
+    fldUNKNOWN {ftConnection}, fldUNKNOWN {ftParams}, fldUNKNOWN {ftStream}{$ENDIF}); //42..48
 
   FldSubTypeMap: array[TFieldType] of Word = (
     0, 0, 0, 0, 0, 0, 0, fldstMONEY, 0, 0, 0, 0, 0, 0, fldstAUTOINC,
     fldstBINARY, fldstMEMO, fldstGRAPHIC, fldstFMTMEMO, fldstOLEOBJ,
     fldstDBSOLEOBJ, fldstTYPEDBINARY, 0, fldstFIXED, fldstUNICODE,
     0, 0, 0, 0, 0, fldstHBINARY, fldstHMEMO, 0, 0, 0, 0{$IFDEF DELPHI_6} , 0, 0{$ENDIF}
-    {$IFDEF DELPHI_10}, fldstFIXED, fldstMEMO, 0, 0 {$ENDIF});
+    {$IFDEF DELPHI_10}, fldstFIXED, fldstMEMO, 0, 0 {$ENDIF}
+    {$IFDEF DELPHI_12}, 0, 0, 0, 0, 0, 0, 0{$ENDIF});
 
   DataTypeMap: array[0..MAXLOGFLDTYPES - 1] of TFieldType = (
     ftUnknown, ftString, ftDate, ftBlob, ftBoolean, ftSmallint,
@@ -112,7 +115,7 @@ type
   ENoResultSet = class(EDatabaseError);
 
   TDatabaseNoticeEvent = procedure (Sender: TPSQLDatabase; Message: string) of object;
-  TBaseDatabaseLoginEvent = Procedure(Database: TPSQLDatabase; LoginParams: TStrings) of object;
+  TBaseDatabaseLoginEvent = procedure(Database: TPSQLDatabase; LoginParams: TStrings) of object;
 
   TDBFlags = set of 0..15;
 
@@ -162,30 +165,30 @@ type
       function GetNotifyItem(Index: Integer): TObject;
       function GetNotifyCount: Integer;
       procedure FillAddonInfo;
-      Procedure CheckActive;
-      Procedure CheckInactive;
-      Procedure CheckDatabase(var Password: String);
-      Procedure ClearStatements;
-      Procedure EndTransaction(TransEnd: EXEnd);
-      Function GetInTransaction: Boolean;
+      procedure CheckActive;
+      procedure CheckInactive;
+      procedure CheckDatabase(var Password: String);
+      procedure ClearStatements;
+      procedure EndTransaction(TransEnd: EXEnd);
+      function GetInTransaction: Boolean;
       function GetTransactionStatus: TTransactionStatusType;
       function GetServerVersionAsInt: integer;
-      Procedure Login(LoginParams: TStrings);
-      Procedure ParamsChanging(Sender: TObject);
-      Procedure SetDatabaseFlags;
-      Procedure SetDatabaseName(const Value: String);
-      Procedure SetUserName(const Value: String);
-      Procedure SetUserPassword(const Value: String);
-      Procedure SetServerPort(const Value: Cardinal);
-      Procedure SetConnectionTimeout(const Value: cardinal);
-      Procedure SetCommandTimeout(const Value: cardinal);
+      procedure Login(LoginParams: TStrings);
+      procedure ParamsChanging(Sender: TObject);
+      procedure SetDatabaseFlags;
+      procedure SetDatabaseName(const Value: String);
+      procedure SetUserName(const Value: String);
+      procedure SetUserPassword(const Value: String);
+      procedure SetServerPort(const Value: Cardinal);
+      procedure SetConnectionTimeout(const Value: cardinal);
+      procedure SetCommandTimeout(const Value: cardinal);
       procedure SetHost(const Value : String);
       procedure SetUseSSL(const Value : Boolean);
-      Procedure SetKeepConnection(Value: Boolean);
-      Procedure SetExclusive(Value: Boolean);
-      Procedure SetHandle(Value: HDBIDB);
+      procedure SetKeepConnection(Value: Boolean);
+      procedure SetExclusive(Value: Boolean);
+      procedure SetHandle(Value: HDBIDB);
       procedure SetParams(Value: TStrings);
-      Procedure SetReadOnly(Value: Boolean);
+      procedure SetReadOnly(Value: Boolean);
       procedure SetDummyStr(Value: string);
       procedure SetDummyBool(Value: boolean);
       procedure SetDummyInt(Value: cardinal);
@@ -195,17 +198,17 @@ type
     function GetDBOwner: string;
     function GetTablespace: string;
     Protected
-      Procedure CloseDatabaseHandle;
+      procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
-      Procedure DoConnect; override;
-      Procedure DoDisconnect; override;
-      Function GetConnected: Boolean; override;
-      Function GetDataSet(Index: Integer): TPSQLDataSet; reintroduce;
-      Procedure Loaded; Override;
-      Procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
-      Procedure InitEngine; //Init SQL Engine
-      Procedure AddDatabase(Value : TPSQLDatabase);
-      Procedure RemoveDatabase(Value : TPSQLDatabase);
+      procedure DoConnect; override;
+      procedure DoDisconnect; override;
+      function GetConnected: Boolean; override;
+      function GetDataSet(Index: Integer): TPSQLDataSet; reintroduce;
+      procedure Loaded; Override;
+      procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
+      procedure InitEngine; //Init SQL Engine
+      procedure AddDatabase(Value : TPSQLDatabase);
+      procedure RemoveDatabase(Value : TPSQLDatabase);
       property CheckIfActiveOnParamChange: boolean read FCheckIfActiveOnParamChange write FCheckIfActiveOnParamChange;
     Public
       constructor Create(AOwner: TComponent); Override;
@@ -285,7 +288,7 @@ type
   end;
 
   { TPSQLBDECallBack }
-  TPSQLBDECallbackEvent = Function(CBInfo: Pointer): CBRType of Object;
+  TPSQLBDECallbackEvent = function(CBInfo: Pointer): CBRType of Object;
 
   TPSQLBDECallBack = Class(TObject)
     Private
@@ -297,7 +300,7 @@ type
       FCallbackEvent: TPSQLBDECallbackEvent;
       FEngine : TPSQLEngine;
     Protected
-      Function Invoke(CallType: CBType; CBInfo: Pointer): CBRType;
+      function Invoke(CallType: CBType; CBInfo: Pointer): CBRType;
     Public
       constructor Create(Engine : TPSQLEngine; AOwner: TObject; Handle: hDBICur; CBType: CBType;
         CBBuf: Pointer; CBBufSize: Integer; CallbackEvent: TPSQLBDECallbackEvent;Chain: Boolean);
@@ -315,10 +318,10 @@ type
 
   TPSQLSQLUpdateObject = class(TComponent)
   protected
-     Function GetDataSet: TPSQLDataSet; Virtual; Abstract;
-     Procedure SetDataSet(ADataSet: TPSQLDataSet); Virtual; Abstract;
-     Procedure Apply(UpdateKind: TUpdateKind); Virtual; Abstract;
-     Function GetSQL(UpdateKind: TUpdateKind): TStrings; virtual; abstract;
+     function GetDataSet: TPSQLDataSet; Virtual; Abstract;
+     procedure SetDataSet(ADataSet: TPSQLDataSet); Virtual; Abstract;
+     procedure Apply(UpdateKind: TUpdateKind); Virtual; Abstract;
+     function GetSQL(UpdateKind: TUpdateKind): TStrings; virtual; abstract;
      property DataSet: TPSQLDataSet read GetDataSet write SetDataSet;
   end;
 
@@ -387,20 +390,20 @@ type
     FByteaAsEscString: boolean;
     FOIDAsInt: boolean;
     FSortFieldNames: string;
-    Procedure ClearBlobCache(Buffer: PChar);
-    Function GetActiveRecBuf(var RecBuf: PChar): Boolean;
-    Function GetBlobData(Field: TField; Buffer: PChar): TBlobData;
-    Function GetOldRecord: PChar;
-    Procedure InitBufferPointers(GetProps: Boolean);
-    Function RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint; stdcall;
-    Procedure SetBlobData(Field: TField; Buffer: PChar; Value: TBlobData);
-    Function GetDBHandle: HDBIDB;
-    Procedure SetUpdateMode(const Value: TUpdateMode);
-    Procedure SetAutoRefresh(const Value: Boolean);
+    procedure ClearBlobCache(Buffer: PChar);
+    function GetActiveRecBuf(var RecBuf: PChar): Boolean;
+    function GetBlobData(Field: TField; Buffer: PChar): TBlobData;
+    function GetOldRecord: PChar;
+    procedure InitBufferPointers(GetProps: Boolean);
+    function RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint; stdcall;
+    procedure SetBlobData(Field: TField; Buffer: PChar; Value: TBlobData);
+    function GetDBHandle: HDBIDB;
+    procedure SetUpdateMode(const Value: TUpdateMode);
+    procedure SetAutoRefresh(const Value: Boolean);
     procedure SetDatabase(Value : TPSQLDatabase);
     function GetDatabase:TPSQLDatabase;
     {$IFNDEF DELPHI_4}
-    Procedure SetupAutoRefresh;
+    procedure SetupAutoRefresh;
     {$ENDIF}
     procedure SetByteaAsEscString(const Value: boolean); virtual;
     procedure SetOIDAsInt(const Value: boolean); virtual;
@@ -413,130 +416,148 @@ type
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
       {$IFNDEF DELPHI_4}
       { IProviderSupport }
-      Procedure PSEndTransaction(Commit: Boolean); override;
-      Function PSExecuteStatement(const ASQL: string; AParams: TParams;
+      procedure PSEndTransaction(Commit: Boolean); override;
+      function PSExecuteStatement(const ASQL: string; AParams: TParams;
         ResultSet: Pointer = NIL): Integer; override;
-      Procedure PSGetAttributes(List: TList); override;
-      Function PSGetQuoteChar: string; override;
-      Function PSInTransaction: Boolean; override;
-      Function PSIsSQLBased: Boolean; override;
-      Function PSIsSQLSupported: Boolean; override;
-      Procedure PSStartTransaction; override;
-      Procedure PSReset; override;
-      Function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
+      procedure PSGetAttributes(List: TList); override;
+      function PSGetQuoteChar: string; override;
+      function PSInTransaction: Boolean; override;
+      function PSIsSQLBased: Boolean; override;
+      function PSIsSQLSupported: Boolean; override;
+      procedure PSStartTransaction; override;
+      procedure PSReset; override;
+      function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
   Protected
     {$ENDIF}
-    Function  Engine : TPSQLEngine; Virtual; Abstract;
+    function  Engine : TPSQLEngine; Virtual; Abstract;
     procedure SetBlockReadSize(Value: Integer); override;
     procedure BlockReadNext; override;
     {$IFDEF DELPHI_4}
     function BCDToCurr(BCD: Pointer; var Curr: Currency): Boolean; Override;
     function CurrToBCD(const Curr: Currency; BCD: Pointer; Precision,  Decimals: Integer): Boolean; Override;
     {$ENDIF}
-    Procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
-    Procedure ActivateFilters;
-    Procedure AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
+    procedure ActivateFilters;
+    procedure AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
       var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
-    Procedure AllocCachedUpdateBuffers(Allocate: Boolean);
-    Procedure AllocKeyBuffers;
-    Function  AllocRecordBuffer: PChar; Override;
-    Function  CachedUpdateCallBack(CBInfo: Pointer): CBRType;
-    Procedure CheckCachedUpdateMode;    
-    Procedure CheckSetKeyMode;
-    Procedure ClearCalcFields(Buffer: PChar); Override;
-    Procedure CloseCursor; Override;
-    Procedure CloseBlob(Field: TField); Override;
-    Function  CreateExprFilter(const Expr: String;
+    procedure AllocCachedUpdateBuffers(Allocate: Boolean);
+    procedure AllocKeyBuffers;
+{$IFDEF DELPHI_12}
+    function  AllocRecordBuffer: PByte; Override;
+{$ELSE}
+    function  AllocRecordBuffer: PChar; Override;
+{$ENDIF}
+    function  CachedUpdateCallBack(CBInfo: Pointer): CBRType;
+    procedure CheckCachedUpdateMode;
+    procedure CheckSetKeyMode;
+{$IFDEF DELPHI_12}
+    procedure ClearCalcFields(Buffer: PByte); Override;
+{$ELSE}
+    procedure ClearCalcFields(Buffer: PChar); Override;
+{$ENDIF}
+    procedure CloseCursor; Override;
+    procedure CloseBlob(Field: TField); Override;
+    function  CreateExprFilter(const Expr: String;
       Options: TFilterOptions; Priority: Integer): HDBIFilter;
-    Function  CreateFuncFilter(FilterFunc: Pointer;
+    function  CreateFuncFilter(FilterFunc: Pointer;
       Priority: Integer): HDBIFilter;
-    Function  CreateHandle: HDBICur; Virtual;
-    Function  CreateLookupFilter(Fields: TList; const Values: Variant;
+    function  CreateHandle: HDBICur; Virtual;
+    function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
-    Procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
-    Procedure DeactivateFilters;
-    Procedure DestroyHandle; Virtual;
-    Procedure DestroyLookupCursor; Virtual;
-    Function  FindRecord(Restart, GoForward: Boolean): Boolean; Override;
-    Function  ForceUpdateCallback: Boolean;
-    Procedure FreeKeyBuffers;
-    Procedure FreeRecordBuffer(var Buffer: PChar); Override;
-    Procedure GetBookmarkData(Buffer: PChar; Data: Pointer); Override;
-    Function  GetBookmarkFlag(Buffer: PChar): TBookmarkFlag; Override;
-    Function  GetCanModify: Boolean; Override;
-    Function  GetFieldFullName(Field: TField): string; override;
-    Function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
-    Function  GetIndexField(Index: Integer): TField;
-    Function  GetIndexFieldCount: Integer;
-    Function  GetIsIndexField(Field: TField): Boolean; Override;
-    Function  GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
-    Function  GetKeyExclusive: Boolean;
-    Function  GetKeyFieldCount: Integer;
-    Function  GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur; Virtual;
-    Function  GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
-    Function  GetRecordCount: Integer; Override;
-    Function  GetRecNo: Integer; Override;
-    Function  GetRecordSize: Word; Override;
-    Function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; Override;
-    Procedure GetObjectTypeNames(Fields: TFields);
-    Function  GetUpdatesPending: Boolean;
-    Function  GetUpdateRecordSet: TUpdateRecordTypes;
-    Function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
-    Procedure InitRecord(Buffer: PChar); Override;
-    Procedure InternalAddRecord(Buffer: Pointer; Append: Boolean); Override;
-    Procedure InternalCancel; Override;
-    Procedure InternalClose; Override;
-    Procedure InternalDelete; Override;
-    Procedure InternalEdit; Override;
-    Procedure InternalFirst; Override;
-    Procedure InternalGotoBookmark(Bookmark: TBookmark); Override;
-    Procedure InternalHandleException; Override;
-    Procedure InternalInitFieldDefs; Override;
-    Procedure InternalInitRecord(Buffer: PChar); Override;
-    Procedure InternalInsert; override;
-    Procedure InternalLast; Override;
-    Procedure InternalOpen; Override;
-    Procedure InternalPost; Override;
-    Procedure InternalRefresh; Override;
-    Procedure InternalSetToRecord(Buffer: PChar); Override;
-    Function  IsCursorOpen: Boolean; Override;
-    Function  LocateRecord(const KeyFields: String; const KeyValues: Variant;
+    procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
+    procedure DeactivateFilters;
+    procedure DestroyHandle; Virtual;
+    procedure DestroyLookupCursor; Virtual;
+    function  FindRecord(Restart, GoForward: Boolean): Boolean; Override;
+    function  ForceUpdateCallback: Boolean;
+    procedure FreeKeyBuffers;
+{$IFDEF DELPHI_12}
+    procedure FreeRecordBuffer(var Buffer: PByte); Override;
+    procedure GetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); overload; virtual;
+    function  GetBookmarkFlag(Buffer: TRecordBuffer): TBookmarkFlag; Override;
+{$ELSE}
+    procedure FreeRecordBuffer(var Buffer: PChar); Override;
+    procedure GetBookmarkData(Buffer: PChar; Data: Pointer); Override;
+    function  GetBookmarkFlag(Buffer: PChar): TBookmarkFlag; Override;
+{$ENDIF}
+    function  GetCanModify: Boolean; Override;
+    function  GetFieldFullName(Field: TField): string; override;
+    function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
+    function  GetIndexField(Index: Integer): TField;
+    function  GetIndexFieldCount: Integer;
+    function  GetIsIndexField(Field: TField): Boolean; Override;
+    function  GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
+    function  GetKeyExclusive: Boolean;
+    function  GetKeyFieldCount: Integer;
+    function  GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur; Virtual;
+    function  GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
+    function  GetRecordCount: Integer; Override;
+    function  GetRecNo: Integer; Override;
+    function  GetRecordSize: Word; Override;
+    function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; Override;
+    procedure GetObjectTypeNames(Fields: TFields);
+    function  GetUpdatesPending: Boolean;
+    function  GetUpdateRecordSet: TUpdateRecordTypes;
+    function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
+{$IFDEF DELPHI_12}
+    procedure InitRecord(Buffer: PByte); Override;
+{$ELSE}
+    procedure InitRecord(Buffer: PChar); Override;
+{$ENDIF}
+    procedure InternalAddRecord(Buffer: Pointer; Append: Boolean); Override;
+    procedure InternalCancel; Override;
+    procedure InternalClose; Override;
+    procedure InternalDelete; Override;
+    procedure InternalEdit; Override;
+    procedure InternalFirst; Override;
+    procedure InternalGotoBookmark(Bookmark: TBookmark); Override;
+    procedure InternalHandleException; Override;
+    procedure InternalInitFieldDefs; Override;
+    procedure InternalInitRecord(Buffer: PChar); Override;
+    procedure InternalInsert; override;
+    procedure InternalLast; Override;
+    procedure InternalOpen; Override;
+    procedure InternalPost; Override;
+    procedure InternalRefresh; Override;
+    procedure InternalSetToRecord(Buffer: PChar); Override;
+    function  IsCursorOpen: Boolean; Override;
+    function  LocateRecord(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Boolean;
-    Function  LocateNearestRecord(const KeyFields: String; const KeyValues: Variant;
+    function  LocateNearestRecord(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Word;
-    Function  MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
-    Procedure PostKeyBuffer(Commit: Boolean);
-    Procedure PrepareCursor; Virtual;
-    Function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
-    Function  ResetCursorRange: Boolean;
-    Procedure SetBookmarkData(Buffer: PChar; Data: Pointer); Override;
-    Procedure SetBookmarkFlag(Buffer: PChar; Value: TBookmarkFlag); Override;
-    Procedure SetCachedUpdates(Value: Boolean);
-    Function  SetCursorRange: Boolean;
-    Procedure SetFieldData(Field: TField; Buffer: Pointer); Override;
-    Procedure SetFilterData(const Text: String; Options: TFilterOptions);
-    Procedure SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
-    Procedure SetFiltered(Value: Boolean); Override;
-    Procedure SetFilterOptions(Value: TFilterOptions); Override;
-    Procedure SetFilterText(const Value: String); Override;
-    Procedure SetIndexField(Index: Integer; Value: TField);
-    Procedure SetKeyBuffer(KeyIndex: TKeyIndex; Clear: Boolean);
-    Procedure SetKeyExclusive(Value: Boolean);
-    Procedure SetKeyFieldCount(Value: Integer);
-    Procedure SetKeyFields(KeyIndex: TKeyIndex; const Values: array of const);
-    Procedure SetLinkRanges(MasterFields: TList);
-    Procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); Override;
-    Procedure SetOnFilterRecord(const Value: TFilterRecordEvent); Override;
+    function  MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
+    procedure PostKeyBuffer(Commit: Boolean);
+    procedure PrepareCursor; Virtual;
+    function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
+    function  ResetCursorRange: Boolean;
+    procedure SetBookmarkData(Buffer: PChar; Data: Pointer); Override;
+    procedure SetBookmarkFlag(Buffer: PChar; Value: TBookmarkFlag); Override;
+    procedure SetCachedUpdates(Value: Boolean);
+    function  SetCursorRange: Boolean;
+    procedure SetFieldData(Field: TField; Buffer: Pointer); Override;
+    procedure SetFilterData(const Text: String; Options: TFilterOptions);
+    procedure SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
+    procedure SetFiltered(Value: Boolean); Override;
+    procedure SetFilterOptions(Value: TFilterOptions); Override;
+    procedure SetFilterText(const Value: String); Override;
+    procedure SetIndexField(Index: Integer; Value: TField);
+    procedure SetKeyBuffer(KeyIndex: TKeyIndex; Clear: Boolean);
+    procedure SetKeyExclusive(Value: Boolean);
+    procedure SetKeyFieldCount(Value: Integer);
+    procedure SetKeyFields(KeyIndex: TKeyIndex; const Values: array of const);
+    procedure SetLinkRanges(MasterFields: TList);
+    procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); Override;
+    procedure SetOnFilterRecord(const Value: TFilterRecordEvent); Override;
     procedure SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);    
-    Procedure SetRecNo(Value: Integer); Override;
-    Procedure SetupCallBack(Value: Boolean);
-    Procedure SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
-    Procedure SetUpdateObject(Value: TPSQLSQLUpdateObject);
-    Procedure SwitchToIndex(const IndexName, TagName: String);
-    Function  UpdateCallbackRequired: Boolean;
-    Procedure Disconnect; Virtual;
-    Procedure OpenCursor(InfoQuery: Boolean); Override;
-    Function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; virtual;
+    procedure SetRecNo(Value: Integer); Override;
+    procedure SetupCallBack(Value: Boolean);
+    procedure SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
+    procedure SetUpdateObject(Value: TPSQLSQLUpdateObject);
+    procedure SwitchToIndex(const IndexName, TagName: String);
+    function  UpdateCallbackRequired: Boolean;
+    procedure Disconnect; Virtual;
+    procedure OpenCursor(InfoQuery: Boolean); Override;
+    function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; virtual;
     function GetHandle: HDBICur;
     property DBFlags: TDBFlags read FDBFlags;
     property UpdateMode: TUpdateMode read FUpdateMode write SetUpdateMode default upWhereAll;
@@ -549,32 +570,32 @@ type
     destructor Destroy; Override;
     function GetLastInsertID(const FieldNum: integer): integer;
     function GetFieldTypeOID(const FieldNum: integer): cardinal;
-    Procedure ApplyUpdates;
-    Function  BookmarkValid(Bookmark: TBookmark): Boolean; Override;
-    Procedure Cancel; Override;
-    Procedure CancelUpdates;
+    procedure ApplyUpdates;
+    function  BookmarkValid(Bookmark: TBookmark): Boolean; Override;
+    procedure Cancel; Override;
+    procedure CancelUpdates;
     property  CacheBlobs: Boolean read FCacheBlobs write FCacheBlobs default TRUE;
-    Function  CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Integer; Override;
-    Procedure CommitUpdates;
-    Procedure FetchAll;
-    Procedure FlushBuffers;
-    Function GetCurrentRecord(Buffer: PChar): Boolean; Override;
-    Function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
-    Function GetFieldData(Field: TField; Buffer: Pointer): Boolean; overload; override;
-    Function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload; override;
-    Procedure GetIndexInfo;
-    Function  Locate(const KeyFields: String; const KeyValues: Variant;
+    function  CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Integer; Override;
+    procedure CommitUpdates;
+    procedure FetchAll;
+    procedure FlushBuffers;
+    function GetCurrentRecord(Buffer: PChar): Boolean; Override;
+    function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
+    function GetFieldData(Field: TField; Buffer: Pointer): Boolean; overload; override;
+    function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload; override;
+    procedure GetIndexInfo;
+    function  Locate(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions): Boolean; Override;
-    Function  Lookup(const KeyFields: String; const KeyValues: Variant;
+    function  Lookup(const KeyFields: String; const KeyValues: Variant;
       const ResultFields: String): Variant; Override;
-    Function  IsSequenced: Boolean; Override;
-    Procedure Post; Override;
-    Procedure RevertRecord;
-    Function  UpdateStatus: TUpdateStatus; Override;
-    Function  Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;  Override;
-    Function CheckOpen(Status: Word): Boolean;
-    Procedure CloseDatabase(Database: TPSQLDatabase);
-    Procedure GetDatabaseNames(List: TStrings);
+    function  IsSequenced: Boolean; Override;
+    procedure Post; Override;
+    procedure RevertRecord;
+    function  UpdateStatus: TUpdateStatus; Override;
+    function  Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;  Override;
+    function CheckOpen(Status: Word): Boolean;
+    procedure CloseDatabase(Database: TPSQLDatabase);
+    procedure GetDatabaseNames(List: TStrings);
     property DBHandle: HDBIDB read GetDBHandle;
     property Handle: HDBICur read GetHandle;
     property ExpIndex: Boolean read FExpIndex;
@@ -665,34 +686,34 @@ type
     FTablespace: string;
     procedure SetLimit(const Value : Integer);
     function GetLimit: integer;
-    Procedure CheckMasterRange;
-    Procedure DecodeIndexDesc(const IndexDesc: IDXDesc;
+    procedure CheckMasterRange;
+    procedure DecodeIndexDesc(const IndexDesc: IDXDesc;
       var Source, Name, FieldExpression, DescFields: string;
       var Options: TIndexOptions);
-    Function FieldDefsStored: Boolean;
-    Function GetExists: Boolean;
-    Function GetIndexFieldNames: String;
-    Function GetIndexName: String;
-    Procedure GetIndexParams(const IndexName: String; FieldsIndex: Boolean;
+    function FieldDefsStored: Boolean;
+    function GetExists: Boolean;
+    function GetIndexFieldNames: String;
+    function GetIndexName: String;
+    procedure GetIndexParams(const IndexName: String; FieldsIndex: Boolean;
       var IndexedName, IndexTag: String);
-    Function GetMasterFields: String;
-    Function GetTableTypeName: PChar;
-    Function GetTableLevel: Integer;
-    Function IndexDefsStored: Boolean;
-    Procedure MasterChanged(Sender: TObject);
-    Procedure MasterDisabled(Sender: TObject);
-    Procedure SetDataSource(Value: TDataSource);
-    Procedure SetExclusive(Value: Boolean);
-    Procedure SetIndexDefs(Value: TIndexDefs);
-    Procedure SetIndex(const Value: String; FieldsIndex: Boolean);
-    Procedure SetIndexFieldNames(const Value: String);
-    Procedure SetIndexName(const Value: String);
-    Procedure SetMasterFields(const Value: String);
-    Procedure SetReadOnly(Value: Boolean);
-    Procedure SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
-    Procedure SetTableName(const Value: TFileName);
+    function GetMasterFields: String;
+    function GetTableTypeName: PChar;
+    function GetTableLevel: Integer;
+    function IndexDefsStored: Boolean;
+    procedure MasterChanged(Sender: TObject);
+    procedure MasterDisabled(Sender: TObject);
+    procedure SetDataSource(Value: TDataSource);
+    procedure SetExclusive(Value: Boolean);
+    procedure SetIndexDefs(Value: TIndexDefs);
+    procedure SetIndex(const Value: String; FieldsIndex: Boolean);
+    procedure SetIndexFieldNames(const Value: String);
+    procedure SetIndexName(const Value: String);
+    procedure SetMasterFields(const Value: String);
+    procedure SetReadOnly(Value: Boolean);
+    procedure SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
+    procedure SetTableName(const Value: TFileName);
     function GetTableName: TFileName;
-    Procedure UpdateRange;
+    procedure UpdateRange;
     function GetBatchModify: Boolean;
     procedure SetBatchModify(const Value : Boolean);
     procedure SetShowSystemTables(const Value: boolean);
@@ -705,67 +726,67 @@ type
   Protected
     {$IFNDEF DELPHI_4}
     { IProviderSupport }
-    Function PSGetDefaultOrder: TIndexDef; override;
-    Function PSGetKeyFields: string; override;
-    Function PSGetTableName: string; override;
+    function PSGetDefaultOrder: TIndexDef; override;
+    function PSGetKeyFields: string; override;
+    function PSGetTableName: string; override;
     function PSGetIndexDefs(IndexTypes: TIndexOptions): TIndexDefs; override;
-    Procedure PSSetCommandText(const CommandText: string); override;
-    Procedure PSSetParams(AParams: TParams); override;
+    procedure PSSetCommandText(const CommandText: string); override;
+    procedure PSSetParams(AParams: TParams); override;
     {$ENDIF}
-    Function CreateHandle: HDBICur; Override;
-    Procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
-    Procedure DefChanged(Sender: TObject); override;
-    Procedure DestroyHandle; Override;
-    Procedure DestroyLookupCursor; Override;
-    Procedure DoOnNewRecord; Override;
-    Procedure EncodeFieldDesc(var FieldDesc: FLDDesc;
+    function CreateHandle: HDBICur; Override;
+    procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
+    procedure DefChanged(Sender: TObject); override;
+    procedure DestroyHandle; Override;
+    procedure DestroyLookupCursor; Override;
+    procedure DoOnNewRecord; Override;
+    procedure EncodeFieldDesc(var FieldDesc: FLDDesc;
       const Name: string; DataType: TFieldType; Size, Precision: Integer);
-    Procedure EncodeIndexDesc(var IndexDesc: IDXDesc;
+    procedure EncodeIndexDesc(var IndexDesc: IDXDesc;
       const Name, FieldExpression: string; Options: TIndexOptions;
       const DescFields: string = '');
-    Function GetCanModify: Boolean; Override;
-    Function GetDataSource: TDataSource; Override;
-    Function GetHandle(const IndexName, IndexTag: String): HDBICur;
-    Function GetLanguageDriverName: String;
-    Function GetLookupCursor(const KeyFields: String;
+    function GetCanModify: Boolean; Override;
+    function GetDataSource: TDataSource; Override;
+    function GetHandle(const IndexName, IndexTag: String): HDBICur;
+    function GetLanguageDriverName: String;
+    function GetLookupCursor(const KeyFields: String;
       CaseInsensitive: Boolean): HDBICur; Override;
-    Procedure InitFieldDefs; Override;
-    Function GetFileName: string;
-    Function GetTableType: TTableType;
-    Function NativeTableName: PChar;
-    Procedure PrepareCursor; Override;
-    Procedure UpdateIndexDefs; Override;
+    procedure InitFieldDefs; Override;
+    function GetFileName: string;
+    function GetTableType: TTableType;
+    function NativeTableName: PChar;
+    procedure PrepareCursor; Override;
+    procedure UpdateIndexDefs; Override;
     property MasterLink: TMasterDataLink read FMasterLink;
     procedure SetByteaAsEscString(const Value: boolean); override;
     procedure SetOIDAsInt(const Value: boolean); override;
   Public
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
-    Function  Engine : TPSQLEngine; Override;
-    Function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
-    Function  IsSequenced: Boolean; Override;
-    Procedure AddIndex(const Name, Fields: string; Options: TIndexOptions; const DescFields: string = '');
-    Procedure ApplyRange;
-    Procedure CancelRange;
+    function  Engine : TPSQLEngine; Override;
+    function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
+    function  IsSequenced: Boolean; Override;
+    procedure AddIndex(const Name, Fields: string; Options: TIndexOptions; const DescFields: string = '');
+    procedure ApplyRange;
+    procedure CancelRange;
     procedure CreateTable;
-    Procedure DeleteIndex(const Name: String);
-    Procedure EditKey;
-    Procedure EditRangeEnd;
-    Procedure EditRangeStart;
-    Procedure EmptyTable;
-    Function FindKey(const KeyValues: array of const): Boolean;
-    Procedure FindNearest(const KeyValues: array of const);
-    Procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
-    Procedure GetIndexNames(List: TStrings);
-    Procedure GotoCurrent(Table: TPSQLTable);
-    Function GotoKey: Boolean;
-    Procedure GotoNearest;
-    Procedure LockTable(LockType: TPSQLLockType);
-    Procedure SetKey;
-    Procedure SetRange(const StartValues, EndValues: array of const);
-    Procedure SetRangeEnd;
-    Procedure SetRangeStart;
-    Procedure UnlockTable;
+    procedure DeleteIndex(const Name: String);
+    procedure EditKey;
+    procedure EditRangeEnd;
+    procedure EditRangeStart;
+    procedure EmptyTable;
+    function FindKey(const KeyValues: array of const): Boolean;
+    procedure FindNearest(const KeyValues: array of const);
+    procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
+    procedure GetIndexNames(List: TStrings);
+    procedure GotoCurrent(Table: TPSQLTable);
+    function GotoKey: Boolean;
+    procedure GotoNearest;
+    procedure LockTable(LockType: TPSQLLockType);
+    procedure SetKey;
+    procedure SetRange(const StartValues, EndValues: array of const);
+    procedure SetRangeEnd;
+    procedure SetRangeStart;
+    procedure UnlockTable;
     property Exists: Boolean read GetExists;
     property IndexFieldCount: Integer read GetIndexFieldCount;
     property IndexFields[Index: Integer]: TField read GetIndexField write SetIndexField;
@@ -820,57 +841,57 @@ type
       FParamCheck: Boolean;
       FExecSQL: Boolean;
       FCheckRowsAffected: Boolean;
-      Function CreateCursor(GenHandle: Boolean): HDBICur;
-      Function GetQueryCursor(GenHandle: Boolean): HDBICur;
-      Function GetRowsAffected: Integer;
-      Procedure PrepareSQL(Value: PChar);
-      Procedure QueryChanged(Sender: TObject);
-      Procedure ReadBinaryData(Stream: TStream);
-      Procedure ReadParamData(Reader: TReader);
-      Procedure RefreshParams;
-      Procedure SetDataSource(Value: TDataSource);
-      Procedure SetQuery(Value: TStrings);
+      function CreateCursor(GenHandle: Boolean): HDBICur;
+      function GetQueryCursor(GenHandle: Boolean): HDBICur;
+      function GetRowsAffected: Integer;
+      procedure PrepareSQL(Value: PChar);
+      procedure QueryChanged(Sender: TObject);
+      procedure ReadBinaryData(Stream: TStream);
+      procedure ReadParamData(Reader: TReader);
+      procedure RefreshParams;
+      procedure SetDataSource(Value: TDataSource);
+      procedure SetQuery(Value: TStrings);
       function GetQuery:TStrings;
-      Procedure SetParamsList(Value: TPSQLParams);
-      Procedure SetParamsFromCursor;
-      Procedure SetPrepared(Value: Boolean);
-      Procedure SetPrepare(Value: Boolean);
-      Procedure WriteBinaryData(Stream: TStream);
-      Procedure WriteParamData(Writer: TWriter);
+      procedure SetParamsList(Value: TPSQLParams);
+      procedure SetParamsFromCursor;
+      procedure SetPrepared(Value: Boolean);
+      procedure SetPrepare(Value: Boolean);
+      procedure WriteBinaryData(Stream: TStream);
+      procedure WriteParamData(Writer: TWriter);
       procedure SetRequestLive(const Value : Boolean);
       function GetRequestLive : Boolean;
     protected
       {$IFNDEF DELPHI_4}
       { IProviderSupport }
-      Procedure PSExecute; override;
-      Function PSGetDefaultOrder: TIndexDef; override;
-      Function PSGetParams: TParams; override;
-      Function PSGetTableName: string; override;
-      Procedure PSSetCommandText(const CommandText: string); override;
-      Procedure PSSetParams(AParams: TParams); override;
+      procedure PSExecute; override;
+      function PSGetDefaultOrder: TIndexDef; override;
+      function PSGetParams: TParams; override;
+      function PSGetTableName: string; override;
+      procedure PSSetCommandText(const CommandText: string); override;
+      procedure PSSetParams(AParams: TParams); override;
       {$ENDIF}
-      Function CreateHandle: HDBICur; Override;
-      Procedure DefineProperties(Filer: TFiler); Override;
-      Procedure Disconnect; Override;
-//      Procedure FreeStatement; virtual;
-      Function GetDataSource: TDataSource; Override;
-      Function GetParamsCount: Word;
-      Function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; override;
-      Procedure GetStatementHandle(SQLText: PChar); virtual;
+      function CreateHandle: HDBICur; Override;
+      procedure DefineProperties(Filer: TFiler); Override;
+      procedure Disconnect; Override;
+//      procedure FreeStatement; virtual;
+      function GetDataSource: TDataSource; Override;
+      function GetParamsCount: Word;
+      function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; override;
+      procedure GetStatementHandle(SQLText: PChar); virtual;
       property DataLink: TDataLink read FDataLink;
       procedure SetByteaAsEscString(const Value: boolean); override;
       procedure SetOIDAsInt(const Value: boolean); override;
     Public
       constructor Create(AOwner: TComponent); Override;
       destructor Destroy; Override;
-      Function  Engine : TPSQLEngine; Override;
-      Function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
-      Function  IsSequenced: Boolean; Override;
-      Procedure ExecSQL;
-      Procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
-      Function ParamByName(const Value: String): TPSQLParam;
-      Procedure Prepare;
-      Procedure UnPrepare;
+      function  Engine : TPSQLEngine; Override;
+      function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
+      function  IsSequenced: Boolean; Override;
+      procedure ExecSQL;
+      procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
+      function ParamByName(const Value: String): TPSQLParam;
+      procedure Prepare;
+      procedure UnPrepare;
       property Prepared: Boolean read FPrepared write SetPrepare;
       property ParamCount: Word read GetParamsCount;
       property Local: Boolean read FLocal;
@@ -902,22 +923,22 @@ type
     FQueries: array[TUpdateKind] of TPSQLQuery;
     FSQLText: array[TUpdateKind] of TStrings;
     FRecordChangeCompleteEvent: TRecordChangeCompleteEvent;
-    Function GetQuery(UpdateKind: TUpdateKind): TPSQLQuery;
-    Function GetSQLIndex(Index: Integer): TStrings;
-    Procedure SetSQL(UpdateKind: TUpdateKind; Value: TStrings);
-    Procedure SetSQLIndex(Index: Integer; Value: TStrings);
+    function GetQuery(UpdateKind: TUpdateKind): TPSQLQuery;
+    function GetSQLIndex(Index: Integer): TStrings;
+    procedure SetSQL(UpdateKind: TUpdateKind; Value: TStrings);
+    procedure SetSQLIndex(Index: Integer; Value: TStrings);
   Protected
-    Function GetSQL(UpdateKind: TUpdateKind): TStrings; Override;
-    Function GetQueryClass : TPSQLQueryClass;
-    Function GetDataSet: TPSQLDataSet; Override;
-    Procedure SetDataSet(ADataSet: TPSQLDataSet); Override;
-    Procedure SQLChanged(Sender: TObject);
+    function GetSQL(UpdateKind: TUpdateKind): TStrings; Override;
+    function GetQueryClass : TPSQLQueryClass;
+    function GetDataSet: TPSQLDataSet; Override;
+    procedure SetDataSet(ADataSet: TPSQLDataSet); Override;
+    procedure SQLChanged(Sender: TObject);
   Public
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
-    Procedure Apply(UpdateKind: TUpdateKind); Override;
-    Procedure ExecSQL(UpdateKind: TUpdateKind);
-    Procedure SetParams(UpdateKind: TUpdateKind);
+    procedure Apply(UpdateKind: TUpdateKind); Override;
+    procedure ExecSQL(UpdateKind: TUpdateKind);
+    procedure SetParams(UpdateKind: TUpdateKind);
     property DataSet;
     property Query[UpdateKind: TUpdateKind]: TPSQLQuery read GetQuery;
     property SQL[UpdateKind: TUpdateKind]: TStrings read GetSQL write SetSQL;
@@ -943,16 +964,16 @@ type
       FBlobData: TBlobData;
       FCached: Boolean;
       FCacheSize: Longint;
-      Function GetBlobSize: Longint;
+      function GetBlobSize: Longint;
     Public
       constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
       destructor Destroy; Override;
-      Function Engine : TPSQLEngine;
-      Function PositionDataset: Boolean;
-      Function Read(var Buffer; Count: Longint): Longint; Override;
-      Function Write(const Buffer; Count: Longint): Longint; Override;
-      Function Seek(Offset: Longint; Origin: Word): Longint; Override;
-      Procedure Truncate;
+      function Engine : TPSQLEngine;
+      function PositionDataset: Boolean;
+      function Read(var Buffer; Count: Longint): Longint; Override;
+      function Write(const Buffer; Count: Longint): Longint; Override;
+      function Seek(Offset: Longint; Origin: Word): Longint; Override;
+      procedure Truncate;
   end;
 
 
@@ -986,7 +1007,7 @@ type
     procedure CheckActive;
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure Loaded; override;
-    Function  Engine : TPSQLEngine;
+    function  Engine : TPSQLEngine;
     procedure OpenNotify;
     procedure CloseNotify;
     function CreateHandle : hDBIObj;
@@ -1061,7 +1082,7 @@ type
 procedure FreeAndNil(var Obj);
 {$ENDIF}
 
-Procedure Check(Engine : TPSQLEngine; Status: Word);
+procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
 procedure Dac4PSQLShowAbout(aComponentName : string);
 
@@ -1140,16 +1161,16 @@ type
     Private
       FQuery: TPSQLQuery;
     Protected
-      Procedure ActiveChanged; Override;
-      Procedure RecordChanged(Field: TField); Override;
-      Function GetDetailDataSet: TDataSet; Override;
-      Procedure CheckBrowseMode; Override;
+      procedure ActiveChanged; Override;
+      procedure RecordChanged(Field: TField); Override;
+      function GetDetailDataSet: TDataSet; Override;
+      procedure CheckBrowseMode; Override;
     Public
       constructor Create(AQuery: TPSQLQuery);
   end;
 
 { Utility routines }
-Procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
+procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
 var
   DataLoss: LongBool;
 begin
@@ -1165,7 +1186,7 @@ begin
 end;
 
 
-Procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
+procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
 var
   DataLoss: LongBool;
 begin
@@ -1181,7 +1202,7 @@ begin
 end;
 
 
-Function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String;
+function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String;
   NativeStr: PChar; MaxLen: Integer): PChar;
 var
   Len: Integer;
@@ -1195,7 +1216,7 @@ begin
 end;
 
 
-Procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PChar; var AnsiStr: String);
+procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PChar; var AnsiStr: String);
 var
   Len : Integer;
 begin
@@ -1205,19 +1226,19 @@ begin
     TNativeToAnsiBuf(Engine, NativeStr, Pointer(AnsiStr), Len);
 end;
 
-Procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
+procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
 begin
   Raise EPSQLDatabaseError.Create(Engine, ErrorCode);
 end;
 
-Procedure Check(Engine : TPSQLEngine; Status: Word);
+procedure Check(Engine : TPSQLEngine; Status: Word);
 begin
   if Status <> 0 then TDbiError(Engine, Status);
 end;
 
 { Parameter binding routines }
 
-Function GetParamDataSize(Param: TParam): Integer;
+function GetParamDataSize(Param: TParam): Integer;
 begin
   with Param do
     if ((DataType in [ftString, ftFixedChar]) and (Length(VarToStr(Value)) > 255)) or
@@ -1227,13 +1248,13 @@ begin
       Result := GetDataSize;
 end;
 
-Procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
+procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
 {$IFDEF DELPHI_4}
 var
    NativeStr : String;
 {$ENDIF}
 
-  Function GetNativeStr: PChar;
+  function GetNativeStr: PChar;
   {$IFDEF DELPHI_4}
   var
      NatStr : String;
@@ -1283,8 +1304,8 @@ begin
       GetData(Buffer);
 end;
 
-{ Timer callback Function }
-Procedure FreeTimer(ForceKill : Boolean = FALSE);
+{ Timer callback function }
+procedure FreeTimer(ForceKill : Boolean = FALSE);
 begin
   if (TimerID <> 0) and (ForceKill or (GetTickCount - StartTime > SQLDelay)) then
   begin
@@ -1296,7 +1317,7 @@ begin
 end;
 
 
-Function GetIntProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer): Integer;
+function GetIntProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer): Integer;
 Var
   Length : Word;
   Value  : Integer;
@@ -1307,7 +1328,7 @@ begin
     Result := 0;
 end;
 
-Function SetBoolProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer; Value: Bool) : Boolean;
+function SetBoolProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer; Value: Bool) : Boolean;
 begin
   Result := Engine.SetEngProp(HDBIObj(Handle), PropName, Abs(Integer(Value))) = DBIERR_NONE;
 end;
@@ -1315,7 +1336,7 @@ end;
 { EPSQLDatabaseError }
 constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
 
-  Function GetErrorString: String;
+  function GetErrorString: String;
   var
     Msg1 : String;
     Msg2 : String;
@@ -1359,7 +1380,7 @@ end;
 
 
 { TPSQLDatabase }
-Procedure TPSQLDatabase.InitEngine;
+procedure TPSQLDatabase.InitEngine;
 begin
   Try
     if FEngine = nil then FEngine := TPSQLEngine.Create(nil, nil);
@@ -1368,12 +1389,12 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.AddDatabase(Value : TPSQLDatabase);
+procedure TPSQLDatabase.AddDatabase(Value : TPSQLDatabase);
 begin
    DBList.Add(Value);
 end;
 
-Procedure TPSQLDatabase.RemoveDatabase(Value : TPSQLDatabase);
+procedure TPSQLDatabase.RemoveDatabase(Value : TPSQLDatabase);
 begin
    while DataSetCount <> 0  do
       TPSQLDataSet(DataSets[DataSetCount - 1]).FDatabase := nil;
@@ -1417,7 +1438,7 @@ begin
 end;
 
 
-Procedure TPSQLDatabase.ApplyUpdates(const DataSets: array of TPSQLDataSet);
+procedure TPSQLDatabase.ApplyUpdates(const DataSets: array of TPSQLDataSet);
 var
   I  : Integer;
   DS : TPSQLDataSet;
@@ -1447,7 +1468,7 @@ type
     SQLText: string;
   end;
 
-Procedure TPSQLDatabase.ClearStatements;
+procedure TPSQLDatabase.ClearStatements;
 var
   i: Integer;
 begin
@@ -1462,12 +1483,12 @@ begin
   end;
 end;                             
 
-Function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
+function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
   Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
 
-  Function GetStmtInfo(SQL: PChar): PStmtInfo;
+  function GetStmtInfo(SQL: PChar): PStmtInfo;
 
-    Function GetHashCode(Str: PChar): Integer;
+    function GetHashCode(Str: PChar): Integer;
     var
       Off, Len, Skip, I: Integer;
     begin
@@ -1521,7 +1542,7 @@ Function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
     end;
   end;
 
-  Function GetStatementHandle: HDBIStmt;
+  function GetStatementHandle: HDBIStmt;
   var
     Info: PStmtInfo;
     Status: Word;
@@ -1579,12 +1600,12 @@ begin
         Result := 0;
 end;
 
-Procedure TPSQLDatabase.CheckActive;
+procedure TPSQLDatabase.CheckActive;
 begin
   if FHandle = nil then DatabaseError(SDatabaseClosed);
 end;
 
-Procedure TPSQLDatabase.CheckInactive;
+procedure TPSQLDatabase.CheckInactive;
 begin
   if FHandle <> nil then
      if csDesigning in ComponentState then
@@ -1592,7 +1613,7 @@ begin
         DatabaseError(SDatabaseOpen, Self);
 end;
 
-Procedure TPSQLDatabase.CloseDatabaseHandle;
+procedure TPSQLDatabase.CloseDatabaseHandle;
 begin
    Engine.CloseDatabase(FHandle);
 end;
@@ -1607,7 +1628,7 @@ begin
 end;
 
 
-Procedure TPSQLDatabase.DoDisconnect;
+procedure TPSQLDatabase.DoDisconnect;
 begin
   if FHandle <> nil then
   begin
@@ -1627,25 +1648,25 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.CloseDataSets;
+procedure TPSQLDatabase.CloseDataSets;
 begin
   while DataSetCount <> 0  do
     TPSQLDataSet(DataSets[DataSetCount - 1]).Disconnect;
 end;
 
-Procedure TPSQLDatabase.Commit;
+procedure TPSQLDatabase.Commit;
 begin
   CheckActive;
   EndTransaction(xendCOMMIT);
 end;
 
-Procedure TPSQLDatabase.Rollback;
+procedure TPSQLDatabase.Rollback;
 begin
   CheckActive;
   EndTransaction(xendABORT);
 end;
 
-Procedure TPSQLDatabase.StartTransaction;
+procedure TPSQLDatabase.StartTransaction;
 var
   TransHandle:  HDBIXAct;
 begin
@@ -1653,22 +1674,22 @@ begin
   Check(Engine, Engine.BeginTran(FHandle, EXILType(FTransIsolation),TransHandle));
 end;
 
-Procedure TPSQLDatabase.EndTransaction(TransEnd : EXEnd);
+procedure TPSQLDatabase.EndTransaction(TransEnd : EXEnd);
 begin
   Check(Engine, Engine.EndTran(FHandle, nil, TransEnd));
 end;
 
-Function TPSQLDatabase.GetConnected: Boolean;
+function TPSQLDatabase.GetConnected: Boolean;
 begin
   Result := FHandle <> nil;
 end;
 
-Function TPSQLDatabase.GetDataSet(Index : Integer) : TPSQLDataSet;
+function TPSQLDatabase.GetDataSet(Index : Integer) : TPSQLDataSet;
 begin
   Result := inherited GetDataSet(Index) as TPSQLDataSet;
 end;
 
-Procedure TPSQLDatabase.SetDatabaseFlags;
+procedure TPSQLDatabase.SetDatabaseFlags;
 var
   Length: Word;
   Buffer: DBINAME;
@@ -1677,14 +1698,14 @@ begin
   FPseudoIndexes := FALSE;
 end;
 
-//Function TPSQLDatabase.GetTraceFlags: TTraceFlags;
+//function TPSQLDatabase.GetTraceFlags: TTraceFlags;
 //begin
 //  if Connected then
 //    Result := TTraceFlags(Word(GetIntProp(Engine,FHandle,dbTraceMode))) else
 //    Result := [];
 //end;
 
-Function TPSQLDatabase.GetInTransaction: Boolean;
+function TPSQLDatabase.GetInTransaction: Boolean;
 var
   TranInfo : XInfo;
 begin
@@ -1709,18 +1730,18 @@ begin
    Result := trstUnknown;
 end;
 
-Procedure TPSQLDatabase.Loaded;
+procedure TPSQLDatabase.Loaded;
 begin
   Inherited Loaded;
   if not StreamedConnected then InitEngine;
 end;
 
-Procedure TPSQLDatabase.Notification(AComponent : TComponent; Operation : TOperation);
+procedure TPSQLDatabase.Notification(AComponent : TComponent; Operation : TOperation);
 begin
   Inherited Notification(AComponent, Operation);
 end;
 
-Procedure TPSQLDatabase.Login(LoginParams: TStrings);
+procedure TPSQLDatabase.Login(LoginParams: TStrings);
 var
   UserName, Password: String;
 begin
@@ -1733,7 +1754,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.CheckDatabase(var Password: String);
+procedure TPSQLDatabase.CheckDatabase(var Password: String);
 var
   DBName: String;
   LoginParams: TStringList;
@@ -1755,7 +1776,7 @@ begin
       Password := FParams.Values['PWD'];
 end;
 
-Procedure TPSQLDatabase.DoConnect;
+procedure TPSQLDatabase.DoConnect;
 const
   OpenModes: array[Boolean] of DbiOpenMode = (dbiReadWrite, dbiReadOnly);
   ShareModes: array[Boolean] of DbiShareMode = (dbiOpenShared, dbiOpenExcl);
@@ -1808,12 +1829,12 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.ParamsChanging(Sender: TObject);
+procedure TPSQLDatabase.ParamsChanging(Sender: TObject);
 begin
  if FCheckIfActiveOnParamChange then CheckInactive; //SSH tunneling
 end;
 
-Procedure TPSQLDatabase.SetDatabaseName(const Value : String);
+procedure TPSQLDatabase.SetDatabaseName(const Value : String);
 begin
     if csReading in ComponentState then
     begin
@@ -1830,7 +1851,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetServerPort(const Value : Cardinal);
+procedure TPSQLDatabase.SetServerPort(const Value : Cardinal);
 begin
    if csReading in ComponentState then
     begin
@@ -1847,7 +1868,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetConnectionTimeout(const Value : Cardinal);
+procedure TPSQLDatabase.SetConnectionTimeout(const Value : Cardinal);
 begin
    if csReading in ComponentState then
     begin
@@ -1864,7 +1885,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetCommandTimeout(const Value : Cardinal);
+procedure TPSQLDatabase.SetCommandTimeout(const Value : Cardinal);
 begin
   if FCommandTimeout <> Value then
     begin
@@ -1874,7 +1895,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetHost(const Value : String);
+procedure TPSQLDatabase.SetHost(const Value : String);
 begin
     if FHost <> Value then
     begin
@@ -1885,7 +1906,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetUseSSL(const Value : Boolean);
+procedure TPSQLDatabase.SetUseSSL(const Value : Boolean);
 begin
     if FUseSSL <> Value then
       If Value then
@@ -1894,7 +1915,7 @@ begin
        SSLMode := sslDisable;
 end;
 
-Procedure TPSQLDatabase.SetUserName(const Value : String);
+procedure TPSQLDatabase.SetUserName(const Value : String);
 begin
     if FUserName <> Value then
     begin
@@ -1905,7 +1926,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetUserPassword(const Value : String);
+procedure TPSQLDatabase.SetUserPassword(const Value : String);
 begin
     if FUserPassword <> Value then
     begin
@@ -1916,7 +1937,7 @@ begin
     end;
 end;
 
-Procedure TPSQLDatabase.SetHandle(Value: HDBIDB);
+procedure TPSQLDatabase.SetHandle(Value: HDBIDB);
 begin
   if Connected then Close;
   if Value <> nil then
@@ -1927,7 +1948,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.SetKeepConnection(Value: Boolean);
+procedure TPSQLDatabase.SetKeepConnection(Value: Boolean);
 begin
   if FKeepConnection <> Value  then
     FKeepConnection := Value;
@@ -1955,26 +1976,26 @@ begin
 //dummy method for published
 end;
 
-Procedure TPSQLDatabase.SetExclusive(Value: Boolean);
+procedure TPSQLDatabase.SetExclusive(Value: Boolean);
 begin
   if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
   FExclusive := Value;
 end;
 
-Procedure TPSQLDatabase.SetReadOnly(Value: Boolean);
+procedure TPSQLDatabase.SetReadOnly(Value: Boolean);
 begin
  if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
   FReadOnly := Value;
 end;
 
-Function TPSQLDatabase.Engine : TPSQLEngine;
+function TPSQLDatabase.Engine : TPSQLEngine;
 begin
   Result := FEngine;
 end;
 
-Procedure TPSQLDatabase.GetStoredProcNames(Pattern: String; List: TStrings);
+procedure TPSQLDatabase.GetStoredProcNames(Pattern: String; List: TStrings);
 var
    WildCard: PChar;
    SPattern: DBITBLNAME;
@@ -1992,7 +2013,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.GetTableNames(Pattern: String; SystemTables: Boolean; List: TStrings);
+procedure TPSQLDatabase.GetTableNames(Pattern: String; SystemTables: Boolean; List: TStrings);
 var
    WildCard: PChar;
    SPattern: DBITBLNAME;
@@ -2010,7 +2031,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDatabase.GetSchemaNames(Pattern: String; SystemSchemas: Boolean; List: TStrings);
+procedure TPSQLDatabase.GetSchemaNames(Pattern: String; SystemSchemas: Boolean; List: TStrings);
 var
    WildCard: PChar;
    SPattern: DBITBLNAME;
@@ -2172,14 +2193,14 @@ begin
 end;
 
 //////////////////////////////////////////////////////////
-//Function    : TPSQLBDECallBack.Invoke
+//function    : TPSQLBDECallBack.Invoke
 //Description : Invoke method TPSQLBDECallback
 //////////////////////////////////////////////////////////
 //Input       : CallType: CBType
 //              CBInfo: Pointer
 //Output      : Result: CBRType
 //////////////////////////////////////////////////////////
-Function TPSQLBDECallBack.Invoke(CallType: CBType; CBInfo: Pointer): CBRType;
+function TPSQLBDECallBack.Invoke(CallType: CBType; CBInfo: Pointer): CBRType;
 begin
   if (CallType = FCBType) then
     Result := FCallbackEvent(CBInfo)
@@ -2333,12 +2354,12 @@ begin
 end;
 
 //////////////////////////////////////////////////////////
-//Procedure   : TPSQLDataSet.OpenCursor
+//procedure   : TPSQLDataSet.OpenCursor
 //Description : Open cursor
 //////////////////////////////////////////////////////////
 //Input       : InfoQuery: Boolean
 //////////////////////////////////////////////////////////
-Procedure TPSQLDataSet.OpenCursor(InfoQuery: Boolean);
+procedure TPSQLDataSet.OpenCursor(InfoQuery: Boolean);
 begin
   if Database=nil then raise EDatabaseError.Create('Property Database not set!');
   If FHandle = nil then
@@ -2357,10 +2378,10 @@ begin
 end;
 
 //////////////////////////////////////////////////////////
-//Procedure   : TPSQLDataSet.CloseCursor
+//procedure   : TPSQLDataSet.CloseCursor
 //Description : Close cursor
 //////////////////////////////////////////////////////////
-Procedure TPSQLDataSet.CloseCursor;
+procedure TPSQLDataSet.CloseCursor;
 begin
   Inherited CloseCursor;
   if FHandle <> nil then
@@ -2373,23 +2394,23 @@ begin
 end;
 
 //////////////////////////////////////////////////////////
-//Function    : TPSQLDataSet.CreateHandle
+//function    : TPSQLDataSet.CreateHandle
 //Description : Virtual method Create Handle will be overwritten
 //              in TPSQLQuery and TPSQLTable
 //////////////////////////////////////////////////////////
 //Output      : Result: HDBICur
 //////////////////////////////////////////////////////////
-Function TPSQLDataSet.CreateHandle: HDBICur;
+function TPSQLDataSet.CreateHandle: HDBICur;
 begin
   Result := nil;
 end;
 
-Procedure TPSQLDataSet.DestroyHandle;
+procedure TPSQLDataSet.DestroyHandle;
 begin
   Engine.CloseCursor(FHandle);
 end;
 
-Procedure TPSQLDataSet.InternalInitFieldDefs;
+procedure TPSQLDataSet.InternalInitFieldDefs;
 var
   I, FieldID: Integer;
   FieldDescs: TFieldDescList;
@@ -2443,7 +2464,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.GetObjectTypeNames(Fields: TFields);
+procedure TPSQLDataSet.GetObjectTypeNames(Fields: TFields);
 var
   Len: Word;
   I: Integer;
@@ -2469,7 +2490,7 @@ begin
     end
 end;
 
-Procedure TPSQLDataSet.InternalOpen;
+procedure TPSQLDataSet.InternalOpen;
 var
   CursorProps: CurProps;
 begin
@@ -2493,7 +2514,7 @@ begin
   if Filtered then ActivateFilters;
 end;
 
-Procedure TPSQLDataSet.InternalClose;
+procedure TPSQLDataSet.InternalClose;
 begin
   FFuncFilter := NIL;
   FExprFilter := NIL;
@@ -2507,11 +2528,11 @@ begin
   FCanModify := FALSE;
 end;
 
-Procedure TPSQLDataSet.PrepareCursor;
+procedure TPSQLDataSet.PrepareCursor;
 begin
 end;
 
-Function TPSQLDataSet.IsCursorOpen: Boolean;
+function TPSQLDataSet.IsCursorOpen: Boolean;
 begin
   Result := Handle <> nil;
 end;
@@ -2529,15 +2550,15 @@ begin
 end;
 {$ENDIF}
 
-Procedure TPSQLDataSet.InternalHandleException;
+procedure TPSQLDataSet.InternalHandleException;
 begin
   Application.HandleException(Self)
 end;
 
 ////////////////////////////////////////////////////////////
-//                Record Functions                        //
+//                Record functions                        //
 ////////////////////////////////////////////////////////////
-Procedure TPSQLDataSet.InitBufferPointers(GetProps: Boolean);
+procedure TPSQLDataSet.InitBufferPointers(GetProps: Boolean);
 var
   CursorProps: CurProps;
 begin
@@ -2553,12 +2574,12 @@ begin
   FRecBufSize   := FBookmarkOfs  + BookmarkSize;
 end;
 
-Function TPSQLDataSet.AllocRecordBuffer: PChar;
+function TPSQLDataSet.AllocRecordBuffer: PChar;
 begin
    Result := AllocMem(FRecBufSize);
 end;
 
-Procedure TPSQLDataSet.FreeRecordBuffer(var Buffer : PChar);
+procedure TPSQLDataSet.FreeRecordBuffer(var Buffer : PChar);
 begin
   Engine.CheckBuffer(FHandle, Buffer); //pasha_golub 10.08.06
   ClearBlobCache(Buffer);
@@ -2566,12 +2587,12 @@ begin
   Buffer := nil;
 end;
 
-Procedure TPSQLDataSet.InternalInitRecord(Buffer : PChar);
+procedure TPSQLDataSet.InternalInitRecord(Buffer : PChar);
 begin
   Engine.InitRecord(FHandle, Buffer);
 end;
 
-Procedure TPSQLDataSet.ClearBlobCache(Buffer : PChar);
+procedure TPSQLDataSet.ClearBlobCache(Buffer : PChar);
 var
   I: Integer;
 begin
@@ -2580,12 +2601,12 @@ begin
       TBlobDataArray(Buffer + FBlobCacheOfs)[ I ] := '';
 end;
 
-Procedure TPSQLDataSet.ClearCalcFields(Buffer : PChar);
+procedure TPSQLDataSet.ClearCalcFields(Buffer : PChar);
 begin
   FillChar(Buffer[ RecordSize ], CalcFieldsSize, 0);
 end;
 
-Procedure TPSQLDataSet.InitRecord(Buffer : PChar);
+procedure TPSQLDataSet.InitRecord(Buffer : PChar);
 begin
   Inherited InitRecord(Buffer);
   ClearBlobCache(Buffer);
@@ -2597,7 +2618,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult;
+function TPSQLDataSet.GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult;
 var
   Status: DBIResult;
 begin
@@ -2635,7 +2656,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetCurrentRecord(Buffer: PChar): Boolean;
+function TPSQLDataSet.GetCurrentRecord(Buffer: PChar): Boolean;
 begin
   if not IsEmpty and (GetBookmarkFlag(ActiveBuffer) = bfCurrent) then
   begin
@@ -2645,7 +2666,7 @@ begin
     Result := FALSE;
 end;
 
-Function TPSQLDataSet.GetOldRecord: PChar;
+function TPSQLDataSet.GetOldRecord: PChar;
 begin
   UpdateCursorPos;
   if SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, TRUE) then
@@ -2660,7 +2681,7 @@ begin
     Result := NIL;
 end;
 
-Procedure TPSQLDataSet.FetchAll;
+procedure TPSQLDataSet.FetchAll;
 begin
   if not EOF then
   begin
@@ -2671,12 +2692,12 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.FlushBuffers;
+procedure TPSQLDataSet.FlushBuffers;
 begin
   CheckBrowseMode;
 end;
 
-Function TPSQLDataSet.GetRecordCount: Integer;
+function TPSQLDataSet.GetRecordCount: Integer;
 var p: pointer;
 begin
   CheckActive;
@@ -2706,7 +2727,7 @@ begin
       Result := -1;
 end;
 
-Function TPSQLDataSet.GetRecNo: Integer;
+function TPSQLDataSet.GetRecNo: Integer;
 var
   BufPtr: PChar;
 begin
@@ -2718,7 +2739,7 @@ begin
   Result := PRecInfo(BufPtr + FRecInfoOfs).RecordNumber;
 end;
 
-Procedure TPSQLDataSet.SetRecNo(Value : Integer);
+procedure TPSQLDataSet.SetRecNo(Value : Integer);
 begin
   CheckBrowseMode;
   if (FRecNoStatus = rnParadox) and (Value <> RecNo) then
@@ -2732,12 +2753,12 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetRecordSize: Word;
+function TPSQLDataSet.GetRecordSize: Word;
 begin
   Result := FRecordSize;
 end;
 
-Function TPSQLDataSet.GetActiveRecBuf(var RecBuf: PChar): Boolean;
+function TPSQLDataSet.GetActiveRecBuf(var RecBuf: PChar): Boolean;
 begin
   case State of
     dsBlockRead: RecBuf := FBlockReadBuf + (FBlockBufOfs * FRecordSize);
@@ -2760,7 +2781,7 @@ begin
   Result := RecBuf <> nil;
 end;
 
-Procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
+procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
   var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
 var
   FType: TFieldType;
@@ -2860,7 +2881,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer;
+function TPSQLDataSet.GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer;
 var
   RecBuf: PChar;
   Status: DBIResult;
@@ -2890,7 +2911,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
+function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
 var
   IsBlank: LongBool;
   RecBuf: PChar;
@@ -2913,7 +2934,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
+function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
   RecBuf: PChar;
 begin
@@ -2938,7 +2959,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: Pointer);
+procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: Pointer);
 var
   RecBuf: PChar;
 begin
@@ -2971,36 +2992,36 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetBlobData(Field : TField; Buffer : PChar) : TBlobData;
+function TPSQLDataSet.GetBlobData(Field : TField; Buffer : PChar) : TBlobData;
 begin
   Result := TBlobDataArray(Buffer + FBlobCacheOfs)[ Field.Offset ];
 end;
 
-Procedure TPSQLDataSet.SetBlobData(Field : TField; Buffer : PChar; Value : TBlobData);
+procedure TPSQLDataSet.SetBlobData(Field : TField; Buffer : PChar; Value : TBlobData);
 begin
   if (Buffer = ActiveBuffer) then
     TBlobDataArray(Buffer + FBlobCacheOfs)[ Field.Offset ] := Value;
 end;
 
-Procedure TPSQLDataSet.CloseBlob(Field: TField);
+procedure TPSQLDataSet.CloseBlob(Field: TField);
 begin
   Engine.FreeBlob(Handle, ActiveBuffer, Field.FieldNo);
 end;
 
-Function TPSQLDataSet.GetStateFieldValue(State: TDataSetState; Field: TField): Variant;
+function TPSQLDataSet.GetStateFieldValue(State: TDataSetState; Field: TField): Variant;
 begin
   CheckCachedUpdateMode;
   Result := Inherited GetStateFieldValue(State, Field);
 end;
 
-Procedure TPSQLDataSet.SetStateFieldValue(State: TDataSetState; Field: TField; Const Value: Variant);
+procedure TPSQLDataSet.SetStateFieldValue(State: TDataSetState; Field: TField; Const Value: Variant);
 begin
   CheckCachedUpdateMode;
   Inherited SetStateFieldValue(State, Field, Value);
 end;
 
 
-Function TPSQLDataSet.Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;
+function TPSQLDataSet.Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;
 begin
   Result := StrLen(Src);
   if ToOem then
@@ -3013,7 +3034,7 @@ begin
   if Src <> Dest then Dest[ Result ] := #0;
 end;
 
-Function TPSQLDataSet.GetFieldFullName(Field : TField) : string;
+function TPSQLDataSet.GetFieldFullName(Field : TField) : string;
 var
   Len: Word;
   AttrDesc: ObjAttrDesc;
@@ -3029,17 +3050,17 @@ begin
     Result := inherited GetFieldFullName(Field);
 end;
 
-Procedure TPSQLDataSet.InternalFirst;
+procedure TPSQLDataSet.InternalFirst;
 begin
   Check(Engine, Engine.SetToBegin(FHandle));
 end;
 
-Procedure TPSQLDataSet.InternalLast;
+procedure TPSQLDataSet.InternalLast;
 begin
   Check(Engine, Engine.SetToEnd(FHandle));
 end;
 
-Procedure TPSQLDataSet.InternalEdit;
+procedure TPSQLDataSet.InternalEdit;
 begin
   FOldBuffer := AllocRecordBuffer;
   Move(ActiveBuffer^,FOldBuffer[0],FRecBufSize);
@@ -3047,13 +3068,13 @@ begin
   ClearBlobCache(ActiveBuffer);
 end;
 
-Procedure TPSQLDataSet.InternalInsert;
+procedure TPSQLDataSet.InternalInsert;
 begin
   SetBoolProp(Engine, Handle, curMAKECRACK, TRUE);
   CursorPosChanged;
 end;
 
-Procedure TPSQLDataSet.InternalPost;
+procedure TPSQLDataSet.InternalPost;
 begin
   If Assigned(FUpdateObject) then
    begin
@@ -3079,7 +3100,7 @@ begin
   if assigned(fOldBuffer) then  FreeRecordBuffer(FOldBuffer);
 end;
 
-Procedure TPSQLDataSet.InternalDelete;
+procedure TPSQLDataSet.InternalDelete;
 var
   Result: Word;
 begin
@@ -3092,36 +3113,36 @@ begin
    FUpdateObject.Apply(ukDelete);
 end;
 
-Function TPSQLDataSet.IsSequenced: Boolean;
+function TPSQLDataSet.IsSequenced: Boolean;
 begin
   Result := (FRecNoStatus = rnParadox) and (not Filtered);
 end;
 
-Function TPSQLDataSet.GetCanModify: Boolean;
+function TPSQLDataSet.GetCanModify: Boolean;
 begin
   Result := FCanModify or ForceUpdateCallback;
 end;
 
-Procedure TPSQLDataSet.InternalRefresh;
+procedure TPSQLDataSet.InternalRefresh;
 begin
     Check(Engine, Engine.ForceReread(FHandle));
 end;
 
-Procedure TPSQLDataSet.Post;
+procedure TPSQLDataSet.Post;
 begin
   Inherited Post;
   if (State = dsSetKey) then
     PostKeyBuffer(TRUE);
 end;
 
-Procedure TPSQLDataSet.Cancel;
+procedure TPSQLDataSet.Cancel;
 begin
   Inherited Cancel;
   if State = dsSetKey then
     PostKeyBuffer(FALSE);
 end;
 
-Procedure TPSQLDataSet.InternalCancel;
+procedure TPSQLDataSet.InternalCancel;
 begin
   If State = dsEdit then
     Engine.RelRecordLock(FHandle, FALSE);
@@ -3129,44 +3150,44 @@ begin
     FreeRecordBuffer(FOldBuffer);
 end;
 
-Procedure TPSQLDataSet.InternalAddRecord(Buffer: Pointer; Append: Boolean);
+procedure TPSQLDataSet.InternalAddRecord(Buffer: Pointer; Append: Boolean);
 begin
   if Append then
     Check(Engine,Engine.AppendRecord(FHandle,Buffer))  else
     Check(Engine,Engine.InsertRecord(FHandle,dbiNoLock,Buffer));
 end;
 
-Procedure TPSQLDataSet.InternalGotoBookmark(Bookmark : TBookmark);
+procedure TPSQLDataSet.InternalGotoBookmark(Bookmark : TBookmark);
 begin
   Check(Engine, Engine.SetToBookmark(FHandle, Bookmark));
 end;
 
-Procedure TPSQLDataSet.InternalSetToRecord(Buffer : PChar);
+procedure TPSQLDataSet.InternalSetToRecord(Buffer : PChar);
 begin
   InternalGotoBookmark(Buffer + FBookmarkOfs);
 end;
 
-Function TPSQLDataSet.GetBookmarkFlag(Buffer : PChar) : TBookmarkFlag;
+function TPSQLDataSet.GetBookmarkFlag(Buffer : PChar) : TBookmarkFlag;
 begin
   Result := PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag;
 end;
 
-Procedure TPSQLDataSet.SetBookmarkFlag(Buffer : PChar; Value : TBookmarkFlag);
+procedure TPSQLDataSet.SetBookmarkFlag(Buffer : PChar; Value : TBookmarkFlag);
 begin
   PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag := Value;
 end;
 
-Procedure TPSQLDataSet.GetBookmarkData(Buffer : PChar; Data : Pointer);
+procedure TPSQLDataSet.GetBookmarkData(Buffer : PChar; Data : Pointer);
 begin
   Move(Buffer[ FBookmarkOfs ], Data^, BookmarkSize);
 end;
 
-Procedure TPSQLDataSet.SetBookmarkData(Buffer : PChar; Data : Pointer);
+procedure TPSQLDataSet.SetBookmarkData(Buffer : PChar; Data : Pointer);
 begin
   Move(Data^, Buffer[ FBookmarkOfs ], BookmarkSize);
 end;
 
-Function TPSQLDataSet.CompareBookmarks(Bookmark1, Bookmark2 : TBookmark) : Integer;
+function TPSQLDataSet.CompareBookmarks(Bookmark1, Bookmark2 : TBookmark) : Integer;
 const
   RetCodes: array[Boolean, Boolean] of ShortInt = ((2,CMPLess),(CMPGtr,CMPEql));
 begin
@@ -3181,7 +3202,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.BookmarkValid(Bookmark: TBookmark): Boolean;
+function TPSQLDataSet.BookmarkValid(Bookmark: TBookmark): Boolean;
 begin
   Result := (Handle <> NIL);
   if Result then
@@ -3289,7 +3310,7 @@ begin
   DataEvent(deDataSetScroll, -1);
 end;
 
-Procedure TPSQLDataSet.GetIndexInfo;
+procedure TPSQLDataSet.GetIndexInfo;
 var
   IndexDesc: IDXDesc;
 begin
@@ -3307,7 +3328,7 @@ begin
 end;
 
 
-Procedure TPSQLDataSet.SwitchToIndex(const IndexName, TagName : String);
+procedure TPSQLDataSet.SwitchToIndex(const IndexName, TagName : String);
 var
   Status: DBIResult;
 begin
@@ -3333,7 +3354,7 @@ begin
   GetIndexInfo;
 end;
 
-Function TPSQLDataSet.GetIndexField(Index : Integer): TField;
+function TPSQLDataSet.GetIndexField(Index : Integer): TField;
 var
   FieldNo: Integer;
 begin
@@ -3343,17 +3364,17 @@ begin
   if Result = nil then   DatabaseErrorFmt(SIndexFieldMissing, [ FieldDefs[FieldNo - 1].Name ], Self);
 end;
 
-Procedure TPSQLDataSet.SetIndexField(Index : Integer; Value : TField);
+procedure TPSQLDataSet.SetIndexField(Index : Integer; Value : TField);
 begin
   GetIndexField(Index).Assign(Value);
 end;
 
-Function TPSQLDataSet.GetIndexFieldCount: Integer;
+function TPSQLDataSet.GetIndexFieldCount: Integer;
 begin
   Result := FIndexFieldCount;
 end;
 
-Procedure TPSQLDataSet.AllocKeyBuffers;
+procedure TPSQLDataSet.AllocKeyBuffers;
 var
   KeyIndex: TKeyIndex;
 begin
@@ -3366,7 +3387,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.FreeKeyBuffers;
+procedure TPSQLDataSet.FreeKeyBuffers;
 var
   KeyIndex: TKeyIndex;
 begin
@@ -3374,19 +3395,19 @@ begin
     DisposeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
 end;
 
-Function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
+function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
 begin
   FillChar(Buffer^, SizeOf(TKeyBuffer) + FRecordSize, 0);
   Engine.InitRecord(FHandle, PChar(Buffer) + SizeOf(TKeyBuffer));
   Result := Buffer;
 end;
 
-Procedure TPSQLDataSet.CheckSetKeyMode;
+procedure TPSQLDataSet.CheckSetKeyMode;
 begin
   if (State <> dsSetKey) then DatabaseError(SNotEditing, Self);
 end;
 
-Function TPSQLDataSet.SetCursorRange: Boolean;
+function TPSQLDataSet.SetCursorRange: Boolean;
 var
   RangeStart, RangeEnd: PKeyBuffer;
   StartKey, EndKey: PChar;
@@ -3440,7 +3461,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.ResetCursorRange: Boolean;
+function TPSQLDataSet.ResetCursorRange: Boolean;
 begin
   Result := FALSE;
   if FKeyBuffers[kiCurRangeStart].Modified or
@@ -3454,7 +3475,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.SetLinkRanges(MasterFields: TList);
+procedure TPSQLDataSet.SetLinkRanges(MasterFields: TList);
 var
   I: Integer;
   SaveState: TDataSetState;
@@ -3473,12 +3494,12 @@ begin
     SizeOf(TKeyBuffer) + FRecordSize);
 end;
 
-Function TPSQLDataSet.GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
+function TPSQLDataSet.GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
 begin
   Result := FKeyBuffers[KeyIndex];
 end;
 
-Procedure TPSQLDataSet.SetKeyBuffer(KeyIndex: TKeyIndex; Clear: Boolean);
+procedure TPSQLDataSet.SetKeyBuffer(KeyIndex: TKeyIndex; Clear: Boolean);
 begin
   CheckBrowseMode;
   FKeyBuffer := FKeyBuffers[KeyIndex];
@@ -3489,7 +3510,7 @@ begin
   DataEvent(deDataSetChange, 0);
 end;
 
-Procedure TPSQLDataSet.PostKeyBuffer(Commit: Boolean);
+procedure TPSQLDataSet.PostKeyBuffer(Commit: Boolean);
 begin
   DataEvent(deCheckBrowseMode, 0);
   //++ pasha_golub 27.10.2005 GotoNearest stuff
@@ -3504,31 +3525,31 @@ begin
   DataEvent(deDataSetChange, 0);
 end;
 
-Function TPSQLDataSet.GetKeyExclusive: Boolean;
+function TPSQLDataSet.GetKeyExclusive: Boolean;
 begin
   CheckSetKeyMode;
   Result := FKeyBuffer.Exclusive;
 end;
 
-Procedure TPSQLDataSet.SetKeyExclusive(Value: Boolean);
+procedure TPSQLDataSet.SetKeyExclusive(Value: Boolean);
 begin
   CheckSetKeyMode;
   FKeyBuffer.Exclusive := Value;
 end;
 
-Function TPSQLDataSet.GetKeyFieldCount: Integer;
+function TPSQLDataSet.GetKeyFieldCount: Integer;
 begin
   CheckSetKeyMode;
   Result := FKeyBuffer.FieldCount;
 end;
 
-Procedure TPSQLDataSet.SetKeyFieldCount(Value: Integer);
+procedure TPSQLDataSet.SetKeyFieldCount(Value: Integer);
 begin
   CheckSetKeyMode;
   FKeyBuffer.FieldCount := Value;
 end;
 
-Procedure TPSQLDataSet.SetKeyFields(KeyIndex: TKeyIndex;
+procedure TPSQLDataSet.SetKeyFields(KeyIndex: TKeyIndex;
   const Values: array of const);
 var
   I: Integer;
@@ -3550,7 +3571,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetIsIndexField(Field: TField): Boolean;
+function TPSQLDataSet.GetIsIndexField(Field: TField): Boolean;
 var
   I: Integer;
 begin
@@ -3565,7 +3586,7 @@ begin
         end;
 end;
 
-Function TPSQLDataSet.MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
+function TPSQLDataSet.MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
 var
   I: Integer;
   HasStr : Boolean;
@@ -3588,7 +3609,7 @@ begin
   Result := TRUE;
 end;
 
-Procedure TPSQLDataSet.Notification(AComponent: TComponent; Operation: TOperation);
+procedure TPSQLDataSet.Notification(AComponent: TComponent; Operation: TOperation);
 begin
   Inherited Notification(AComponent, Operation);
   if (Operation = opRemove) and (AComponent = FDatabase) then
@@ -3598,7 +3619,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.ActivateFilters;
+procedure TPSQLDataSet.ActivateFilters;
 begin
   if FExprFilter <> nil then
   begin
@@ -3620,13 +3641,13 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.DeactivateFilters;
+procedure TPSQLDataSet.DeactivateFilters;
 begin
   if FFuncFilter <> nil then Check(Engine, Engine.DeactivateFilter(FHandle, FFuncFilter));
   if FExprFilter <> nil then Check(Engine, Engine.DeactivateFilter(FHandle, FExprFilter));
 end;
 
-Function TPSQLDataSet.CreateExprFilter(const Expr: String;
+function TPSQLDataSet.CreateExprFilter(const Expr: String;
   Options: TFilterOptions; Priority: Integer): HDBIFilter;
 var
   Parser: TExprParser;
@@ -3639,13 +3660,13 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.CreateFuncFilter(FilterFunc: Pointer;Priority: Integer): HDBIFilter;
+function TPSQLDataSet.CreateFuncFilter(FilterFunc: Pointer;Priority: Integer): HDBIFilter;
 begin
   Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, NIL, PFGENFilter(FilterFunc), Result));
 end;
 
 
-Function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
+function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
   Options: TLocateOptions; Priority: Integer): HDBIFilter;
 var
   I: Integer;
@@ -3683,7 +3704,7 @@ begin
 end;
 
 
-Procedure TPSQLDataSet.SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
+procedure TPSQLDataSet.SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
 begin
   if Filtered then
   begin
@@ -3700,7 +3721,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.SetFilterData(const Text: String; Options: TFilterOptions);
+procedure TPSQLDataSet.SetFilterData(const Text: String; Options: TFilterOptions);
 var
   HFilter: HDBIFilter;
 begin
@@ -3720,12 +3741,12 @@ begin
   if Active and Filtered then First;
 end;
 
-Procedure TPSQLDataSet.SetFilterText(const Value: String);
+procedure TPSQLDataSet.SetFilterText(const Value: String);
 begin
   SetFilterData(Value, FilterOptions);
 end;
 
-Procedure TPSQLDataSet.SetFiltered(Value: Boolean);
+procedure TPSQLDataSet.SetFiltered(Value: Boolean);
 begin
   if Active then
   begin
@@ -3744,12 +3765,12 @@ begin
   end else Inherited SetFiltered(Value);
 end;
 
-Procedure TPSQLDataSet.SetFilterOptions(Value: TFilterOptions);
+procedure TPSQLDataSet.SetFilterOptions(Value: TFilterOptions);
 begin
   SetFilterData(Filter, Value);
 end;
 
-Procedure TPSQLDataSet.SetOnFilterRecord(const Value: TFilterRecordEvent);
+procedure TPSQLDataSet.SetOnFilterRecord(const Value: TFilterRecordEvent);
 var
   Filter: HDBIFilter;
 begin
@@ -3771,7 +3792,7 @@ begin
     Inherited SetOnFilterRecord(Value);
 end;
 
-Function TPSQLDataSet.FindRecord(Restart, GoForward: Boolean): Boolean;
+function TPSQLDataSet.FindRecord(Restart, GoForward: Boolean): Boolean;
 var
   Status: Word;
 begin
@@ -3805,7 +3826,7 @@ begin
   if Result then DoAfterScroll;
 end;
 
-Function TPSQLDataSet.RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint;
+function TPSQLDataSet.RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint;
 var
   Accept: Boolean;
   SaveState: TDataSetState;
@@ -3822,7 +3843,7 @@ begin
   Result := Ord(Accept);
 end;
 
-Function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
+function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
 var
   I, FieldCount, PartialLength: Integer;
   Buffer: PChar;
@@ -3908,7 +3929,7 @@ begin
 end;
 
 {$WARNINGS OFF}
-Function TPSQLDataSet.LocateNearestRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Word;
+function TPSQLDataSet.LocateNearestRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Word;
 var
   Buffer: PChar;
   Fields: TList;
@@ -3961,7 +3982,7 @@ begin
   Result := Status;
 end;
 {$WARNINGS ON}
-Function TPSQLDataSet.Lookup(const KeyFields: String; const KeyValues: Variant;
+function TPSQLDataSet.Lookup(const KeyFields: String; const KeyValues: Variant;
   const ResultFields: String): Variant;
 begin
   Result := Null;
@@ -3978,7 +3999,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.Locate(const KeyFields: String;
+function TPSQLDataSet.Locate(const KeyFields: String;
   const KeyValues: Variant; Options: TLocateOptions): Boolean;
 begin
   DoBeforeScroll;
@@ -3990,16 +4011,16 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur;
+function TPSQLDataSet.GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur;
 begin
   Result := NIL;
 end;
 
-Procedure TPSQLDataSet.DestroyLookupCursor;
+procedure TPSQLDataSet.DestroyLookupCursor;
 begin
 end;
 
-Procedure TPSQLDataSet.AllocCachedUpdateBuffers(Allocate: Boolean);
+procedure TPSQLDataSet.AllocCachedUpdateBuffers(Allocate: Boolean);
 begin
   if Allocate then
   begin
@@ -4019,25 +4040,25 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.CheckCachedUpdateMode;
+procedure TPSQLDataSet.CheckCachedUpdateMode;
 begin
 end;
 
-Function TPSQLDataSet.UpdateCallbackRequired: Boolean;
+function TPSQLDataSet.UpdateCallbackRequired: Boolean;
 begin
   Result := FCachedUpdates  and (Assigned(FOnUpdateError) or
     Assigned(FOnUpdateRecord) or Assigned(FUpdateObject));
 end;
 
-Function TPSQLDataSet.ForceUpdateCallback: Boolean;
+function TPSQLDataSet.ForceUpdateCallback: Boolean;
 begin
   Result := True{FCachedUpdates} and (Assigned(FOnUpdateRecord) or
     Assigned(FUpdateObject));
 end;
 
-Procedure TPSQLDataSet.SetCachedUpdates(Value: Boolean);
+procedure TPSQLDataSet.SetCachedUpdates(Value: Boolean);
 
-  Procedure ReAllocBuffers;
+  procedure ReAllocBuffers;
   begin
     FreeFieldBuffers;
     FreeKeyBuffers;
@@ -4069,7 +4090,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.SetupCallBack(Value: Boolean);
+procedure TPSQLDataSet.SetupCallBack(Value: Boolean);
 begin
   if Value then
   begin
@@ -4089,7 +4110,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
+function TPSQLDataSet.ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
 begin
   CheckCachedUpdateMode;
   UpdateCursorPos;
@@ -4097,7 +4118,7 @@ begin
 //  Resync([]); //NEW
 end;
 
-Procedure TPSQLDataSet.ApplyUpdates;
+procedure TPSQLDataSet.ApplyUpdates;
 var
   Status: Word;
 begin
@@ -4107,18 +4128,18 @@ begin
     if (Status = DBIERR_UPDATEABORT) then SysUtils.Abort else TDbiError(Engine,Status);
 end;
 
-Procedure TPSQLDataSet.CommitUpdates;
+procedure TPSQLDataSet.CommitUpdates;
 begin
   Check(Engine, ProcessUpdates(dbiDelayedUpdCommit));
 end;
 
-Procedure TPSQLDataSet.CancelUpdates;
+procedure TPSQLDataSet.CancelUpdates;
 begin
   Cancel;
   ProcessUpdates(dbiDelayedUpdCancel);
 end;
 
-Procedure TPSQLDataSet.RevertRecord;
+procedure TPSQLDataSet.RevertRecord;
 var
   Status: Word;
 begin
@@ -4129,12 +4150,12 @@ begin
 end;
 
 
-Function TPSQLDataSet.UpdateStatus: TUpdateStatus;
+function TPSQLDataSet.UpdateStatus: TUpdateStatus;
 begin
    Result := usUnModified;
 end;
 
-Function TPSQLDataSet.CachedUpdateCallBack(CBInfo: Pointer): CBRType;
+function TPSQLDataSet.CachedUpdateCallBack(CBInfo: Pointer): CBRType;
 const
   CBRetCode: array[TUpdateAction] of CBRType = (cbrAbort, cbrAbort,
     cbrSkip, cbrRetry, cbrPartialAssist);
@@ -4177,7 +4198,7 @@ begin
 end;
 
 
-Function TPSQLDataSet.GetUpdateRecordSet: TUpdateRecordTypes;
+function TPSQLDataSet.GetUpdateRecordSet: TUpdateRecordTypes;
 begin
   if Active then
   begin
@@ -4188,7 +4209,7 @@ begin
     Result := [];
 end;
 
-Procedure TPSQLDataSet.SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
+procedure TPSQLDataSet.SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
 begin
   CheckBrowseMode;
   UpdateCursorPos;
@@ -4197,7 +4218,7 @@ begin
 end;
 
 
-Procedure TPSQLDataSet.SetUpdateObject(Value: TPSQLSQLUpdateObject);
+procedure TPSQLDataSet.SetUpdateObject(Value: TPSQLSQLUpdateObject);
 begin
   if (Value <> FUpdateObject) then
   begin
@@ -4221,12 +4242,12 @@ begin
   FOnUpdateError := UpdateEvent;
 end;
 
-Function TPSQLDataSet.GetUpdatesPending: Boolean;
+function TPSQLDataSet.GetUpdatesPending: Boolean;
 begin
   Result := GetIntProp(Engine, FHandle, curDELAYUPDNUMUPDATES) > 0;
 end;
 
-Procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: Integer);
+procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: Integer);
 
 
   procedure CheckIfParentScrolled;
@@ -4257,7 +4278,7 @@ begin
 end;
 {$IFNDEF DELPHI_4}
 { TBDEDataSet.IProviderSupport}
-Function TPSQLDataSet.PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError;
+function TPSQLDataSet.PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError;
 var
   PrevErr: Integer;
 begin
@@ -4273,12 +4294,12 @@ begin
     Result := inherited PSGetUpdateException(E, Prev);
 end;
 
-Function TPSQLDataSet.PSIsSQLSupported: Boolean;
+function TPSQLDataSet.PSIsSQLSupported: Boolean;
 begin
   Result := TRUE;
 end;
 
-Procedure TPSQLDataSet.PSReset;
+procedure TPSQLDataSet.PSReset;
 begin
   inherited PSReset;
   If Handle <> NIL then
@@ -4292,7 +4313,7 @@ begin
 end;
 
 
-Function TPSQLDataSet.CheckOpen(Status: Word): Boolean;
+function TPSQLDataSet.CheckOpen(Status: Word): Boolean;
 begin
   case Status of
     DBIERR_NONE: Result := TRUE;
@@ -4303,12 +4324,12 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.Disconnect;
+procedure TPSQLDataSet.Disconnect;
 begin
   Close;
 end;
 
-Function TPSQLDataSet.GetDBHandle: HDBIDB;
+function TPSQLDataSet.GetDBHandle: HDBIDB;
 begin
   if FDatabase <> nil then
   begin
@@ -4320,7 +4341,7 @@ begin
     Result := NIL;
 end;
 
-Procedure TPSQLDataSet.GetDatabaseNames(List : TStrings);
+procedure TPSQLDataSet.GetDatabaseNames(List : TStrings);
 var
   i     : Integer;
   Names : TStringList;
@@ -4336,13 +4357,13 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.CloseDatabase(Database: TPSQLDatabase);
+procedure TPSQLDataSet.CloseDatabase(Database: TPSQLDatabase);
 begin
   if Assigned(Database) then
     Database.CloseDatabase(Database);
 end;
 
-Function TPSQLDataSet.SetDBFlag(Flag: Integer; Value: Boolean): Boolean;
+function TPSQLDataSet.SetDBFlag(Flag: Integer; Value: Boolean): Boolean;
 begin
   Result := Flag in DBFlags;
   if Value then
@@ -4372,7 +4393,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.SetUpdateMode(const Value: TUpdateMode);
+procedure TPSQLDataSet.SetUpdateMode(const Value: TUpdateMode);
 begin
   if (FHandle <> NIL) and True and CanModify then
     Check(Engine, Engine.SetEngProp(hDbiObj(FHandle), curUPDLOCKMODE, Longint(Value)));
@@ -4380,7 +4401,7 @@ begin
 end;
 
 { AutoRefresh }
-Procedure TPSQLDataSet.SetAutoRefresh(const Value: Boolean);
+procedure TPSQLDataSet.SetAutoRefresh(const Value: Boolean);
 begin
   CheckInactive;
   FAutoRefresh := Value;
@@ -4403,7 +4424,7 @@ begin
 end;
 
 {$IFNDEF DELPHI_4}
-Procedure TPSQLDataSet.SetupAutoRefresh;
+procedure TPSQLDataSet.SetupAutoRefresh;
 const
   PropFlags : array[TAutoRefreshFlag] of LongInt = (0, curFIELDISAUTOINCR, curFIELDISDEFAULT);
 var
@@ -4425,7 +4446,7 @@ end;
 
 {$IFNDEF DELPHI_4}
 { TPSQLDataSet.IProviderSupport }
-Procedure TPSQLDataSet.PSGetAttributes(List : TList);
+procedure TPSQLDataSet.PSGetAttributes(List : TList);
 var
   Attr: PPacketAttribute;
 begin
@@ -4440,7 +4461,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.PSIsSQLBased: Boolean;
+function TPSQLDataSet.PSIsSQLBased: Boolean;
 var
   InProvider : Boolean;
 begin
@@ -4452,12 +4473,12 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.PSGetQuoteChar: String;
+function TPSQLDataSet.PSGetQuoteChar: String;
 begin
   Result := '"';
 end;
 
-Function TPSQLDataSet.PSInTransaction: Boolean;
+function TPSQLDataSet.PSInTransaction: Boolean;
 var
   InProvider: Boolean;
 begin
@@ -4474,7 +4495,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.PSStartTransaction;
+procedure TPSQLDataSet.PSStartTransaction;
 begin
   SetDBFlag(dbfProvider, TRUE);
   try
@@ -4487,7 +4508,7 @@ begin
   end;
 end;
 
-Procedure TPSQLDataSet.PSEndTransaction(Commit : Boolean);
+procedure TPSQLDataSet.PSEndTransaction(Commit : Boolean);
 const
   EndType: array[Boolean] of eXEnd = (xendABORT, xendCOMMIT);
 begin
@@ -4499,7 +4520,7 @@ begin
   end;
 end;
 
-Function TPSQLDataSet.PSExecuteStatement(const ASQL : string; AParams: TParams; ResultSet: Pointer = NIL): Integer;
+function TPSQLDataSet.PSExecuteStatement(const ASQL : string; AParams: TParams; ResultSet: Pointer = NIL): Integer;
 var
   InProvider: Boolean;
 //  Cursor: hDBICur;
@@ -4564,34 +4585,34 @@ begin
   Inherited Destroy;
 end;
 
-Function TPSQLQuery.Engine : TPSQLEngine;
+function TPSQLQuery.Engine : TPSQLEngine;
 begin
   Result := FDataBase.Engine;
 end;
 
-Function TPSQLQuery.CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream;
+function TPSQLQuery.CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream;
 begin
   Result := TPSQLBlobStream.Create(Field as TBlobField, Mode);
 end;
 
-Function TPSQLQuery.IsSequenced: Boolean;
+function TPSQLQuery.IsSequenced: Boolean;
 begin
   Result := FAllowSequenced and inherited IsSequenced;
 end;
 
-Procedure TPSQLQuery.Disconnect;
+procedure TPSQLQuery.Disconnect;
 begin
   Close;
   UnPrepare;
 end;
 
-Procedure TPSQLQuery.SetPrepare(Value: Boolean);
+procedure TPSQLQuery.SetPrepare(Value: Boolean);
 begin
   if Value then
     Prepare else  UnPrepare;
 end;
 
-Procedure TPSQLQuery.Prepare;
+procedure TPSQLQuery.Prepare;
 begin
   If Assigned(FHandle) then
    begin
@@ -4600,25 +4621,25 @@ begin
    end;
 end;
 
-Procedure TPSQLQuery.UnPrepare;
+procedure TPSQLQuery.UnPrepare;
 begin
   SetPrepared(FALSE);
   SetDBFlag(dbfPrepared, FALSE);
 end;
 
-Procedure TPSQLQuery.SetDataSource(Value: TDataSource);
+procedure TPSQLQuery.SetDataSource(Value: TDataSource);
 begin
   if IsLinkedTo(Value) then
     DatabaseError(SCircularDataLink, Self);
   FDataLink.DataSource := Value;
 end;
 
-Function TPSQLQuery.GetDataSource: TDataSource;
+function TPSQLQuery.GetDataSource: TDataSource;
 begin
   Result := FDataLink.DataSource;
 end;
 
-Procedure TPSQLQuery.SetQuery(Value: TStrings);
+procedure TPSQLQuery.SetQuery(Value: TStrings);
 begin
   if SQL.Text <> Value.Text then
   begin
@@ -4637,7 +4658,7 @@ begin
    Result := FSQL;
 end;
 
-Procedure TPSQLQuery.QueryChanged(Sender: TObject);
+procedure TPSQLQuery.QueryChanged(Sender: TObject);
 var
   List: TPSQLParams;
 begin
@@ -4664,19 +4685,19 @@ begin
     FText := FParams.ParseSQL(SQL.Text, False);
 end;
 
-Procedure TPSQLQuery.SetParamsList(Value: TPSQLParams);
+procedure TPSQLQuery.SetParamsList(Value: TPSQLParams);
 begin
   FParams.AssignValues(Value);
 end;
 
-Function TPSQLQuery.GetParamsCount: Word;
+function TPSQLQuery.GetParamsCount: Word;
 begin
   Result := FParams.Count;
 end;
 
-Procedure TPSQLQuery.DefineProperties(Filer: TFiler);
+procedure TPSQLQuery.DefineProperties(Filer: TFiler);
 
-  Function WriteData: Boolean;
+  function WriteData: Boolean;
   begin
     if (Filer.Ancestor <> NIL) then
       Result := not FParams.IsEqual(TPSQLQuery(Filer.Ancestor).FParams)
@@ -4690,24 +4711,24 @@ begin
   Filer.DefineProperty('ParamData', ReadParamData, WriteParamData, WriteData);
 end;
 
-Procedure TPSQLQuery.ReadParamData(Reader: TReader);
+procedure TPSQLQuery.ReadParamData(Reader: TReader);
 begin
   Reader.ReadValue;
   Reader.ReadCollection(FParams);
 end;
 
-Procedure TPSQLQuery.WriteParamData(Writer: TWriter);
+procedure TPSQLQuery.WriteParamData(Writer: TWriter);
 begin
   Writer.WriteCollection(Params);
 end;
 
-Procedure TPSQLQuery.ReadBinaryData(Stream: TStream);
+procedure TPSQLQuery.ReadBinaryData(Stream: TStream);
 begin
   SQLBinary := StrAlloc(Stream.Size);
   Stream.ReadBuffer(SQLBinary^, Stream.Size);
 end;
 
-Procedure TPSQLQuery.WriteBinaryData(Stream: TStream);
+procedure TPSQLQuery.WriteBinaryData(Stream: TStream);
 begin
   Stream.WriteBuffer(SQLBinary^, StrBufSize(SQLBinary));
 end;
@@ -4723,7 +4744,7 @@ begin
    Result := FRequestLive;
 end;
 
-Procedure TPSQLQuery.SetPrepared(Value: Boolean);
+procedure TPSQLQuery.SetPrepared(Value: Boolean);
 begin
   if (FHandle <> NIL) and Value then
     DatabaseError(SDataSetOpen, Self);
@@ -4746,7 +4767,7 @@ begin
   end;
 end;
 
-{Procedure TPSQLQuery.FreeStatement;
+{procedure TPSQLQuery.FreeStatement;
 var
   Result: Word;
 begin
@@ -4758,7 +4779,7 @@ begin
   end;
 end;}
 
-Procedure TPSQLQuery.SetParamsFromCursor;
+procedure TPSQLQuery.SetParamsFromCursor;
 var
   I: Integer;
   DataSet: TDataSet;
@@ -4781,7 +4802,7 @@ begin
 end;
 
 
-Procedure TPSQLQuery.RefreshParams;
+procedure TPSQLQuery.RefreshParams;
 var
   DataSet: TDataSet;
 begin
@@ -4807,12 +4828,12 @@ begin
 end;
 
 
-Function TPSQLQuery.ParamByName(const Value: String): TPSQLParam;
+function TPSQLQuery.ParamByName(const Value: String): TPSQLParam;
 begin
   Result := FParams.ParamByName(Value);
 end;
 
-Function TPSQLQuery.CreateCursor(GenHandle: Boolean): HDBICur;
+function TPSQLQuery.CreateCursor(GenHandle: Boolean): HDBICur;
 begin
   if SQL.Count > 0 then
   begin
@@ -4834,13 +4855,13 @@ begin
 end;
 
 
-Function TPSQLQuery.CreateHandle: HDBICur;
+function TPSQLQuery.CreateHandle: HDBICur;
 begin
   Result := CreateCursor(TRUE)
 end;
 
 
-Procedure TPSQLQuery.ExecSQL;
+procedure TPSQLQuery.ExecSQL;
 begin
   CheckInActive;
   SetDBFlag(dbfExecSQL, TRUE);
@@ -4856,7 +4877,7 @@ begin
   end;
 end;
 
-Function TPSQLQuery.GetQueryCursor(GenHandle: Boolean): HDBICur;
+function TPSQLQuery.GetQueryCursor(GenHandle: Boolean): HDBICur;
 const
   DataType: array[Boolean] of LongInt = (Ord(wantCanned), Ord(wantLive));
 var
@@ -4878,7 +4899,7 @@ begin
   //pasha_golub 20.12.06
 end;
 
-Function TPSQLQuery.SetDBFlag(Flag: Integer; Value: Boolean): Boolean;
+function TPSQLQuery.SetDBFlag(Flag: Integer; Value: Boolean): Boolean;
 var
   NewConnection: Boolean;
 begin
@@ -4897,14 +4918,14 @@ begin
   end;
 end;
 
-Procedure TPSQLQuery.PrepareSQL(Value: PChar);
+procedure TPSQLQuery.PrepareSQL(Value: PChar);
 begin
   GetStatementHandle(Value);
   if not Local then
     SetBoolProp(Engine, FHandle, stmtUNIDIRECTIONAL, FUniDirectional);
 end;
 
-Procedure TPSQLQuery.GetStatementHandle(SQLText: PChar);
+procedure TPSQLQuery.GetStatementHandle(SQLText: PChar);
 const
   DataType: array[Boolean] of LongInt = (Ord(wantCanned), Ord(wantLive));
 var
@@ -4935,7 +4956,7 @@ begin
 end;
 
 
-Function TPSQLQuery.GetRowsAffected: Integer;
+function TPSQLQuery.GetRowsAffected: Integer;
 var
   Length: Word;
 begin
@@ -4947,9 +4968,9 @@ begin
 end;
 
 
-Procedure TPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields: TList);
+procedure TPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields: TList);
 
-  Function AddFieldToList(const FieldName: string; DataSet: TDataSet;
+  function AddFieldToList(const FieldName: string; DataSet: TDataSet;
     List: TList): Boolean;
   var
     Field: TField;
@@ -4973,36 +4994,36 @@ end;
 
 {$IFNDEF DELPHI_4}
 { TPSQLQuery.IProviderSupport }
-Function TPSQLQuery.PSGetDefaultOrder: TIndexDef;
+function TPSQLQuery.PSGetDefaultOrder: TIndexDef;
 begin
   Result := inherited PSGetDefaultOrder;
   if not Assigned(Result) then
     Result := GetIndexForOrderBy(SQL.Text, Self);
 end;
 
-Function TPSQLQuery.PSGetParams : TParams;
+function TPSQLQuery.PSGetParams : TParams;
 begin
   Result := Params;
 end;
 
-Procedure TPSQLQuery.PSSetParams(AParams : TParams);
+procedure TPSQLQuery.PSSetParams(AParams : TParams);
 begin
   if (AParams.Count <> 0) then
     Params.Assign(AParams);
   Close;
 end;
 
-Function TPSQLQuery.PSGetTableName: string;
+function TPSQLQuery.PSGetTableName: string;
 begin
   Result := GetTableNameFromSQL(SQL.Text);
 end;
 
-Procedure TPSQLQuery.PSExecute;
+procedure TPSQLQuery.PSExecute;
 begin
   ExecSQL;
 end;
 
-Procedure TPSQLQuery.PSSetCommandText(const CommandText : string);
+procedure TPSQLQuery.PSSetCommandText(const CommandText : string);
 begin
   if (CommandText <> '') then
     SQL.Text := CommandText;
@@ -5109,7 +5130,7 @@ begin
   Inherited Destroy;
 end;
 
-Procedure TPSQLUpdateSQL.ExecSQL(UpdateKind: TUpdateKind);
+procedure TPSQLUpdateSQL.ExecSQL(UpdateKind: TUpdateKind);
 var RN, RC: integer;
 begin
   with Query[UpdateKind] do
@@ -5143,12 +5164,12 @@ begin
   end;
 end;
 
-Function TPSQLUpdateSQL.GetQueryClass : TPSQLQueryClass;
+function TPSQLUpdateSQL.GetQueryClass : TPSQLQueryClass;
 begin
   Result := TPSQLQuery;
 end;
 
-Function TPSQLUpdateSQL.GetQuery(UpdateKind: TUpdateKind): TPSQLQuery;
+function TPSQLUpdateSQL.GetQuery(UpdateKind: TUpdateKind): TPSQLQuery;
 begin
   if not Assigned(FQueries[UpdateKind]) then
   begin
@@ -5160,37 +5181,37 @@ begin
   Result := FQueries[UpdateKind];
 end;
 
-Function TPSQLUpdateSQL.GetSQL(UpdateKind: TUpdateKind): TStrings;
+function TPSQLUpdateSQL.GetSQL(UpdateKind: TUpdateKind): TStrings;
 begin
   Result := FSQLText[UpdateKind];
 end;
 
-Function TPSQLUpdateSQL.GetSQLIndex(Index: Integer): TStrings;
+function TPSQLUpdateSQL.GetSQLIndex(Index: Integer): TStrings;
 begin
   Result := FSQLText[TUpdateKind(Index)];
 end;
 
-Function TPSQLUpdateSQL.GetDataSet: TPSQLDataSet;
+function TPSQLUpdateSQL.GetDataSet: TPSQLDataSet;
 begin
   Result := FDataSet;
 end;
 
-Procedure TPSQLUpdateSQL.SetDataSet(ADataSet: TPSQLDataSet);
+procedure TPSQLUpdateSQL.SetDataSet(ADataSet: TPSQLDataSet);
 begin
   FDataSet := ADataSet;
 end;
 
-Procedure TPSQLUpdateSQL.SetSQL(UpdateKind: TUpdateKind; Value: TStrings);
+procedure TPSQLUpdateSQL.SetSQL(UpdateKind: TUpdateKind; Value: TStrings);
 begin
   FSQLText[UpdateKind].Assign(Value);
 end;
 
-Procedure TPSQLUpdateSQL.SetSQLIndex(Index: Integer; Value: TStrings);
+procedure TPSQLUpdateSQL.SetSQLIndex(Index: Integer; Value: TStrings);
 begin
   SetSQL(TUpdateKind(Index), Value);
 end;
 
-Procedure TPSQLUpdateSQL.SQLChanged(Sender: TObject);
+procedure TPSQLUpdateSQL.SQLChanged(Sender: TObject);
 var
   UpdateKind: TUpdateKind;
 begin
@@ -5206,7 +5227,7 @@ begin
     end;
 end;
 
-Procedure TPSQLUpdateSQL.SetParams(UpdateKind: TUpdateKind);
+procedure TPSQLUpdateSQL.SetParams(UpdateKind: TUpdateKind);
 var
   I: Integer;
   Old: Boolean;
@@ -5239,7 +5260,7 @@ begin
   end;
 end;
 
-Procedure TPSQLUpdateSQL.Apply(UpdateKind: TUpdateKind);
+procedure TPSQLUpdateSQL.Apply(UpdateKind: TUpdateKind);
 begin
   SetParams(UpdateKind);
   ExecSQL(UpdateKind);
@@ -5284,7 +5305,7 @@ begin
       FLimit := Value;
 end;
 
-Function TPSQLTable.GetHandle(const IndexName, IndexTag: String): HDBICur;
+function TPSQLTable.GetHandle(const IndexName, IndexTag: String): HDBICur;
 const
   OpenModes: array[Boolean] of DbiOpenMode = (dbiReadWrite, dbiReadOnly);
   ShareModes: array[Boolean] of DbiShareMode = (dbiOpenShared, dbiOpenExcl);
@@ -5318,22 +5339,22 @@ begin
   end;
 end;
 
-Function TPSQLTable.Engine : TPSQLEngine;
+function TPSQLTable.Engine : TPSQLEngine;
 begin
   Result := FDataBase.Engine;
 end;
 
-Function TPSQLTable.CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream;
+function TPSQLTable.CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream;
 begin
   Result := TPSQLBlobStream.Create(Field as TBlobField, Mode);
 end;
 
-Function TPSQLTable.IsSequenced: Boolean;
+function TPSQLTable.IsSequenced: Boolean;
 begin
   Result := FAllowSequenced and inherited IsSequenced;
 end;
 
-Function TPSQLTable.CreateHandle: HDBICur;
+function TPSQLTable.CreateHandle: HDBICur;
 var
   IndexName, IndexTag: String;
 begin
@@ -5345,22 +5366,22 @@ begin
   TNativeDataset(Result).ByteaAsEscString := FByteaAsEscString;
 end;
 
-Function TPSQLTable.GetLanguageDriverName: string;
+function TPSQLTable.GetLanguageDriverName: string;
 begin
   Result := '';
 end;
 
-Procedure TPSQLTable.PrepareCursor;
+procedure TPSQLTable.PrepareCursor;
 begin
   CheckMasterRange;
 end;
 
-Procedure TPSQLTable.DefChanged(Sender: TObject);
+procedure TPSQLTable.DefChanged(Sender: TObject);
 begin
   StoreDefs := TRUE;
 end;
 
-Procedure TPSQLTable.InitFieldDefs;
+procedure TPSQLTable.InitFieldDefs;
 var
   I, FieldID, FldDescCount: Integer;
   FieldDescs: TFieldDescList;
@@ -5411,17 +5432,17 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.DestroyHandle;
+procedure TPSQLTable.DestroyHandle;
 begin
   DestroyLookupCursor;
   Inherited DestroyHandle;
 end;
 
-Procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
+procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
   var Source, Name, FieldExpression, DescFields: string;
   var Options: TIndexOptions);
 
-  Procedure ConcatField(var FieldList: string; const FieldName: string);
+  procedure ConcatField(var FieldList: string; const FieldName: string);
   begin
     if FieldList = '' then
       FieldList := FieldName else
@@ -5477,11 +5498,11 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.EncodeIndexDesc(var IndexDesc: IDXDesc;
+procedure TPSQLTable.EncodeIndexDesc(var IndexDesc: IDXDesc;
   const Name, FieldExpression: string; Options: TIndexOptions;
   const DescFields: string);
 
-  Function IndexFieldOfs(const FieldName: string): Integer;
+  function IndexFieldOfs(const FieldName: string): Integer;
   var
     FieldNo: Integer;
   begin
@@ -5530,7 +5551,7 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.AddIndex(const Name, Fields: string; Options: TIndexOptions;
+procedure TPSQLTable.AddIndex(const Name, Fields: string; Options: TIndexOptions;
   const DescFields: string);
 var
   IndexDesc: IDXDesc;
@@ -5556,7 +5577,7 @@ begin
   IndexDefs.Updated := FALSE;
 end;
 
-Procedure TPSQLTable.DeleteIndex(const Name: String);
+procedure TPSQLTable.DeleteIndex(const Name: String);
 var
   IndexName, IndexTag: String;
 begin
@@ -5580,23 +5601,23 @@ begin
   FIndexDefs.Updated := FALSE;
 end;
 
-Function TPSQLTable.GetIndexFieldNames: String;
+function TPSQLTable.GetIndexFieldNames: String;
 begin
     if FFieldsIndex then Result := FIndexName else Result := '';
 end;
 
-Function TPSQLTable.GetIndexName: String;
+function TPSQLTable.GetIndexName: String;
 begin
   if FFieldsIndex then Result := '' else Result := FIndexName;
 end;
 
-Procedure TPSQLTable.GetIndexNames(List: TStrings);
+procedure TPSQLTable.GetIndexNames(List: TStrings);
 begin
   IndexDefs.Update;
   IndexDefs.GetItemNames(List);
 end;
 
-Procedure TPSQLTable.GetIndexParams(const IndexName: String;
+procedure TPSQLTable.GetIndexParams(const IndexName: String;
   FieldsIndex: Boolean; var IndexedName, IndexTag: String);
 var
   IndexStr: TIndexName;
@@ -5617,12 +5638,12 @@ begin
   IndexTag := SIndexTag;
 end;
 
-Procedure TPSQLTable.SetIndexDefs(Value: TIndexDefs);
+procedure TPSQLTable.SetIndexDefs(Value: TIndexDefs);
 begin
   IndexDefs.Assign(Value);
 end;
 
-Procedure TPSQLTable.SetIndex(const Value: String; FieldsIndex: Boolean);
+procedure TPSQLTable.SetIndex(const Value: String; FieldsIndex: Boolean);
 var
   IndexName, IndexTag: String;
 begin
@@ -5641,22 +5662,22 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.SetIndexFieldNames(const Value: String);
+procedure TPSQLTable.SetIndexFieldNames(const Value: String);
 begin
     SetIndex(Value, Value <> '');
 end;
 
-Procedure TPSQLTable.SetIndexName(const Value: String);
+procedure TPSQLTable.SetIndexName(const Value: String);
 begin
   SetIndex(Value, FALSE);
 end;
 
-Procedure TPSQLTable.UpdateIndexDefs;
+procedure TPSQLTable.UpdateIndexDefs;
 var
   Opts: TIndexOptions;
   IdxName, Src, Flds, DescFlds: string;
 
-  Procedure UpdateFromCursor;
+  procedure UpdateFromCursor;
   var
     I: Integer;
     Cursor: HDBICur;
@@ -5690,7 +5711,7 @@ var
     end;
   end;
 
-  Procedure UpdateFromIndexList;
+  procedure UpdateFromIndexList;
   var
     FCursor: HDBICur;
     IndexDesc: IDXDesc;
@@ -5728,7 +5749,7 @@ begin
   end;
 end;
 
-Function TPSQLTable.GetExists: Boolean;
+function TPSQLTable.GetExists: Boolean;
 var
   E: Word;
 begin
@@ -5743,14 +5764,14 @@ begin
   end;
 end;
 
-Function TPSQLTable.FindKey(const KeyValues: array of const): Boolean;
+function TPSQLTable.FindKey(const KeyValues: array of const): Boolean;
 begin
   CheckBrowseMode;
   SetKeyFields(kiLookup, KeyValues);
   Result := GotoKey;
 end;
 
-Procedure TPSQLTable.FindNearest(const KeyValues: array of const);
+procedure TPSQLTable.FindNearest(const KeyValues: array of const);
 begin
   CheckBrowseMode;
   SetKeyFields(kiLookup, KeyValues);
@@ -5758,7 +5779,7 @@ begin
 end;
 
 {$HINTS OFF}
-Function TPSQLTable.GotoKey: Boolean;
+function TPSQLTable.GotoKey: Boolean;
 var
   KeyBuffer: PKeyBuffer;
   IndexBuffer, RecBuffer: PChar;
@@ -5781,7 +5802,7 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.GotoNearest;
+procedure TPSQLTable.GotoNearest;
 var
   SearchCond: DBISearchCond;
   KeyBuffer: PKeyBuffer;
@@ -5808,30 +5829,30 @@ begin
 end;
 {$HINTS ON}
 
-Procedure TPSQLTable.SetKey;
+procedure TPSQLTable.SetKey;
 begin
   SetKeyBuffer(kiLookup, TRUE);
 end;
 
-Procedure TPSQLTable.EditKey;
+procedure TPSQLTable.EditKey;
 begin
   SetKeyBuffer(kiLookup, FALSE);
 end;
 
-Procedure TPSQLTable.ApplyRange;
+procedure TPSQLTable.ApplyRange;
 begin
   CheckBrowseMode;
   if SetCursorRange then  First;
 end;
 
-Procedure TPSQLTable.CancelRange;
+procedure TPSQLTable.CancelRange;
 begin
   CheckBrowseMode;
   UpdateCursorPos;
   if ResetCursorRange then   Resync([]);
 end;
 
-Procedure TPSQLTable.SetRange(const StartValues, EndValues: array of const);
+procedure TPSQLTable.SetRange(const StartValues, EndValues: array of const);
 begin
   CheckBrowseMode;
   SetKeyFields(kiRangeStart, StartValues);
@@ -5839,27 +5860,27 @@ begin
   ApplyRange;
 end;
 
-Procedure TPSQLTable.SetRangeEnd;
+procedure TPSQLTable.SetRangeEnd;
 begin
   SetKeyBuffer(kiRangeEnd, TRUE);
 end;
 
-Procedure TPSQLTable.SetRangeStart;
+procedure TPSQLTable.SetRangeStart;
 begin
   SetKeyBuffer(kiRangeStart, TRUE);
 end;
 
-Procedure TPSQLTable.EditRangeEnd;
+procedure TPSQLTable.EditRangeEnd;
 begin
   SetKeyBuffer(kiRangeEnd, FALSE);
 end;
 
-Procedure TPSQLTable.EditRangeStart;
+procedure TPSQLTable.EditRangeStart;
 begin
   SetKeyBuffer(kiRangeStart, FALSE);
 end;
 
-Procedure TPSQLTable.UpdateRange;
+procedure TPSQLTable.UpdateRange;
 begin
   SetLinkRanges(FMasterLink.Fields);
 end;
@@ -5884,7 +5905,7 @@ begin
 end;
 
 
-Function TPSQLTable.GetLookupCursor(const KeyFields: String;
+function TPSQLTable.GetLookupCursor(const KeyFields: String;
   CaseInsensitive: Boolean): HDBICur;
 var
   IndexFound, FieldsIndex: Boolean;
@@ -5934,7 +5955,7 @@ begin
   Result := FLookupHandle;
 end;
 
-Procedure TPSQLTable.DestroyLookupCursor;
+procedure TPSQLTable.DestroyLookupCursor;
 begin
   if FLookupHandle <> NIL then
   begin
@@ -5944,7 +5965,7 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.GotoCurrent(Table: TPSQLTable);
+procedure TPSQLTable.GotoCurrent(Table: TPSQLTable);
 begin
   CheckBrowseMode;
   Table.CheckBrowseMode;
@@ -5956,7 +5977,7 @@ begin
   DoAfterScroll;
 end;
 
-Procedure TPSQLTable.GetDetailLinkFields(MasterFields, DetailFields: TList);
+procedure TPSQLTable.GetDetailLinkFields(MasterFields, DetailFields: TList);
 var
   i: Integer;
   Idx: TIndexDef;
@@ -5984,7 +6005,7 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.CheckMasterRange;
+procedure TPSQLTable.CheckMasterRange;
 begin
   if FMasterLink.Active and (FMasterLink.Fields.Count > 0) then
   begin
@@ -5993,41 +6014,41 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.MasterChanged(Sender: TObject);
+procedure TPSQLTable.MasterChanged(Sender: TObject);
 begin
   CheckBrowseMode;
   UpdateRange;
   ApplyRange;
 end;
 
-Procedure TPSQLTable.MasterDisabled(Sender: TObject);
+procedure TPSQLTable.MasterDisabled(Sender: TObject);
 begin
   CancelRange;
 end;
 
-Function TPSQLTable.GetDataSource: TDataSource;
+function TPSQLTable.GetDataSource: TDataSource;
 begin
   Result := FMasterLink.DataSource;
 end;
 
-Procedure TPSQLTable.SetDataSource(Value: TDataSource);
+procedure TPSQLTable.SetDataSource(Value: TDataSource);
 begin
   if IsLinkedTo(Value) then
     DatabaseError(SCircularDataLink, Self);
   FMasterLink.DataSource := Value;
 end;
 
-Function TPSQLTable.GetMasterFields: String;
+function TPSQLTable.GetMasterFields: String;
 begin
   Result := FMasterLink.FieldNames;
 end;
 
-Procedure TPSQLTable.SetMasterFields(const Value: String);
+procedure TPSQLTable.SetMasterFields(const Value: String);
 begin
   FMasterLink.FieldNames := Value;
 end;
 
-Procedure TPSQLTable.DoOnNewRecord;
+procedure TPSQLTable.DoOnNewRecord;
 var
   I: Integer;
 begin
@@ -6134,7 +6155,7 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.EmptyTable;
+procedure TPSQLTable.EmptyTable;
 begin
   if Active then
   begin
@@ -6153,12 +6174,12 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.LockTable(LockType: TPSQLLockType);
+procedure TPSQLTable.LockTable(LockType: TPSQLLockType);
 begin
   SetTableLock(LockType, TRUE);
 end;
 
-Procedure TPSQLTable.SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
+procedure TPSQLTable.SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
 var
   L: DBILockType;
 begin
@@ -6169,12 +6190,12 @@ begin
     Check(Engine, Engine.RelTableLock(Handle, False, L));
 end;
 
-Procedure TPSQLTable.UnlockTable;
+procedure TPSQLTable.UnlockTable;
 begin
   SetTableLock(mltReadLock, FALSE);
 end;
 
-Procedure TPSQLTable.EncodeFieldDesc(var FieldDesc: FLDDesc;
+procedure TPSQLTable.EncodeFieldDesc(var FieldDesc: FLDDesc;
   const Name: string; DataType: TFieldType; Size, Precision: Integer);
 begin
   with FieldDesc do
@@ -6198,41 +6219,41 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.DataEvent(Event: TDataEvent; Info: Longint);
+procedure TPSQLTable.DataEvent(Event: TDataEvent; Info: Longint);
 begin
   if Event = depropertyChange then
      IndexDefs.Updated := FALSE;
   Inherited DataEvent(Event, Info);
 end;
 
-Function TPSQLTable.GetCanModify: Boolean;
+function TPSQLTable.GetCanModify: Boolean;
 begin
   Result := Inherited GetCanModify and not ReadOnly;
 end;
 
-Function TPSQLTable.GetTableTypeName: PChar;
+function TPSQLTable.GetTableTypeName: PChar;
 begin
   Result := NIL;
 end;
 
-Function TPSQLTable.GetTableLevel: Integer;
+function TPSQLTable.GetTableLevel: Integer;
 begin
   if Handle <> nil then
     Result := GetIntProp(Engine, Handle, curTABLELEVEL) else
     Result := FTableLevel;
 end;
 
-Function TPSQLTable.FieldDefsStored: Boolean;
+function TPSQLTable.FieldDefsStored: Boolean;
 begin
   Result := StoreDefs and (FieldDefs.Count > 0);
 end;
 
-Function TPSQLTable.IndexDefsStored: Boolean;
+function TPSQLTable.IndexDefsStored: Boolean;
 begin
   Result := StoreDefs and (IndexDefs.Count > 0);
 end;
 
-Function TPSQLTable.GetFileName: string;
+function TPSQLTable.GetFileName: string;
 var
   FDb: Boolean;
 begin
@@ -6244,31 +6265,31 @@ begin
   end;
 end;
 
-Function TPSQLTable.GetTableType: TTableType;
+function TPSQLTable.GetTableType: TTableType;
 begin
   Result := ttDefault;
 end;
 
-Function TPSQLTable.NativeTableName: PChar;
+function TPSQLTable.NativeTableName: PChar;
 begin
  //attention, cast type. Need to getmem in other cases
  //pasha_golub 23.12.04
   Result := PChar(FTableName);
 end;
 
-Procedure TPSQLTable.SetExclusive(Value: Boolean);
+procedure TPSQLTable.SetExclusive(Value: Boolean);
 begin
   CheckInactive;
   FExclusive := Value;
 end;
 
-Procedure TPSQLTable.SetReadOnly(Value: Boolean);
+procedure TPSQLTable.SetReadOnly(Value: Boolean);
 begin
   CheckInactive;
   FReadOnly := Value;
 end;
 
-Procedure TPSQLTable.SetTableName(const Value: TFileName);
+procedure TPSQLTable.SetTableName(const Value: TFileName);
 begin
   if csReading in ComponentState then
     FTableName := Value
@@ -6290,9 +6311,9 @@ end;
 
 {$IFNDEF DELPHI_4}
 { TTable.IProviderSupport }
-Function TPSQLTable.PSGetDefaultOrder: TIndexDef;
+function TPSQLTable.PSGetDefaultOrder: TIndexDef;
 
-  Function GetIdx(IdxType : TIndexOption) : TIndexDef;
+  function GetIdx(IdxType : TIndexOption) : TIndexDef;
   var
     i: Integer;
   begin
@@ -6337,19 +6358,19 @@ begin
     Result := NIL;
 end;
 
-Function TPSQLTable.PSGetIndexDefs(IndexTypes : TIndexOptions): TIndexDefs;
+function TPSQLTable.PSGetIndexDefs(IndexTypes : TIndexOptions): TIndexDefs;
 begin
   Result := GetIndexDefs(IndexDefs, IndexTypes);
 end;
 
-Function TPSQLTable.PSGetTableName: string;
+function TPSQLTable.PSGetTableName: string;
 begin
   Result := TableName;
 end;
 
-Procedure TPSQLTable.PSSetParams(AParams: TParams);
+procedure TPSQLTable.PSSetParams(AParams: TParams);
 
-  Procedure AssignFields;
+  procedure AssignFields;
   var
     I: Integer;
   begin
@@ -6376,13 +6397,13 @@ begin
   PSReset;
 end;
 
-Procedure TPSQLTable.PSSetCommandText(const CommandText : string);
+procedure TPSQLTable.PSSetCommandText(const CommandText : string);
 begin
   if CommandText <> '' then
     TableName := CommandText;
 end;
 
-Function TPSQLTable.PSGetKeyFields: string;
+function TPSQLTable.PSGetKeyFields: string;
 var
   i, Pos: Integer;
   IndexFound: Boolean;
@@ -6471,7 +6492,7 @@ begin
   end;
 end;
 
-Function TPSQLBlobStream.Engine : TPSQLEngine;
+function TPSQLBlobStream.Engine : TPSQLEngine;
 begin
   Result := FDataSet.Engine;
 end;
@@ -6481,7 +6502,7 @@ begin
    Result := True;
 end;
 
-Function TPSQLBlobStream.Read(var Buffer; Count: Longint): Longint;
+function TPSQLBlobStream.Read(var Buffer; Count: Longint): Longint;
 var
   Status: DBIResult;
 begin
@@ -6531,7 +6552,7 @@ begin
   end;
 end;
 
-Function TPSQLBlobStream.Write(const Buffer; Count: Longint): Longint;
+function TPSQLBlobStream.Write(const Buffer; Count: Longint): Longint;
 var
   Temp: Pointer;
 begin
@@ -6557,7 +6578,7 @@ begin
 end;
 
 
-Function TPSQLBlobStream.Seek(Offset: Longint; Origin: Word): Longint;
+function TPSQLBlobStream.Seek(Offset: Longint; Origin: Word): Longint;
 begin
   case Origin of
     0: FPosition := Offset;
@@ -6567,7 +6588,7 @@ begin
   Result := FPosition;
 end;
 
-Procedure TPSQLBlobStream.Truncate;
+procedure TPSQLBlobStream.Truncate;
 begin
   if FOpened then
   begin
@@ -6577,7 +6598,7 @@ begin
   end;
 end;
 
-Function TPSQLBlobStream.GetBlobSize: Longint;
+function TPSQLBlobStream.GetBlobSize: Longint;
 begin
   Result := 0;
   if FOpened then
@@ -6593,22 +6614,22 @@ begin
   FQuery := AQuery;
 end;
 
-Procedure TPSQLQueryDataLink.ActiveChanged;
+procedure TPSQLQueryDataLink.ActiveChanged;
 begin
   if FQuery.Active then FQuery.RefreshParams;
 end;
 
-Function TPSQLQueryDataLink.GetDetailDataSet: TDataSet;
+function TPSQLQueryDataLink.GetDetailDataSet: TDataSet;
 begin
   Result := FQuery;
 end;
 
-Procedure TPSQLQueryDataLink.RecordChanged(Field : TField);
+procedure TPSQLQueryDataLink.RecordChanged(Field : TField);
 begin
   if (Field = nil)and FQuery.Active then FQuery.RefreshParams;
 end;
 
-Procedure TPSQLQueryDataLink.CheckBrowseMode;
+procedure TPSQLQueryDataLink.CheckBrowseMode;
 begin
   if FQuery.Active then  FQuery.CheckBrowseMode;
 end;
@@ -6756,7 +6777,7 @@ begin
   end;
 end;
 
-Function TPSQLNotify.Engine : TPSQLEngine;
+function TPSQLNotify.Engine : TPSQLEngine;
 begin
    Result := FDataBase.Engine;
 end;
@@ -6852,10 +6873,10 @@ var
   SaveInitProc: Pointer;
   NeedToUninitialize: Boolean;
 
-Procedure InitDBTables;
+procedure InitDBTables;
 begin
   if (SaveInitProc <> NIL) then
-    TProcedure(SaveInitProc);
+    Tprocedure(SaveInitProc);
   NeedToUninitialize := Succeeded(CoInitialize(NIL));
 end;
 
@@ -6876,7 +6897,7 @@ end;
 
 { TPSQLStoredProc }
 const
-  SEmptyProcedureName          = 'Procedure name is empty';
+  SEmptyprocedureName          = 'procedure name is empty';
   SDatabaseProperty            = '(%s) property Database is not set!';
   SCantCreateWriteBLOB         = 'Can''t create BLOB stream with write permissions on read-only result set!';
 
@@ -6922,7 +6943,7 @@ begin
 
   if Length(FProcName) = 0 then
   begin
-    DatabaseError(SEmptyProcedureName, Self);
+    DatabaseError(SEmptyprocedureName, Self);
     exit;
 	end;
 
