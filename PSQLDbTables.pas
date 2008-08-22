@@ -62,6 +62,10 @@ type
   TPSQLDACAbout = Class
   end;
 
+  //used for LOCK TABLE
+  TPSQLLockType = (ltAccessShare, ltRowShare, ltRowExclusive, ltShareUpdateExclusive,
+                   ltShare, ltShareRowExclusive, ltExclusive, ltAccessExclusive);
+
   { Forward declarations }
   TPSQLDatabase      = Class;
   TPSQLParams        = TParams;
@@ -630,7 +634,6 @@ type
 //Class       : TPSQLTable
 //Description : TPSQLTable class
 //////////////////////////////////////////////////////////
-  TPSQLLockType = (mltReadLock, mltWriteLock);
 
   TTableType = (ttDefault, ttParadox, ttDBase, ttFoxPro, ttASCII);
   TIndexName = type string;
@@ -689,7 +692,6 @@ type
     Procedure SetIndexName(const Value: String);
     Procedure SetMasterFields(const Value: String);
     Procedure SetReadOnly(Value: Boolean);
-    Procedure SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
     Procedure SetTableName(const Value: TFileName);
     function GetTableName: TFileName;
     Procedure UpdateRange;
@@ -760,12 +762,11 @@ type
     Procedure GotoCurrent(Table: TPSQLTable);
     Function GotoKey: Boolean;
     Procedure GotoNearest;
-    Procedure LockTable(LockType: TPSQLLockType);
+    Procedure LockTable(LockType: TPSQLLockType; NoWait: boolean);
     Procedure SetKey;
     Procedure SetRange(const StartValues, EndValues: array of const);
     Procedure SetRangeEnd;
     Procedure SetRangeStart;
-    Procedure UnlockTable;
     property Exists: Boolean read GetExists;
     property IndexFieldCount: Integer read GetIndexFieldCount;
     property IndexFields[Index: Integer]: TField read GetIndexField write SetIndexField;
@@ -6153,25 +6154,12 @@ begin
   end;
 end;
 
-Procedure TPSQLTable.LockTable(LockType: TPSQLLockType);
-begin
-  SetTableLock(LockType, TRUE);
-end;
-
-Procedure TPSQLTable.SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
-var
-  L: DBILockType;
+procedure TPSQLTable.LockTable(LockType: TPSQLLockType; NoWait: boolean);
 begin
   CheckActive;
-  if LockType = mltReadLock then L := dbiREADLOCK else L := dbiWRITELOCK;
-  if Lock then
-    Check(Engine, Engine.AcqTableLock(Handle, L)) else
-    Check(Engine, Engine.RelTableLock(Handle, False, L));
-end;
-
-Procedure TPSQLTable.UnlockTable;
-begin
-  SetTableLock(mltReadLock, FALSE);
+  if not Database.InTransaction then
+    DatabaseError('LOCK TABLE can not be used outside the transaction.');
+  Check(Engine, Engine.AcqTableLock(Handle, Word(LockType), NoWait));
 end;
 
 Procedure TPSQLTable.EncodeFieldDesc(var FieldDesc: FLDDesc;

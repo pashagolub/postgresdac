@@ -116,8 +116,8 @@ Type
     Destructor  Destroy; Override;
     procedure DirectExecute(SQL: String);
     procedure ProcessDBParams(Params : TStrings);
-    Procedure InternalConnect; {Login to database}
-    Procedure InternalDisconnect; {Logout from database}
+    procedure InternalConnect; {Login to database}
+    procedure InternalDisconnect; {Logout from database}
     procedure Reset; {reset connection to server}
     procedure Rollback; {Rollback transaction}
     procedure Commit; {Commit transaction}
@@ -128,25 +128,25 @@ Type
     Function Success: Boolean;
     procedure StoredProcParams(pszPName:PChar; ProcOID: cardinal; List:TList);
     procedure StoredProcList(pszWild : PChar; List : TStrings);
-    Procedure TableList(pszWild : PChar; SystemTables: Boolean; List : TStrings);
-    Procedure UserList(pszWild : PChar; List : TStrings);
-    Procedure SchemaList(pszWild : PChar; SystemSchemas: Boolean; List : TStrings);
-    Procedure TablespaceList(pszWild : PChar; List : TStrings);
+    procedure TableList(pszWild : PChar; SystemTables: Boolean; List : TStrings);
+    procedure UserList(pszWild : PChar; List : TStrings);
+    procedure SchemaList(pszWild : PChar; SystemSchemas: Boolean; List : TStrings);
+    procedure TablespaceList(pszWild : PChar; List : TStrings);
     procedure DatabaseList(pszWild : PChar; List : TStrings);
-    Procedure OpenTable(pszTableName: PChar;pszIndexName: PChar;iIndexId: Word;
+    procedure OpenTable(pszTableName: PChar;pszIndexName: PChar;iIndexId: Word;
                         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;var hCursor: hDBICur;
                         Limit, Offset : Integer);
-    Procedure QueryAlloc(var hStmt: hDBIStmt);
-    Procedure QueryPrepare(var hStmt: hDBIStmt;Query : String);
+    procedure QueryAlloc(var hStmt: hDBIStmt);
+    procedure QueryPrepare(var hStmt: hDBIStmt;Query : String);
     procedure BeginTran(eXIL: eXILType; var hXact: hDBIXact);
     procedure BeginBLOBTran;
     procedure RollbackBLOBTran;
     procedure CommitBLOBTran;
     procedure EndTran(hXact : hDBIXact; eEnd : eXEnd);
     procedure GetTranInfo(hXact : hDBIXact; pxInfo : pXInfo);
-    Procedure QExecDirect(eQryLang : DBIQryLang; pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
+    procedure QExecDirect(eQryLang : DBIQryLang; pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
     procedure OpenFieldList(pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur);
-    Procedure OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
+    procedure OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
     function GetCharSet: string;
     procedure GetCharSetList(var List: TStrings);
     function SetCharSet(const CharSet: string): string;
@@ -168,9 +168,9 @@ Type
 //    procedure ResetConnection; for future use
     procedure EmptyTable(hCursor : hDBICur; pszTableName : PChar);
     procedure TableExists(pszTableName : PChar);
-    Procedure AddIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; var IdxDesc: IDXDesc; pszKeyviolName: PChar);
-    Procedure DeleteIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
-    Procedure CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
+    procedure AddIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; var IdxDesc: IDXDesc; pszKeyviolName: PChar);
+    procedure DeleteIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+    procedure CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
     Property IsolationLevel : eXILType Read FTransLevel;
     property Handle : PPGconn read FHandle write FHandle;
     property BackendPID : Integer read GetBackendPID;
@@ -202,7 +202,7 @@ Type
       FNativeErrorsourceline:string;
       FNativeErrorsourcefunc:string;
       Function GetDatabase: hDBIDb;
-      Procedure SetDatabase(H : hDBIDb);
+      procedure SetDatabase(H : hDBIDb);
     Public
       Constructor Create(P : TObject; Container : TContainer);
       Destructor Destroy; Override;
@@ -313,8 +313,7 @@ Type
       Function TranslateRecordStructure(pszSrcDriverType: PChar; iFlds: Word; pfldsSrc: pFLDDesc; pszDstDriverType: PChar; pszLangDriver: PChar;pfldsDst: pFLDDesc; bCreatable: Bool): DBIResult;
       function TableExists(hDb: hDBIDb; pszTableName: PChar): DBIResult;
       Function CreateTable(hDb: hDBIDb; bOverWrite: Bool; var crTblDsc: CRTblDesc): DBIResult;
-      function AcqTableLock(hCursor: hDBICur; eLockType: DBILockType): DBIResult;
-      function RelTableLock(hCursor: hDBICur; bAll: Bool; eLockType: DBILockType): DBIResult;
+      function AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
       function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer): DBIResult;
       function CloneCursor(hCurSrc: hDBICur;bReadOnly: Bool;bUniDirectional: Bool;var   hCurNew: hDBICur): DBIResult;
       function SetToCursor(hDest, hSrc : hDBICur) : DBIResult;
@@ -378,16 +377,16 @@ Type
       FArray     : Boolean;
       FNativeBLOBType: TNativeBLOBType;
       Function GetLocalSize : Word;
-      Procedure SetLocalSize(S : Word);
+      procedure SetLocalSize(S : Word);
       Function GetLocalType : Word;
-      Procedure SetLocalType(S : Word);
+      procedure SetLocalType(S : Word);
       Function GetFieldName : String;
-      Procedure SetFieldName(Const Value : String);
-      Procedure SetBuffer(PRecord : Pointer);
+      procedure SetFieldName(Const Value : String);
+      procedure SetBuffer(PRecord : Pointer);
       Function GetChanged : Boolean;
-      Procedure SetChanged(Flag : Boolean);
+      procedure SetChanged(Flag : Boolean);
       Function GetNull : Boolean;
-      Procedure SetNull(Flag : Boolean);
+      procedure SetNull(Flag : Boolean);
       function GetFieldDefault : string;//mi
       procedure SetFieldDefault(aStr : string);//mi
     Public
@@ -429,7 +428,7 @@ Type
     Public
       Constructor Create(Table : TNativeDataSet);
       Property Field[Index : Integer] : TPSQLField Read  GetField; Default;
-      Procedure SetFields(PRecord : Pointer);
+      procedure SetFields(PRecord : Pointer);
       Function FieldNumberFromName(SearchName : PChar) : Integer;
   end;
 
@@ -441,7 +440,7 @@ Type
     Private
       FDesc      : IDXDesc;
       Function GetIndexName : String;
-      Procedure SetIndexName(Const Value : String);
+      procedure SetIndexName(Const Value : String);
     Public
       Constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
       Property Description : IDXDesc Read FDesc Write FDesc;
@@ -542,7 +541,7 @@ Type
     Public
       Constructor Create(Table : TNativeDataSet);
       Property Field_Info[Index : Integer] : TPSQLNative Read  GetNative; Default;
-      Procedure SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer; aDefault : String);
+      procedure SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer; aDefault : String);
   end;
 
   //////////////////////////////////////////////////////////
@@ -601,39 +600,39 @@ Type
       //////////////////////////////////////////////////////////
       //            PROTECTED METHODS                         //
       //////////////////////////////////////////////////////////
-      Procedure SetInternalBuffer(Buffer : Pointer);
+      procedure SetInternalBuffer(Buffer : Pointer);
       Function GetInternalBuffer: Pointer;
       Function GetCurrentBuffer: Pointer;
-      Procedure SetCurrentBuffer(PRecord : Pointer);
-      Procedure SetBufferAddress(P : Pointer);
-      Procedure SetKeyNumber(newValue: SmallInt);
+      procedure SetCurrentBuffer(PRecord : Pointer);
+      procedure SetBufferAddress(P : Pointer);
+      procedure SetKeyNumber(newValue: SmallInt);
       Function FieldOffset(iField: Integer): Word;
       Function GetBookMarkSize: Integer;
       Function GetIndexCount: Integer;
-      Procedure SetBufBookmark;
-      Procedure SetRecordNumber(RecNom : Longint);
+      procedure SetBufBookmark;
+      procedure SetRecordNumber(RecNom : Longint);
       Function GetRecordNumber : Longint;
       function GetRecCount: LongInt;
       procedure FillDefs(SL: TStrings);
-      Procedure InitFieldDescs;
-      Procedure CheckFilter(PRecord : Pointer);
-      Procedure InternalCommit;
-      Procedure FirstRecord; virtual;
-      Procedure LastRecord;
-      Procedure NextRecord();
-      Procedure PrevRecord();
-      Procedure CurrentRecord(ARecNo : LongInt);
-      Procedure GetWorkRecord(eLock : DBILockType; PRecord : Pointer);
-      Procedure GetRecordNo(var iRecNo : Longint);
-      Procedure LockRecord(eLock : DBILockType);
+      procedure InitFieldDescs;
+      procedure CheckFilter(PRecord : Pointer);
+      procedure InternalCommit;
+      procedure FirstRecord; virtual;
+      procedure LastRecord;
+      procedure NextRecord();
+      procedure PrevRecord();
+      procedure CurrentRecord(ARecNo : LongInt);
+      procedure GetWorkRecord(eLock : DBILockType; PRecord : Pointer);
+      procedure GetRecordNo(var iRecNo : Longint);
+      procedure LockRecord(eLock : DBILockType);
       Function FilteredRecord(PRecord : Pointer) :  Boolean;
-      Procedure UpdateFilterStatus;
+      procedure UpdateFilterStatus;
       function FieldCount : Integer;
     	procedure InternalSortBy(const Fields: array of Integer; const IsReverseOrder : array of boolean);
       function GetRecNo: integer;
-      Procedure InternalReadBuffer;
+      procedure InternalReadBuffer;
       Function GetTableName: string;
-      Procedure SetTableName(Name : string);
+      procedure SetTableName(Name : string);
       function CheckUniqueKey(var KeyNumber : integer): Boolean;
       procedure GetKeys(Unique: Boolean;var FieldList: TFieldArray; var FieldCount: Integer);
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
@@ -659,14 +658,14 @@ Type
       function  GetSQLClause: PChar;
       Function GetBufferSize : Word; Virtual;
       Function GetWorkBufferSize : Word; virtual;
-      Procedure GetNativeDesc(FieldNo : Integer;P : pFldDesc; P1: pVCHKDesc; Var LocType, LocSize : Word; var LocArray: Boolean);
-      Procedure NativeToDelphi(P: TPSQLField;PRecord: Pointer; pDest: Pointer; var bBlank: Bool);
-      Procedure DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
+      procedure GetNativeDesc(FieldNo : Integer;P : pFldDesc; P1: pVCHKDesc; Var LocType, LocSize : Word; var LocArray: Boolean);
+      procedure NativeToDelphi(P: TPSQLField;PRecord: Pointer; pDest: Pointer; var bBlank: Bool);
+      procedure DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
       procedure CheckParam(Exp : Boolean;BDECODE : Word);
       function GetRecordSize: Integer;
       Function GetFieldInfo(Index : Integer) : TPGFIELD_INFO;
-      Procedure ReOpenTable;
-      Procedure ClearIndexInfo;
+      procedure ReOpenTable;
+      procedure ClearIndexInfo;
      private
       FByteaAsEscString: boolean;
       FOIDAsInt: boolean;
@@ -693,67 +692,66 @@ Type
       Constructor Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : PChar;Index : Word;Limit, Offset : Integer; ASystem :Boolean = False);
       Destructor Destroy; Override;
       procedure FillOIDTable;
-      Procedure CompareBookMarks(pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt);
-      Procedure GetBookMark(P : Pointer);
+      procedure CompareBookMarks(pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt);
+      procedure GetBookMark(P : Pointer);
       function GetLastInsertID(const KeyNumber: integer):integer;
       procedure Execute;
       procedure OpenTable;
       function OpenOIDTable: boolean;
-      Procedure GetField(FieldNo : Word; PRecord : Pointer; pDest : Pointer; var bBlank : Bool);
-      Procedure PutField(FieldNo: Word;PRecord : Pointer; PSrc:Pointer);
+      procedure GetField(FieldNo : Word; PRecord : Pointer; pDest : Pointer; var bBlank : Bool);
+      procedure PutField(FieldNo: Word;PRecord : Pointer; PSrc:Pointer);
       procedure CloseTable;
       procedure GetVchkDesc(iValSeqNo: Word;pvalDesc: pVCHKDesc);
-      Procedure GetCursorProps(var curProps : CURProps);
-      Procedure GetFieldDescs(pFDesc : pFLDDesc);
-      Procedure GetRecordCount(Var iRecCount : Longint); virtual;
-      Procedure GetNextRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps); Virtual;
+      procedure GetCursorProps(var curProps : CURProps);
+      procedure GetFieldDescs(pFDesc : pFLDDesc);
+      procedure GetRecordCount(Var iRecCount : Longint); virtual;
+      procedure GetNextRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps); Virtual;
       procedure SetToRecord(RecNo : LongInt);
-      Procedure SetToBookmark(P : Pointer); virtual;
-      Procedure GetRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps);
-      Procedure GetPriorRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps);
-      Procedure AddFilter(iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter; var hFilter : hDBIFilter);
-      Procedure DropFilter(hFilter: hDBIFilter);
-      Procedure ActivateFilter(hFilter : hDBIFilter);
-      Procedure DeactivateFilter(hFilter : hDBIFilter);
-      Procedure GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
-      Procedure SetProp(iProp: Longint; PropValue : Longint);
+      procedure SetToBookmark(P : Pointer); virtual;
+      procedure GetRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps);
+      procedure GetPriorRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps);
+      procedure AddFilter(iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter; var hFilter : hDBIFilter);
+      procedure DropFilter(hFilter: hDBIFilter);
+      procedure ActivateFilter(hFilter : hDBIFilter);
+      procedure DeactivateFilter(hFilter : hDBIFilter);
+      procedure GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
+      procedure SetProp(iProp: Longint; PropValue : Longint);
       procedure SetToBegin; Virtual;
       procedure SetToEnd;
-      Procedure ForceReread;
-      Procedure InitRecord(PRecord : Pointer);
-      Procedure InsertRecord(eLock : DBILockType; PRecord : Pointer);
-      Procedure AppendRecord(PRecord : Pointer);
-      Procedure ModifyRecord(OldRecord,PRecord : Pointer; bFreeLock : Bool;ARecNo : LongInt);
-      Procedure DeleteRecord(PRecord : Pointer);
+      procedure ForceReread;
+      procedure InitRecord(PRecord : Pointer);
+      procedure InsertRecord(eLock : DBILockType; PRecord : Pointer);
+      procedure AppendRecord(PRecord : Pointer);
+      procedure ModifyRecord(OldRecord,PRecord : Pointer; bFreeLock : Bool;ARecNo : LongInt);
+      procedure DeleteRecord(PRecord : Pointer);
       //-->blob stuff
       procedure OpenBlob(PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode);
-      Procedure FreeBlob(PRecord: Pointer;FieldNo: Word);
-      Procedure GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
-      Procedure GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
-      Procedure PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
-      Procedure TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
+      procedure FreeBlob(PRecord: Pointer;FieldNo: Word);
+      procedure GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
+      procedure GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
+      procedure PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
+      procedure TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
       //<--blob stuff
       procedure QuerySetParams(Params : TParams; SQLText : String);
       procedure StoredProcSetParams(Params: TParams);
       procedure StoredProcGetParams(Params: TParams);
-      Procedure RelRecordLock(bAll: Bool);
-      Procedure ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
-      Procedure GetRecordForKey(bDirectKey: Bool; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False);
+      procedure RelRecordLock(bAll: Bool);
+      procedure ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
+      procedure GetRecordForKey(bDirectKey: Bool; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False);
       function findrows(const Fields: array of Integer; const SearchFields:array of String; ACaseSen : Boolean; APartLen : Integer; AStrictConformity: boolean = False):int64;
       function SetRowPosition(iFields : Integer; LID : Int64; pRecBuffer : Pointer):Boolean;
-      Procedure GetIndexDesc(iIndexSeqNo : Word; var idxDesc : IDXDesc);
-      Procedure GetIndexDescs(Desc : PIDXDesc);
-      Procedure SetRange(bKeyItself : Bool; iFields1 : Word; iLen1 : Word; pKey1 : Pointer;
+      procedure GetIndexDesc(iIndexSeqNo : Word; var idxDesc : IDXDesc);
+      procedure GetIndexDescs(Desc : PIDXDesc);
+      procedure SetRange(bKeyItself : Bool; iFields1 : Word; iLen1 : Word; pKey1 : Pointer;
                 bKey1Incl : Bool; iFields2 : Word; iLen2 : Word; pKey2 : Pointer; bKey2Incl : Bool);
-      Procedure ResetRange;
-      Procedure SwitchToIndex(pszIndexName : PChar; pszTagName : PChar; iIndexId : Word; bCurrRec : Bool);
+      procedure ResetRange;
+      procedure SwitchToIndex(pszIndexName : PChar; pszTagName : PChar; iIndexId : Word; bCurrRec : Bool);
       procedure SettoSeqNo(iSeqNo: Longint);
       procedure EmptyTable;
-      Procedure AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PChar);
-      Procedure DeleteIndex(pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
-      Procedure AcqTableLock(eLockType: DBILockType);
-      Procedure RelTableLock(bAll: Bool;eLockType: DBILockType);
-      Procedure SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
+      procedure AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PChar);
+      procedure DeleteIndex(pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+      procedure AcqTableLock(eLockType: word; bNoWait: boolean);
+      procedure SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
       procedure Clone(bReadOnly: Bool;bUniDirectional: Bool;var hCurNew: hDBICur);
       procedure SetToCursor(hDest : hDBICur);
 
@@ -785,12 +783,12 @@ Type
  Public
     Constructor Create(PSQL : TNativeConnect; D : Pointer; TotalCount : Word);
     Destructor Destroy; Override;
-    Procedure SetToBegin; Override;
-    Procedure GetNextRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps); Override;
+    procedure SetToBegin; Override;
+    procedure GetNextRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps); Override;
     Function GetBufferSize : Word; Override;
     Function GetWorkBufferSize : Word; Override;
-    Procedure SetToBookmark(P : Pointer); override;
-    Procedure GetRecordCount(Var iRecCount : Longint); override;
+    procedure SetToBookmark(P : Pointer); override;
+    procedure GetRecordCount(Var iRecCount : Longint); override;
  end;
 
  TFieldList = Class(TIndexList)
@@ -815,8 +813,8 @@ Type
 
 Function AdjustNativeField(iField : TPSQLField; Src, Dest : Pointer; Var Blank : Bool) : Word;
 Function AdjustDelphiField(iField : TPSQLField; Src, Dest : Pointer) : Word;
-Procedure PSQLException(PSQL : TNativeConnect);
-Procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
+procedure PSQLException(PSQL : TNativeConnect);
+procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
 
 
 function BDETOPSQLStr(Field : TPSQLField): String;
@@ -1097,12 +1095,12 @@ begin
  end;
 end;
 
-Procedure PSQLException(PSQL : TNativeConnect);
+procedure PSQLException(PSQL : TNativeConnect);
 begin
   Raise EPSQLException.Create(PSQL);
 end;
 
-Procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
+procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
 begin
   Raise EPSQLException.CreateMsg(PSQL, ErrorMsg );
 end;
@@ -1407,7 +1405,7 @@ begin
 end;
 
 
-Procedure TNativeConnect.InternalConnect;
+procedure TNativeConnect.InternalConnect;
 var
    Result: PPGresult;
 begin
@@ -1441,7 +1439,7 @@ begin
   Result :=FTransState <> xsActive;
 end;
 
-Procedure TNativeConnect.InternalDisconnect;
+procedure TNativeConnect.InternalDisconnect;
 begin
   if FLoggin then
   begin
@@ -1465,7 +1463,7 @@ begin
    result:=Trim(StrPas(PQerrorMessage(Handle))) = '';
 end;
 
-Procedure TNativeConnect.RollBack;
+procedure TNativeConnect.RollBack;
 var
   Result: PPGresult;
 begin
@@ -1473,7 +1471,7 @@ begin
    PQclear(Result);
 end;
 
-Procedure TNativeConnect.Commit;
+procedure TNativeConnect.Commit;
 var
   Result: PPGresult;
 begin
@@ -1482,13 +1480,13 @@ begin
 end;
 
 
-Procedure TNativeConnect.CheckResult;
+procedure TNativeConnect.CheckResult;
 begin
    if GetErrorText <> '' then
     raise EPSQLException.CreateMsg(self,GetErrorText);
 end;
 
-Procedure TNativeConnect.CheckResult(FStatement:PPGresult);
+procedure TNativeConnect.CheckResult(FStatement:PPGresult);
 begin
  if GetErrorText <> '' then
     begin
@@ -1508,7 +1506,7 @@ begin
     end;
 end;
 
-Procedure TNativeConnect.TableList(pszWild: PChar; SystemTables: Boolean; List: TStrings);
+procedure TNativeConnect.TableList(pszWild: PChar; SystemTables: Boolean; List: TStrings);
 var
    CRec : PChar;
    I : LongInt;
@@ -1542,7 +1540,7 @@ begin
   PQclear(RES);
 end;
 
-Procedure TNativeConnect.UserList(pszWild : PChar; List : TStrings);
+procedure TNativeConnect.UserList(pszWild : PChar; List : TStrings);
 var
    CRec : PChar;
    I : LongInt;
@@ -1570,7 +1568,7 @@ begin
  end;
 end;
 
-Procedure TNativeConnect.SchemaList(pszWild : PChar; SystemSchemas: Boolean; List : TStrings);
+procedure TNativeConnect.SchemaList(pszWild : PChar; SystemSchemas: Boolean; List : TStrings);
 var
    CRec : PChar;
    I : LongInt;
@@ -1626,7 +1624,7 @@ begin
   PQclear(RES);
 end;
 
-Procedure TNativeConnect.OpenTable(pszTableName: PChar;pszIndexName: PChar;iIndexId: Word;
+procedure TNativeConnect.OpenTable(pszTableName: PChar;pszIndexName: PChar;iIndexId: Word;
                                    eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;var hCursor: hDBICur; Limit, Offset : integer);
 begin
   InternalConnect;
@@ -1639,12 +1637,12 @@ begin
   TNativeDataSet(hCursor).OpenTable;
 end;
 
-Procedure TNativeConnect.QueryAlloc(var hStmt: hDBIStmt);
+procedure TNativeConnect.QueryAlloc(var hStmt: hDBIStmt);
 begin
     hStmt := hDBIStmt(TNativeDataSet.Create(Self, nil,nil, nil, 0, 0, 0));
 end;
 
-Procedure TNativeConnect.QueryPrepare(var hStmt: hDBIStmt;Query : String);
+procedure TNativeConnect.QueryPrepare(var hStmt: hDBIStmt;Query : String);
 begin
    FLastOperationTime := GetTickCount;
    TNativeDataSet(hStmt).SQLQuery := Query;
@@ -1701,7 +1699,7 @@ begin
   pxInfo^.eXIL    := FTransLevel;
 end;
 
-Procedure TNativeConnect.QExecDirect(eQryLang : DBIQryLang;pszQuery : String;phCur: phDBICur; var AffectedRows : LongInt);
+procedure TNativeConnect.QExecDirect(eQryLang : DBIQryLang;pszQuery : String;phCur: phDBICur; var AffectedRows : LongInt);
 var
   hStmt : hDBIStmt;
 begin
@@ -1722,10 +1720,10 @@ begin
   end;
 end;
 
-Procedure TNativeConnect.OpenFieldList(pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur);
+procedure TNativeConnect.OpenFieldList(pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur);
 var
   P : TNativeDataSet;
-Procedure ProcessTable;
+procedure ProcessTable;
 var
     Props : CURProps;
     Items : Word;
@@ -1754,12 +1752,12 @@ begin
    FSystem := False;
 end;
 
-Procedure TNativeConnect.OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
+procedure TNativeConnect.OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
 var
   P     : hDBICur;
   Ind   : TIndexList;
 
-  Procedure ProcessTable;
+  procedure ProcessTable;
   var
     Props : CURProps;
     Items : Word;
@@ -1783,7 +1781,7 @@ var
     end;
   end;
 
-  Procedure OpenAndProcessTable;
+  procedure OpenAndProcessTable;
   begin
     FSystem := True;
     OpenTable(pszTableName, NIL,0, dbiREADONLY, dbiOPENSHARED, P,0,0);
@@ -1849,7 +1847,7 @@ begin
       Raise EPSQLException.CreateBDEMsg(DBIERR_NOSUCHTABLE, pszTableName);
 end;
 
-Procedure TNativeConnect.CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
+procedure TNativeConnect.CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
 
       function CreateSQLForCreateTable:String;
       var
@@ -1914,7 +1912,7 @@ begin
     end;
 end;
 
-Procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; var IdxDesc: IDXDesc; pszKeyviolName: PChar);
+procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; var IdxDesc: IDXDesc; pszKeyviolName: PChar);
 var
   NDS : TNativeDataSet;
 begin
@@ -1928,7 +1926,7 @@ begin
   end;
 end;
 
-Procedure TNativeConnect.DeleteIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+procedure TNativeConnect.DeleteIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
 var
   NDS : TNativeDataSet;
 begin
@@ -1976,12 +1974,12 @@ begin
   Result := StrPas(FDesc.szName);
 end;
 
-Procedure TPSQLField.SetFieldName(Const Value : String);
+procedure TPSQLField.SetFieldName(Const Value : String);
 begin
   StrPCopy(@FDesc.szName, Copy(Value,1,SizeOf(FDesc.szName)-1));
 end;
 
-Procedure TPSQLField.SetBuffer(PRecord : Pointer);
+procedure TPSQLField.SetBuffer(PRecord : Pointer);
 begin
   FBuffer := PRecord;
   if FBuffer <> nil then
@@ -2006,7 +2004,7 @@ begin
   If FStatus <> nil then Result := TFieldStatus(FStatus^).isNULL = -1 else  Result := FALSE;
 end;
 
-Procedure TPSQLField.SetNull( Flag : Boolean );
+procedure TPSQLField.SetNull( Flag : Boolean );
 Const
   VALUES : Array[ Boolean ] of SmallInt = ( 0, -1 );
 begin
@@ -2018,7 +2016,7 @@ begin
   if FStatus <> nil then  Result := TFieldStatus(FStatus^).Changed else Result := TRUE;
 end;
 
-Procedure TPSQLField.SetChanged(Flag : Boolean);
+procedure TPSQLField.SetChanged(Flag : Boolean);
 begin
   If FStatus <> nil then TFieldStatus(FStatus^).Changed := Flag;
 end;
@@ -2028,7 +2026,7 @@ begin
   Result := FDesc.iUnused[1];
 end;
 
-Procedure TPSQLField.SetLocalSize(S : Word);
+procedure TPSQLField.SetLocalSize(S : Word);
 begin
   FDesc.iUnused[1] := S;
 end;
@@ -2038,7 +2036,7 @@ begin
   Result := FDesc.iUnused[0];
 end;
 
-Procedure TPSQLField.SetLocalType(S : Word);
+procedure TPSQLField.SetLocalType(S : Word);
 begin
   FDesc.iUnused[0] := S;
 end;
@@ -2086,7 +2084,7 @@ begin
   end;
 end;
 
-Procedure TPSQLFields.SetFields(PRecord : Pointer);
+procedure TPSQLFields.SetFields(PRecord : Pointer);
 var
   i : Word;
 begin
@@ -2137,7 +2135,7 @@ begin
   Result := StrPas(FDesc.szName);
 end;
 
-Procedure TPSQLIndex.SetIndexName(Const Value : String);
+procedure TPSQLIndex.SetIndexName(Const Value : String);
 begin
   StrPCopy(@FDesc.szName, Copy(Value,1,SizeOf(FDesc.szName)-1));
 end;
@@ -2278,7 +2276,7 @@ begin
   if ( Count >= Index ) and ( Index > 0 ) then Result := TPSQLNative(Items[Index-1]);
 end;
 
-Procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer; aDefault : String);
+procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer; aDefault : String);
 var
   Item : TPSQLNative;
 begin
@@ -2729,12 +2727,12 @@ begin
     end;
 end;
 
-Procedure TNativeDataSet.SetBufferAddress(P : Pointer);
+procedure TNativeDataSet.SetBufferAddress(P : Pointer);
 begin
   FCurrentBuffer  := P;
 end;
 
-Procedure TNativeDataSet.SetInternalBuffer(Buffer : Pointer);
+procedure TNativeDataSet.SetInternalBuffer(Buffer : Pointer);
 begin
   BufferAddress := Buffer;
 end;
@@ -2744,7 +2742,7 @@ begin
   Result := FInternalBuffer;
 end;
 
-Procedure TNativeDataSet.SetCurrentBuffer(PRecord : Pointer);
+procedure TNativeDataSet.SetCurrentBuffer(PRecord : Pointer);
 begin
   FCurrentBuffer := PRecord;
 end;
@@ -2796,7 +2794,7 @@ begin
   Result := Sizeof(TPSQLBookMark);
 end;
 
-Procedure TNativeDataSet.SetBufBookmark;
+procedure TNativeDataSet.SetBufBookmark;
 Var
   Buffer : Pointer;
 begin
@@ -2813,7 +2811,7 @@ begin
  Result := RecNo;
 end;
 
-Procedure TNativeDataSet.SetRecordNumber(RecNom : Longint);
+procedure TNativeDataSet.SetRecordNumber(RecNom : Longint);
 var
   Original: LongInt;
 begin
@@ -2841,7 +2839,7 @@ begin
    end;
 end;
 
-Procedure TNativeDataSet.CheckFilter(PRecord : Pointer);
+procedure TNativeDataSet.CheckFilter(PRecord : Pointer);
 var
   P    : Pointer;
   B    : Boolean;
@@ -2882,13 +2880,13 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.InternalCommit;
+procedure TNativeDataSet.InternalCommit;
 begin
   FConnect.Commit;
   FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.FirstRecord;
+procedure TNativeDataSet.FirstRecord;
 begin
   if Assigned(FStatement) then
   begin                               
@@ -2901,7 +2899,7 @@ begin
   MonitorHook.SQLFetch(Self);
 end;
 
-Procedure TNativeDataSet.LastRecord;
+procedure TNativeDataSet.LastRecord;
 begin
   if Assigned(FStatement) then
   begin
@@ -2914,7 +2912,7 @@ begin
   MonitorHook.SQLFetch(Self);
 end;
 
-Procedure TNativeDataSet.NextRecord();
+procedure TNativeDataSet.NextRecord();
 begin
   if Assigned(FStatement) then
   begin
@@ -2927,7 +2925,7 @@ begin
   MonitorHook.SQLFetch(Self);
 end;
 
-Procedure TNativeDataSet.PrevRecord();
+procedure TNativeDataSet.PrevRecord();
 begin
    if Assigned(FStatement) then
    begin
@@ -2941,7 +2939,7 @@ begin
    MonitorHook.SQLFetch(Self);
 end;
 
-Procedure TNativeDataSet.CurrentRecord(ARecNo : Longint);
+procedure TNativeDataSet.CurrentRecord(ARecNo : Longint);
 begin
   if Assigned(FStatement) then
      RecNo := ARecNo;
@@ -2950,7 +2948,7 @@ begin
   InternalReadBuffer;
 end;
 
-Procedure TNativeDataSet.GetWorkRecord(eLock: DBILockType;PRecord: Pointer);
+procedure TNativeDataSet.GetWorkRecord(eLock: DBILockType;PRecord: Pointer);
 var
   P : TPSQLBookMark;
 begin
@@ -2965,12 +2963,12 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
+procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
 begin
   iRecNo := RecordNumber;
 end;
 
-Procedure TNativeDataSet.LockRecord(eLock : DBILockType);
+procedure TNativeDataSet.LockRecord(eLock : DBILockType);
 begin
   FIsLocked := (eLock <> dbiNOLOCK);
 end;
@@ -2995,7 +2993,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.UpdateFilterStatus;
+procedure TNativeDataSet.UpdateFilterStatus;
 Var
   P : TPSQLFilter;
   I : Integer;
@@ -3012,7 +3010,7 @@ begin
   FFilterActive := FALSE;
 end;
 
-Procedure TNativeDataSet.NativeToDelphi(P: TPSQLField;PRecord: Pointer;pDest: Pointer;var bBlank: Bool);
+procedure TNativeDataSet.NativeToDelphi(P: TPSQLField;PRecord: Pointer;pDest: Pointer;var bBlank: Bool);
 begin
   CheckParam(PRecord=nil,DBIERR_INVALIDPARAM);
   P.Buffer := PRecord;
@@ -3020,7 +3018,7 @@ begin
   if not bBlank and (pDest <> nil) then AdjustNativeField(P,P.FieldValue,pDest,bBlank);
 end;
 
-Procedure TNativeDataSet.DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
+procedure TNativeDataSet.DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
 begin
   If pSrc <> nil then AdjustDelphiField(P,pSrc,PChar(P.Data)+P.FieldNumber-1);
 end;
@@ -3033,7 +3031,7 @@ end;
 /////////////////////////////////////////////////////////////////////
 //                       PUBLIC METHODS                            //
 /////////////////////////////////////////////////////////////////////
-Procedure TNativeDataSet.GetRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps);
+procedure TNativeDataSet.GetRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps);
 begin
   InternalBuffer := PRecord;
   Case RecordState of
@@ -3089,7 +3087,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.GetNextRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps);
+procedure TNativeDataSet.GetNextRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps);
 begin
   FLastDir     := tdNext;
   InternalBuffer := PRecord;
@@ -3110,7 +3108,7 @@ begin
   RecordState := tsPos;
 end;
 
-Procedure TNativeDataSet.GetPriorRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps);
+procedure TNativeDataSet.GetPriorRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps);
 begin
   FLastDir     := tdPrev;
   InternalBuffer := PRecord;
@@ -3131,7 +3129,7 @@ begin
   RecordState := tsPos;
 end;
 
-Procedure TNativeDataSet.AddFilter(iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter);
+procedure TNativeDataSet.AddFilter(iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter);
 var
   P : TPSQLFilter;
 begin
@@ -3141,7 +3139,7 @@ begin
   hFilter := hDBIFilter(P);
 end;
 
-Procedure TNativeDataSet.DropFilter(hFilter: hDBIFilter);
+procedure TNativeDataSet.DropFilter(hFilter: hDBIFilter);
 var
   Count : Integer;
 begin
@@ -3157,7 +3155,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.ActivateFilter(hFilter: hDBIFilter);
+procedure TNativeDataSet.ActivateFilter(hFilter: hDBIFilter);
 var
   i     : Integer;
   P     : TPSQLFilter;
@@ -3177,7 +3175,7 @@ begin
   If not Found and (hFilter <> nil) then raise EPSQLException.CreateBDE(DBIERR_NOSUCHFILTER);
 end;
 
-Procedure TNativeDataSet.DeactivateFilter(hFilter: hDBIFilter);
+procedure TNativeDataSet.DeactivateFilter(hFilter: hDBIFilter);
 var
   i : Integer;
   P : TPSQLFilter;
@@ -3213,7 +3211,7 @@ begin
      if RecordState <> tsEmpty then CurrentRecord(RecNo);
 end;
 
-Procedure TNativeDataSet.SetToBookmark(P : Pointer);
+procedure TNativeDataSet.SetToBookmark(P : Pointer);
 begin
   CheckParam(P=nil,DBIERR_INVALIDPARAM);
   if TPSQLBookMark(P^).Position >= 1 then
@@ -3222,7 +3220,7 @@ begin
   RecordState := tsPos;
 end;
 
-Procedure TNativeDataSet.GetRecordCount( Var iRecCount : Longint );
+procedure TNativeDataSet.GetRecordCount( Var iRecCount : Longint );
 begin
    iRecCount := RecordCount;
 end;
@@ -3318,7 +3316,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.GetField(FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Bool);
+procedure TNativeDataSet.GetField(FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Bool);
 var
   T    : TPSQLField;
 begin
@@ -3329,7 +3327,7 @@ begin
      NativeToDelphi(T, PRecord, pDest, bBlank) else  bBlank := T.FieldNull;
 end;
 
-Procedure TNativeDataSet.PutField(FieldNo: Word;PRecord: Pointer;pSrc: Pointer);
+procedure TNativeDataSet.PutField(FieldNo: Word;PRecord: Pointer;pSrc: Pointer);
 var
   T : TPSQLField;
 begin
@@ -3352,7 +3350,7 @@ begin
   SetLength(FFieldMinSizes,0);
 end;
 
-Procedure TNativeDataSet.GetBookMark( P : Pointer );
+procedure TNativeDataSet.GetBookMark( P : Pointer );
 begin
   ZeroMemory(P, BookMarkSize );
   With TPSQLBookMark(P^) do
@@ -3367,7 +3365,7 @@ begin
   Move(Fields[iValSeqNo].ValCheck, M^, SizeOf(VCHKDesc));
 end;
 
-Procedure TNativeDataSet.GetCursorProps( var curProps : CURProps );
+procedure TNativeDataSet.GetCursorProps( var curProps : CURProps );
 begin
   ZeroMemory(@curProps, SizeOf(curProps));
   With curProps do
@@ -3397,7 +3395,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.GetFieldDescs(pFDesc : pFLDDesc);
+procedure TNativeDataSet.GetFieldDescs(pFDesc : pFLDDesc);
 var
   i : Integer;
   M : pFldDesc;
@@ -3621,7 +3619,7 @@ begin
      Result :=Item.FDesc;
 end;
 
-Procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer;P : pFldDesc;P1 : pVCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
+procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer;P : pFldDesc;P1 : pVCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
 var
   Fld : TPGFIELD_INFO;
 begin
@@ -3644,7 +3642,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.FillDefs(SL: TStrings);
+procedure TNativeDataSet.FillDefs(SL: TStrings);
 Var inS: string;
     i, j, fPos: integer;
     tabOID: cardinal;
@@ -3695,7 +3693,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.InitFieldDescs;
+procedure TNativeDataSet.InitFieldDescs;
 var
   i         : Integer;
   FldInfo   : FLDDesc;
@@ -3735,7 +3733,7 @@ begin
   If FBookOfs > 0 then Inc( Result, BookMarkSize );
 end;
 
-Procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
+procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
 begin
   iLen := 0;
   Case TPropRec( iProp ).Prop of
@@ -3762,7 +3760,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.SetProp(iProp: Longint;PropValue: Longint);
+procedure TNativeDataSet.SetProp(iProp: Longint;PropValue: Longint);
 begin
   Case TPropRec( iProp ).Prop of
     Word(curMAKECRACK): RecordState := tsEmpty;
@@ -3775,18 +3773,18 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.SetToBegin;
+procedure TNativeDataSet.SetToBegin;
 begin
   RecordState  := tsFirst;
 end;
 
-Procedure TNativeDataSet.SetToEnd;
+procedure TNativeDataSet.SetToEnd;
 begin
   RecordState  := tsLast;
 end;
 
 
-Procedure TNativeDataSet.InternalReadBuffer;
+procedure TNativeDataSet.InternalReadBuffer;
 var
   i, size: Integer;
   MaxSize, tMS : Integer;
@@ -3934,7 +3932,7 @@ begin
   until False;
 end;
 
-Procedure TNativeDataSet.ForceReread;
+procedure TNativeDataSet.ForceReread;
 var
   P : TPSQLBookMark;
 begin
@@ -3948,7 +3946,7 @@ begin
   SetToBookmark(@P);
 end;
 
-Procedure TNativeDataSet.CompareBookMarks( pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt );
+procedure TNativeDataSet.CompareBookMarks( pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt );
 
   function cmp2Values(val1, val2: LongInt): CmpBkmkRslt;
   begin
@@ -3965,7 +3963,7 @@ begin
     CmpBkMkResult := CMPGtr;
 end;
 
-Procedure TNativeDataSet.InitRecord(PRecord : Pointer);
+procedure TNativeDataSet.InitRecord(PRecord : Pointer);
 begin
   If PRecord = nil then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
   ZeroMemory(PRecord, GetWorkBufferSize);
@@ -4221,12 +4219,12 @@ begin
    Result := '';
 end;
 
-Procedure TNativeDataSet.AppendRecord (PRecord : Pointer);
+procedure TNativeDataSet.AppendRecord (PRecord : Pointer);
 begin
   InsertRecord(dbiNOLOCK, PRecord);
 end;
 
-Procedure TNativeDataSet.InsertRecord( eLock : DBILockType; PRecord : Pointer );
+procedure TNativeDataSet.InsertRecord( eLock : DBILockType; PRecord : Pointer );
 var
   SQL : String;
   {ATable,
@@ -4276,7 +4274,7 @@ begin
   FIsLocked := FALSE;
 end;
 
-Procedure TNativeDataSet.ModifyRecord(OldRecord,PRecord : Pointer; bFreeLock : Bool; ARecNo : Longint);
+procedure TNativeDataSet.ModifyRecord(OldRecord,PRecord : Pointer; bFreeLock : Bool; ARecNo : Longint);
 var
   SQL : String;
   Query : TNativeDataSet;
@@ -4330,7 +4328,7 @@ begin
   FIsLocked := FALSE;
 end;
 
-Procedure TNativeDataSet.DeleteRecord(PRecord : Pointer);
+procedure TNativeDataSet.DeleteRecord(PRecord : Pointer);
 var
   SQL : String;
  { ATable,
@@ -4386,7 +4384,7 @@ begin
    end;
 end;
 
-Procedure TNativeDataSet.SetTableName(Name : string);
+procedure TNativeDataSet.SetTableName(Name : string);
 begin
   FTableName := Name;
 end;
@@ -4397,7 +4395,7 @@ var
   StrEnd: PChar;
   StrBuf: array[0..1024] of Char;
 
-Procedure SetBufLen(Strings : TStrings);
+procedure SetBufLen(Strings : TStrings);
 var
   i : Integer;
 begin
@@ -4405,7 +4403,7 @@ begin
      Inc(BufLen, Succ(Length(Strings[I])));
 end;
 
-Procedure CopyToBuffer(Strings : TStrings);
+procedure CopyToBuffer(Strings : TStrings);
 var
    i : Integer;
 begin
@@ -4525,7 +4523,7 @@ begin
   Result := FIndexDescs.Count;
 end;
 
-Procedure TNativeDataSet.OpenBlob(PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode);
+procedure TNativeDataSet.OpenBlob(PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode);
 var
   Field : TPSQLField;
   Mode  : Integer;
@@ -4551,7 +4549,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.FreeBlob(PRecord: Pointer;FieldNo: Word);
+procedure TNativeDataSet.FreeBlob(PRecord: Pointer;FieldNo: Word);
 Var
   Field : TPSQLField;
   Buff : Pointer;
@@ -4582,7 +4580,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
+procedure TNativeDataSet.GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
 Var
   Field : TPSQLField;
 
@@ -4667,7 +4665,7 @@ begin
    iSize  := 0
 end;
 
-Procedure TNativeDataSet.GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
+procedure TNativeDataSet.GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
 var
   Field : TPSQLField;
 
@@ -4758,11 +4756,11 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
+procedure TNativeDataSet.PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
 var
   Field : TPSQLField;
 
-  Procedure BlobPut(ColumnNumber: Integer; Offset, Length : LongInt; pSrc, buff :Pointer);
+  procedure BlobPut(ColumnNumber: Integer; Offset, Length : LongInt; pSrc, buff :Pointer);
   begin
     if PChar(buff)^ = #0 then
       begin
@@ -4790,7 +4788,7 @@ begin
   Field.FieldNull := (iOffset + iLen = 0);
 end;
 
-Procedure TNativeDataSet.TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
+procedure TNativeDataSet.TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
 begin
    PutBlob(PRecord, FieldNo, 0, iLen, nil);
 end;
@@ -4891,12 +4889,12 @@ begin
   SQLQuery := Trim(Temp);
 end;
 
-Procedure TNativeDataSet.RelRecordLock(bAll: Bool);
+procedure TNativeDataSet.RelRecordLock(bAll: Bool);
 begin
   FIsLocked := FALSE;
 end;
 
-Procedure TNativeDataSet.ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
+procedure TNativeDataSet.ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
 var
   i : Word;
   MKey    : PChar;
@@ -4920,7 +4918,7 @@ begin
 end;
 
 
-Procedure TNativeDataSet.GetIndexDesc(iIndexSeqNo: Word; var idxDesc: IDXDesc);
+procedure TNativeDataSet.GetIndexDesc(iIndexSeqNo: Word; var idxDesc: IDXDesc);
 begin
   CheckParam(not(IndexCount > 0) ,DBIERR_NOASSOCINDEX);
   ZeroMemory(@idxDesc, Sizeof(idxDesc));
@@ -4931,7 +4929,7 @@ begin
   idxDesc := FIndexDescs.mIndex[iIndexSeqNo].Description;
 end;
 
-Procedure TNativeDataSet.GetIndexDescs(Desc: PIDXDesc);
+procedure TNativeDataSet.GetIndexDescs(Desc: PIDXDesc);
 var
   Props : CURProps;
   i     : Word;
@@ -4955,9 +4953,9 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.SwitchToIndex( pszIndexName, pszTagName : PChar;iIndexId : Word; bCurrRec : Bool);
+procedure TNativeDataSet.SwitchToIndex( pszIndexName, pszTagName : PChar;iIndexId : Word; bCurrRec : Bool);
 
-Procedure ParseIndexName(pszIndexName: PChar;Var iIndexId : Word;pszTrueName  : PChar);
+procedure ParseIndexName(pszIndexName: PChar;Var iIndexId : Word;pszTrueName  : PChar);
 var
   S     : ShortString;
   Found : Boolean;
@@ -5002,18 +5000,18 @@ begin
   GetIndexDesc(iIndexId, FKeyDesc);
 end;
 
-Procedure TNativeDataSet.ResetRange;
+procedure TNativeDataSet.ResetRange;
 begin
   RangeClause.Clear;
   if Ranges then ReOpenTable;
   Ranges := False;
 end;
 
-Procedure TNativeDataSet.SetRange(bKeyItself: Bool;
+procedure TNativeDataSet.SetRange(bKeyItself: Bool;
                iFields1: Word;iLen1: Word;pKey1: Pointer;bKey1Incl: Bool;
                iFields2: Word;iLen2: Word;pKey2: Pointer;bKey2Incl: Bool);
 
-Procedure CreateRangeClause(First : Boolean; bKeyItself: Bool;iFields: Word;iLen: Word; pKey: Pointer; bKeyIncl: Bool);
+procedure CreateRangeClause(First : Boolean; bKeyItself: Bool;iFields: Word;iLen: Word; pKey: Pointer; bKeyIncl: Bool);
 var
   i         : integer;
   Field     : TPSQLField;
@@ -5088,7 +5086,7 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.SetKeyNumber( newValue : SmallInt );
+procedure TNativeDataSet.SetKeyNumber( newValue : SmallInt );
 var
   x,y : Integer;
   Ind : TPSQLIndex;
@@ -5123,12 +5121,12 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.ReOpenTable;
+procedure TNativeDataSet.ReOpenTable;
 begin
    OpenTable;
 end;
 
-Procedure TNativeDataSet.ClearIndexInfo;
+procedure TNativeDataSet.ClearIndexInfo;
 begin
   if FIndexDescs.Count > 0  then
     begin
@@ -5166,7 +5164,7 @@ begin
     FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PChar);
+procedure TNativeDataSet.AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PChar);
 var
   Result : PPGResult;
 
@@ -5193,7 +5191,7 @@ begin
     FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.DeleteIndex(pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+procedure TNativeDataSet.DeleteIndex(pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
 var
    Result : PPGResult;
 begin
@@ -5206,15 +5204,23 @@ begin
     FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.AcqTableLock(eLockType: DBILockType);
+procedure TNativeDataSet.AcqTableLock(eLockType: word; bNoWait: boolean);
+const _lockmode: array[TPSQLLockType] of string = ('ACCESS SHARE', 'ROW SHARE',
+        'ROW EXCLUSIVE', 'SHARE UPDATE EXCLUSIVE',
+        'SHARE', 'SHARE ROW EXCLUSIVE', 'EXCLUSIVE',
+        'ACCESS EXCLUSIVE');
+      _nowait: array[boolean] of string = ('', 'NOWAIT');
+var Res: PPGresult;
 begin
+  Res := PQExec(FConnect.Handle, PChar(Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]])));
+  try
+    FConnect.CheckResult(Res);
+  finally
+    PQclear(RES);
+  end;
 end;
 
-Procedure TNativeDataSet.RelTableLock(bAll: Bool; eLockType: DBILockType);
-begin
-end;
-
-Procedure TNativeDataSet.SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
+procedure TNativeDataSet.SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
 var
   FldNo : Integer;
   Field : TPSQLField;
@@ -5249,7 +5255,7 @@ begin
   TNativeDataSet(hCurNew).MasterCursor := Self;
 end;
 
-Procedure TNativeDataSet.SetToCursor(hDest : hDBICur);
+procedure TNativeDataSet.SetToCursor(hDest : hDBICur);
 var
   M : Pointer;
 begin
@@ -5286,7 +5292,7 @@ begin
   SetToBegin;
 end;
 
-Procedure TIndexList.SetToBegin;
+procedure TIndexList.SetToBegin;
 begin
   inherited SetToBegin;
   Position := 0;
@@ -5299,7 +5305,7 @@ begin
   Inherited Destroy;
 end;
 
-Procedure TIndexList.GetNextRecord(eLock: DBILockType;PRecord  : Pointer;pRecProps : pRECProps);
+procedure TIndexList.GetNextRecord(eLock: DBILockType;PRecord  : Pointer;pRecProps : pRECProps);
 var
   P : PChar;
 begin
@@ -5322,12 +5328,12 @@ begin
   Result := GetBufferSize;
 end;
 
-Procedure TIndexList.SetToBookmark(P : Pointer);
+procedure TIndexList.SetToBookmark(P : Pointer);
 begin
    SetToBegin;
 end;
 
-Procedure TIndexList.GetRecordCount( Var iRecCount : Longint );
+procedure TIndexList.GetRecordCount( Var iRecCount : Longint );
 begin
    iRecCount := Items;
 end;
@@ -5357,7 +5363,7 @@ begin
   Result := FDatabase;
 end;
 
-Procedure TPSQLEngine.SetDatabase( H : hDBIDb );
+procedure TPSQLEngine.SetDatabase( H : hDBIDb );
 begin
   If H = nil then  Raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
   FDatabase := H;
@@ -5910,7 +5916,7 @@ Function TPSQLEngine.GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszEr
 Var
   tmp        : String;
 
-  Procedure AddMessage( P : pChar );
+  procedure AddMessage( P : pChar );
   begin
     If ( StrLen( P ) > 0 ) then
       If ( Tmp <> '' ) then
@@ -6242,20 +6248,10 @@ begin
   end;
 end;
 
-function TPSQLEngine.AcqTableLock(hCursor: hDBICur;eLockType: DBILockType): DBIResult;
+function TPSQLEngine.AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
 begin
   Try
-    TNativeDataset(hCursor).AcqTableLock(eLockType);
-    Result := DBIERR_NONE;
-  Except
-    Result := CheckError;
-  end;
-end;
-
-function TPSQLEngine.RelTableLock(hCursor: hDBICur;bAll: Bool;eLockType: DBILockType): DBIResult;
-begin
-  Try
-    TNativeDataset(hCursor).RelTableLock(bAll, eLockType);
+    TNativeDataset(hCursor).AcqTableLock(eLockType, bNoWait);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
