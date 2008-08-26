@@ -272,8 +272,13 @@ Type
       Function GetRecordCount(hCursor: hDBICur;Var iRecCount: Longint): DBIResult;
       Function ForceReread(hCursor: hDBICur): DBIResult;
       Function GetField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Bool): DBIResult;
+{$IFDEF DELPHI_12}
+      Function AnsiToNative(pNativeStr: PAnsiChar;pAnsiStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
+      Function NativeToAnsi(pAnsiStr: PAnsiChar;pNativeStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
+{$ELSE}
       Function AnsiToNative(pNativeStr: PChar;pAnsiStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
       Function NativeToAnsi(pAnsiStr: PChar;pNativeStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
+{$ENDIF}
       Function AddFilter(hCursor: hDBICur;iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter): DBIResult;
       Function DropFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       Function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;

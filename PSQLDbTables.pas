@@ -473,12 +473,24 @@ type
     procedure FreeKeyBuffers;
 {$IFDEF DELPHI_12}
     procedure FreeRecordBuffer(var Buffer: PByte); Override;
-    procedure GetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); overload; virtual;
+    procedure GetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
     function  GetBookmarkFlag(Buffer: TRecordBuffer): TBookmarkFlag; Override;
+    function  GetRecord(Buffer: PByte; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
+    procedure InitRecord(Buffer: PByte); Override;
+    procedure InternalGotoBookmark(Bookmark: Pointer); override;
+    procedure InternalInitRecord(Buffer: PByte); Override;
+    procedure InternalSetToRecord(Buffer: PByte); Override;
+
 {$ELSE}
     procedure FreeRecordBuffer(var Buffer: PChar); Override;
     procedure GetBookmarkData(Buffer: PChar; Data: Pointer); Override;
     function  GetBookmarkFlag(Buffer: PChar): TBookmarkFlag; Override;
+    function  GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
+    procedure InitRecord(Buffer: PChar); Override;
+    procedure InternalGotoBookmark(Bookmark: TBookmark); Override;
+    procedure InternalInitRecord(Buffer: PChar); Override;
+    procedure InternalSetToRecord(Buffer: PChar); Override;
+
 {$ENDIF}
     function  GetCanModify: Boolean; Override;
     function  GetFieldFullName(Field: TField): string; override;
@@ -490,7 +502,6 @@ type
     function  GetKeyExclusive: Boolean;
     function  GetKeyFieldCount: Integer;
     function  GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur; Virtual;
-    function  GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
     function  GetRecordCount: Integer; Override;
     function  GetRecNo: Integer; Override;
     function  GetRecordSize: Word; Override;
@@ -499,27 +510,21 @@ type
     function  GetUpdatesPending: Boolean;
     function  GetUpdateRecordSet: TUpdateRecordTypes;
     function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
-{$IFDEF DELPHI_12}
-    procedure InitRecord(Buffer: PByte); Override;
-{$ELSE}
-    procedure InitRecord(Buffer: PChar); Override;
-{$ENDIF}
     procedure InternalAddRecord(Buffer: Pointer; Append: Boolean); Override;
     procedure InternalCancel; Override;
     procedure InternalClose; Override;
     procedure InternalDelete; Override;
     procedure InternalEdit; Override;
     procedure InternalFirst; Override;
-    procedure InternalGotoBookmark(Bookmark: TBookmark); Override;
+
     procedure InternalHandleException; Override;
     procedure InternalInitFieldDefs; Override;
-    procedure InternalInitRecord(Buffer: PChar); Override;
+
     procedure InternalInsert; override;
     procedure InternalLast; Override;
     procedure InternalOpen; Override;
     procedure InternalPost; Override;
     procedure InternalRefresh; Override;
-    procedure InternalSetToRecord(Buffer: PChar); Override;
     function  IsCursorOpen: Boolean; Override;
     function  LocateRecord(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Boolean;
@@ -530,8 +535,13 @@ type
     procedure PrepareCursor; Virtual;
     function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
     function  ResetCursorRange: Boolean;
+{$IFDEF DELPHI_12}
+    procedure SetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
+    procedure SetBookmarkFlag(Buffer: TRecordBuffer; Value: TBookmarkFlag); override;
+{$ELSE}
     procedure SetBookmarkData(Buffer: PChar; Data: Pointer); Override;
     procedure SetBookmarkFlag(Buffer: PChar; Value: TBookmarkFlag); Override;
+{$ENDIF}
     procedure SetCachedUpdates(Value: Boolean);
     function  SetCursorRange: Boolean;
     procedure SetFieldData(Field: TField; Buffer: Pointer); Override;
@@ -548,7 +558,7 @@ type
     procedure SetLinkRanges(MasterFields: TList);
     procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); Override;
     procedure SetOnFilterRecord(const Value: TFilterRecordEvent); Override;
-    procedure SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);    
+    procedure SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);
     procedure SetRecNo(Value: Integer); Override;
     procedure SetupCallBack(Value: Boolean);
     procedure SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
@@ -579,7 +589,11 @@ type
     procedure CommitUpdates;
     procedure FetchAll;
     procedure FlushBuffers;
+{$IFDEF DELPHI_12}
+    function GetCurrentRecord(Buffer: PByte): Boolean; Override;
+{$ELSE}
     function GetCurrentRecord(Buffer: PChar): Boolean; Override;
+{$ENDIF}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
     function GetFieldData(Field: TField; Buffer: Pointer): Boolean; overload; override;
     function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload; override;
@@ -592,7 +606,11 @@ type
     procedure Post; Override;
     procedure RevertRecord;
     function  UpdateStatus: TUpdateStatus; Override;
+{$IFDEF DELPHI_12}
+    function  Translate(Src, Dest: PAnsiChar; ToOem: Boolean) : Integer;  Override;
+{$ELSE}
     function  Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;  Override;
+{$ENDIF}
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
@@ -1169,8 +1187,14 @@ type
       constructor Create(AQuery: TPSQLQuery);
   end;
 
+type PCharType = {$IFDEF DELPHI_12}PAnsiChar{$ELSE}PChar{$ENDIF};
+
 { Utility routines }
+{$IFDEF DELPHI_12}
+procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
+{$ELSE}
 procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
+{$ENDIF}
 var
   DataLoss: LongBool;
 begin
@@ -1185,8 +1209,11 @@ begin
   end;
 end;
 
-
+{$IFDEF DELPHI_12}
+procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
+{$ELSE}
 procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
+{$ENDIF}
 var
   DataLoss: LongBool;
 begin
@@ -1203,7 +1230,7 @@ end;
 
 
 function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String;
-  NativeStr: PChar; MaxLen: Integer): PChar;
+  NativeStr: PCharType; MaxLen: Integer): PCharType;
 var
   Len: Integer;
 begin
@@ -1216,7 +1243,7 @@ begin
 end;
 
 
-procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PChar; var AnsiStr: String);
+procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PCharType; var AnsiStr: String);
 var
   Len : Integer;
 begin
@@ -1248,6 +1275,44 @@ begin
       Result := GetDataSize;
 end;
 
+{$IFDEF DELPHI_12}
+procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
+begin
+  with Param do
+    if DataType in [ftString, ftFixedChar, ftMemo]  then
+    begin
+
+      NativeStr := VarToStr(Value);
+      if (Length(NativeStr) > 255) or (DataType = ftMemo) then
+      begin
+        with BlobParamDesc(Buffer^) do
+        begin
+          if DrvLocale <> nil then
+            TAnsiToNativeBuf(DrvLocale, PAnsiChar(AnsiString(NativeStr)), PAnsiChar(AnsiString(NativeStr)), Length(NativeStr));
+          pBlobBuffer := PAnsiChar(AnsiString(NativeStr));
+          ulBlobLen := StrLen(PAnsiChar(pBlobBuffer));
+        end;
+      end else
+      begin
+        if (DrvLocale <> nil) then
+          TAnsiToNativeBuf(DrvLocale, PAnsiChar(AnsiString(NativeStr)), Buffer, Length(NativeStr) + 1) else
+          GetData(Buffer);
+      end;
+    end
+    else if (DataType in [ftBlob..ftTypedBinary,ftOraBlob,ftOraClob]) then
+    begin
+      with BlobParamDesc(Buffer^) do
+      begin
+        NativeStr := VarToStr(Value);
+        ulBlobLen := Length(NativeStr);
+        pBlobBuffer := PAnsiChar(AnsiString(NativeStr));
+      end;
+    end else
+      GetData(Buffer);
+end;
+
+{$ELSE}
+
 procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
 {$IFDEF DELPHI_4}
 var
@@ -1263,7 +1328,7 @@ var
     {$IFDEF DELPHI_4}
     NatStr := VarToStr(Param.Value);
     Result := PChar(NatStr);
-    {$ELSE}
+    {$ELSE}                                              dbtables
     Param.NativeStr := VarToStr(Param.Value);
     Result := PChar(Param.NativeStr);
     {$ENDIF}
@@ -1303,6 +1368,7 @@ begin
     end else
       GetData(Buffer);
 end;
+{$ENDIF}
 
 { Timer callback function }
 procedure FreeTimer(ForceKill : Boolean = FALSE);
