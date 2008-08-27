@@ -12,7 +12,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       PSQLCP, ExtCtrls;
 
 const
-    VERSION : string = '2.4.3-Dev';
+    VERSION : string = '2.5.0-Dev';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -31,23 +31,22 @@ const
 
 const
   FldTypeMap: TFieldMap = (
-    fldUNKNOWN, fldZSTRING, fldINT16, fldINT32, fldUINT16, fldBOOL,
-    fldFLOAT, fldFLOAT, fldBCD, fldDATE, fldTIME, fldTIMESTAMP, fldBYTES,
-    fldVARBYTES, fldINT32, fldBLOB, fldBLOB, fldBLOB, fldBLOB, fldBLOB,
-    fldBLOB, fldBLOB, fldCURSOR, fldZSTRING, fldZSTRING, fldINT64, fldADT,
-    fldArray, fldREF, fldTABLE, fldBLOB, fldBLOB, fldUNKNOWN, fldUNKNOWN,
-    fldUNKNOWN, fldZSTRING{$IFDEF DELPHI_6}, fldDATETIME, fldBCD{$ENDIF}
-    {$IFDEF DELPHI_10}, fldZSTRING, fldBLOB, fldDATETIME, fldINT32{$ENDIF}
-    {$IFDEF DELPHI_12}, fldINT32, fldUNKNOWN, fldUNKNOWN, fldFLOAT,
-    fldUNKNOWN {ftConnection}, fldUNKNOWN {ftParams}, fldUNKNOWN {ftStream}{$ENDIF}); //42..48
+    fldUNKNOWN, fldZSTRING, fldINT16, fldINT32, fldUINT16,  //0..4
+    fldBOOL, fldFLOAT, fldFLOAT, fldBCD, fldDATE, fldTIME, fldTIMESTAMP, //5..11
+    fldBYTES, fldVARBYTES, fldINT32, fldBLOB, fldBLOB, fldBLOB, fldBLOB, //12..18
+    fldBLOB, fldBLOB, fldBLOB, fldCURSOR, fldZSTRING, fldZSTRING, //19..24
+    fldINT64, fldADT, fldArray, fldREF, fldTABLE, fldBLOB, fldBLOB, //25..31
+    fldUNKNOWN, fldUNKNOWN, fldUNKNOWN, fldZSTRING{$IFDEF DELPHI_6}, fldDATETIME, fldBCD{$ENDIF} //26..37
+    {$IFDEF DELPHI_10}, fldZSTRING, fldBLOB, fldDATETIME, fldINT32{$ENDIF} //38..41
+    {$IFDEF DELPHI_12}, fldINT32, fldINT16, fldUNKNOWN, fldFLOATIEEE, fldUNKNOWN, fldUNKNOWN, fldUNKNOWN{$ENDIF}); //42..48
 
   FldSubTypeMap: array[TFieldType] of Word = (
     0, 0, 0, 0, 0, 0, 0, fldstMONEY, 0, 0, 0, 0, 0, 0, fldstAUTOINC,
     fldstBINARY, fldstMEMO, fldstGRAPHIC, fldstFMTMEMO, fldstOLEOBJ,
     fldstDBSOLEOBJ, fldstTYPEDBINARY, 0, fldstFIXED, fldstUNICODE,
     0, 0, 0, 0, 0, fldstHBINARY, fldstHMEMO, 0, 0, 0, 0{$IFDEF DELPHI_6} , 0, 0{$ENDIF}
-    {$IFDEF DELPHI_10}, fldstFIXED, fldstMEMO, 0, 0 {$ENDIF}
-    {$IFDEF DELPHI_12}, 0, 0, 0, 0, 0, 0, 0{$ENDIF});
+    {$IFDEF DELPHI_10}, fldstFIXED, fldstMEMO, 0, 0 {$ENDIF} //38..41
+    {$IFDEF DELPHI_12}, 0, 0, 0, 0, 0, 0, 0{$ENDIF});//42..48
 
   DataTypeMap: array[0..MAXLOGFLDTYPES - 1] of TFieldType = (
     ftUnknown, ftString, ftDate, ftBlob, ftBoolean, ftSmallint,
@@ -193,10 +192,10 @@ type
       procedure SetDummyBool(Value: boolean);
       procedure SetDummyInt(Value: cardinal);
       procedure SetSSLMode(const Value: TSSLMode);
-    function GetDatabaseID: cardinal;
-    function GetIsTemplate: boolean;
-    function GetDBOwner: string;
-    function GetTablespace: string;
+      function GetDatabaseID: cardinal;
+      function GetIsTemplate: boolean;
+      function GetDBOwner: string;
+      function GetTablespace: string;
     Protected
       procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
@@ -351,7 +350,7 @@ type
    // FStmtHandle: HDBIStmt; //Statement handle pg 21/02/06
     FExprFilter: HDBIFilter; //Filter expression
     FFuncFilter: HDBIFilter; // filter function
-    FFilterBuffer: PChar; // filter buffer
+    FFilterBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; // filter buffer
     FIndexFieldMap: DBIKey; //Index field map
     FExpIndex: Boolean;
     FCaseInsIndex: Boolean;
@@ -373,11 +372,11 @@ type
     FRecBufSize: Word;
     FBlockBufOfs: Integer;
     FLastParentPos: Integer;
-    FBlockReadBuf: PChar;
+    FBlockReadBuf: PAnsiChar;
     FBlockBufSize: Integer;
     FBlockBufCount: Integer;
     FBlockReadCount: Integer;
-    FOldBuffer : PChar;
+    FOldBuffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
     FParentDataSet: TPSQLDataSet;
     FUpdateObject: TPSQLSQLUpdateObject;
     FOnUpdateError: TUpdateErrorEvent;
@@ -390,13 +389,13 @@ type
     FByteaAsEscString: boolean;
     FOIDAsInt: boolean;
     FSortFieldNames: string;
-    procedure ClearBlobCache(Buffer: PChar);
-    function GetActiveRecBuf(var RecBuf: PChar): Boolean;
-    function GetBlobData(Field: TField; Buffer: PChar): TBlobData;
-    function GetOldRecord: PChar;
+    procedure ClearBlobCache(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
+    function GetActiveRecBuf(var RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean;
+    function GetBlobData(Field: TField; Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): TBlobData;
+    function GetOldRecord: PAnsiChar;
     procedure InitBufferPointers(GetProps: Boolean);
     function RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint; stdcall;
-    procedure SetBlobData(Field: TField; Buffer: PChar; Value: TBlobData);
+    procedure SetBlobData(Field: TField; Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value: TBlobData);
     function GetDBHandle: HDBIDB;
     procedure SetUpdateMode(const Value: TUpdateMode);
     procedure SetAutoRefresh(const Value: Boolean);
@@ -414,7 +413,6 @@ type
 
   protected
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
-      {$IFNDEF DELPHI_4}
       { IProviderSupport }
       procedure PSEndTransaction(Commit: Boolean); override;
       function PSExecuteStatement(const ASQL: string; AParams: TParams;
@@ -428,33 +426,20 @@ type
       procedure PSReset; override;
       function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
   Protected
-    {$ENDIF}
     function  Engine : TPSQLEngine; Virtual; Abstract;
     procedure SetBlockReadSize(Value: Integer); override;
     procedure BlockReadNext; override;
-    {$IFDEF DELPHI_4}
-    function BCDToCurr(BCD: Pointer; var Curr: Currency): Boolean; Override;
-    function CurrToBCD(const Curr: Currency; BCD: Pointer; Precision,  Decimals: Integer): Boolean; Override;
-    {$ENDIF}
     procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
     procedure ActivateFilters;
     procedure AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
       var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
     procedure AllocCachedUpdateBuffers(Allocate: Boolean);
     procedure AllocKeyBuffers;
-{$IFDEF DELPHI_12}
-    function  AllocRecordBuffer: PByte; Override;
-{$ELSE}
-    function  AllocRecordBuffer: PChar; Override;
-{$ENDIF}
+    function  AllocRecordBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Override;
     function  CachedUpdateCallBack(CBInfo: Pointer): CBRType;
     procedure CheckCachedUpdateMode;
     procedure CheckSetKeyMode;
-{$IFDEF DELPHI_12}
-    procedure ClearCalcFields(Buffer: PByte); Override;
-{$ELSE}
-    procedure ClearCalcFields(Buffer: PChar); Override;
-{$ENDIF}
+    procedure ClearCalcFields(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
     procedure CloseCursor; Override;
     procedure CloseBlob(Field: TField); Override;
     function  CreateExprFilter(const Expr: String;
@@ -471,27 +456,14 @@ type
     function  FindRecord(Restart, GoForward: Boolean): Boolean; Override;
     function  ForceUpdateCallback: Boolean;
     procedure FreeKeyBuffers;
-{$IFDEF DELPHI_12}
-    procedure FreeRecordBuffer(var Buffer: PByte); Override;
-    procedure GetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
-    function  GetBookmarkFlag(Buffer: TRecordBuffer): TBookmarkFlag; Override;
-    function  GetRecord(Buffer: PByte; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
-    procedure InitRecord(Buffer: PByte); Override;
-    procedure InternalGotoBookmark(Bookmark: Pointer); override;
-    procedure InternalInitRecord(Buffer: PByte); Override;
-    procedure InternalSetToRecord(Buffer: PByte); Override;
-
-{$ELSE}
-    procedure FreeRecordBuffer(var Buffer: PChar); Override;
-    procedure GetBookmarkData(Buffer: PChar; Data: Pointer); Override;
-    function  GetBookmarkFlag(Buffer: PChar): TBookmarkFlag; Override;
-    function  GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
-    procedure InitRecord(Buffer: PChar); Override;
-    procedure InternalGotoBookmark(Bookmark: TBookmark); Override;
-    procedure InternalInitRecord(Buffer: PChar); Override;
-    procedure InternalSetToRecord(Buffer: PChar); Override;
-
-{$ENDIF}
+    procedure FreeRecordBuffer(var Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
+    procedure GetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); Override;
+    function  GetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): TBookmarkFlag; Override;
+    function  GetRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
+    procedure InitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
+    procedure InternalGotoBookmark(Bookmark: Pointer); Override;
+    procedure InternalInitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
+    procedure InternalSetToRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
     function  GetCanModify: Boolean; Override;
     function  GetFieldFullName(Field: TField): string; override;
     function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
@@ -535,13 +507,8 @@ type
     procedure PrepareCursor; Virtual;
     function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
     function  ResetCursorRange: Boolean;
-{$IFDEF DELPHI_12}
-    procedure SetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
-    procedure SetBookmarkFlag(Buffer: TRecordBuffer; Value: TBookmarkFlag); override;
-{$ELSE}
-    procedure SetBookmarkData(Buffer: PChar; Data: Pointer); Override;
-    procedure SetBookmarkFlag(Buffer: PChar; Value: TBookmarkFlag); Override;
-{$ENDIF}
+    procedure SetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); Override;
+    procedure SetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value: TBookmarkFlag); Override;
     procedure SetCachedUpdates(Value: Boolean);
     function  SetCursorRange: Boolean;
     procedure SetFieldData(Field: TField; Buffer: Pointer); Override;
@@ -589,11 +556,7 @@ type
     procedure CommitUpdates;
     procedure FetchAll;
     procedure FlushBuffers;
-{$IFDEF DELPHI_12}
-    function GetCurrentRecord(Buffer: PByte): Boolean; Override;
-{$ELSE}
-    function GetCurrentRecord(Buffer: PChar): Boolean; Override;
-{$ENDIF}
+    function GetCurrentRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean; Override;
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
     function GetFieldData(Field: TField; Buffer: Pointer): Boolean; overload; override;
     function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload; override;
@@ -606,11 +569,7 @@ type
     procedure Post; Override;
     procedure RevertRecord;
     function  UpdateStatus: TUpdateStatus; Override;
-{$IFDEF DELPHI_12}
     function  Translate(Src, Dest: PAnsiChar; ToOem: Boolean) : Integer;  Override;
-{$ELSE}
-    function  Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;  Override;
-{$ENDIF}
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
@@ -973,7 +932,7 @@ type
     Private
       FField: TBlobField;
       FDataSet: TPSQLDataSet;
-      FBuffer: PChar;
+      FBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
       FMode: TBlobStreamMode;
       FFieldNo: Integer;
       FOpened: Boolean;
@@ -1314,24 +1273,11 @@ end;
 {$ELSE}
 
 procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
-{$IFDEF DELPHI_4}
-var
-   NativeStr : String;
-{$ENDIF}
 
   function GetNativeStr: PChar;
-  {$IFDEF DELPHI_4}
-  var
-     NatStr : String;
-  {$ENDIF}
   begin
-    {$IFDEF DELPHI_4}
-    NatStr := VarToStr(Param.Value);
-    Result := PChar(NatStr);
-    {$ELSE}                                              dbtables
     Param.NativeStr := VarToStr(Param.Value);
     Result := PChar(Param.NativeStr);
-    {$ENDIF}
     if DrvLocale <> NIL then
       TAnsiToNativeBuf(DrvLocale, Result, Result, StrLen(Result));
   end;
@@ -2640,12 +2586,12 @@ begin
   FRecBufSize   := FBookmarkOfs  + BookmarkSize;
 end;
 
-function TPSQLDataSet.AllocRecordBuffer: PChar;
+function TPSQLDataSet.AllocRecordBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
 begin
    Result := AllocMem(FRecBufSize);
 end;
 
-procedure TPSQLDataSet.FreeRecordBuffer(var Buffer : PChar);
+procedure TPSQLDataSet.FreeRecordBuffer(var Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
   Engine.CheckBuffer(FHandle, Buffer); //pasha_golub 10.08.06
   ClearBlobCache(Buffer);
@@ -2653,12 +2599,12 @@ begin
   Buffer := nil;
 end;
 
-procedure TPSQLDataSet.InternalInitRecord(Buffer : PChar);
+procedure TPSQLDataSet.InternalInitRecord(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
   Engine.InitRecord(FHandle, Buffer);
 end;
 
-procedure TPSQLDataSet.ClearBlobCache(Buffer : PChar);
+procedure TPSQLDataSet.ClearBlobCache(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 var
   I: Integer;
 begin
@@ -2667,12 +2613,16 @@ begin
       TBlobDataArray(Buffer + FBlobCacheOfs)[ I ] := '';
 end;
 
-procedure TPSQLDataSet.ClearCalcFields(Buffer : PChar);
+procedure TPSQLDataSet.ClearCalcFields(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
-  FillChar(Buffer[ RecordSize ], CalcFieldsSize, 0);
+ {$IFDEF DELPHI_12}
+  FillMemory(@(Buffer[RecordSize]), CalcFieldsSize, 0);
+ {$ELSE}
+  FillChar(Buffer[RecordSize], CalcFieldsSize, 0);
+ {$ENDIF}
 end;
 
-procedure TPSQLDataSet.InitRecord(Buffer : PChar);
+procedure TPSQLDataSet.InitRecord(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
   Inherited InitRecord(Buffer);
   ClearBlobCache(Buffer);
@@ -2684,7 +2634,7 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetRecord(Buffer: PChar; GetMode: TGetMode; DoCheck: Boolean): TGetResult;
+function TPSQLDataSet.GetRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult;
 var
   Status: DBIResult;
 begin
@@ -2722,7 +2672,7 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetCurrentRecord(Buffer: PChar): Boolean;
+function TPSQLDataSet.GetCurrentRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean;
 begin
   if not IsEmpty and (GetBookmarkFlag(ActiveBuffer) = bfCurrent) then
   begin
@@ -2732,14 +2682,14 @@ begin
     Result := FALSE;
 end;
 
-function TPSQLDataSet.GetOldRecord: PChar;
+function TPSQLDataSet.GetOldRecord: PAnsiChar;
 begin
   UpdateCursorPos;
   if SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, TRUE) then
   try
     AllocCachedUpdateBuffers(True);
     Check(Engine, Engine.GetRecord(FHandle, dbiNoLock, FUpdateCBBuf.pOldRecBuf, NIL));
-    Result := PChar(FUpdateCBBuf.pOldRecBuf);
+    Result := PAnsiChar(FUpdateCBBuf.pOldRecBuf);
     AllocCachedUpdateBuffers(False);
   finally
     SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, FALSE);
@@ -2795,7 +2745,7 @@ end;
 
 function TPSQLDataSet.GetRecNo: Integer;
 var
-  BufPtr: PChar;
+  BufPtr: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
 begin
   CheckActive;
   if (State = dsCalcFields) then
@@ -2824,23 +2774,52 @@ begin
   Result := FRecordSize;
 end;
 
-function TPSQLDataSet.GetActiveRecBuf(var RecBuf: PChar): Boolean;
+function TPSQLDataSet.GetActiveRecBuf(var RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean;
 begin
   case State of
-    dsBlockRead: RecBuf := FBlockReadBuf + (FBlockBufOfs * FRecordSize);
+    dsBlockRead:
+      {$IFDEF DELPHI_12}
+      RecBuf := TRecordBuffer(FBlockReadBuf + (FBlockBufOfs * FRecordSize));
+      {$ELSE}
+      RecBuf := FBlockReadBuf + (FBlockBufOfs * FRecordSize);
+      {$ENDIF}
+
     dsBrowse: if IsEmpty then
-                 RecBuf := nil else
+                 RecBuf := nil
+              else
                  RecBuf := ActiveBuffer;
-    dsEdit, dsInsert: RecBuf := ActiveBuffer;
-    dsSetKey: RecBuf := PChar(FKeyBuffer) + SizeOf(TKeyBuffer);
+
+    dsEdit, dsInsert:
+      {$IFDEF DELPHI_12}
+      RecBuf := TRecordBuffer(ActiveBuffer);
+      {$ELSE}
+      RecBuf := ActiveBuffer;
+      {$ENDIF}
+
+    dsSetKey:
+      {$IFDEF DELPHI_12}
+      RecBuf := TRecordBuffer(PByte(FKeyBuffer) + SizeOf(TKeyBuffer));
+      {$ELSE}
+      RecBuf := PAnsiChar(FKeyBuffer) + SizeOf(TKeyBuffer);
+      {$ENDIF}
+
     dsCalcFields: RecBuf := CalcBuffer;
+
     dsFilter: RecBuf := FFilterBuffer;
+
     dsNewValue: if FInUpdateCallback then
                    RecBuf := FUpdateCBBuf.pNewRecBuf else
                    RecBuf := ActiveBuffer;
+
     dsOldValue: if FInUpdateCallback then
-                   RecBuf := FUpdateCBBuf.pOldRecBuf else
-                   RecBuf := GetOldRecord;
+                   RecBuf := FUpdateCBBuf.pOldRecBuf
+                else
+                   {$IFDEF DELPHI_12}
+                    RecBuf := TRecordBuffer(GetOldRecord);
+                   {$ELSE}
+                    RecBuf := GetOldRecord;
+                   {$ENDIF}
+
   else
     RecBuf := nil;
   end;
@@ -2949,14 +2928,18 @@ end;
 
 function TPSQLDataSet.GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer;
 var
-  RecBuf: PChar;
+  RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
   Status: DBIResult;
   DoCheck: Boolean;
 begin
   Result := 0;
   DoCheck := (BlockReadSize = 0);
   if (BlockReadSize > 0) then
+    {$IFDEF DELPHI_12}
+    RecBuf := TRecordBuffer(FBlockReadBuf + (FBlockBufOfs * FRecordSize))
+    {$ELSE}
     RecBuf := FBlockReadBuf + (FBlockBufOfs * FRecordSize)
+    {$ENDIF}
   else
     if not GetActiveRecBuf(RecBuf) then Exit;
   Status := Engine.OpenBlob(FHandle, RecBuf, FieldNo, dbiReadOnly);
@@ -2980,7 +2963,7 @@ end;
 function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
 var
   IsBlank: LongBool;
-  RecBuf: PChar;
+  RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
   Status: DBIResult;
 begin
   if (BlockReadSize > 0) then
@@ -3002,7 +2985,7 @@ end;
 
 function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
-  RecBuf: PChar;
+  RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
 begin
   if (Field.FieldNo > 0) then
     Result := GetFieldData(Field.FieldNo, Buffer)
@@ -3027,7 +3010,7 @@ end;
 
 procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: Pointer);
 var
-  RecBuf: PChar;
+  RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
 begin
   with Field do
   begin
@@ -3058,15 +3041,15 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetBlobData(Field : TField; Buffer : PChar) : TBlobData;
+function TPSQLDataSet.GetBlobData(Field : TField; Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}) : TBlobData;
 begin
   Result := TBlobDataArray(Buffer + FBlobCacheOfs)[ Field.Offset ];
 end;
 
-procedure TPSQLDataSet.SetBlobData(Field : TField; Buffer : PChar; Value : TBlobData);
+procedure TPSQLDataSet.SetBlobData(Field : TField; Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value : TBlobData);
 begin
   if (Buffer = ActiveBuffer) then
-    TBlobDataArray(Buffer + FBlobCacheOfs)[ Field.Offset ] := Value;
+    TBlobDataArray(PAnsiChar(Buffer) + FBlobCacheOfs)[ Field.Offset ] := Value;
 end;
 
 procedure TPSQLDataSet.CloseBlob(Field: TField);
@@ -3223,12 +3206,12 @@ begin
     Check(Engine,Engine.InsertRecord(FHandle,dbiNoLock,Buffer));
 end;
 
-procedure TPSQLDataSet.InternalGotoBookmark(Bookmark : TBookmark);
+procedure TPSQLDataSet.InternalGotoBookmark(Bookmark : Pointer);
 begin
   Check(Engine, Engine.SetToBookmark(FHandle, Bookmark));
 end;
 
-procedure TPSQLDataSet.InternalSetToRecord(Buffer : PChar);
+procedure TPSQLDataSet.InternalSetToRecord(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
   InternalGotoBookmark(Buffer + FBookmarkOfs);
 end;
@@ -3238,17 +3221,17 @@ begin
   Result := PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag;
 end;
 
-procedure TPSQLDataSet.SetBookmarkFlag(Buffer : PChar; Value : TBookmarkFlag);
+procedure TPSQLDataSet.SetBookmarkFlag(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value : TBookmarkFlag);
 begin
   PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag := Value;
 end;
 
-procedure TPSQLDataSet.GetBookmarkData(Buffer : PChar; Data : Pointer);
+procedure TPSQLDataSet.GetBookmarkData(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data : Pointer);
 begin
   Move(Buffer[ FBookmarkOfs ], Data^, BookmarkSize);
 end;
 
-procedure TPSQLDataSet.SetBookmarkData(Buffer : PChar; Data : Pointer);
+procedure TPSQLDataSet.SetBookmarkData(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data : Pointer);
 begin
   Move(Data^, Buffer[ FBookmarkOfs ], BookmarkSize);
 end;
@@ -3458,13 +3441,13 @@ var
   KeyIndex: TKeyIndex;
 begin
   for KeyIndex := Low(TKeyIndex) to High(TKeyIndex) do
-    DisposeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
+    FreeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
 end;
 
 function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
 begin
-  FillChar(Buffer^, SizeOf(TKeyBuffer) + FRecordSize, 0);
-  Engine.InitRecord(FHandle, PChar(Buffer) + SizeOf(TKeyBuffer));
+  FillMemory(Buffer, SizeOf(TKeyBuffer) + FRecordSize, 0);
+  Engine.InitRecord(FHandle, PAnsiChar(Buffer) + SizeOf(TKeyBuffer));
   Result := Buffer;
 end;
 
@@ -3912,7 +3895,7 @@ end;
 function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
 var
   I, FieldCount, PartialLength: Integer;
-  Buffer: PChar;
+  Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
   Fields: TList;
   LookupCursor: HDBICur;
   Filter: HDBIFilter;
@@ -3997,7 +3980,7 @@ end;
 {$WARNINGS OFF}
 function TPSQLDataSet.LocateNearestRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Word;
 var
-  Buffer: PChar;
+  Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
   Fields: TList;
   Filter: HDBIFilter;
   Status: DBIResult;
@@ -6520,13 +6503,13 @@ begin
     if Mode = bmRead then
     begin
       FCached := FDataSet.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
-                 (FField.IsNull or (FDataSet.GetBlobData(FField, FBuffer) <> ''));
+                 (FField.IsNull or (FDataSet.GetBlobData(FField, FBuffer) <> {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF}));
       OpenMode := dbiReadOnly;
       if PositionDataset then
          if not FDataSet.GetCurrentRecord(FBuffer) then Exit;
     end else
     begin
-      FDataSet.SetBlobData(FField, FBuffer, '');
+      FDataSet.SetBlobData(FField, FBuffer, {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF});
       if FField.ReadOnly then DatabaseErrorFmt(SFieldReadOnly, [FField.DisplayName], FDataSet);
       if not (FDataSet.State in [dsEdit, dsInsert]) then DatabaseError(SNotEditing, FDataSet);
       OpenMode := dbiReadWrite;
@@ -6571,8 +6554,10 @@ end;
 function TPSQLBlobStream.Read(var Buffer; Count: Longint): Longint;
 var
   Status: DBIResult;
+  P: Pointer;
 begin
   Result := 0;
+  P := @Buffer;
   if FOpened then
   begin
     if FCached then
@@ -6582,12 +6567,12 @@ begin
         Result := Count;
       if Result > 0 then
       begin
-        Move(PChar(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer, Result);
+        Move(PAnsiChar(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer, Result);
         Inc(FPosition, Result);
       end;
     end else
     begin
-      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer, Result);
+      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, P, Result);
       case Status of
         DBIERR_NONE, DBIERR_ENDOFBLOB:
           begin
@@ -6598,11 +6583,11 @@ begin
             begin
               FCacheSize := FPosition + Result;
               SetLength(FBlobData, FCacheSize);
-              Move(Buffer, PChar(FBlobData)[FPosition], Result);
+              Move(Buffer, PAnsiChar(FBlobData)[FPosition], Result);
               if FCacheSize = Size then
               begin
                 FDataSet.SetBlobData(FField, FBuffer, FBlobData);
-                FBlobData := '';
+                FBlobData := {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF};
                 FCached := TRUE;
                 Engine.FreeBlob(FDataSet.Handle, FBuffer, FFieldNo);
               end;
@@ -6620,9 +6605,11 @@ end;
 
 function TPSQLBlobStream.Write(const Buffer; Count: Longint): Longint;
 var
-  Temp: Pointer;
+  Temp, P: Pointer;
 begin
   Result := 0;
+  P := @Buffer;
+  FField.Transliterate := false;
   if FOpened then
   begin
     if FField.Transliterate then
@@ -6635,7 +6622,7 @@ begin
         FreeMem(Temp, Count+1);
       end;
     end else
-      Check(Engine, Engine.PutBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer));
+      Check(Engine, Engine.PutBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, P));
     Inc(FPosition, Count);
     Result := Count;
     FModified := TRUE;
@@ -6660,7 +6647,7 @@ begin
   begin
     Check(Engine, Engine.TruncateBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition));
     FModified := TRUE;
-    FDataSet.SetBlobData(FField, FBuffer, '');
+    FDataSet.SetBlobData(FField, FBuffer, {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF});
   end;
 end;
 
