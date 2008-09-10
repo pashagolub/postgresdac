@@ -1,0 +1,16 @@
+TPgSSHDatabase component installation.
+
+1. TPgSSHDatabase uses the wodSSHTunnel ActiveX component 
+   from WeOnlyDo! Software (http://www.weonlydo.com). 
+   Before installing TPgSSHDatabase you should download the trial 
+   version of wodSSHTunnel or purchase a registered copy at 
+   http://www.weonlydo.com/index.asp?showform=SSHTunnel.
+2. To install the wodSSHTunnel ActiveX component, run Delphi, 
+   then open Component | Import ActiveX Control, select 
+   'WeOnlyDo! COM SSH Tunnel ActiveX Control' and click 'Install'. 
+   See wodSSHTunnel documentation for details.
+3. Open sshtunnel.dpk and click Compile.
+3. Open PgSSHDatabaseDX.dpk (X stands for your Delphi version) 
+   and click the 'Install' button.
+4. The new PgSSHDatabase component will appear at the 
+   PostgresDAC palette after the installation.
