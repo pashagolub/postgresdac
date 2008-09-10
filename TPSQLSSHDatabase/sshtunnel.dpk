@@ -30,8 +30,6 @@ requires
   vcl;
 
 contains
-  wodSSHTunnelCOMLib_TLB,
-  wodSSHTunnelServLib_TLB,
   wodSSHTunnelLib_TLB;
 
 end.
