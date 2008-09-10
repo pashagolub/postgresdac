@@ -29,7 +29,7 @@ requires
   Vcldb50,
   Vclbde50,
   PostgresDAC5,
-  sshtunnel;
+  wodSSHTunnel;
 
 contains
   PgSSHDatabase in '..\PgSSHDatabase.pas';
