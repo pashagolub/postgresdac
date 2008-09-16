@@ -3861,7 +3861,7 @@ begin
                 SetString(FldValue,FieldBuffer(i),FieldSize(i));
              case T.NativeType of
                FIELD_TYPE_INT2: SmallInt(Data^) := SmallInt(StrToint(FldValue));
-               FIELD_TYPE_BOOL: if FieldBuffer(I) = 't' then
+               FIELD_TYPE_BOOL: if FldValue = 't' then
                                    SmallInt(Data^) := SmallInt(1) else
                                    SmallInt(Data^) := SmallInt(0);
                FIELD_TYPE_INT2VECTOR: StrCopy(PChar(Data),FieldBuffer(I));
@@ -3874,7 +3874,13 @@ begin
                FIELD_TYPE_TIMETZ: StrCopy(PChar(Data),FieldBuffer(I));
                FIELD_TYPE_DATE:   TDateTime(Data^) := SQLDateToDateTime(FldValue,False);
                FIELD_TYPE_TIME:   TDateTime(Data^) := SQLDateToDateTime(FldValue,True);
-               FIELD_TYPE_TIMESTAMP: TDateTime(Data^) :=SQLTimeStampToDateTime(FldValue);
+               FIELD_TYPE_TIMESTAMP: if FldValue = 'infinity' then
+                                       TDateTime(Data^) := MaxDateTime
+                                     else
+                                       if FldValue = '-infinity' then
+                                         TDateTime(Data^) := MinDateTime
+                                       else
+                                         TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
                FIELD_TYPE_TIMESTAMPTZ: StrPCopy(PChar(Data),FldValue);
 
                FIELD_TYPE_FLOAT4,
@@ -7782,10 +7788,6 @@ var aRecNum: integer;
       function FVal(Index: integer): string;
       begin
        Result := strPas(pqGetValue(FStatement,FSortingIndex[Index],Fields[I]));
-       if Result = '' then
-         ShowMessage(Format('oid: %s; Row: %d; Column: %d', [String(pqGetValue(FStatement, FSortingIndex[Index], 0)),
-                                                             FSortingIndex[Index],
-                                                             Fields[I]]));
       end;
 
       {$IFDEF DELPHI_5}
