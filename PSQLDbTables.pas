@@ -611,10 +611,8 @@ type
     property AfterDelete;
     property BeforeScroll;
     property AfterScroll;
-    {$IFNDEF DELPHI_4}
     property BeforeRefresh;
     property AfterRefresh;
-    {$ENDIF}
     property OnCalcFields;
     property OnDeleteError;
     property OnEditError;
@@ -701,7 +699,6 @@ type
     procedure SetDummyStr(const Value: string);
     function GetTableSpace: string;
   Protected
-    {$IFNDEF DELPHI_4}
     { IProviderSupport }
     function PSGetDefaultOrder: TIndexDef; override;
     function PSGetKeyFields: string; override;
@@ -709,7 +706,6 @@ type
     function PSGetIndexDefs(IndexTypes: TIndexOptions): TIndexDefs; override;
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
-    {$ENDIF}
     function CreateHandle: HDBICur; Override;
     procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
     procedure DefChanged(Sender: TObject); override;
@@ -838,7 +834,6 @@ type
       procedure SetRequestLive(const Value : Boolean);
       function GetRequestLive : Boolean;
     protected
-      {$IFNDEF DELPHI_4}
       { IProviderSupport }
       procedure PSExecute; override;
       function PSGetDefaultOrder: TIndexDef; override;
@@ -846,7 +841,6 @@ type
       function PSGetTableName: string; override;
       procedure PSSetCommandText(const CommandText: string); override;
       procedure PSSetParams(AParams: TParams); override;
-      {$ENDIF}
       function CreateHandle: HDBICur; Override;
       procedure DefineProperties(Filer: TFiler); Override;
       procedure Disconnect; Override;
@@ -1019,14 +1013,12 @@ type
     procedure SetOverload(const Value: cardinal);
     procedure SetProcName(const Value: string);
 	protected
-    {$IFNDEF DELPHI_4}
     { IProviderSupport }
     procedure PSExecute; override;
     function PSGetTableName: string; override;
     function PSGetParams: TParams; override;
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
-    {$ENDIF}
 		function CreateHandle: HDBICur;override;
 		function CreateCursor(IsExecProc : boolean): HDBICur;
     procedure CloseCursor;override;
@@ -1054,10 +1046,6 @@ type
     property Params: TPSQLParams read GetParamsList write SetParamsList;
     property ParamBindMode: TParamBindMode read FBindMode write FBindMode default pbByName;
 	end;
-
-{$IFDEF DELPHI_4}
-procedure FreeAndNil(var Obj);
-{$ENDIF}
 
 procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
@@ -1185,31 +1173,6 @@ begin
        LeaveCriticalSection(CSNativeToAnsi);
      end;
   end;
-end;
-
-
-function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String;
-  NativeStr: PCharType; MaxLen: Integer): PCharType;
-var
-  Len: Integer;
-begin
-  Len := Length(AnsiStr);
-  if Len > MaxLen then Len := MaxLen;
-  NativeStr[Len] := #0;
-  if Len > 0 then
-    TAnsiToNativeBuf(Engine, Pointer(AnsiStr), NativeStr, Len);
-  Result := NativeStr;
-end;
-
-
-procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PCharType; var AnsiStr: String);
-var
-  Len : Integer;
-begin
-  Len := StrLen(NativeStr);
-  SetString(AnsiStr, NIL, Len);
-  if Len > 0 then
-    TNativeToAnsiBuf(Engine, NativeStr, Pointer(AnsiStr), Len);
 end;
 
 procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
@@ -2384,9 +2347,7 @@ begin
   SetDBFlag(dbfOpened, TRUE);
   Inherited OpenCursor(InfoQuery);
   SetUpdateMode(FUpdateMode);
-  {$IFNDEF DELPHI_4}
   SetupAutoRefresh;
-  {$ENDIF}
 end;
 
 //////////////////////////////////////////////////////////
@@ -2548,19 +2509,6 @@ function TPSQLDataSet.IsCursorOpen: Boolean;
 begin
   Result := Handle <> nil;
 end;
-
-{$IFDEF DELPHI_4}
-function TPSQLDataSet.BCDToCurr(BCD: Pointer; var Curr: Currency): Boolean;
-begin
-   Result := FMTBCDToCurr(FMTBCD(BCD^), Curr);
-end;
-
-function TPSQLDataSet.CurrToBCD(const Curr: Currency; BCD: Pointer; Precision,
-  Decimals: Integer): Boolean;
-begin
-   Result := CurrToFMTBCD(Curr, FMTBCD(BCD^), 32, Decimals);
-end;
-{$ENDIF}
 
 procedure TPSQLDataSet.InternalHandleException;
 begin
@@ -2901,10 +2849,8 @@ begin
         Attributes := [faRequired];
       if efldrRights = fldrREADONLY then
         Attributes := Attributes + [faReadonly];
-      {$IFNDEF DELPHI_4}
       if iSubType = fldstFIXED then
         Attributes := Attributes + [faFixed];
-      {$ENDIF}
       InternalCalcField := bCalcField;
       case FType of
         ftADT:
@@ -3724,26 +3670,23 @@ var
   FilterOptions: TFilterOptions;
 begin
   if loCaseInsensitive in Options then
-    FilterOptions := [foNoPartialCompare, foCaseInsensitive] else
+    FilterOptions := [foNoPartialCompare, foCaseInsensitive]
+  else
     FilterOptions := [foNoPartialCompare];
-  {$IFDEF DELPHI_4}
-  Filter := TFilterExpr.Create(Self, FilterOptions, [], '', NIL);
-  {$ELSE}
   Filter := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
-  {$ENDIF}
   try
     if (Fields.Count = 1) and not VarIsArray(Values) then
     begin
-      Node := Filter.NewCompareNode(TField(Fields[0]), {$IFDEF DELPHI_4}canEQ {$ELSE}coEQ {$ENDIF}, Values);
+      Node := Filter.NewCompareNode(TField(Fields[0]), coEQ, Values);
       Expr := Node;
     end
     else
       for I := 0 to Fields.Count-1 do
       begin
-        Node := Filter.NewCompareNode(TField(Fields[I]), {$IFDEF DELPHI_4}canEQ {$ELSE}coEQ {$ENDIF}, Values[I]);
+        Node := Filter.NewCompareNode(TField(Fields[I]), coEQ, Values[I]);
         if I = 0 then
           Expr := Node else
-          Expr := Filter.NewNode(enOperator, {$IFDEF DELPHI_4}canAND{$ELSE}coAND {$ENDIF}, Unassigned, Expr, Node);
+          Expr := Filter.NewNode(enOperator, coAND, Unassigned, Expr, Node);
       end;
     if loPartialKey in Options then Node^.FPartial := TRUE;
     Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Filter.GetFilterData(Expr)), NIL, Result));
@@ -3998,24 +3941,20 @@ begin
     GetFieldList(Fields, KeyFields);
     Check(Engine, Engine.SetToBegin(FHandle));
     FilterOptions := [foNoPartialCompare];
-    {$IFDEF DELPHI_4}
-    Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', NIL);
-    {$ELSE}
     Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
-    {$ENDIF}
     try
       if Fields.Count = 1 then
       begin
-         Node := Filter1.NewCompareNode(TField(Fields[0]), {$IFDEF DELPHI_4}canGE {$ELSE}coGE {$ENDIF}, KeyValues);
+         Node := Filter1.NewCompareNode(TField(Fields[0]), coGE, KeyValues);
          Expr := Node;
       end
       else
         for I := 0 to Fields.Count-1 do
         begin
-          Node := Filter1.NewCompareNode(TField(Fields[I]), {$IFDEF DELPHI_4}canGE {$ELSE}coGE {$ENDIF}, KeyValues[I]);
+          Node := Filter1.NewCompareNode(TField(Fields[I]), coGE, KeyValues[I]);
           if I = 0 then
             Expr := Node else
-            Expr := Filter1.NewNode(enOperator, {$IFDEF DELPHI_4}canAND {$ELSE}coAND {$ENDIF}, Unassigned, Expr, Node);
+            Expr := Filter1.NewNode(enOperator, coAND, Unassigned, Expr, Node);
         end;
       if loPartialKey in Options then Node^.FPartial := TRUE;
       Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), NIL,Filter));
@@ -4325,7 +4264,7 @@ begin
     CheckIfParentScrolled;
   inherited DataEvent(Event, Info);
 end;
-{$IFNDEF DELPHI_4}
+
 { TBDEDataSet.IProviderSupport}
 function TPSQLDataSet.PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError;
 var
@@ -4354,7 +4293,6 @@ begin
   If Handle <> NIL then
     Engine.ForceReread(Handle);
 end;
-{$ENDIF}
 
 function TPSQLDataSet.GetHandle: HDBICur;
 begin
@@ -4472,7 +4410,6 @@ begin
    Result := TPSQLDatabase(FDatabase);
 end;
 
-{$IFNDEF DELPHI_4}
 procedure TPSQLDataSet.SetupAutoRefresh;
 const
   PropFlags : array[TAutoRefreshFlag] of LongInt = (0, curFIELDISAUTOINCR, curFIELDISDEFAULT);
@@ -4491,9 +4428,7 @@ begin
         Check(Engine, Engine.SetEngProp(hDbiObj(FHandle), PropFlags[ AutoGenerateValue ], LongInt(@ColDesc)));
       end;
 end;
-{$ENDIF}
 
-{$IFNDEF DELPHI_4}
 { TPSQLDataSet.IProviderSupport }
 procedure TPSQLDataSet.PSGetAttributes(List : TList);
 var
@@ -4605,7 +4540,6 @@ begin
     SetDBFlag(dbfProvider, InProvider);
   end;
 end;
-{$ENDIF}
 
 /////////////////////////////////////////////////////////////////
 //                    TPSQLQuery                                //
@@ -5041,7 +4975,6 @@ begin
         AddFieldToList(Params[i].Name, Self, DetailFields);
 end;
 
-{$IFNDEF DELPHI_4}
 { TPSQLQuery.IProviderSupport }
 function TPSQLQuery.PSGetDefaultOrder: TIndexDef;
 begin
@@ -5077,7 +5010,6 @@ begin
   if (CommandText <> '') then
     SQL.Text := CommandText;
 end;
-{$ENDIF}
 
 procedure TPSQLDataSet.SetByteaAsEscString(const Value: boolean);
 begin
@@ -6358,7 +6290,6 @@ begin
    Result := FTableName;
 end;
 
-{$IFNDEF DELPHI_4}
 { TTable.IProviderSupport }
 function TPSQLTable.PSGetDefaultOrder: TIndexDef;
 
@@ -6483,7 +6414,6 @@ begin
     if not IndexFound then Result := '';
   end;
 end;
-{$ENDIF}
 
 ///////////////////////////////////////////////////////////////////////////////
 //                         TPSQLBlobStream                                  //
