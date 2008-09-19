@@ -126,14 +126,14 @@ Type
     procedure CheckResult(FStatement: PPGresult); overload;
     Function GetErrorText: String; {Get Error text}
     Function Success: Boolean;
-    procedure StoredProcParams(pszPName:PChar; ProcOID: cardinal; List:TList);
-    procedure StoredProcList(pszWild : PChar; List : TStrings);
-    Procedure TableList(pszWild : PChar; SystemTables: Boolean; List : TStrings);
-    Procedure UserList(pszWild : PChar; List : TStrings);
-    Procedure SchemaList(pszWild : PChar; SystemSchemas: Boolean; List : TStrings);
-    Procedure TablespaceList(pszWild : PChar; List : TStrings);
-    procedure DatabaseList(pszWild : PChar; List : TStrings);
-    Procedure OpenTable(pszTableName: PChar;pszIndexName: PChar;iIndexId: Word;
+    procedure StoredProcParams(pszPName:PAnsiChar; ProcOID: cardinal; List:TList);
+    procedure StoredProcList(pszWild : PAnsiChar; List : TStrings);
+    Procedure TableList(pszWild : PAnsiChar; SystemTables: Boolean; List : TStrings);
+    Procedure UserList(pszWild : PAnsiChar; List : TStrings);
+    Procedure SchemaList(pszWild : PAnsiChar; SystemSchemas: Boolean; List : TStrings);
+    Procedure TablespaceList(pszWild : PAnsiChar; List : TStrings);
+    procedure DatabaseList(pszWild : PAnsiChar; List : TStrings);
+    Procedure OpenTable(pszTableName: PAnsiChar;pszIndexName: PAnsiChar;iIndexId: Word;
                         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;var hCursor: hDBICur;
                         Limit, Offset : Integer);
     Procedure QueryAlloc(var hStmt: hDBIStmt);
@@ -145,8 +145,8 @@ Type
     procedure EndTran(hXact : hDBIXact; eEnd : eXEnd);
     procedure GetTranInfo(hXact : hDBIXact; pxInfo : pXInfo);
     Procedure QExecDirect(eQryLang : DBIQryLang; pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
-    procedure OpenFieldList(pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur);
-    Procedure OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
+    procedure OpenFieldList(pszTableName: PAnsiChar;pszDriverType: PAnsiChar;bPhyTypes: Bool;var hCur: hDBICur);
+    Procedure OpenIndexList(pszTableName: PAnsiChar;pszDriverType: PAnsiChar;var hCur: hDBICur);
     function GetCharSet: string;
     procedure GetCharSetList(var List: TStrings);
     function SetCharSet(const CharSet: string): string;
@@ -166,10 +166,10 @@ Type
                         var HasOIDs: boolean;
                         var TableOid: cardinal);
 //    procedure ResetConnection; for future use
-    procedure EmptyTable(hCursor : hDBICur; pszTableName : PChar);
-    procedure TableExists(pszTableName : PChar);
-    Procedure AddIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; var IdxDesc: IDXDesc; pszKeyviolName: PChar);
-    Procedure DeleteIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+    procedure EmptyTable(hCursor : hDBICur; pszTableName : PAnsiChar);
+    procedure TableExists(pszTableName : PAnsiChar);
+    Procedure AddIndex(hCursor: hDBICur; pszTableName: PAnsiChar; pszDriverType: PAnsiChar; var IdxDesc: IDXDesc; pszKeyviolName: PAnsiChar);
+    Procedure DeleteIndex(hCursor: hDBICur; pszTableName: PAnsiChar; pszDriverType: PAnsiChar; pszIndexName: PAnsiChar; pszIndexTagName: PAnsiChar; iIndexId: Word);
     Procedure CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
     Property IsolationLevel : eXILType Read FTransLevel;
     property Handle : PPGconn read FHandle write FHandle;
@@ -226,15 +226,15 @@ Type
       Function IsSqlBased(hDb: hDBIDB): Boolean;
       Function OpenDatabase(Params : TStrings; var hDb: hDBIDb): DBIResult;
       Function CloseDatabase(var hDb : hDBIDb) : DBIResult;
-      Function OpenTable(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;pszIndexName: PChar;pszIndexTagName : PChar;
+      Function OpenTable(hDb: hDBIDb;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;pszIndexName: PAnsiChar;pszIndexTagName : PAnsiChar;
                iIndexId: Word;eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;exltMode: XLTMode;bUniDirectional : Bool;
                pOptParams: Pointer;var hCursor: hDBICur;Limit, Offset : Integer): DBIResult;
-      function OpenStoredProcParams(hDb: hDBIDb;pszPName: PChar; ProcOID:cardinal; List : TList): DBIResult;
-      Function OpenStoredProcList(hDb: hDBIDb;pszWild: PChar; List : TStrings): DBIResult;
-      Function OpenTableList(hDb: hDBIDb; pszWild: PChar; SystemTables: Boolean; List : TStrings): DBIResult;
-      Function OpenUserList(hDb: hDBIDb; pszWild: PChar; List : TStrings): DBIResult;
-      Function OpenSchemaList(hDb: hDBIDb; pszWild: PChar; SystemSchemas: Boolean; List : TStrings): DBIResult;
-      Function OpenTablespaceList(hDb: hDBIDb; pszWild: PChar; List : TStrings): DBIResult;
+      function OpenStoredProcParams(hDb: hDBIDb;pszPName: PAnsiChar; ProcOID:cardinal; List : TList): DBIResult;
+      Function OpenStoredProcList(hDb: hDBIDb; pszWild: PAnsiChar; List : TStrings): DBIResult;
+      Function OpenTableList(hDb: hDBIDb; pszWild: PAnsiChar; SystemTables: Boolean; List : TStrings): DBIResult;
+      Function OpenUserList(hDb: hDBIDb; pszWild: PAnsiChar; List : TStrings): DBIResult;
+      Function OpenSchemaList(hDb: hDBIDb; pszWild: PAnsiChar; SystemSchemas: Boolean; List : TStrings): DBIResult;
+      Function OpenTablespaceList(hDb: hDBIDb; pszWild: PAnsiChar; List : TStrings): DBIResult;
       Function SetToBookMark(hCur: hDBICur; pBookMark : Pointer) : DBIResult;
       Function CompareBookMarks(hCur: hDBICur; pBookMark1, pBookMark2 : Pointer;var CmpBkmkResult : CmpBkmkRslt): DBIResult;
       Function GetNextRecord(hCursor: hDBICur;eLock: DBILockType;pRecBuff: Pointer;pRecProps: pRECProps): DBIResult;
@@ -296,27 +296,27 @@ Type
       function QGetProcParams (hStmt: hDBIStmt; Params: TParams): DBIResult;
       Function QuerySetParams(hStmt: hDBIStmt;Params : TParams; SQLText : String): DBIResult;
       Function CheckError : DBIResult;
-      function GetDatabases(hDb: hDBIdb; pszWild: PChar; List : TStrings):DBIResult;
+      function GetDatabases(hDb: hDBIdb; pszWild: PAnsiChar; List : TStrings):DBIResult;
       function GetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
       function GetCharacterSets(hDb : hDBIDb; List: TStrings):DBIResult;
       function SetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
       function GetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
       function SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
-      Function OpenFieldList(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur): DBIResult;
-      Function OpenIndexList(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur): DBIResult;
-      Function EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : PChar; pszDriverType : PChar): DBIResult;
+      Function OpenFieldList(hDb: hDBIDb;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;bPhyTypes: Bool;var hCur: hDBICur): DBIResult;
+      Function OpenIndexList(hDb: hDBIDb;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;var hCur: hDBICur): DBIResult;
+      Function EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : PAnsiChar; pszDriverType : PAnsiChar): DBIResult;
       Function SetRange(hCursor : hDBICur;bKeyItself: Bool;iFields1: Word;iLen1: Word;pKey1: Pointer;bKey1Incl: Bool;
                         iFields2: Word;iLen2: Word;pKey2: Pointer;bKey2Incl: Bool): DBIResult;
       Function ResetRange(hCursor : hDBICur) : DBIResult;
-      Function SwitchToIndex(hCursor : hDBICur; pszIndexName, pszTagName : PChar; iIndexId : Word; bCurrRec : Bool) : DBIResult;
+      Function SwitchToIndex(hCursor : hDBICur; pszIndexName, pszTagName : PAnsiChar; iIndexId : Word; bCurrRec : Bool) : DBIResult;
       Function ExtractKey(hCursor: hDBICur;PRecord: Pointer;pKeyBuf: Pointer): DBIResult;
       Function GetRecordForKey(hCursor: hDBICur; bDirectKey: Bool; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
-      Function AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PChar;pszDriverType: PChar;var IdxDesc: IDXDesc;pszKeyviolName: PChar): DBIResult;
-      Function DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PChar;pszDriverType: PChar;pszIndexName: PChar;pszIndexTagName: PChar;iIndexId: Word): DBIResult;
+      Function AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;var IdxDesc: IDXDesc;pszKeyviolName: PAnsiChar): DBIResult;
+      Function DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;pszIndexName: PAnsiChar;pszIndexTagName: PAnsiChar;iIndexId: Word): DBIResult;
       Function GetIndexDesc(hCursor: hDBICur;iIndexSeqNo: Word;var idxDesc: IDXDesc): DBIResult;
       Function GetIndexDescs(hCursor: hDBICur;idxDesc: PIDXDesc): DBIResult;
       Function TranslateRecordStructure(pszSrcDriverType: PChar; iFlds: Word; pfldsSrc: pFLDDesc; pszDstDriverType: PChar; pszLangDriver: PChar;pfldsDst: pFLDDesc; bCreatable: Bool): DBIResult;
-      function TableExists(hDb: hDBIDb; pszTableName: PChar): DBIResult;
+      function TableExists(hDb: hDBIDb; pszTableName: PAnsiChar): DBIResult;
       Function CreateTable(hDb: hDBIDb; bOverWrite: Bool; var crTblDsc: CRTblDesc): DBIResult;
       function AcqTableLock(hCursor: hDBICur; eLockType: DBILockType): DBIResult;
       function RelTableLock(hCursor: hDBICur; bAll: Bool; eLockType: DBILockType): DBIResult;
@@ -695,7 +695,7 @@ Type
       SQLQuery : String;
       ROWID    : OID;
       isQuery  : boolean;
-      Constructor Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : PChar;Index : Word;Limit, Offset : Integer; ASystem :Boolean = False);
+      Constructor Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : PAnsiChar;Index : Word;Limit, Offset : Integer; ASystem :Boolean = False);
       Destructor Destroy; Override;
       procedure FillOIDTable;
       Procedure CompareBookMarks(pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt);
@@ -751,11 +751,11 @@ Type
       Procedure SetRange(bKeyItself : Bool; iFields1 : Word; iLen1 : Word; pKey1 : Pointer;
                 bKey1Incl : Bool; iFields2 : Word; iLen2 : Word; pKey2 : Pointer; bKey2Incl : Bool);
       Procedure ResetRange;
-      Procedure SwitchToIndex(pszIndexName : PChar; pszTagName : PChar; iIndexId : Word; bCurrRec : Bool);
+      Procedure SwitchToIndex(pszIndexName : PAnsiChar; pszTagName : PAnsiChar; iIndexId : Word; bCurrRec : Bool);
       procedure SettoSeqNo(iSeqNo: Longint);
       procedure EmptyTable;
-      Procedure AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PChar);
-      Procedure DeleteIndex(pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+      Procedure AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PAnsiChar);
+      Procedure DeleteIndex(pszIndexName: PAnsiChar; pszIndexTagName: PAnsiChar; iIndexId: Word);
       Procedure AcqTableLock(eLockType: DBILockType);
       Procedure RelTableLock(bAll: Bool;eLockType: DBILockType);
       Procedure SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
@@ -955,28 +955,28 @@ end;
 Function AdjustNativeField(iField :TPSQLField; Src,Dest: Pointer; Var Blank : Bool): Word;
 begin
   Result := 0;
-  if PChar(Src)^ = #0 then
+  if PAnsiChar(Src)^ = #0 then
   begin
     Blank  := True;
     Exit;
   end;
   Blank := False;
-  Inc(PChar(Src));
+  Inc(PAnsiChar(Src));
   Case iField.NativeType of
     FIELD_TYPE_BOOL:     SmallInt(Dest^) := SmallInt(Src^);
     FIELD_TYPE_INT2:     SmallInt(Dest^) := SmallInt(Src^);
-    FIELD_TYPE_INT2VECTOR: StrLCopy(Dest,Src,iField.NativeSize);
+    FIELD_TYPE_INT2VECTOR: StrLCopy(PAnsiChar(Dest), PAnsiChar(Src),iField.NativeSize);
     FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
     FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
     FIELD_TYPE_BIT,      // BIT Field
     FIELD_TYPE_BYTEA,   
     FIELD_TYPE_BPCHAR,
     FIELD_TYPE_VARCHAR,
-    FIELD_TYPE_CHAR:   StrLCopy(Dest,Src,iField.NativeSize);
-    FIELD_TYPE_NAME:   StrLCopy(Dest,Src,64);
-    FIELD_TYPE_MONEY:   StrLCopy(Dest,Src,32);
-    FIELD_TYPE_REGPROC:StrLCopy(Dest,Src,16);
-    FIELD_TYPE_INTERVAL : StrLCopy(Dest,Src,iField.NativeSize); //TIME INTERVAL
+    FIELD_TYPE_CHAR:   StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
+    FIELD_TYPE_NAME:   StrLCopy(PChar(Dest), PChar(Src), 64);
+    FIELD_TYPE_MONEY:   StrLCopy(PChar(Dest), PChar(Src),32);
+    FIELD_TYPE_REGPROC:StrLCopy(PChar(Dest), PChar(Src),16);
+    FIELD_TYPE_INTERVAL : StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize); //TIME INTERVAL
     FIELD_TYPE_DATE:   begin
                           try
                             LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Date;
@@ -991,10 +991,10 @@ begin
                             Result := 1;
                           end;
                        end;
-    FIELD_TYPE_TIMETZ: StrLCopy(Dest,Src,iField.FieldLength); //TIME WITH TIME ZONE
+    FIELD_TYPE_TIMETZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //TIME WITH TIME ZONE
 
-    FIELD_TYPE_UUID: StrLCopy(Dest,Src,iField.FieldLength);
-    FIELD_TYPE_TIMESTAMPTZ: StrLCopy(Dest,Src,iField.FieldLength);
+    FIELD_TYPE_UUID: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
+    FIELD_TYPE_TIMESTAMPTZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
     FIELD_TYPE_TIMESTAMP:
                           begin
                             try
@@ -1013,15 +1013,15 @@ begin
     FIELD_TYPE_BOX,
     FIELD_TYPE_POLYGON,
     FIELD_TYPE_LINE,
-    FIELD_TYPE_CIRCLE : StrLCopy(Dest,Src,iField.NativeSize);
+    FIELD_TYPE_CIRCLE : StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
 //--------------Network Address types ---------------------------
     FIELD_TYPE_CIDR,
     FIELD_TYPE_MACADDR,
-    FIELD_TYPE_INET: StrLCopy(Dest,Src,iField.NativeSize);
+    FIELD_TYPE_INET: StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
 //-------------Other types --------------------------------------
-    FIELD_TYPE_OIDVECTOR: StrLCopy(Dest,Src,iField.NativeSize);
+    FIELD_TYPE_OIDVECTOR: StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
   else
-         StrLCopy(Dest,Src,iField.NativeSize)
+         StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize)
   end;
   If Result <> 0 then Blank  := True;
 end;
@@ -1031,8 +1031,8 @@ var
      TimeStamp: TTimeStamp;
 begin
   ZeroMemory(Dest,iField.FieldLength);
-  PChar(Dest)^:=#1;
-  Inc(PChar(Dest),1);
+  PAnsiChar(Dest)^:=#1;
+  Inc(PAnsiChar(Dest),1);
   Result:=0;
  try
   Case iField.NativeType of
@@ -1043,13 +1043,13 @@ begin
       FIELD_TYPE_BIT,      //BIT Field
       FIELD_TYPE_VARCHAR,
       FIELD_TYPE_BPCHAR,
-      FIELD_TYPE_CHAR:     StrLCopy(Dest,Src,iField.FieldLength);
+      FIELD_TYPE_CHAR:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
       FIELD_TYPE_NAME,
-      FIELD_TYPE_MONEY:     StrLCopy(Dest,Src,iField.FieldLength);
-      FIELD_TYPE_REGPROC:  StrLCopy(Dest,Src,iField.FieldLength);
-      FIELD_TYPE_INTERVAL: StrLCopy(Dest,Src,iField.FieldLength); //Time INTERVAL
-      FIELD_TYPE_TIMETZ:   StrLCopy(Dest,Src,iField.FieldLength); //Time WITH TIME ZONE
-      FIELD_TYPE_UUID:     StrLCopy(Dest,Src,iField.FieldLength);
+      FIELD_TYPE_MONEY:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
+      FIELD_TYPE_REGPROC:  StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
+      FIELD_TYPE_INTERVAL: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //Time INTERVAL
+      FIELD_TYPE_TIMETZ:   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //Time WITH TIME ZONE
+      FIELD_TYPE_UUID:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
       FIELD_TYPE_DATE:     begin
                              try
                                 TimeStamp.Date := LongInt(Src^);
@@ -1069,7 +1069,7 @@ begin
                              end;
                            end;
 
-      FIELD_TYPE_TIMESTAMPTZ: StrLCopy(Dest,Src,iField.FieldLength);
+      FIELD_TYPE_TIMESTAMPTZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
 
       FIELD_TYPE_TIMESTAMP: begin
                               try
@@ -1088,13 +1088,13 @@ begin
       FIELD_TYPE_BOX,
       FIELD_TYPE_POLYGON,
       FIELD_TYPE_LINE,
-      FIELD_TYPE_CIRCLE : StrLCopy(Dest,Src,iField.FieldLength);
+      FIELD_TYPE_CIRCLE : StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
 //--------------Network Address types ---------------------------
     FIELD_TYPE_CIDR,
     FIELD_TYPE_MACADDR,
-    FIELD_TYPE_INET: StrLCopy(Dest,Src,iField.FieldLength);
+    FIELD_TYPE_INET: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
   else
-         StrLCopy(Dest,Src,iField.FieldLength)
+         StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength)
   end;
  except
     ZeroMemory(Dest, iField.FieldLength);
@@ -1513,9 +1513,9 @@ begin
     end;
 end;
 
-Procedure TNativeConnect.TableList(pszWild: PChar; SystemTables: Boolean; List: TStrings);
+Procedure TNativeConnect.TableList(pszWild: PAnsiChar; SystemTables: Boolean; List: TStrings);
 var
-   CRec : PChar;
+   CRec : string;
    I : LongInt;
    sql : String;
    RES : PPGresult;
@@ -1540,14 +1540,14 @@ begin
      CheckResult;
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := PChar('"'+PQgetvalue(RES,I,1)+'"."'+PQgetvalue(RES,I,0)+'"');
-        List.Add(StrPas(CREC));
+        CREC := '"'+PQgetvalue(RES,I,1)+'"."'+PQgetvalue(RES,I,0)+'"';
+        List.Add(CREC);
      end;
   end;
   PQclear(RES);
 end;
 
-Procedure TNativeConnect.UserList(pszWild : PChar; List : TStrings);
+Procedure TNativeConnect.UserList(pszWild : PAnsiChar; List : TStrings);
 var
    CRec : PChar;
    I : LongInt;
@@ -1575,7 +1575,7 @@ begin
  end;
 end;
 
-Procedure TNativeConnect.SchemaList(pszWild : PChar; SystemSchemas: Boolean; List : TStrings);
+Procedure TNativeConnect.SchemaList(pszWild : PAnsiChar; SystemSchemas: Boolean; List : TStrings);
 var
    CRec : PChar;
    I : LongInt;
@@ -1606,7 +1606,7 @@ begin
  end;
 end;
 
-procedure TNativeConnect.DatabaseList(pszWild : PChar; List :TStrings);
+procedure TNativeConnect.DatabaseList(pszWild : PAnsiChar; List :TStrings);
 var
    CRec : PChar;
    I : LongInt;
@@ -1631,7 +1631,7 @@ begin
   PQclear(RES);
 end;
 
-Procedure TNativeConnect.OpenTable(pszTableName: PChar;pszIndexName: PChar;iIndexId: Word;
+Procedure TNativeConnect.OpenTable(pszTableName: PAnsiChar;pszIndexName: PAnsiChar;iIndexId: Word;
                                    eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;var hCursor: hDBICur; Limit, Offset : integer);
 begin
   InternalConnect;
@@ -1727,7 +1727,7 @@ begin
   end;
 end;
 
-Procedure TNativeConnect.OpenFieldList(pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur);
+Procedure TNativeConnect.OpenFieldList(pszTableName: PAnsiChar;pszDriverType: PAnsiChar;bPhyTypes: Bool;var hCur: hDBICur);
 var
   P : TNativeDataSet;
 Procedure ProcessTable;
@@ -1759,7 +1759,7 @@ begin
    FSystem := False;
 end;
 
-Procedure TNativeConnect.OpenIndexList(pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur);
+Procedure TNativeConnect.OpenIndexList(pszTableName: PAnsiChar; pszDriverType: PAnsiChar;var hCur: hDBICur);
 var
   P     : hDBICur;
   Ind   : TIndexList;
@@ -1817,7 +1817,7 @@ begin
   Result := PQparameterStatus(Handle, 'client_encoding');
 end;
 
-procedure TNativeConnect.EmptyTable(hCursor : hDBICur; pszTableName : PChar);
+procedure TNativeConnect.EmptyTable(hCursor : hDBICur; pszTableName : PAnsiChar);
 var
   isNotOpen : Boolean;
 begin
@@ -1832,7 +1832,7 @@ begin
   end;
 end;
 
-procedure TNativeConnect.TableExists(pszTableName : PChar);
+procedure TNativeConnect.TableExists(pszTableName : PAnsiChar);
 var
    List : TStrings;
    I : Integer;
@@ -1844,7 +1844,7 @@ begin
      TableList(nil,False,List);
      for I:=0 to List.Count-1 do
      begin
-         Found := (StrIComp(pszTableName, PChar(List[I]))=0);
+         Found := SameText(pszTableName, List[I]);
          if Found then break;
      end;
    finally
@@ -1919,7 +1919,7 @@ begin
     end;
 end;
 
-Procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; var IdxDesc: IDXDesc; pszKeyviolName: PChar);
+Procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: PAnsiChar; pszDriverType: PAnsiChar; var IdxDesc: IDXDesc; pszKeyviolName: PAnsiChar);
 var
   NDS : TNativeDataSet;
 begin
@@ -1933,7 +1933,7 @@ begin
   end;
 end;
 
-Procedure TNativeConnect.DeleteIndex(hCursor: hDBICur; pszTableName: PChar; pszDriverType: PChar; pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+Procedure TNativeConnect.DeleteIndex(hCursor: hDBICur; pszTableName: PAnsiChar; pszDriverType: PAnsiChar; pszIndexName: PAnsiChar; pszIndexTagName: PAnsiChar; iIndexId: Word);
 var
   NDS : TNativeDataSet;
 begin
@@ -2484,7 +2484,7 @@ begin
     fldINT64: Result := PInt64(@Dest)^;
     {$ENDIF}
     fldFLOAT: Result := PDouble(@Dest)^;
-    fldZSTRING: Result := StrPas(@Dest);
+    fldZSTRING: Result := StrPas(PAnsiChar(@Dest));
     fldBOOL : Result := PWordBool(@Dest)^;
     fldDATE : begin
                  DWORD(TimeStamp.Date) := PDWORD(@Dest)^;
@@ -2627,7 +2627,7 @@ begin
 end;
 
 {$O-}
-Constructor TNativeDataSet.Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : PChar; Index : Word;Limit, Offset : Integer; ASystem : Boolean = False);
+Constructor TNativeDataSet.Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : PAnsiChar; Index : Word;Limit, Offset : Integer; ASystem : Boolean = False);
 begin
   Inherited Create;
   FStatement := nil;
@@ -4960,9 +4960,9 @@ begin
   end;
 end;
 
-Procedure TNativeDataSet.SwitchToIndex( pszIndexName, pszTagName : PChar;iIndexId : Word; bCurrRec : Bool);
+Procedure TNativeDataSet.SwitchToIndex( pszIndexName, pszTagName : PAnsiChar;iIndexId : Word; bCurrRec : Bool);
 
-Procedure ParseIndexName(pszIndexName: PChar;Var iIndexId : Word;pszTrueName  : PChar);
+Procedure ParseIndexName(pszIndexName: PAnsiChar;Var iIndexId : Word;pszTrueName  : PChar);
 var
   S     : ShortString;
   Found : Boolean;
@@ -5171,7 +5171,7 @@ begin
     FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PChar);
+Procedure TNativeDataSet.AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PAnsiChar);
 var
   Result : PPGResult;
 
@@ -5198,7 +5198,7 @@ begin
     FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.DeleteIndex(pszIndexName: PChar; pszIndexTagName: PChar; iIndexId: Word);
+Procedure TNativeDataSet.DeleteIndex(pszIndexName: PAnsiChar; pszIndexTagName: PAnsiChar; iIndexId: Word);
 var
    Result : PPGResult;
 begin
@@ -5250,7 +5250,7 @@ end;
 procedure TNativeDataSet.Clone(bReadOnly : Bool; bUniDirectional : Bool; var hCurNew : hDBICur);
 begin
   if FConnect = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
-  TNativeConnect(FConnect).OpenTable(PChar(TableName),FIndexName,0,FOMode,dbiOPENSHARED,hCurNew,0,0);
+  TNativeConnect(FConnect).OpenTable(PAnsiChar(TableName),FIndexName,0,FOMode,dbiOPENSHARED,hCurNew,0,0);
   TNativeDataSet(hCurNew).MasterCursor := Self;
 end;
 
@@ -5411,7 +5411,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.OpenTable(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;pszIndexName: PChar;pszIndexTagName : PChar;iIndexId: Word;
+Function TPSQLEngine.OpenTable(hDb: hDBIDb;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;pszIndexName: PAnsiChar;pszIndexTagName : PAnsiChar;iIndexId: Word;
          eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;exltMode: XLTMode;bUniDirectional : Bool;pOptParams: Pointer;var hCursor: hDBICur;Limit, Offset : Integer): DBIResult;
 begin
   Try
@@ -5423,7 +5423,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.OpenStoredProcList(hDb: hDBIDb;pszWild: PChar; List : TStrings): DBIResult;
+Function TPSQLEngine.OpenStoredProcList(hDb: hDBIDb;pszWild: PAnsiChar; List : TStrings): DBIResult;
 begin
   Try
     Database := hDb;
@@ -5434,7 +5434,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.OpenTableList(hDb: hDBIDb;pszWild: PChar; SystemTables: Boolean; List : TStrings): DBIResult;
+Function TPSQLEngine.OpenTableList(hDb: hDBIDb;pszWild: PAnsiChar; SystemTables: Boolean; List : TStrings): DBIResult;
 begin
   Try
     Database := hDb;
@@ -5445,7 +5445,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.OpenSchemaList(hDb: hDBIDb; pszWild: PChar; SystemSchemas: Boolean; List : TStrings): DBIResult;
+Function TPSQLEngine.OpenSchemaList(hDb: hDBIDb; pszWild: PAnsiChar; SystemSchemas: Boolean; List : TStrings): DBIResult;
 begin
   Try
     Database := hDb;
@@ -5456,7 +5456,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.OpenUserList(hDb: hDBIDb; pszWild: PChar; List : TStrings): DBIResult;
+Function TPSQLEngine.OpenUserList(hDb: hDBIDb; pszWild: PAnsiChar; List : TStrings): DBIResult;
 begin
   Try
     Database := hDb;
@@ -5885,12 +5885,12 @@ begin
   end;
 end;
 
-Function TPSQLEngine.AnsiToNative(pNativeStr: PChar;pAnsiStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
+Function TPSQLEngine.AnsiToNative(pNativeStr: PAnsiChar; pAnsiStr: PAnsiChar; iLen: LongInt;var bDataLoss : Bool): DBIResult;
 begin
   Try
     bDataLoss := FALSE;
     If OEMConv then
-       CharToOEMBuff(pAnsiStr, pNativeStr, iLen) else
+       CharToOEMBuff(PChar(pAnsiStr), pNativeStr, iLen) else
        Move(pAnsiStr^,pNativeStr^, iLen);
     Result := DBIERR_NONE;
   Except
@@ -5898,12 +5898,12 @@ begin
   end;
 end;
 
-Function TPSQLEngine.NativeToAnsi(pAnsiStr: PChar;pNativeStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
+Function TPSQLEngine.NativeToAnsi(pAnsiStr: PAnsiChar;pNativeStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
 begin
   Try
     bDataLoss := FALSE;
     If OEMConv then
-      OemToCharBuff(pNativeStr, pAnsiStr, iLen) else
+      OemToCharBuff(pNativeStr, PChar(pAnsiStr), iLen) else
       Move(pNativeStr^, pAnsiStr^, iLen);
     Result := DBIERR_NONE;
   Except
@@ -6055,7 +6055,7 @@ begin
      Raise ExceptObject;
 end;
 
-function TPSQLEngine.GetDatabases(hDb: hDBIdb; pszWild: PChar; List : TStrings):DBIResult;
+function TPSQLEngine.GetDatabases(hDb: hDBIdb; pszWild: PAnsiChar; List : TStrings):DBIResult;
 begin
   Try
     Database := hDb;
@@ -6080,7 +6080,7 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 //                  Reserver for TPSQLTable                                 //
 ///////////////////////////////////////////////////////////////////////////////
-Function TPSQLEngine.OpenFieldList(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;bPhyTypes: Bool;var hCur: hDBICur): DBIResult;
+Function TPSQLEngine.OpenFieldList(hDb: hDBIDb;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;bPhyTypes: Bool;var hCur: hDBICur): DBIResult;
 begin
   Try
     Database := hDb;
@@ -6091,7 +6091,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.OpenIndexList(hDb: hDBIDb;pszTableName: PChar;pszDriverType: PChar;var hCur: hDBICur): DBIResult;
+Function TPSQLEngine.OpenIndexList(hDb: hDBIDb;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;var hCur: hDBICur): DBIResult;
 begin
   Try
     Database := hDb;
@@ -6102,7 +6102,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : PChar; pszDriverType : PChar): DBIResult;
+Function TPSQLEngine.EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : PAnsiChar; pszDriverType : PAnsiChar): DBIResult;
 begin
   Try
     Database := hDb;
@@ -6134,7 +6134,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.SwitchToIndex(hCursor: hDBICur;pszIndexName,pszTagName: PChar;iIndexId: Word;bCurrRec: Bool): DBIResult;
+Function TPSQLEngine.SwitchToIndex(hCursor: hDBICur;pszIndexName,pszTagName: PAnsiChar;iIndexId: Word;bCurrRec: Bool): DBIResult;
 begin
   Try
     TNativeDataSet(hCursor).SwitchToIndex(pszIndexName, pszTagName, iIndexId, bCurrRec);
@@ -6164,7 +6164,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PChar;pszDriverType: PChar;var IdxDesc: IDXDesc;pszKeyviolName : PChar): DBIResult;
+Function TPSQLEngine.AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;var IdxDesc: IDXDesc;pszKeyviolName : PAnsiChar): DBIResult;
 begin
   Try
     Database := hDb;
@@ -6175,7 +6175,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PChar;pszDriverType: PChar;pszIndexName: PChar;pszIndexTagName: PChar;iIndexId: Word): DBIResult;
+Function TPSQLEngine.DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: PAnsiChar;pszDriverType: PAnsiChar;pszIndexName: PAnsiChar;pszIndexTagName: PAnsiChar;iIndexId: Word): DBIResult;
 begin
   Try
     Database := hDb;
@@ -6225,7 +6225,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.TableExists(hDb: hDBIDb; pszTableName: PChar): DBIResult;
+function TPSQLEngine.TableExists(hDb: hDBIDb; pszTableName: PAnsiChar): DBIResult;
 begin
    Try
      Database := hDb;
@@ -6573,7 +6573,7 @@ begin
     fldINT32: Result := IntToStr(PLongInt(@Buff)^);
     fldINT64: Result := IntToStr(PInt64(@Buff)^);
     fldFLOAT: Result := FloatToStr(PDouble(@Buff)^);
-    fldZSTRING: Result := StrPas(@Buff);
+    fldZSTRING: Result := StrPas(PAnsiChar(@Buff));
     fldDATE : begin
                  DWORD(TimeStamp.Date) := PDWORD(@Buff)^;
                  TimeStamp.Time := 0;
@@ -6590,7 +6590,7 @@ begin
                  Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp(DateD)));
               end;
    else
-      Result := StrPas(@Buff);
+      Result := StrPas(PAnsiChar(@Buff));
    end;
 end;
 
@@ -6933,9 +6933,9 @@ begin
   end
 end;
 
-procedure TNativeConnect.StoredProcList(pszWild: PChar; List: TStrings);
+procedure TNativeConnect.StoredProcList(pszWild: PAnsiChar; List: TStrings);
 var
-   CRec : PChar;
+   CRec : string;
    I : LongInt;
    sql : String;
    RES : PPGresult;
@@ -6954,8 +6954,8 @@ begin
     begin
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := PChar('"'+PQgetvalue(RES,I,1)+'"."'+PQgetvalue(RES,I,2)+'"');
-        List.AddObject(StrPas(CREC),TOBject(strtoint(PQGetValue(Res,I,0))));
+        CREC := '"'+PQgetvalue(RES,I,1)+'"."'+PQgetvalue(RES,I,2)+'"';
+        List.AddObject(CREC,TOBject(strtoint(PQGetValue(Res,I,0))));
      end;
     end;
   finally
@@ -6963,7 +6963,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenStoredProcParams(hDb: hDBIDb; pszPName: PChar;
+function TPSQLEngine.OpenStoredProcParams(hDb: hDBIDb; pszPName: PAnsiChar;
   ProcOID: cardinal; List: TList): DBIResult;
 begin
   Try
@@ -6975,7 +6975,7 @@ begin
   end;
 end;
 
-procedure TNativeConnect.StoredProcParams(pszPName: PChar; ProcOID: cardinal;
+procedure TNativeConnect.StoredProcParams(pszPName: PAnsiChar; ProcOID: cardinal;
   List: TList);
 var
    PDesc: ^SPParamDesc;
@@ -7973,7 +7973,7 @@ begin
 end;
 //<< pasha_golub 10.08.06
 
-function TPSQLEngine.OpenTablespaceList(hDb: hDBIDb; pszWild: PChar;
+function TPSQLEngine.OpenTablespaceList(hDb: hDBIDb; pszWild: PAnsiChar;
   List: TStrings): DBIResult;
 begin
   Try
@@ -7986,7 +7986,7 @@ begin
 end;
 
 
-procedure TNativeConnect.TablespaceList(pszWild: PChar; List: TStrings);
+procedure TNativeConnect.TablespaceList(pszWild: PAnsiChar; List: TStrings);
 var
    CRec : PChar;
    I : LongInt;

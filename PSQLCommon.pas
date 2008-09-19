@@ -137,11 +137,11 @@ type
     function PutConstFMTBCD(const Value: Variant; Decimals: Integer): Integer;
 {$ENDIF}
 
-    function PutConstNode(DataType: TFieldType; Data: PChar;
+    function PutConstNode(DataType: TFieldType; Data: PAnsiChar;
       Size: Integer): Integer;
     function PutConstStr(const Value: string): Integer;
     function PutConstTime(const Value: Variant): Integer;
-    function PutData(Data: PChar; Size: Integer): Integer;
+    function PutData(Data: PAnsiChar; Size: Integer): Integer;
     function PutExprNode(Node: PExprNode; ParentOp: TCANOperator): Integer;
     function PutFieldNode(Field: TField; Node: PExprNode): Integer;
     function PutNode(NodeType: NodeClass; OpType: TCANOperator;
@@ -983,7 +983,7 @@ begin
   Result := PutConstNode(DataType, @I, Size);
 end;
 
-function TFilterExpr.PutConstNode(DataType: TFieldType; Data: PChar;
+function TFilterExpr.PutConstNode(DataType: TFieldType; Data: PAnsiChar;
   Size: Integer): Integer;
 begin
   Result := PutNode(nodeCONST, coCONST2, 3);
@@ -995,12 +995,12 @@ end;
 function TFilterExpr.PutConstStr(const Value: string): Integer;
 var
   Str: string;
-  Buffer: array[0..255] of Char;
+  Buffer: array[0..255] of AnsiChar;
 begin
   if Length(Value) >= SizeOf(Buffer) then
     Str := Copy(Value, 1, SizeOf(Buffer) - 1) else
     Str := Value;
-  FDataSet.Translate(PChar(Str), Buffer, True);
+  FDataSet.Translate(PAnsiChar(AnsiString(Str)), Buffer, True);
   Result := PutConstNode(ftString, Buffer, Length(Str) + 1);
 end;
 
@@ -1016,7 +1016,7 @@ begin
   Result := PutConstNode(ftTime, @TimeStamp.Time, 4);
 end;
 
-function TFilterExpr.PutData(Data: PChar; Size: Integer): Integer;
+function TFilterExpr.PutData(Data: PAnsiChar; Size: Integer): Integer;
 begin
   Move(Data^, GetExprData(FExprBufSize, Size)^, Size);
   Result := FExprDataSize;
@@ -1204,7 +1204,7 @@ begin
     enFunc:
       begin
         Result := PutNode(nodeFUNC, coFUNC2, 2);
-        SetNodeOp(Result, 0,  PutData(PChar(string(Node^.FData)),
+        SetNodeOp(Result, 0,  PutData(PAnsiChar(ansistring(Node^.FData)),
           Length(string(Node^.FData)) + 1));
         if Node^.FArgs <> nil then
         begin
@@ -1237,12 +1237,12 @@ end;
 
 function TFilterExpr.PutFieldNode(Field: TField; Node: PExprNode): Integer;
 var
-  Buffer: array[0..255] of Char;
+  Buffer: array[0..255] of ansiChar;
 begin
   if poFieldNameGiven in FParserOptions then
-    FDataSet.Translate(PChar(Field.FieldName), Buffer, True)
+    FDataSet.Translate(PAnsiChar(Ansistring(Field.FieldName)), Buffer, True)
   else
-    FDataSet.Translate(PChar(string(Node^.FData)), Buffer, True);
+    FDataSet.Translate(PAnsiChar(Ansistring(Node^.FData)), Buffer, True);
   Result := PutNode(nodeFIELD, coFIELD2, 2);
   SetNodeOp(Result, 0, Field.FieldNo);
   SetNodeOp(Result, 1, PutData(Buffer, StrLen(Buffer) + 1));

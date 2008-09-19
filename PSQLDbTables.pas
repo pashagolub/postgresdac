@@ -671,7 +671,7 @@ type
     procedure GetIndexParams(const IndexName: String; FieldsIndex: Boolean;
       var IndexedName, IndexTag: String);
     function GetMasterFields: String;
-    function GetTableTypeName: PChar;
+    function GetTableTypeName: PAnsiChar;
     function GetTableLevel: Integer;
     function IndexDefsStored: Boolean;
     procedure MasterChanged(Sender: TObject);
@@ -725,7 +725,7 @@ type
     procedure InitFieldDefs; Override;
     function GetFileName: string;
     function GetTableType: TTableType;
-    function NativeTableName: PChar;
+    function NativeTableName: PAnsiChar;
     procedure PrepareCursor; Override;
     procedure UpdateIndexDefs; Override;
     property MasterLink: TMasterDataLink read FMasterLink;
@@ -2103,7 +2103,7 @@ begin
    end;
    if Handle = nil then Connected := True;
    if Pattern <> '' then
-      Check(Engine, Engine.GetDatabases(Handle,PChar(Pattern),List)) else
+      Check(Engine, Engine.GetDatabases(Handle, PAnsiChar(Pattern), List)) else
       Check(Engine, Engine.GetDatabases(Handle,nil,List));
    Connected := OldConn;
    if not Connected then
@@ -3344,9 +3344,9 @@ var
 begin
   ResetCursorRange;
   UpdateCursorPos;
-  Status := Engine.SwitchToIndex(FHandle, PChar(IndexName), PChar(TagName), 0, TRUE);
+  Status := Engine.SwitchToIndex(FHandle, PAnsiChar(IndexName), PAnsiChar(TagName), 0, TRUE);
   if (Status = DBIERR_NOCURRREC) then
-    Status := Engine.SwitchToIndex(FHandle, PChar(IndexName), PChar(TagName), 0, FALSE);
+    Status := Engine.SwitchToIndex(FHandle, PAnsiChar(IndexName), PAnsiChar(TagName), 0, FALSE);
   Check(Engine, Status);
   FKeySize := 0;
   FExpIndex := FALSE;
@@ -5326,7 +5326,7 @@ begin
   begin
     DBH := DBHandle;
     RetCode := Engine.OpenTable(DBH, NativeTableName, GetTableTypeName,
-      PChar(IndexName), PChar(IndexTag), IndexID, OpenMode, ShareModes[FExclusive],
+      PAnsiChar(IndexName), PAnsiChar(IndexTag), IndexID, OpenMode, ShareModes[FExclusive],
       xltField, FALSE, NIL, Result, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
       OpenMode := dbiReadOnly    else
@@ -5585,7 +5585,7 @@ begin
   begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     CheckBrowseMode;
-    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, NIL, NIL, PChar(IndexName), PChar(IndexTag), 0));
+    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, NIL, NIL, PAnsiChar(IndexName), PAnsiChar(IndexTag), 0));
   end
   else
   begin
@@ -5593,7 +5593,7 @@ begin
     SetDBFlag(dbfTable, TRUE);
     try
       Check(Engine, Engine.DeleteIndex(DBHandle, NIL, NativeTableName, GetTableTypeName,
-        PChar(IndexName), PChar(IndexTag), 0));
+        PAnsiChar(IndexName), PAnsiChar(IndexTag), 0));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5946,7 +5946,7 @@ begin
       begin
         Check(Engine, Engine.CloneCursor(Handle, True, False, FLookupHandle));
         GetIndexParams(KeyIndexName, FieldsIndex, IndexName, IndexTag);
-        Check(Engine, Engine.SwitchToIndex(FLookupHandle, PChar(IndexName), PChar(IndexTag), 0, FALSE));
+        Check(Engine, Engine.SwitchToIndex(FLookupHandle, PAnsiChar(IndexName), PAnsiChar(IndexTag), 0, FALSE));
       end;
       FLookupKeyFields := KeyFields;
       FLookupCaseIns := CaseInsensitive;
@@ -6231,7 +6231,7 @@ begin
   Result := Inherited GetCanModify and not ReadOnly;
 end;
 
-function TPSQLTable.GetTableTypeName: PChar;
+function TPSQLTable.GetTableTypeName: PAnsiChar;
 begin
   Result := NIL;
 end;
@@ -6270,11 +6270,9 @@ begin
   Result := ttDefault;
 end;
 
-function TPSQLTable.NativeTableName: PChar;
+function TPSQLTable.NativeTableName: PAnsiChar;
 begin
- //attention, cast type. Need to getmem in other cases
- //pasha_golub 23.12.04
-  Result := PChar(FTableName);
+  Result := PAnsiChar(AnsiString(FTableName));
 end;
 
 procedure TPSQLTable.SetExclusive(Value: Boolean);

@@ -582,16 +582,16 @@ Type
 
 
 { typedefs for buffers of various common sizes: }
-  DBIPATH            = packed array [0..DBIMAXPATHLEN] of Char; { holds a DOS path }
-  DBINAME            = packed array [0..DBIMAXNAMELEN] of Char; { holds a name }
-  DBIEXT             = packed array [0..DBIMAXEXTLEN] of Char; { holds an extension EXT }
-  DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of Char; { holds a table name }
-  DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of Char; { holds a stored procedure name }
+  DBIPATH            = packed array [0..DBIMAXPATHLEN] of AnsiChar; { holds a DOS path }
+  DBINAME            = packed array [0..DBIMAXNAMELEN] of AnsiChar; { holds a name }
+  DBIEXT             = packed array [0..DBIMAXEXTLEN] of AnsiChar; { holds an extension EXT }
+  DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of AnsiChar; { holds a table name }
+  DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of AnsiChar; { holds a stored procedure name }
   DBIKEY             = packed array [0..DBIMAXFLDSINKEY-1] of Word; { holds list of fields in a key }
-  DBIKEYEXP          = packed array [0..DBIMAXKEYEXPLEN] of Char; { holds a key expression }
+  DBIKEYEXP          = packed array [0..DBIMAXKEYEXPLEN] of AnsiChar; { holds a key expression }
   DBIVCHK            = packed array [0..DBIMAXVCHKLEN] of Byte; { holds a validity check }
-  DBIPICT            = packed array [0..DBIMAXPICTLEN] of Char; { holds a picture (Pdox) }
-  DBIMSG             = packed array [0..DBIMAXMSGLEN] of Char; { holds an error message }
+  DBIPICT            = packed array [0..DBIMAXPICTLEN] of AnsiChar; { holds a picture (Pdox) }
+  DBIMSG             = packed array [0..DBIMAXMSGLEN] of AnsiChar; { holds an error message }
 
 
 //============================================================================//
@@ -732,7 +732,7 @@ type
   pObjAttrDesc = ^ObjAttrDesc;
   ObjAttrDesc = packed record
     iFldNum    : Word;                  { Field id }
-    pszAttributeName : PChar;           { Object attribute name }
+    pszAttributeName : PAnsiChar;           { Object attribute name }
   end;
 
   pObjTypeDesc = ^ObjTypeDesc;
@@ -2683,21 +2683,21 @@ end;
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
                     MaskChar: Char = '?';
-                    WildCard: Char = '%'): Boolean;
+                    WildCard: Char = '%'): Boolean;//mi:2006-09-07
 var
-  S, M : PAnsiChar;
-  W : PAnsiChar; //mi:2007-06-20 last wildcard position in mask
+  S, M : PChar;
+  W : PChar; //mi:2007-06-20 last wildcard position in mask
 begin
   Result := false;
   if CaseSensitive then
   begin
-    S := PAnsiChar(Str);
-    M := PAnsiChar(Mask);
+    S := PChar(Str);
+    M := PChar(Mask);
   end
   else
   begin
-    S := PAnsiChar(AnsiUpperCase(Str));
-    M := PAnsiChar(AnsiUpperCase(Mask));
+    S := PChar(AnsiUpperCase(Str));
+    M := PChar(AnsiUpperCase(Mask));
   end;
 
   W := nil;
@@ -2724,7 +2724,7 @@ begin
       end
       else//character are not equal
       begin
-        if W <> nil then//there was a wildcard before, we need to rollback mask to it to continue search 
+        if W <> nil then//there was a wildcard before, we need to rollback mask to it to continue search
         begin
           M := W;
           Inc(S);
@@ -2760,11 +2760,16 @@ begin
    end;
    S1 := Op1;
    S2 := Op2;
-   if OEM then
-   begin
-      OemToCharBuff(PChar(S1),PChar(S1), Length(S1));
-      OemToCharBuff(PChar(S2),PChar(S2), Length(S2));
-   end;
+  if OEM then
+  begin
+    {$IFDEF DELPHI_12}
+    OemToCharBuff(PAnsiChar(AnsiString(S1)), PWideChar(S1), Length(S1));
+    OemToCharBuff(PAnsiChar(AnsiString(S2)), PWideChar(S2), Length(S2));
+    {$ELSE}
+    OemToCharBuff(PAnsiChar(S1), PAnsiChar(S1), Length(S1));
+    OemToCharBuff(PAnsiChar(S2), PAnsiChar(S2), Length(S2));
+    {$ENDIF}
+  end;
    If CaseSen then //case insensitive
    begin
       if PartLen = 0 then
