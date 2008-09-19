@@ -14,14 +14,14 @@ type
     FSize: Integer;
   public
     constructor Create(const MaskValue: string; const CaseSensitive: boolean = False;
-                const MatchAnyChar: char = '%'; const MatchSingleChar: char = '?');
+                const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?');
     destructor Destroy; override;
     function Matches(const AString: string): Boolean;
   end;
 
 
 function MatchesMask(const AString, Mask: string; const CaseSensitive: boolean = False;
-                     const MatchAnyChar: char = '%'; const MatchSingleChar: char = '?'): Boolean;
+                     const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?'): Boolean;
 
 function EscapeMask(const AMask, EscapeChars: string): string;
 
@@ -40,26 +40,26 @@ type
   TMaskState = record
     SkipTo: Boolean;
     case State: TMaskStates of
-      msLiteral: (Literal: Char);
+      msLiteral: (Literal: AnsiChar);
       msAny: ();
       msSet: (
         Negate: Boolean;
         CharSet: PMaskSet);
-      msMBCSLiteral: (LeadByte, TrailByte: Char);
+      msMBCSLiteral: (LeadByte, TrailByte: AnsiChar);
   end;
   PMaskStateArray = ^TMaskStateArray;
   TMaskStateArray = array[0..128] of TMaskState;
 
 function InitMaskStates(const Mask: string;
   var MaskStates: array of TMaskState;
-  const MatchAnyChar: char = '*';
-  const MatchSingleChar: char = '?'): Integer;
+  const MatchAnyChar: Ansichar = '*';
+  const MatchSingleChar: Ansichar = '?'): Integer;
 var
   I: Integer;
   SkipTo: Boolean;
-  Literal: Char;
-  LeadByte, TrailByte: Char;
-  P: PChar;
+  Literal: AnsiChar;
+  LeadByte, TrailByte: AnsiChar;
+  P: PAnsiChar;
   Negate: Boolean;
   CharSet: TMaskSet;
   Cards: Integer;
@@ -109,8 +109,8 @@ var
 
   procedure ScanSet;
   var
-    LastChar: Char;
-    C: Char;
+    LastChar: AnsiChar;
+    C: AnsiChar;
   begin
     Inc(P);
     if P^ = '!' then
@@ -144,7 +144,7 @@ var
   end;
 
 begin
-  P := PChar(Mask);
+  P := PAnsiChar(Mask);
   I := 0;
   Cards := 0;
   Reset;
@@ -189,20 +189,20 @@ begin
   Result := I;
 end;
 
-function MatchesMaskStates(const Filename: string;
+function MatchesMaskStates(const Filename: ansistring;
   const MaskStates: array of TMaskState): Boolean;
 type
   TStackRec = record
-    sP: PChar;
+    sP: PAnsiChar;
     sI: Integer;
   end;
 var
   T: Integer;
   S: array[0..MaxCards - 1] of TStackRec;
   I: Integer;
-  P: PChar;
+  P: PAnsiChar;
 
-  procedure Push(P: PChar; I: Integer);
+  procedure Push(P: PAnsiChar; I: Integer);
   begin
     with S[T] do
     begin
@@ -212,7 +212,7 @@ var
     Inc(T);
   end;
 
-  function Pop(var P: PChar; var I: Integer): Boolean;
+  function Pop(var P: PAnsiChar; var I: Integer): Boolean;
   begin
     if T = 0 then
       Result := False
@@ -228,7 +228,7 @@ var
     end;
   end;
 
-  function Matches(P: PChar; Start: Integer): Boolean;
+  function Matches(P: PAnsiChar; Start: Integer): Boolean;
   var
     I: Integer;
   begin
@@ -275,7 +275,7 @@ var
 begin
   Result := True;
   T := 0;
-  P := PChar(Filename);
+  P := PAnsiChar(Filename);
   I := Low(MaskStates);
   repeat
     if Matches(P, I) then Exit;
@@ -294,7 +294,7 @@ end;
 { TExtMask }
 
 constructor TExtMask.Create(const MaskValue: string; const CaseSensitive: boolean = False;
-        const MatchAnyChar: char = '%'; const MatchSingleChar: char = '?');
+        const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?');
 var
   A: array[0..0] of TMaskState;
   S: string;
@@ -323,7 +323,7 @@ begin
 end;
 
 function MatchesMask(const AString, Mask: string; const CaseSensitive: boolean = False;
-                  const MatchAnyChar: char = '%'; const MatchSingleChar: char = '?'): Boolean;
+                  const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?'): Boolean;
 var
   CMask: TExtMask;
 begin
