@@ -569,7 +569,6 @@ type
     procedure Post; Override;
     procedure RevertRecord;
     function  UpdateStatus: TUpdateStatus; Override;
-    function  Translate(Src, Dest: PAnsiChar; ToOem: Boolean) : Integer;  Override;
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
@@ -1050,6 +1049,11 @@ type
 procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
 procedure Dac4PSQLShowAbout(aComponentName : string);
+function TAnsiToNative(Engine : TPSQLEngine;
+                       const AnsiStr: String;
+                       NativeStr: PAnsiChar;
+                       MaxLen: Integer): PAnsiChar;
+
 
 Var
    DBList : TList;
@@ -1068,6 +1072,8 @@ var
   SQLDelay: DWORD = 50;
   StartTime: DWORD = 0;
   BDEInitProcs: TList;
+
+
 
 procedure Dac4PSQLShowAbout(aComponentName : string);
 begin
@@ -1137,11 +1143,7 @@ type
 type PCharType = {$IFDEF DELPHI_12}PAnsiChar{$ELSE}PChar{$ENDIF};
 
 { Utility routines }
-{$IFDEF DELPHI_12}
 procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
-{$ELSE}
-procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
-{$ENDIF}
 var
   DataLoss: LongBool;
 begin
@@ -1156,11 +1158,25 @@ begin
   end;
 end;
 
-{$IFDEF DELPHI_12}
+function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String; NativeStr: PAnsiChar; MaxLen: Integer): PAnsiChar;
+var
+  Len: Integer;
+begin
+  Len := Length(AnsiStr);
+
+  if Len > MaxLen then
+    Len := MaxLen;
+
+  NativeStr[Len] := #0;
+
+  if Len > 0 then
+    TAnsiToNativeBuf(Engine, Pointer(AnsiStr), NativeStr, Len);
+
+  Result := NativeStr;
+end;
+
+
 procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
-{$ELSE}
-procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
-{$ENDIF}
 var
   DataLoss: LongBool;
 begin
@@ -1173,6 +1189,16 @@ begin
        LeaveCriticalSection(CSNativeToAnsi);
      end;
   end;
+end;
+
+procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PAnsiChar; var AnsiStr: AnsiString);
+var
+  Len : Integer;
+begin
+  Len := StrLen(NativeStr);
+  SetString(AnsiStr, nil, Len);
+  if Len > 0 then
+    TNativeToAnsiBuf(Engine, NativeStr, Pointer(AnsiStr), Len);
 end;
 
 procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
@@ -1972,7 +1998,7 @@ end;
 
 procedure TPSQLDatabase.GetStoredProcNames(Pattern: String; List: TStrings);
 var
-   WildCard: PChar;
+   WildCard: PAnsiChar;
    SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
@@ -1990,7 +2016,7 @@ end;
 
 procedure TPSQLDatabase.GetTableNames(Pattern: String; SystemTables: Boolean; List: TStrings);
 var
-   WildCard: PChar;
+   WildCard: PAnsiChar;
    SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
@@ -2000,7 +2026,7 @@ begin
     WildCard := NIL;
     if Pattern <> '' then
       WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenTableList(Handle,WildCard, SystemTables, List));
+    Check(Engine, Engine.OpenTableList(Handle, WildCard, SystemTables, List));
   finally
     List.EndUpdate;
   end;
@@ -2008,7 +2034,7 @@ end;
 
 procedure TPSQLDatabase.GetSchemaNames(Pattern: String; SystemSchemas: Boolean; List: TStrings);
 var
-   WildCard: PChar;
+   WildCard: PAnsiChar;
    SPattern: DBITBLNAME;
 begin
   If not Assigned(List) then Exit;
@@ -2027,7 +2053,7 @@ end;
 
 procedure TPSQLDatabase.GetUserNames(Pattern: String; List: TStrings);
 var
-   WildCard: PChar;
+   WildCard: PAnsiChar;
    SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
@@ -2188,7 +2214,7 @@ end;
 
 procedure TPSQLDatabase.GetTablespaces(Pattern: String; List: TStrings);
 var
-   WildCard: PChar;
+   WildCard: PAnsiChar;
    SPattern: DBITBLNAME;
 begin
   If not Assigned(List) then Exit;
@@ -2558,7 +2584,7 @@ var
 begin
   if FCacheBlobs then
     for I := 0 to Pred(BlobFieldCount) do
-      TBlobDataArray(Buffer + FBlobCacheOfs)[ I ] := '';
+      TBlobDataArray(Buffer + FBlobCacheOfs)[ I ] := {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF};
 end;
 
 procedure TPSQLDataSet.ClearCalcFields(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
@@ -2781,7 +2807,7 @@ var
   FSize: Word;
   FRequired: Boolean;
   FPrecision, I: Integer;
-  FieldName, FName: string;
+  FieldName, FName: ansistring;
   FieldDesc: FLDDesc;
 begin
   FieldDesc := FieldDescs[DescNo];
@@ -3016,31 +3042,20 @@ begin
 end;
 
 
-function TPSQLDataSet.Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;
-begin
-  Result := StrLen(Src);
-  if ToOem then
-  begin
-     TAnsiToNativeBuf(Engine, Src, Dest, Result);
-  end else
-  begin
-        TNativeToAnsiBuf(Engine, Src, Dest, Result);
-  end;
-  if Src <> Dest then Dest[ Result ] := #0;
-end;
-
-function TPSQLDataSet.GetFieldFullName(Field : TField) : string;
+function TPSQLDataSet.GetFieldFullName(Field : TField) : String;
 var
   Len: Word;
   AttrDesc: ObjAttrDesc;
-  Buffer: array[0..1024] of Char;
+  Buffer: array[0..1024] of AnsiChar;
+  s: AnsiString;
 begin
   if Field.FieldNo > 0  then
   begin
     AttrDesc.iFldNum := Field.FieldNo;
     AttrDesc.pszAttributeName := Buffer;
     Check(Engine, Engine.GetEngProp(HDBIOBJ(Handle), curFIELDFULLNAME, @AttrDesc, SizeOf(Buffer), Len));
-    TNativeToAnsi(Engine, Buffer, Result);
+    TNativeToAnsi(Engine, Buffer, S);
+    Result := string(S);
   end else
     Result := inherited GetFieldFullName(Field);
 end;
@@ -3162,7 +3177,7 @@ begin
   InternalGotoBookmark(Buffer + FBookmarkOfs);
 end;
 
-function TPSQLDataSet.GetBookmarkFlag(Buffer : PChar) : TBookmarkFlag;
+function TPSQLDataSet.GetBookmarkFlag(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}) : TBookmarkFlag;
 begin
   Result := PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag;
 end;
@@ -5433,8 +5448,9 @@ procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
 var
   IndexOptions: TIndexOptions;
   I: Integer;
-  SSource, SName: PChar;
+  SSource, SName: PAnsiChar;
   FieldName: String;
+  s : AnsiString;
 begin
   with IndexDesc do
   begin
@@ -5447,10 +5463,12 @@ begin
     begin
       SSource := szName;
       SName := szTagName;
-      TNativeToAnsi(Engine, SSource, Source);
+      TNativeToAnsi(Engine, SSource, s);
+      Source := string(s);
     end;
-    TNativeToAnsi(Engine, SName, Name);
-    Name := ExtractFileName(Name);
+
+    TNativeToAnsi(Engine, SName, s);
+    Name := ExtractFileName(string(s));
     Source := ExtractFileName(Source);
     IndexOptions := [];
     if bPrimary then Include(IndexOptions, ixPrimary);
@@ -5460,7 +5478,8 @@ begin
     if not bMaintained then Include(IndexOptions, ixNonMaintained);
     if bExpIdx then
     begin
-      TNativeToAnsi(Engine, szKeyExp, FieldExpression);
+      TNativeToAnsi(Engine, szKeyExp, S);
+      FieldExpression := string(s);
       Include(IndexOptions, ixExpression);
     end else
     begin
@@ -6556,7 +6575,7 @@ begin
     Inc(FPosition, Count);
     Result := Count;
     FModified := TRUE;
-    FDataSet.SetBlobData(FField, FBuffer, '');
+    FDataSet.SetBlobData(FField, FBuffer, {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF});
   end;
 end;
 
@@ -7052,7 +7071,7 @@ procedure TPSQLStoredProc.RefreshParams;
 var
   Desc: ^SPParamDesc;
   Buffer: DBISPNAME;
-  ParamName: string;
+  ParamName: ansistring;
   ParamDataType: TFieldType;
   List : TList;
   i:integer;
