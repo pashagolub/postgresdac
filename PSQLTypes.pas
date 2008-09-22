@@ -373,7 +373,7 @@ type
 //////////////////////////////////////////////////////////////////
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
-  TPQconnectdb     = function(ConnInfo: PChar): PPGconn; cdecl;
+  TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl;
   TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PChar): PPGconn; cdecl;
   TPQconndefaults  = function: PPQconninfoOption; cdecl;
   TPQfinish        = procedure(Handle: PPGconn); cdecl;
@@ -387,16 +387,16 @@ type
   TPQtty           = function(Handle: PPGconn): PChar; cdecl;
   TPQoptions       = function(Handle: PPGconn): PChar; cdecl;
   TPQstatus        = function(Handle: PPGconn): ConnStatusType; cdecl;
-  TPQerrorMessage  = function(Handle: PPGconn): PChar; cdecl;
+  TPQerrorMessage  = function(Handle: PPGconn): PAnsiChar; cdecl;
   TPQsocket        = function(Handle: PPGconn): Integer; cdecl;
   TPQbackendPID    = function(Handle: PPGconn): Integer; cdecl;
-  TPQparameterStatus = function(Handle: PPGconn; paramName: PChar): PChar; cdecl;
+  TPQparameterStatus = function(Handle: PPGconn; paramName: PAnsiChar): PAnsiChar; cdecl;
   TPQserverVersion = function(Handle: PPGconn): Integer; cdecl;
   TPQtransactionStatus  = function(Handle: PPGconn): TTransactionStatusType; cdecl;
   TPQtrace         = procedure(Handle: PPGconn; DebugPort: Pointer); cdecl;
   TPQuntrace       = procedure(Handle: PPGconn); cdecl;
   TPQsetNoticeProcessor = function(Handle: PPGconn; Proc: PQnoticeProcessor; Arg: Pointer):pointer; cdecl;
-  TPQexec          = function(Handle: PPGconn; Query: PChar): PPGresult; cdecl;
+  TPQexec          = function(Handle: PPGconn; Query: PAnsiChar): PPGresult; cdecl;
   TPQresultErrorField = function(Result: PPGresult;fieldcode:integer): PChar; cdecl;
   TPQnotifies      = function(Handle: PPGconn): PPGnotify; cdecl;
   TPQsendQuery     = function(Handle: PPGconn; Query: PChar): Integer; cdecl;
@@ -417,7 +417,7 @@ type
   TPQntuples       = function(Result: PPGresult): Integer; cdecl;
   TPQnfields       = function(Result: PPGresult): Integer; cdecl;
   TPQbinaryTuples  = function(Result: PPGresult): Integer; cdecl;
-  TPQfname         = function(Result: PPGresult; field_num: Integer): PChar; cdecl;
+  TPQfname         = function(Result: PPGresult; field_num: Integer): PAnsiChar; cdecl;
   TPQfnumber       = function(Result: PPGresult; field_name: PChar): Integer; cdecl;
   TPQftype         = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftable        = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
@@ -428,13 +428,13 @@ type
   TPQoidValue      = function(Result: PPGresult): Oid; cdecl;
   TPQoidStatus     = function(Result: PPGresult): PChar; cdecl;
   TPQcmdTuples     = function(Result: PPGresult): PChar; cdecl;
-  TPQgetvalue      = function(Result: PPGresult; tup_num, field_num: Integer): PChar; cdecl;
+  TPQgetvalue      = function(Result: PPGresult; tup_num, field_num: Integer): PAnsiChar; cdecl;
   TPQgetlength     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQgetisnull     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQclear         = procedure(Result: PPGresult); cdecl;
   TPQmakeEmptyPGresult  = function(Handle: PPGconn; status: ExecStatusType): PPGresult; cdecl;
   TPQEscapeByteaConn   = function(Handle: PPGconn; from: PChar; from_length: integer; var to_length: integer):PChar; cdecl;
-  TPQUnEscapeBytea = function(from: PChar; var to_length: integer):PChar; cdecl;
+  TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer):PAnsiChar; cdecl;
   TPQEscapeStringConn = function(Handle: PPGconn; to_str: PChar; const from_str: Pchar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
   Tlo_open         = function(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer; cdecl;
@@ -1550,11 +1550,11 @@ type
   PPGFIELD_INFO = ^TPGFIELD_INFO;
   TPGField_Info = record
      FieldIndex   : Integer;
-     FieldName    : String;
+     FieldName    : AnsiString;
      FieldType    : Integer;
      FieldSize    : Integer;
      FieldMaxSize : Integer;
-     FieldDefault : String;
+     FieldDefault : AnsiString;
   end;
 
 /////////////////////////////////////////////////////////////////////////////

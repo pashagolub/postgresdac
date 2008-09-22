@@ -105,8 +105,8 @@ Type
     FTransState : eXState;  { Transaction end control xsActive, xsInactive }
     FTransLevel : eXILType;  { Transaction isolation levels }
     FStrtStmt   : Integer;
-    function GetConnectString(AHost,APort,ADBName,AUser,APassword, ASSLMode:String; AConnTimeout: cardinal): string;
-    function ConnectString: string;
+    function GetConnectString(AHost,APort,ADBName,AUser,APassword, ASSLMode:String; AConnTimeout: cardinal): ansistring;
+    function ConnectString: ansistring;
     function GetCommitOperation: Boolean; {Get commit operation}
   Public
     Tables : TContainer; {List of Tables}
@@ -529,11 +529,11 @@ Type
       Property Description : TPGField_Info Read FDesc Write FDesc;
     Published
       Property NativeNumber  : Integer Read FDesc.FieldIndex Write FDesc.FieldIndex;
-      Property NativeName    : String Read FDesc.FieldName Write FDesc.FieldName;
+      Property NativeName    : AnsiString Read FDesc.FieldName Write FDesc.FieldName;
       Property NativeType    : Integer Read FDesc.FieldType Write FDesc.FieldType;
       Property NativeSize    : Integer Read FDesc.FieldSize Write FDesc.FieldSize;
       Property NativeMaxSize : Integer Read FDesc.FieldMaxSize Write FDesc.FieldMaxSize;
-      Property NativeDefault : String Read FDesc.FieldDefault Write  FDesc.FieldDefault;
+      Property NativeDefault : AnsiString Read FDesc.FieldDefault Write  FDesc.FieldDefault;
   end;
 
   //////////////////////////////////////////////////////////
@@ -659,7 +659,7 @@ Type
       function FieldPosInTable(FieldNum: integer): Integer;
       function FieldIsNull(FieldNum: Integer): Boolean;
       function Field(FieldNum: Integer): string;
-      function FieldBuffer(FieldNum: Integer): PChar;
+      function FieldBuffer(FieldNum: Integer): PAnsiChar;
       function FieldByName(FieldName: ShortString): string;
       function  GetSQLClause: PChar;
       Function GetBufferSize : Word; Virtual;
@@ -829,7 +829,7 @@ function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLField
 function QuoteIdentifier(IdentifierName: string): string;
 
 {$IFDEF M_DEBUG}
-function PQExec(Handle: PPGconn; Query: PChar): PPGresult;
+function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
 {$ENDIF}
 
 Implementation
@@ -851,13 +851,13 @@ begin
   WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD>',Msg,'</TD><TR>');
 end;
 
-function PQConnectDB(ConnInfo: PChar): PPGconn;
+function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
 begin
  Result := PSQLTypes.PQConnectDB(ConnInfo);
  LogDebugMessage('CONN',Trim(StrPas(ConnInfo)));
 end;
 
-function PQExec(Handle: PPGconn; Query: PChar): PPGresult;
+function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
 begin
  Result := PSQLTypes.PQexec(Handle,Query);
  LogDebugMessage('EXEC',Trim(StrPas(Query)));
@@ -881,7 +881,7 @@ begin
  LogDebugMessage('loCl','fd = '+inttostr(fd));
 end;
 
-function PQerrorMessage(Handle: PPGconn): PChar;
+function PQerrorMessage(Handle: PPGconn): PAnsiChar;
 begin
   Result := PSQLTypes.PQerrorMessage(Handle);
   LogDebugMessage('ERR ',Trim(StrPas(Result)));
@@ -1336,7 +1336,7 @@ begin
   Inherited Destroy;
 end;
 
-function TNativeConnect.GetConnectString(AHost,APort,ADBName,AUser,APassword,ASSLMode:String; AConnTimeout: cardinal): string;
+function TNativeConnect.GetConnectString(AHost,APort,ADBName,AUser,APassword,ASSLMode:String; AConnTimeout: cardinal): ansistring;
 
   function GetAddr(Value: string): Boolean;
   var
@@ -1378,9 +1378,9 @@ begin
   OldLoggin := FLoggin;
   if FLoggin then InternalDisconnect;
   with DBOptions do
-    LocHandle := PQconnectdb(PChar(GetConnectString(Host,IntToStr(Port),'template1',User,Password,SSLMode,ConnectionTimeout)));
+    LocHandle := PQconnectdb(PAnsiChar(GetConnectString(Host,IntToStr(Port),'template1',User,Password,SSLMode,ConnectionTimeout)));
   if not Assigned(LocHandle) then Exit;
-  LocResult := PQexec(LocHandle, PChar(Trim(SQL)));
+  LocResult := PQexec(LocHandle, PAnsiChar(Trim(SQL)));
   if Assigned(LocResult) then
   begin
      ErrStr := Trim(StrPas(PQerrorMessage(LocHandle)));
@@ -1405,7 +1405,7 @@ begin
       DBOptions.SSLMode := 'prefer';
 end;
 
-function TNativeConnect.ConnectString: string;
+function TNativeConnect.ConnectString: ansistring;
 begin
   with DBOptions do
     Result := GetConnectString(Host,IntToStr(Port),DatabaseName,User,Password,SSLMode,ConnectionTimeout)
@@ -1419,7 +1419,7 @@ begin
  if not FLoggIn then
   try
    FLastOperationTime := GetTickCount;
-   FHandle := PQconnectdb(PChar(ConnectString));
+   FHandle := PQconnectdb(PAnsiChar(ConnectString));
    FLastOperationTime := GetTickCount - FLastOperationTime;
    if PQstatus(Handle) = CONNECTION_BAD then
      CheckResult();
@@ -1534,7 +1534,7 @@ begin
   if pszWild <> nil then
     Sql := Sql + ' AND relname LIKE '''+ StrPas(pszWild)+ '''';
   Sql := Sql + ' ORDER BY 2,1';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
   begin
      CheckResult;
@@ -1559,7 +1559,7 @@ begin
   if pszWild <> nil then
     Sql := Sql + ' WHERE usename LIKE ''' + StrPas(pszWild) + '''';
   Sql := Sql + ' ORDER BY 1';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
  try
   if Assigned(RES) then
   begin
@@ -1590,7 +1590,7 @@ begin
     Sql := Sql + ' AND nspname NOT IN (''pg_catalog'', ''pg_toast'','+
                     '''pg_sysviews'', ''information_schema'')';
   Sql := Sql + ' ORDER BY 1';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
  try
   if Assigned(RES) then
   begin
@@ -1608,7 +1608,7 @@ end;
 
 procedure TNativeConnect.DatabaseList(pszWild : PAnsiChar; List :TStrings);
 var
-   CRec : PChar;
+   CRec : PAnsiChar;
    I : LongInt;
    sql : String;
    RES : PPGresult;
@@ -1619,7 +1619,7 @@ begin
    if pszWild <> nil then
     Sql := Sql + ' WHERE datname LIKE '''+StrPas(pszWild)+'''';
   Sql := Sql + ' ORDER BY datname';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
   begin
      for I := 0 to PQntuples(RES)-1 do
@@ -1676,7 +1676,7 @@ begin
       xilREADCOMMITTED : TransParam := TransParam + 'READ COMMITTED';
       xilREPEATABLEREAD: TransParam := TransParam + 'SERIALIZABLE';
     end;
-    Result := PQexec(Handle, PChar(TransParam));
+    Result := PQexec(Handle, PAnsiChar(TransParam));
     PQclear(Result);
     MonitorHook.TRStart(Self);
   end
@@ -1911,7 +1911,7 @@ Procedure TNativeConnect.CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
 var Res: PPGresult;
 
 begin
-    Res := PQExec(FHandle,PChar(CreateSQLForCreateTable));
+    Res := PQExec(FHandle,PAnsiChar(CreateSQLForCreateTable));
     try
       CheckResult;
     finally
@@ -3245,7 +3245,7 @@ var
           Raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := PChar(Trim(SQLQuery));
-       FStatement := PQexec(FConnect.Handle,sql_stmt);
+       FStatement := PQexec(FConnect.Handle,PAnsiChar(UTF8String(sql_stmt)));
        if Assigned(FStatement) then
        begin
           try
@@ -3422,7 +3422,7 @@ begin
   FStatement := nil;
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
   FLastOperationTime := GetTickCount;
-  FStatement := PQexec(FConnect.Handle,PChar(SqlQuery));
+  FStatement := PQexec(FConnect.Handle,PAnsiChar(SqlQuery));
   if FStatement <> nil  then
   begin
     try
@@ -3482,7 +3482,7 @@ function TNativeDataSet.FieldName(FieldNum: Integer): ShortString;
 begin
   Result := '';
   if FStatement <> nil then
-    Result := StrPas(PQfname(FStatement, FieldNum));
+    Result := PQfname(FStatement, FieldNum);
 end;
 
 function TNativeDataSet.FieldIndex(FieldName: String): Integer;
@@ -3584,7 +3584,7 @@ begin
      Result := PQgetisnull(FStatement,GetRecNo,FieldNum) <> 0;
 end;
 
-function TNativeDataSet.FieldBuffer(FieldNum: Integer): PChar;
+function TNativeDataSet.FieldBuffer(FieldNum: Integer): PAnsiChar;
 begin
   Result := nil;
   if (FStatement = nil) or (PQgetisnull(FStatement, GetRecNo, FieldNum) <> 0) then Exit;
@@ -3685,7 +3685,7 @@ begin
  If inS > '' then
   begin
     sql := Format(sql,[inS]);
-    Res := PQExec(FConnect.Handle,PChar(sql));
+    Res := PQExec(FConnect.Handle,PAnsiChar(UTF8String(sql)));
     if Assigned(RES) then
      try
       FConnect.CheckResult;
@@ -3709,7 +3709,7 @@ var
   LocArray : Boolean;
 begin
   Fields.Clear;
-     For i := 1 to FieldCount do
+     For i := 1 to FieldCount() do
      begin
         try
           GetNativeDesc(i, @FldInfo,@ValCheck, LocalType, LocalSize,LocArray);
@@ -3866,14 +3866,14 @@ begin
                FIELD_TYPE_BOOL: if FieldBuffer(I) = 't' then
                                    SmallInt(Data^) := SmallInt(1) else
                                    SmallInt(Data^) := SmallInt(0);
-               FIELD_TYPE_INT2VECTOR: StrCopy(PChar(Data),FieldBuffer(I));
+               FIELD_TYPE_INT2VECTOR: StrCopy(PAnsiChar(Data),FieldBuffer(I));
                FIELD_TYPE_INT4: LongInt(Data^) := LongInt(StrToint(FldValue));
                FIELD_TYPE_INT8: Int64(Data^) := StrToInt64(FldValue);
                FIELD_TYPE_BIT,  //BIT Field
                FIELD_TYPE_BPCHAR,
                FIELD_TYPE_VARCHAR,
                FIELD_TYPE_CHAR:   StrPCopy(PChar(Data),FldValue);
-               FIELD_TYPE_TIMETZ: StrCopy(PChar(Data),FieldBuffer(I));
+               FIELD_TYPE_TIMETZ: StrCopy(PAnsiChar(Data),FieldBuffer(I));
                FIELD_TYPE_DATE:   TDateTime(Data^) := SQLDateToDateTime(FldValue,False);
                FIELD_TYPE_TIME:   TDateTime(Data^) := SQLDateToDateTime(FldValue,True);
                FIELD_TYPE_TIMESTAMP: TDateTime(Data^) :=SQLTimeStampToDateTime(FldValue);
@@ -3892,7 +3892,7 @@ begin
                                         continue;
                                     end;
              else
-               StrCopy(PChar(Data),FieldBuffer(I));
+               StrCopy(PAnsiChar(Data),FieldBuffer(I));
              end;
              move(Data^,(PChar(FCurrentBuffer)+1)^,size);
              PChar(FCurrentBuffer)^:=#1; {null indicator 1=Data 0=null}
@@ -3909,7 +3909,7 @@ begin
   if FOpen then CloseTable;
   FAffectedRows := 0;
   FOpen := False;
-  FStatement := PQexec(FConnect.Handle,PChar(SqlQuery));
+  FStatement := PQexec(FConnect.Handle,PAnsiChar(SqlQuery));
   Result := FConnect.Success;
 end;
 
@@ -4499,7 +4499,7 @@ begin
        sSQLQuery := Format(sSQLQuery,[ATableOID]);
       end;
    try
-    Res := PQExec(FConnect.Handle,PChar(sSQLQuery));
+    Res := PQExec(FConnect.Handle,PAnsiChar(UTF8String(sSQLQuery)));
     if Assigned(RES) then
      try
       FConnect.CheckResult;
@@ -4622,7 +4622,7 @@ Var
     end;
 
     function ByteaSize(ColumnNumber: Integer):integer;
-    var P: PChar;
+    var P: PAnsiChar;
         i, Len: integer;
     begin
       Result := 0;
@@ -4731,14 +4731,14 @@ var
       end;
 
    Function ByteaBlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
-   var P: PChar;
+   var P: PAnsiChar;
        Len: integer;
    begin
     Result := CachedBlobGet(Offset, Length, buff, Dest);
 
     if (Result = 0) and Assigned(PChar(FieldBuffer(ColumnNumber-1)+Offset)) then
      begin
-      P := PQUnescapeBytea(PChar(FieldBuffer(ColumnNumber-1)),Len);
+      P := PQUnescapeBytea(FieldBuffer(ColumnNumber-1), Len);
      try
       Move((P+Offset)^,Dest^,Length);
       Result := Length;
@@ -5162,7 +5162,7 @@ begin
   S := Format('TRUNCATE TABLE %s',[TableName]);
   FAffectedRows := 0;
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
-  Result := PQexec(FConnect.Handle,PChar(S));
+  Result := PQexec(FConnect.Handle,PAnsiChar(S));
   if Result <> nil then
   begin
     FConnect.CheckResult;
@@ -5190,7 +5190,7 @@ var
 
 begin
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
-  Result := PQexec(FConnect.Handle,PChar(CreateSQLForAddIndex));
+  Result := PQexec(FConnect.Handle,PAnsiChar(CreateSQLForAddIndex));
   if Result <> nil  then
   begin
     PQclear(Result);
@@ -5203,7 +5203,7 @@ var
    Result : PPGResult;
 begin
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
-    Result := PQexec(FConnect.Handle,PChar(Format('DROP INDEX %s ON %s',[pszIndexName,TableName])));
+    Result := PQexec(FConnect.Handle,PAnsiChar(Format('DROP INDEX %s ON %s',[pszIndexName,TableName])));
   if Result <> nil  then
   begin
     PQclear(Result);
@@ -6457,7 +6457,7 @@ procedure TNativePGNotify.InternalExecute(Sql: string);
 var
    locResult : PPGResult;
 begin
-  LocResult := PQexec(FConnect.Handle, PChar(Trim(SQL)));
+  LocResult := PQexec(FConnect.Handle, PAnsiChar(Trim(SQL)));
   if Assigned(LocResult) then
      PQclear(LocResult);
 end;
@@ -6902,7 +6902,7 @@ begin
       xilREADCOMMITTED : TransParam := TransParam + 'READ COMMITTED';
       xilREPEATABLEREAD: TransParam := TransParam + 'SERIALIZABLE';
     end;
-    Result := PQexec(Handle, PChar(TransParam));
+    Result := PQexec(Handle, PAnsiChar(TransParam));
     PQclear(Result);
   end
 end;
@@ -6948,7 +6948,7 @@ begin
    if pszWild <> nil then
     Sql := Sql + ', p.proname LIKE '''+StrPas(pszWild)+'''';
   Sql := Sql + ' ORDER BY 2,3';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
   try
     begin
@@ -6979,7 +6979,7 @@ procedure TNativeConnect.StoredProcParams(pszPName: PAnsiChar; ProcOID: cardinal
   List: TList);
 var
    PDesc: ^SPParamDesc;
-   N: PChar;
+   N: PAnsiChar;
    N1: DBIName;
    I : LongInt;
    ProcSchema, ProcName: string;
@@ -7053,7 +7053,7 @@ begin
 
 
 
-  RES := PQexec(Handle,PChar(MinOIDSel));
+  RES := PQexec(Handle,PAnsiChar(MinOIDSel));
   if (PQresultStatus(RES) = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
    begin
     ArgNum := StrToInt(PQgetvalue(RES,0,0));
@@ -7070,7 +7070,7 @@ begin
   else
     Sql := Format(sqlShowParameters,[ArgNum,ProcOID]);
 
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if PQresultStatus(RES) = PGRES_TUPLES_OK then
   begin
      for I := 0 to PQntuples(RES)-1 do
@@ -7079,7 +7079,7 @@ begin
           ZeroMemory(PDesc,SizeOf(PDesc^));
 
           If (PQgetisnull(RES,I,0) = 1) then
-            N := PChar('arg' + IntToStr(I))
+            N := PAnsiChar('arg' + IntToStr(I))
           else
             N := PQgetvalue(RES,I,0);
           Move(N[0],N1,sizeof(PDesc.szName));
@@ -7150,7 +7150,7 @@ begin
   If (CharSet = '') then Exit;
   InternalConnect;
   Sql := Format('SELECT set_config(''client_encoding'', ''%s'', false)', [CharSet]);
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7173,7 +7173,7 @@ begin
   else
    S := Format(sqlGenerateSeries,[0,MAX_ENCODING_ID]);
   Sql := 'SELECT pg_encoding_to_char(num.n) FROM '+S+' as num(n)';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7258,7 +7258,7 @@ begin
   else
    Exit;
   S := 'SELECT ' + S;
-  Res := PQExec(FConnect.Handle,PChar(S));
+  Res := PQExec(FConnect.Handle,PAnsiChar(S));
   if Assigned(RES) then
    try
     FConnect.CheckResult;
@@ -7291,7 +7291,7 @@ begin
   Sql := 'SELECT usesysid, usecreatedb, usesuper, usecatupd, valuntil '+
          ' FROM pg_user WHERE usename = '''+UserName+'''';
  try
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7340,7 +7340,7 @@ begin
    Sql := Format(Sql,['spcname,','pg_tablespace as tsp,','tsp.oid = dattablespace AND'])
   else
    Sql := Format(Sql,['','','']);
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7404,7 +7404,7 @@ begin
   else
    Sql := Format(Sql,['','',Tbl,Schema]);
  try
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7471,30 +7471,7 @@ end;
 
 procedure TNativeDataSet.FieldOldValue(AFieldName: string; var AParam: TParam);
 var AFNum, Len: integer;
-    FVal: PChar;
-
-    function MapNativeTypeToDelphi(const OID: integer): integer;
-    begin
-      case OID of
-        FIELD_TYPE_BOOL    :  Result := fldBOOL;
-        FIELD_TYPE_BYTEA,
-        FIELD_TYPE_TEXT    :  Result := fldBLOB;
-        FIELD_TYPE_INT2    :  Result := fldINT16;
-        //oids mapped to integer cause they must appear in SQL as id of Large Object
-        FIELD_TYPE_OID,
-        FIELD_TYPE_INT4    :  Result := fldINT32;
-        FIELD_TYPE_INT8    :  Result := fldINT64;
-        FIELD_TYPE_DATE    :  Result := fldDATE;
-        FIELD_TYPE_TIME    :  Result := fldTIME;
-        FIELD_TYPE_TIMESTAMP: Result := fldTIMESTAMP;
-        FIELD_TYPE_FLOAT4,
-        FIELD_TYPE_FLOAT8  :  Result := fldFLOAT;
-        FIELD_TYPE_NUMERIC :  Result := fldBCD;
-       else
-        Result := fldZSTRING;
-      end;
-    end;
-
+    FVal: PAnsiChar;
 begin
  AFNum := FieldIndex(AFieldName);
  if AFNum = -1 then Exit;
@@ -7592,7 +7569,7 @@ begin
    Exit;
   InternalConnect;
   Sql := 'SELECT current_setting(''statement_timeout'')';
-  RES := PQexec(Handle,PChar(Sql));
+  RES := PQexec(Handle,PAnsiChar(Sql));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7605,15 +7582,17 @@ end;
 
 function TNativeConnect.SetTimeout(const Timeout: cardinal): cardinal;
 var
-   sql : String;
+   S : AnsiString;
    RES : PPGresult;
+   sql: PAnsiChar;
 begin
   Result := 0;
   If GetserverVersionAsInt <= 070302 then
    Exit;
   InternalConnect;
-  Sql := Format('SELECT set_config(''statement_timeout'', ''%d'', false)',[Timeout]);
-  RES := PQexec(Handle,PChar(Sql));
+  S := Format('SELECT set_config(''statement_timeout'', ''%d'', false)',[Timeout]);
+//  UnicodeToUtf8(sql, PChar(S), length(S));
+  RES := PQexec(Handle, PAnsiChar(S));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7999,7 +7978,7 @@ begin
   if pszWild <> nil then
     Sql := Sql + ' WHERE spcname LIKE ' + AnsiQuotedStr(StrPas(pszWild),'''');
   Sql := Sql + ' ORDER BY 1';
- RES := PQexec(Handle,PChar(Sql));
+ RES := PQexec(Handle,PAnsiChar(Sql));
  try
   if Assigned(RES) then
   begin
@@ -8177,7 +8156,7 @@ var
 begin
   InternalConnect;
   sql := Format('SELECT pg_cancel_backend(%u)',[PID]);
-  RES := PQexec(Handle,PChar(sql));
+  RES := PQexec(Handle,PAnsiChar(sql));
   try
     CheckResult;
   finally
@@ -8216,7 +8195,7 @@ begin
   Result := '';
 	InternalConnect;
 
-	Stmt := PQExec(Handle, pszQuery);
+	Stmt := PQExec(Handle, PAnsiChar(pszQuery));
   try
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (PQnfields(Stmt) > aFieldNumber) and
@@ -8238,7 +8217,7 @@ begin
   Result := '';
 	InternalConnect;
 
-	Stmt := PQExec(Handle, pszQuery);
+	Stmt := PQExec(Handle, PAnsiChar(pszQuery));
   try
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (PQfnumber(Stmt,pszFieldName) > -1) and

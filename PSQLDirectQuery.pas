@@ -202,11 +202,11 @@ begin
   if aIndex >= GetFieldsCount() then
     raise EPSQLDirectQueryException.Create(SFieldIndexError);
 
-  p := PQgetvalue(FStatement, FRecNo, aIndex);
-  if p <> nil then
+  Result := ansistring(PQgetvalue(FStatement, FRecNo, aIndex));
+{  if p <> nil then
     Result := p
   else
-    Result := EmptyStr;
+    Result := EmptyStr;}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.GetIsEmpty: boolean;
@@ -270,7 +270,7 @@ begin
   if Trim(FSQL.Text) = EmptyStr then
     raise EPSQLDirectQueryException.Create(SEmptySQLStatement);
 
-  FStatement := {$IFDEF M_DEBUG}PSQLAccess.{$ENDIF}PQexec(TNativeConnect(FDatabase.Handle).Handle, PChar(FSQL.Text));
+  FStatement := {$IFDEF M_DEBUG}PSQLAccess.{$ENDIF}PQexec(TNativeConnect(FDatabase.Handle).Handle, PAnsiChar(FSQL.Text));
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then
   begin
     FreeHandle();
