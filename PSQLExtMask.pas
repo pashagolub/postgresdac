@@ -35,7 +35,7 @@ resourcestring
 
 type
   PMaskSet = ^TMaskSet;
-  TMaskSet = set of Char;
+  TMaskSet = set of AnsiChar;
   TMaskStates = (msLiteral, msAny, msSet, msMBCSLiteral);
   TMaskState = record
     SkipTo: Boolean;
@@ -144,7 +144,7 @@ var
   end;
 
 begin
-  P := PAnsiChar(Mask);
+  P := PAnsiChar(AnsiString(Mask));
   I := 0;
   Cards := 0;
   Reset;
@@ -319,7 +319,7 @@ function TExtMask.Matches(const AString: string): Boolean;
 var S: string;
 begin
   if not FCaseSensitive then S := UpperCase(AString) else S := AString;
-  Result := MatchesMaskStates(S, Slice(PMaskStateArray(FMask)^, FSize));
+  Result := MatchesMaskStates(AnsiString(S), Slice(PMaskStateArray(FMask)^, FSize));
 end;
 
 function MatchesMask(const AString, Mask: string; const CaseSensitive: boolean = False;

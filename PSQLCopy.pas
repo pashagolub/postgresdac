@@ -155,7 +155,7 @@ begin
     FBeforeCopyGet(Self);
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
-  Result := PQexec(AConnect.Handle, PChar(GetSQLStatement));
+  Result := PQexec(AConnect.Handle, AConnect.StringToRaw(GetSQLStatement));
   try
     Stream.Position := 0;
     Stream.Size := 0;
@@ -193,7 +193,7 @@ begin
     FBeforeCopyPut(Self);
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
-  Result := PQexec(AConnect.Handle, PChar(GetSQLStatement));
+  Result := PQexec(AConnect.Handle, AConnect.StringToRaw(GetSQLStatement));
   try
     try
       Stream.Position := 0;
@@ -241,7 +241,7 @@ begin
     FBeforeCopyGet(Self);
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
-  Result := PQexec(AConnect.Handle, PChar(GetSQLStatement));
+  Result := PQexec(AConnect.Handle, AConnect.StringToRaw(GetSQLStatement));
   try
    AConnect.CheckResult(Result);
   finally
@@ -273,7 +273,7 @@ begin
     FBeforeCopyPut(Self);
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
-  Result := PQexec(AConnect.Handle, PChar(GetSQLStatement));
+  Result := PQexec(AConnect.Handle, AConnect.StringToRaw(GetSQLStatement));
   try
     AConnect.CheckResult;
   finally

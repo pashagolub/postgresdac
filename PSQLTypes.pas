@@ -418,7 +418,7 @@ type
   TPQnfields       = function(Result: PPGresult): Integer; cdecl;
   TPQbinaryTuples  = function(Result: PPGresult): Integer; cdecl;
   TPQfname         = function(Result: PPGresult; field_num: Integer): PAnsiChar; cdecl;
-  TPQfnumber       = function(Result: PPGresult; field_name: PChar): Integer; cdecl;
+  TPQfnumber       = function(Result: PPGresult; field_name: PAnsiChar): Integer; cdecl;
   TPQftype         = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftable        = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftablecol     = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
@@ -1383,7 +1383,7 @@ type
   pSPParamDesc = ^SPParamDesc;
   SPParamDesc = packed record
     uParamNum       : Word;
-    szName          : DBINAME;
+    szName          : string;
     eParamType      : STMTParamType;
     uFldType        : Word;
     uSubType        : Word;
@@ -1478,8 +1478,8 @@ type
 /////////////////////////////////////////////////////////////////////////////
 type
     TFieldArray = array[0..255] of Integer;
-    TTrueArray = Set of Char;
-    TFalseArray = Set of Char;
+    TTrueArray = Set of AnsiChar;
+    TFalseArray = Set of AnsiChar;
 /////////////////////////////////////////////////////////////////////////////
 //                        TPgSQLFilter TYPES AND CONST                     //
 /////////////////////////////////////////////////////////////////////////////
@@ -1537,12 +1537,12 @@ const
 
 type
   TDBOptions = Record
-    User             : String;
-    Password         : String;
-    DatabaseName     : String;
+    User             : AnsiString;
+    Password         : AnsiString;
+    DatabaseName     : AnsiString;
     Port             : Cardinal;
-    Host             : String;
-    SSLMode          : string;
+    Host             : AnsiString;
+    SSLMode          : Ansistring;
     ConnectionTimeout: cardinal;
   end;
 
@@ -1675,12 +1675,28 @@ Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
 function UIntToStr(C: cardinal): string;
 function StrToUInt(S: string): cardinal;
 
+{$IFNDEF DELPHI_12}
+type
+ TCharSet = set of char;
+
+ function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
+{$ENDIF}
+
+
 implementation
 
 uses PSQLDbTables;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TCONTAINER OBJECT                       //
 /////////////////////////////////////////////////////////////////////////////
+
+{$IFNDEF DELPHI_12}
+function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
+begin
+ Result := C in CharSet;
+end;
+{$ENDIF}
+
 Constructor TContainer.Create;
 begin
   Inherited Create;
@@ -1954,7 +1970,7 @@ begin
         //changed by pasha_golub 29.12.04, to deal with schema names
         repeat
          Inc(p);
-         LoopEnd := p^ in [Literal,#0];
+         LoopEnd := (p^ = Literal) or (p^ = #0);
          if LoopEnd and (p^ <> #0) then
            begin
             inc(p);
@@ -1986,13 +2002,13 @@ begin
       begin
         StartToken;
         Inc(p);
-        if p^ in ['/','*'] then
+        if (p^ = '/') or (p^ = '*') then
         begin
           if p^ = '*' then
           begin
             repeat Inc(p) until (p = #0) or ((p^ = '*') and (p[1] = '/'));
           end else
-            while not (p^ in [#0, #10, #13]) do Inc(p);
+            while (p^ <> #0) and (p^ <> #10) and (p^ <> #13) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stComment;
           Exit;
@@ -2005,18 +2021,18 @@ begin
           SetString(Token, TokenStart, p - TokenStart);
           Result := GetSQLToken(Token);
           if Result = stSubSelect then
-             repeat Inc(p) until (p^ in [')']) else
+             repeat Inc(p) until (p^ = ')') else
           Exit;
         end else
         begin
-           if not (p^ in ['(',')']) then
-              while (p^ in [' ', #10, #13, ',']) do Inc(p) else
+           if not CharInSet(p^, ['(',')']) then
+              while CharInSet(p^, [' ', #10, #13, ',']) do Inc(p) else
            begin
               BracketCount := 1;
               repeat
                   Inc(p);
-                  if (p^ in ['(']) then Inc(BracketCount);
-                  if (p^ in [')']) then Dec(BracketCount);
+                  if p^ = '(' then Inc(BracketCount);
+                  if p^ = ')' then Dec(BracketCount);
               until (BracketCount = 0) or (p^ = #0) {safety measure};
               Inc(p);
            end;
@@ -2041,7 +2057,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['=','<','>'] do Inc(p);
+          while CharInSet(p^, ['=','<','>']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stPredicate;
           Exit;
@@ -2053,7 +2069,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['0'..'9','.'] do Inc(p);
+          while CharInSet(p^, ['0'..'9','.']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stNumber;
           Exit;
@@ -2252,7 +2268,7 @@ begin
   P := 1;
   Token  := '';
   if Buffer = '' then Exit;
-  while Buffer[P] in [' ',#9] do
+  while CharInSet(Buffer[P], [' ',#9]) do
   begin
     Inc(P);
     if Length(Buffer) < P then  goto ExitProc;
@@ -2263,7 +2279,7 @@ begin
     Inc(P);
     goto ExitProc;
   end;
-  if Buffer[P] in ['"',''''] then
+  if CharInSet(Buffer[P], ['"','''']) then
   begin
     Quote  := Buffer[P];
     Token  := Quote;
@@ -2280,7 +2296,7 @@ begin
     begin
       Token := Token + Buffer[P];
       Inc(P);
-      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0) or (Buffer[P] in ['"','''']) then Break;
+      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0) or CharInSet(Buffer[P], ['"','''']) then Break;
     end;
   end;
 ExitProc:
@@ -2489,7 +2505,7 @@ begin
         iUnits2  := 0;
         iLen     := LogSize;
       end;
-      if (iFldType = fldINT32) and (Pos('nextval(',lowerCase(Info.FieldDefault)) > 0)  then iSubType := fldstAUTOINC;
+      if (iFldType = fldINT32) and (Pos('nextval(',string(Info.FieldDefault)) > 0)  then iSubType := fldstAUTOINC;
       iOffset := Offset;
       efldvVchk := fldvUNKNOWN;
       if Info.FieldDefault <> '' then pValChk^.bHasDefVal := True;

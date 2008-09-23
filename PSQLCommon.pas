@@ -246,7 +246,7 @@ function IsMultiTableQuery(const SQL: string): Boolean;
 
 implementation
 
-uses SysUtils, DBConsts{$IFDEF DELPHI_6}, FMTBcd{$ENDIF};
+uses SysUtils, DBConsts{$IFDEF DELPHI_6}, FMTBcd{$ENDIF}, PSQLTypes;
 
 { SQL Parser }
 
@@ -356,7 +356,7 @@ begin
         StartToken;
         Literal := p^;
         Mark := p;
-        repeat Inc(p) until (p^ in [Literal,#0]);
+        repeat Inc(p) until CharInSet(p^, [Literal,#0]);
         if p^ = #0 then
         begin
           p := Mark;
@@ -379,13 +379,13 @@ begin
       begin
         StartToken;
         Inc(p);
-        if p^ in ['/','*'] then
+        if CharInSet(p^, ['/','*']) then
         begin
           if p^ = '*' then
           begin
             repeat Inc(p) until (p = #0) or ((p^ = '*') and (p[1] = '/'));
           end else
-            while not (p^ in [#0, #10, #13]) do Inc(p);
+            while not CharInSet(p^, [#0, #10, #13]) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stComment;
           Exit;
@@ -399,7 +399,7 @@ begin
           Result := GetSQLToken(Token);
           Exit;
         end else
-          while (p^ in [' ', #10, #13, ',', '(']) do Inc(p);
+          while CharInSet(p^, [' ', #10, #13, ',', '(']) do Inc(p);
       end;
       '.':
       begin
@@ -419,7 +419,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['=','<','>'] do Inc(p);
+          while CharInSet(p^, ['=','<','>']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stPredicate;
           Exit;
@@ -431,7 +431,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['0'..'9','.'] do Inc(p);
+          while CharInSet(p^, ['0'..'9','.']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stNumber;
           Exit;
@@ -701,7 +701,7 @@ var
     Result := '';
     C := Current;
     I := Ident;
-    while C^ in ['.',' ',#0] do
+    while CharInSet(C^, ['.',' ',#0]) do
       if C^ = #0 then Exit else Inc(C);
     Terminator := '.';
     if C^ = '"' then
@@ -709,9 +709,9 @@ var
       Terminator := '"';
       Inc(C);
     end;
-    while not (C^ in [Terminator, #0]) do
+    while not CharInSet(C^, [Terminator, #0]) do
     begin
-      if C^ in LeadBytes then
+      if CharInSet(C^, LeadBytes) then
       begin
         I^ := C^;
         Inc(C);
@@ -720,7 +720,7 @@ var
       else if C^ = '\' then
       begin
         Inc(C);
-        if C^ in LeadBytes then
+        if CharInSet(C^, LeadBytes) then
         begin
           I^ := C^;
           Inc(C);
@@ -1384,7 +1384,7 @@ begin
     if AnsiStrScan(P, '''') <> Nil then     // found another '
     begin
       PTemp := P;  // don't advance P
-      while PTemp[0] in [ ' ', ')' ] do Inc(PTemp);
+      while CharInSet(PTemp[0], [ ' ', ')' ]) do Inc(PTemp);
       if NextSQLToken(PTemp, FName, stValue) in [stFieldName, stUnknown] then
       begin   // 'John's Horse' case: not really end of literal
         Result := False;
@@ -1396,7 +1396,7 @@ end;
 
 procedure TExprParser.NextToken;
 type
-  ASet = Set of Char;
+  ASet = Set of AnsiChar;
 var
   P, TokenStart: PChar;
   L: Integer;
@@ -1411,9 +1411,9 @@ var
   begin
     while TRUE do
     begin
-      if P^ in LeadBytes then
+      if CharInSet(P^, LeadBytes) then
         Inc(P, 2)
-      else if (P^ in TheSet) or IsKatakana(Byte(P^)) then
+      else if CharInSet(P^, TheSet) or IsKatakana(Byte(P^)) then
         Inc(P)
       else
         Exit;
@@ -1443,7 +1443,7 @@ begin
         if not SysLocale.FarEast then
         begin
           Inc(P);
-          while P^ in ['A'..'Z', 'a'..'z', '0'..'9', '_', '.', '[', ']'] do Inc(P);
+          while CharInSet(P^, ['A'..'Z', 'a'..'z', '0'..'9', '_', '.', '[', ']']) do Inc(P);
         end
         else
           Skip(['A'..'Z', 'a'..'z', '0'..'9', '_', '.', '[', ']']);
@@ -1516,7 +1516,7 @@ begin
           begin
             TokenStart := P;
             Inc(P);
-            while (P^ in ['0'..'9', FDecimalSeparator, 'e', 'E', '+', '-']) do
+            while CharInSet(P^, ['0'..'9', FDecimalSeparator, 'e', 'E', '+', '-']) do
               Inc(P);
             if ((P-1)^ = ',') and (FDecimalSeparator = ',') and (P^ = ' ') then
               Dec(P);

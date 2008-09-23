@@ -1997,73 +1997,49 @@ begin
 end;
 
 procedure TPSQLDatabase.GetStoredProcNames(Pattern: String; List: TStrings);
-var
-   WildCard: PAnsiChar;
-   SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenStoredProcList(Handle, WildCard, List));
+    Check(Engine, Engine.OpenStoredProcList(Handle, Pattern, List));
   finally
     List.EndUpdate;
   end;
 end;
 
 procedure TPSQLDatabase.GetTableNames(Pattern: String; SystemTables: Boolean; List: TStrings);
-var
-   WildCard: PAnsiChar;
-   SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenTableList(Handle, WildCard, SystemTables, List));
+    Check(Engine, Engine.OpenTableList(Handle, Pattern, SystemTables, List));
   finally
     List.EndUpdate;
   end;
 end;
 
 procedure TPSQLDatabase.GetSchemaNames(Pattern: String; SystemSchemas: Boolean; List: TStrings);
-var
-   WildCard: PAnsiChar;
-   SPattern: DBITBLNAME;
 begin
   If not Assigned(List) then Exit;
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenSchemaList(Handle, WildCard, SystemSchemas, List));
+    Check(Engine, Engine.OpenSchemaList(Handle, Pattern, SystemSchemas, List));
   finally
     List.EndUpdate;
   end;
 end;
 
 procedure TPSQLDatabase.GetUserNames(Pattern: String; List: TStrings);
-var
-   WildCard: PAnsiChar;
-   SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenUserList(Handle,WildCard, List));
+    Check(Engine, Engine.OpenUserList(Handle,Pattern, List));
   finally
     List.EndUpdate;
   end;
@@ -2089,7 +2065,7 @@ begin
   end;
 end;
 
-procedure TPSQLDatabase.GetDatabases(Pattern: String;List : TStrings);
+procedure TPSQLDatabase.GetDatabases(Pattern: String; List : TStrings);
 var
    OldConn : Boolean;
    OldDbName : string;
@@ -2103,8 +2079,8 @@ begin
    end;
    if Handle = nil then Connected := True;
    if Pattern <> '' then
-      Check(Engine, Engine.GetDatabases(Handle, PAnsiChar(Pattern), List)) else
-      Check(Engine, Engine.GetDatabases(Handle,nil,List));
+      Check(Engine, Engine.GetDatabases(Handle, Pattern, List)) else
+      Check(Engine, Engine.GetDatabases(Handle, '', List));
    Connected := OldConn;
    if not Connected then
      DatabaseName := OldDbName;
@@ -2213,19 +2189,13 @@ end;
 
 
 procedure TPSQLDatabase.GetTablespaces(Pattern: String; List: TStrings);
-var
-   WildCard: PAnsiChar;
-   SPattern: DBITBLNAME;
 begin
   If not Assigned(List) then Exit;
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenTablespaceList(Handle, WildCard, List));
+    Check(Engine, Engine.OpenTablespaceList(Handle, Pattern, List));
   finally
     List.EndUpdate;
   end;
@@ -2477,7 +2447,7 @@ begin
       TypeDesc.iFldNum := ObjectField.FieldNo;
       if (Engine.GetEngProp(hDBIObj(Handle), curFIELDTYPENAME, @TypeDesc,
         SizeOf(TypeDesc), Len) = DBIERR_NONE) and (Len > 0) then
-        ObjectField.ObjectType := TypeDesc.szTypeName;
+        ObjectField.ObjectType := string(TypeDesc.szTypeName);
       with ObjectField do
         if DataType in [ftADT, ftArray] then
         begin
@@ -2817,10 +2787,10 @@ begin
     TNativeToAnsi(Engine, szName, FieldName);
     I := 0;
     FName := FieldName;
-    while FieldDefs.IndexOf(FName) >= 0 do
+    while FieldDefs.IndexOf(string(FName)) >= 0 do
     begin
       Inc(I);
-      FName := Format('%s_%d', [FieldName, I]);
+      FName := ansistring(Format('%s_%d', [string(FieldName), I]));
     end;
     if iFldType < MAXLOGFLDTYPES then
       FType := DataTypeMap[iFldType]
@@ -2863,11 +2833,21 @@ begin
           FType := ftGuid;
         end;
     end;
+
+    //pg: Unicode playing
+    {$IFDEF DELPHI_12}
+      if FType = ftString then
+        FType := ftWideString
+      else if FType = ftMemo then
+        FType := ftWideMemo;
+    {$ENDIF}
+
+
     with FieldDefs.AddFieldDef do
     begin
       FieldNo := FieldID;
       Inc(FieldID);
-      Name := FName;
+      Name := string(FName);
       DataType := FType;
       Size := FSize;
       Precision := FPrecision;
@@ -3344,9 +3324,9 @@ var
 begin
   ResetCursorRange;
   UpdateCursorPos;
-  Status := Engine.SwitchToIndex(FHandle, PAnsiChar(IndexName), PAnsiChar(TagName), 0, TRUE);
+  Status := Engine.SwitchToIndex(FHandle, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(TagName)), 0, TRUE);
   if (Status = DBIERR_NOCURRREC) then
-    Status := Engine.SwitchToIndex(FHandle, PAnsiChar(IndexName), PAnsiChar(TagName), 0, FALSE);
+    Status := Engine.SwitchToIndex(FHandle, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(TagName)), 0, FALSE);
   Check(Engine, Status);
   FKeySize := 0;
   FExpIndex := FALSE;
@@ -3684,6 +3664,8 @@ var
   Expr, Node: PExprNode;
   FilterOptions: TFilterOptions;
 begin
+  Node := nil;
+  Expr := nil;
   if loCaseInsensitive in Options then
     FilterOptions := [foNoPartialCompare, foCaseInsensitive]
   else
@@ -5313,7 +5295,7 @@ var
 
   procedure FillAddonProps;
   begin
-   Check(Engine,Engine.GetTableProps(DBHandle,NativeTableName,FOwner,
+   Check(Engine,Engine.GetTableProps(DBHandle,string(NativeTableName),FOwner,
         FComment,FTablespace,FHasOIDs,FTableID));
   end;
 
@@ -5326,7 +5308,7 @@ begin
   begin
     DBH := DBHandle;
     RetCode := Engine.OpenTable(DBH, NativeTableName, GetTableTypeName,
-      PAnsiChar(IndexName), PAnsiChar(IndexTag), IndexID, OpenMode, ShareModes[FExclusive],
+      PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), IndexID, OpenMode, ShareModes[FExclusive],
       xltField, FALSE, NIL, Result, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
       OpenMode := dbiReadOnly    else
@@ -5585,7 +5567,7 @@ begin
   begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     CheckBrowseMode;
-    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, NIL, NIL, PAnsiChar(IndexName), PAnsiChar(IndexTag), 0));
+    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, NIL, NIL, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), 0));
   end
   else
   begin
@@ -5593,7 +5575,7 @@ begin
     SetDBFlag(dbfTable, TRUE);
     try
       Check(Engine, Engine.DeleteIndex(DBHandle, NIL, NativeTableName, GetTableTypeName,
-        PAnsiChar(IndexName), PAnsiChar(IndexTag), 0));
+        PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), 0));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5634,8 +5616,8 @@ begin
        IndexStr := IndexDefs.FindIndexForFields(IndexName).Name;
      TAnsiToNative(Engine, IndexStr, SIndexName, SizeOf(SIndexName) - 1);
   end;
-  IndexedName := SIndexName;
-  IndexTag := SIndexTag;
+  IndexedName := String(SIndexName);
+  IndexTag := String(SIndexTag);
 end;
 
 procedure TPSQLTable.SetIndexDefs(Value: TIndexDefs);
@@ -5757,7 +5739,7 @@ begin
   if Result or (TableName = '') then  Exit;
   SetDBFlag(dbfTable, TRUE);
   try
-    E := Engine.TableExists(DBHandle, NativeTableName);
+    E := Engine.TableExists(DBHandle, TableName);
     Result := (E = DBIERR_NONE);
   finally
     SetDBFlag(dbfTable, FALSE);
@@ -5946,7 +5928,7 @@ begin
       begin
         Check(Engine, Engine.CloneCursor(Handle, True, False, FLookupHandle));
         GetIndexParams(KeyIndexName, FieldsIndex, IndexName, IndexTag);
-        Check(Engine, Engine.SwitchToIndex(FLookupHandle, PAnsiChar(IndexName), PAnsiChar(IndexTag), 0, FALSE));
+        Check(Engine, Engine.SwitchToIndex(FLookupHandle, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), 0, FALSE));
       end;
       FLookupKeyFields := KeyFields;
       FLookupCaseIns := CaseInsensitive;
@@ -7068,8 +7050,7 @@ end;
 procedure TPSQLStoredProc.RefreshParams;
 var
   Desc: ^SPParamDesc;
-  Buffer: DBISPNAME;
-  ParamName: ansistring;
+  ParamName: String;
   ParamDataType: TFieldType;
   List : TList;
   i:integer;
@@ -7077,15 +7058,14 @@ begin
    if not FNeedRefreshParams then Exit;
    List := TList.Create;
    try
-    TAnsiToNative(Engine, StoredProcName, Buffer, SizeOf(Buffer)-1);
     FParams.Clear;
-    if Engine.OpenStoredProcParams(DBHandle, Buffer, FOverload, List) = 0 then
+    if Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List) = 0 then
       for i:=0 to List.Count-1 do
        begin
         Desc := List[i];
         with Desc^ do
         begin
-          TNativeToAnsi(Engine, szName, ParamName);
+          ParamName := szName;
           if (TParamType(eParamType) = ptResult) and (ParamName = '') then
             ParamName := SResultName;
           if uFldType < MAXLOGFLDTYPES then ParamDataType := DataTypeMap[uFldType]
@@ -7101,7 +7081,7 @@ begin
           begin
             ParamType := TParamType(eParamType);
             DataType := ParamDataType;
-            Name := ParamName;
+            Name := string(ParamName);
           end;
         end;
        end;

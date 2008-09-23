@@ -1,9 +1,9 @@
 object PSQLStoredProcProp: TPSQLStoredProcProp
   Left = 245
   Top = 145
-  Width = 508
-  Height = 295
   Caption = 'TPSQLStoredProc Editor...'
+  ClientHeight = 261
+  ClientWidth = 500
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
