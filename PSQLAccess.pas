@@ -4884,7 +4884,8 @@ begin
          case VarType(Param.Value) of
            varSmallint,
            varInteger,
-           varByte     : Value := IntToStr(Param.Value);
+           varByte,
+           varInt64     : Value := IntToStr(Param.Value);
            varSingle,
            varDouble,
            varCurrency : Value := SQLFloatToStr(VarAsType(Param.Value, varDouble));
@@ -7554,8 +7555,8 @@ begin
                         {$IFDEF DELPHI_5}
                          AParam.AsString := IntToStr(Int64(Src^));
                         {$ELSE}
-                         AParam.Value := Int64(Src^);
                          AParam.DataType := DataTypeMap[Fld.FieldType];
+                         AParam.Value := Int64(Src^);
                         {$ENDIF}
                        end;
            fldFloat:   AParam.AsFloat := Double(Src^);
