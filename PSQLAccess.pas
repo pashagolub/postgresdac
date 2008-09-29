@@ -773,12 +773,15 @@ Type
       property IsLocked: boolean read FIsLocked write FIsLocked;
       property LastOperationTime: cardinal read FLastOperationTime;
       function CheckCanLive : boolean; //pasha_golub 14.07.06
-      //pasha COMMON FIELD
       function HasFieldTimeZone(const FldNum: integer):boolean;
-      //pasha SORTING
  		  procedure SortBy(FieldNames : string);
       function IsSortedLocally: boolean;
- end;
+
+    //mi:2008-08-27 flag to prevent record buffer storing while reading BLOB field data
+    private
+      FPreventRememberBuffer : boolean;
+    public
+      property PreventRememberBuffer : boolean read FPreventRememberBuffer write FPreventRememberBuffer; end;
 
  TIndexList = Class(TNativeDataSet)
  Private
@@ -967,7 +970,6 @@ begin
     FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
     FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
     FIELD_TYPE_BIT,      // BIT Field
-    FIELD_TYPE_BYTEA,   
     FIELD_TYPE_BPCHAR,
     FIELD_TYPE_VARCHAR,
     FIELD_TYPE_CHAR:   StrLCopy(Dest,Src,iField.NativeSize);
@@ -1004,6 +1006,10 @@ begin
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+
+    FIELD_TYPE_BYTEA,
+    FIELD_TYPE_OID,
+    FIELD_TYPE_TEXT: Result := 1; //29.09.2008
 //--------------Geometric types ---------------------------
     FIELD_TYPE_POINT,
     FIELD_TYPE_LSEG,
@@ -1079,6 +1085,10 @@ begin
       FIELD_TYPE_FLOAT4,
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+
+      FIELD_TYPE_OID,
+      FIELD_TYPE_BYTEA,
+      FIELD_TYPE_TEXT: Result := 1;
 //--------------Geometric types ---------------------------
       FIELD_TYPE_POINT,
       FIELD_TYPE_LSEG,
@@ -2651,6 +2661,7 @@ begin
   FOIDTable := TList.Create;
   FSystemNeed := ASystem;
   IsQuery := False;
+  FPreventRememberBuffer := false; //mi:2008-08-27
 end;
 
 Destructor TNativeDataSet.Destroy;
@@ -2739,7 +2750,8 @@ end;
 
 procedure TNativeDataSet.SetInternalBuffer(Buffer : Pointer);
 begin
-  BufferAddress := Buffer;
+  if not FPreventRememberBuffer then //mi:2008-08-27 check if we need to remember buffer
+    BufferAddress := Buffer;
 end;
 
 Function TNativeDataSet.GetInternalBuffer : Pointer;
@@ -2959,8 +2971,8 @@ var
 begin
   GetBookMark(@P);
   CheckParam(@P=nil,DBIERR_INVALIDPARAM);
-  InternalBuffer := PRecord;
-  If not FIsLocked then
+
+  if not FIsLocked then
   begin
     SetToBookMark(@P);
     if eLock = dbiWRITELOCK then LockRecord(eLock);
@@ -3043,9 +3055,9 @@ begin
     tsPos:
       begin
         GetWorkRecord(eLock,PRecord);
-        Try
+        try
           CheckFilter(PRecord);
-        Except
+        except
           On E:EPSQLException do
           begin
             if FReRead then
@@ -3057,7 +3069,7 @@ begin
             else
             begin
               If eLock = dbiWRITELOCK then FIsLocked := FALSE;
-              Raise;
+              raise;
             end;
           end;
         end;

@@ -6484,33 +6484,51 @@ begin
   FField := Field;
   FDataSet := FField.DataSet as TPSQLDataSet;
   FFieldNo := FField.FieldNo;
+
   if not FDataSet.GetActiveRecBuf(FBuffer) then Exit;
-  if FDataSet.State = dsFilter then DatabaseErrorFmt(SNoFieldAccess, [FField.DisplayName], FDataSet);
+
+  if FDataSet.State = dsFilter then
+    DatabaseErrorFmt(SNoFieldAccess, [FField.DisplayName], FDataSet);
+
   if not FField.Modified then
   begin
     if Mode = bmRead then
-    begin
+     begin
       FCached := FDataSet.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
                  (FField.IsNull or (FDataSet.GetBlobData(FField, FBuffer) <> {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF}));
       OpenMode := dbiReadOnly;
-      if PositionDataset then
-         if not FDataSet.GetCurrentRecord(FBuffer) then Exit;
-    end else
-    begin
+     end
+    else
+     begin //bmWrite
       FDataSet.SetBlobData(FField, FBuffer, {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF});
       if FField.ReadOnly then DatabaseErrorFmt(SFieldReadOnly, [FField.DisplayName], FDataSet);
       if not (FDataSet.State in [dsEdit, dsInsert]) then DatabaseError(SNotEditing, FDataSet);
       OpenMode := dbiReadWrite;
-    end;
+     end;
 
     if not FCached then
-    begin
-      if (FDataSet.State in [dsBrowse,dsInsert,dsEdit]) and (Mode = bmRead) then
-        FDataSet.GetCurrentRecord(FDataSet.ActiveBuffer); //#363; pg: 18.01.07
+     begin
+      if Mode = bmRead then
+       begin
+        if FDataSet.State = dsBrowse then
+         begin
+          FDataSet.GetCurrentRecord(FDataSet.ActiveBuffer);
+         end
+        else if (FDataSet.State = dsEdit) or (FDataSet.State = dsInsert) then
+         begin
+          TNativeDataSet(FDataSet.FHandle).PreventRememberBuffer := true; //we just need to read the record without storing in recordbuffer
+          FDataSet.GetCurrentRecord(FDataSet.ActiveBuffer);
+          TNativeDataSet(FDataSet.FHandle).PreventRememberBuffer := false;
+         end;
+       end;
+
       Check(Engine, Engine.OpenBlob(FDataSet.Handle, FBuffer, FFieldNo, OpenMode));
-    end;
+     end;
+
   end;
+
   FOpened := TRUE;
+
   if Mode = bmWrite then Truncate;
 end;
 
