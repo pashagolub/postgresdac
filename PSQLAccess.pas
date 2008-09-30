@@ -3810,6 +3810,11 @@ var
   origBuffer: Pointer;
   FldValue : String;
   Data : pointer;
+{$IFDEF DELPHI_5}
+const
+  MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }
+  MaxDateTime: TDateTime =  2958465.99999; { 12/31/9999 11:59:59.999 PM }
+{$ENDIF}
 begin
    T := nil;
    if assigned(FCurrentBuffer) then
@@ -4894,10 +4899,12 @@ begin
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
         else
          case VarType(Param.Value) of
+           {$IFNDEF DELPHI_5}
+           varInt64,
+           {$ENDIF}
            varSmallint,
            varInteger,
-           varByte,
-           varInt64     : Value := IntToStr(Param.Value);
+           varByte     : Value := IntToStr(Param.Value);
            varSingle,
            varDouble,
            varCurrency : Value := SQLFloatToStr(VarAsType(Param.Value, varDouble));

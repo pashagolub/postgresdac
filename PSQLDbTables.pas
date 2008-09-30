@@ -3724,27 +3724,26 @@ var
   Expr, Node: PExprNode;
   FilterOptions: TFilterOptions;
 begin
+  Expr := nil;
+  Node := nil;
   if loCaseInsensitive in Options then
-    FilterOptions := [foNoPartialCompare, foCaseInsensitive] else
+    FilterOptions := [foNoPartialCompare, foCaseInsensitive]
+  else
     FilterOptions := [foNoPartialCompare];
-  {$IFDEF DELPHI_4}
-  Filter := TFilterExpr.Create(Self, FilterOptions, [], '', NIL);
-  {$ELSE}
   Filter := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
-  {$ENDIF}
   try
     if (Fields.Count = 1) and not VarIsArray(Values) then
     begin
-      Node := Filter.NewCompareNode(TField(Fields[0]), {$IFDEF DELPHI_4}canEQ {$ELSE}coEQ {$ENDIF}, Values);
+      Node := Filter.NewCompareNode(TField(Fields[0]), coEQ, Values);
       Expr := Node;
     end
     else
       for I := 0 to Fields.Count-1 do
       begin
-        Node := Filter.NewCompareNode(TField(Fields[I]), {$IFDEF DELPHI_4}canEQ {$ELSE}coEQ {$ENDIF}, Values[I]);
+        Node := Filter.NewCompareNode(TField(Fields[I]), coEQ, Values[I]);
         if I = 0 then
           Expr := Node else
-          Expr := Filter.NewNode(enOperator, {$IFDEF DELPHI_4}canAND{$ELSE}coAND {$ENDIF}, Unassigned, Expr, Node);
+          Expr := Filter.NewNode(enOperator, coAND, Unassigned, Expr, Node);
       end;
     if loPartialKey in Options then Node^.FPartial := TRUE;
     Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Filter.GetFilterData(Expr)), NIL, Result));
