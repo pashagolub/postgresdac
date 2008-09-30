@@ -204,16 +204,22 @@ const
     FIELD_TYPE_VARCHAR            = 1043;
     FIELD_TYPE_DATE               = 1082;
     FIELD_TYPE_TIME               = 1083;
+    FIELD_TYPE_A_TIMESTAMP        = 1115;
     FIELD_TYPE_TIMESTAMP          = 1114;
     FIELD_TYPE_A_DATE             = 1182;
     FIELD_TYPE_A_TIME             = 1183;
+    FIELD_TYPE_A_TIMESTAMPTZ      = 1185;
     FIELD_TYPE_TIMESTAMPTZ        = 1184;
     FIELD_TYPE_A_DATETIME         = 1185;
     FIELD_TYPE_INTERVAL           = 1186;
-    FIELD_TYPE_A_TIMESPAN         = 1187;
+    FIELD_TYPE_A_INTERVAL         = 1187;
+    FIELD_TYPE_A_TIMETZ           = 1270;
     FIELD_TYPE_TIMETZ             = 1266;
+    FIELD_TYPE_A_BIT              = 1561;
     FIELD_TYPE_BIT                = 1560;
+    FIELD_TYPE_A_VARBIT           = 1563;
     FIELD_TYPE_VARBIT             = 1562;
+    FIELD_TYPE_A_NUMERIC          = 1231;
     FIELD_TYPE_NUMERIC            = 1700;
     FIELD_TYPE_UUID               = 2950; //09.10.2007
     FIELD_TYPE_XML                = 142;  //09.10.2007
@@ -242,7 +248,7 @@ const
     FIELD_TYPE_A_VARCHAR, FIELD_TYPE_A_POINT,  FIELD_TYPE_A_LSEG,   FIELD_TYPE_A_PATH,     FIELD_TYPE_A_BOX,     FIELD_TYPE_A_FLOAT4,
     FIELD_TYPE_A_FLOAT8,  FIELD_TYPE_A_ABSTIME,FIELD_TYPE_A_RELTIME,FIELD_TYPE_A_TINTERVAL,FIELD_TYPE_A_FILENAME,FIELD_TYPE_A_POLYGON,
     FIELD_TYPE_A_OID,     FIELD_TYPE_A_ACLITEM,FIELD_TYPE_A_MACADDR,FIELD_TYPE_A_INET,     FIELD_TYPE_A_DATE,    FIELD_TYPE_A_TIME,
-    FIELD_TYPE_A_DATETIME,FIELD_TYPE_A_TIMESPAN);
+    FIELD_TYPE_A_DATETIME,FIELD_TYPE_A_INTERVAL);
 
 //////////////////////////////////////////////////////////////////
 //                   Plain API Types definition                 //

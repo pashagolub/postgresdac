@@ -80,6 +80,7 @@ type
         procedure SetExcludeSchemas(const Value: TStrings);
         procedure SetExcludeTables(const Value: TStrings);
         procedure DoLog(const Value: string);
+        function GetVersionAsInt: integer;
       protected
         procedure CheckDependencies;
         function GetParameters: PChar;
@@ -92,6 +93,7 @@ type
 	      procedure DumpToStream(Stream: TStream; LogFileName: string); overload;
         procedure DumpToFile(const FileName: string; Log: TStrings); overload;
       	procedure DumpToFile(const FileName, LogFileName: string); overload;
+        property VersionAsInt: integer read GetVersionAsInt;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
         property SchemaName: string  index dsoSchema read GetStrOptions write SetStrOptions;
@@ -147,6 +149,7 @@ type
         procedure SetStrOptions(const Index: Integer; const Value: string);
         procedure Restore(const SourceFile, OutFile, LogFile: string);
         procedure DoLog(const Value: string);
+        function GetVersionAsInt: integer;
       protected
         procedure CheckDependencies;
         function GetParameters: PChar;
@@ -156,6 +159,7 @@ type
         destructor Destroy; override;
         procedure RestoreFromFile(const FileName: string; Log: TStrings); overload;
       	procedure RestoreFromFile(const FileName, LogFileName: string); overload;
+        property VersionAsInt: integer read GetVersionAsInt;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
         property TableName: string  index rsoTable read GetStrOptions write SetStrOptions;
@@ -645,6 +649,22 @@ begin
     FOnLog(Self, Value);
 end;
 
+function TPSQLDump.GetVersionAsInt: integer;
+var
+  h : Cardinal;
+  pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
+begin
+  Result := 0;
+  h := LoadLibrary('pg_dump.dll');
+  try
+   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
+   if Assigned(pdmbvm_GetVersionAsInt) then
+     Result := pdmbvm_GetVersionAsInt();
+  finally
+   FreeLibrary(H);
+  end;
+end;
+
 {TPSQLRestore}
 
 constructor TPSQLRestore.Create(Owner: TComponent);
@@ -867,6 +887,21 @@ begin
     FOnLog(Self, Value);
 end;
 
+function TPSQLRestore.GetVersionAsInt: integer;
+var
+  h : Cardinal;
+  pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
+begin
+  Result := 0;
+  h := LoadLibrary('pg_restore.dll');
+  try
+   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
+   if Assigned(pdmbvm_GetVersionAsInt) then
+     Result := pdmbvm_GetVersionAsInt();
+  finally
+   FreeLibrary(H);
+  end;
+end;
 end.
 
 

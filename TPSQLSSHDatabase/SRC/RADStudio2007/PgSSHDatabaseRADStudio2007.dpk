@@ -31,7 +31,7 @@ requires
   bdertl,
   vcldb,
   PostgresDAC11,
-  sshtunnel;
+  wodSSHTunnel;
 
 contains
   PgSSHDatabase in '..\PgSSHDatabase.pas';

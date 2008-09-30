@@ -1,4 +1,4 @@
-package PgSSHDatabaseD5;
+package wodSSHTunnel;
 
 {$R *.RES}
 {$ALIGN ON}
@@ -19,19 +19,16 @@ package PgSSHDatabaseD5;
 {$STACKFRAMES OFF}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
-{$WRITEABLECONST ON}
+{$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$IMPLICITBUILD OFF}
 
 requires
-  vcl50,
-  Vcldb50,
-  Vclbde50,
-  PostgresDAC5,
-  wodSSHTunnel;
+  rtl,
+  vcl;
 
 contains
-  PgSSHDatabase in '..\PgSSHDatabase.pas';
+  wodSSHTunnelLib_TLB;
 
 end.

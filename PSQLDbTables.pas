@@ -64,6 +64,11 @@ type
   TPSQLDACAbout = Class
   end;
 
+  //used for LOCK TABLE
+  TPSQLLockType = (ltAccessShare, ltRowShare, ltRowExclusive, ltShareUpdateExclusive,
+                   ltShare, ltShareRowExclusive, ltExclusive, ltAccessExclusive);
+  
+
   { Forward declarations }
   TPSQLDatabase      = Class;
   TPSQLParams        = TParams;
@@ -625,8 +630,6 @@ type
 //Class       : TPSQLTable
 //Description : TPSQLTable class
 //////////////////////////////////////////////////////////
-  TPSQLLockType = (mltReadLock, mltWriteLock);
-
   TTableType = (ttDefault, ttParadox, ttDBase, ttFoxPro, ttASCII);
   TIndexName = type string;
 
@@ -684,7 +687,6 @@ type
     procedure SetIndexName(const Value: String);
     procedure SetMasterFields(const Value: String);
     procedure SetReadOnly(Value: Boolean);
-    procedure SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
     procedure SetTableName(const Value: TFileName);
     function GetTableName: TFileName;
     procedure UpdateRange;
@@ -753,12 +755,11 @@ type
     procedure GotoCurrent(Table: TPSQLTable);
     function GotoKey: Boolean;
     procedure GotoNearest;
-    procedure LockTable(LockType: TPSQLLockType);
+    Procedure LockTable(LockType: TPSQLLockType; NoWait: boolean);
     procedure SetKey;
     procedure SetRange(const StartValues, EndValues: array of const);
     procedure SetRangeEnd;
     procedure SetRangeStart;
-    procedure UnlockTable;
     property Exists: Boolean read GetExists;
     property IndexFieldCount: Integer read GetIndexFieldCount;
     property IndexFields[Index: Integer]: TField read GetIndexField write SetIndexField;
@@ -6156,25 +6157,12 @@ begin
   end;
 end;
 
-procedure TPSQLTable.LockTable(LockType: TPSQLLockType);
-begin
-  SetTableLock(LockType, TRUE);
-end;
-
-procedure TPSQLTable.SetTableLock(LockType: TPSQLLockType; Lock: Boolean);
-var
-  L: DBILockType;
+procedure TPSQLTable.LockTable(LockType: TPSQLLockType; NoWait: boolean);
 begin
   CheckActive;
-  if LockType = mltReadLock then L := dbiREADLOCK else L := dbiWRITELOCK;
-  if Lock then
-    Check(Engine, Engine.AcqTableLock(Handle, L)) else
-    Check(Engine, Engine.RelTableLock(Handle, False, L));
-end;
-
-procedure TPSQLTable.UnlockTable;
-begin
-  SetTableLock(mltReadLock, FALSE);
+  if not Database.InTransaction then
+    DatabaseError('LOCK TABLE can not be used outside the transaction.');
+  Check(Engine, Engine.AcqTableLock(Handle, Word(LockType), NoWait));
 end;
 
 procedure TPSQLTable.EncodeFieldDesc(var FieldDesc: FLDDesc;
@@ -6425,8 +6413,12 @@ begin
   FField := Field;
   FDataSet := FField.DataSet as TPSQLDataSet;
   FFieldNo := FField.FieldNo;
+
   if not FDataSet.GetActiveRecBuf(FBuffer) then Exit;
-  if FDataSet.State = dsFilter then DatabaseErrorFmt(SNoFieldAccess, [FField.DisplayName], FDataSet);
+
+  if FDataSet.State = dsFilter then
+    DatabaseErrorFmt(SNoFieldAccess, [FField.DisplayName], FDataSet);
+
   if not FField.Modified then
   begin
     if Mode = bmRead then
@@ -6434,10 +6426,9 @@ begin
       FCached := FDataSet.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
                  (FField.IsNull or (FDataSet.GetBlobData(FField, FBuffer) <> {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF}));
       OpenMode := dbiReadOnly;
-      if PositionDataset then
-         if not FDataSet.GetCurrentRecord(FBuffer) then Exit;
-    end else
-    begin
+     end
+    else
+     begin //bmWrite
       FDataSet.SetBlobData(FField, FBuffer, {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF});
       if FField.ReadOnly then DatabaseErrorFmt(SFieldReadOnly, [FField.DisplayName], FDataSet);
       if not (FDataSet.State in [dsEdit, dsInsert]) then DatabaseError(SNotEditing, FDataSet);
@@ -6446,12 +6437,27 @@ begin
 
     if not FCached then
     begin
-      if (FDataSet.State in [dsBrowse,dsInsert,dsEdit]) and (Mode = bmRead) then
-        FDataSet.GetCurrentRecord(FDataSet.ActiveBuffer); //#363; pg: 18.01.07
+      if Mode = bmRead then
+       begin
+        if FDataSet.State = dsBrowse then
+         begin
+          FDataSet.GetCurrentRecord(FDataSet.ActiveBuffer);
+         end
+        else if (FDataSet.State = dsEdit) or (FDataSet.State = dsInsert) then
+         begin
+          TNativeDataSet(FDataSet.FHandle).PreventRememberBuffer := true; //we just need to read the record without storing in recordbuffer
+          FDataSet.GetCurrentRecord(FDataSet.ActiveBuffer);
+          TNativeDataSet(FDataSet.FHandle).PreventRememberBuffer := false;
+         end;
+       end;
+
       Check(Engine, Engine.OpenBlob(FDataSet.Handle, FBuffer, FFieldNo, OpenMode));
     end;
+
   end;
+
   FOpened := TRUE;
+
   if Mode = bmWrite then Truncate;
 end;
 

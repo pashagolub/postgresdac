@@ -323,8 +323,7 @@ Type
       Function TranslateRecordStructure(pszSrcDriverType: PChar; iFlds: Word; pfldsSrc: pFLDDesc; pszDstDriverType: PChar; pszLangDriver: PChar;pfldsDst: pFLDDesc; bCreatable: Bool): DBIResult;
       function TableExists(hDb: hDBIDb; pszTableName: string): DBIResult;
       Function CreateTable(hDb: hDBIDb; bOverWrite: Bool; var crTblDsc: CRTblDesc): DBIResult;
-      function AcqTableLock(hCursor: hDBICur; eLockType: DBILockType): DBIResult;
-      function RelTableLock(hCursor: hDBICur; bAll: Bool; eLockType: DBILockType): DBIResult;
+      function AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
       function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer): DBIResult;
       function CloneCursor(hCurSrc: hDBICur;bReadOnly: Bool;bUniDirectional: Bool;var   hCurNew: hDBICur): DBIResult;
       function SetToCursor(hDest, hSrc : hDBICur) : DBIResult;
@@ -759,8 +758,7 @@ Type
       procedure EmptyTable;
       Procedure AddIndex(var IdxDesc: IDXDesc; pszKeyviolName : PAnsiChar);
       Procedure DeleteIndex(pszIndexName: PAnsiChar; pszIndexTagName: PAnsiChar; iIndexId: Word);
-      Procedure AcqTableLock(eLockType: DBILockType);
-      Procedure RelTableLock(bAll: Bool;eLockType: DBILockType);
+      procedure AcqTableLock(eLockType: word; bNoWait: boolean);
       Procedure SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
       procedure Clone(bReadOnly: Bool;bUniDirectional: Bool;var hCurNew: hDBICur);
       procedure SetToCursor(hDest : hDBICur);
@@ -778,12 +776,16 @@ Type
       property IsLocked: boolean read FIsLocked write FIsLocked;
       property LastOperationTime: cardinal read FLastOperationTime;
       function CheckCanLive : boolean; //pasha_golub 14.07.06
-      //pasha COMMON FIELD
       function HasFieldTimeZone(const FldNum: integer):boolean;
-      //pasha SORTING
  		  procedure SortBy(FieldNames : string);
       function IsSortedLocally: boolean;
- end;
+
+    //mi:2008-08-27 flag to prevent record buffer storing while reading BLOB field data
+    private
+      FPreventRememberBuffer : boolean;
+    public
+      property PreventRememberBuffer : boolean read FPreventRememberBuffer write FPreventRememberBuffer; 
+end;
 
  TIndexList = Class(TNativeDataSet)
  Private
@@ -972,7 +974,6 @@ begin
     FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
     FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
     FIELD_TYPE_BIT,      // BIT Field
-    FIELD_TYPE_BYTEA,   
     FIELD_TYPE_BPCHAR,
     FIELD_TYPE_VARCHAR,
     FIELD_TYPE_CHAR:   StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
@@ -1009,6 +1010,10 @@ begin
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+
+    FIELD_TYPE_BYTEA,
+    FIELD_TYPE_OID,
+    FIELD_TYPE_TEXT: Result := 1; //29.09.2008
 //--------------Geometric types ---------------------------
     FIELD_TYPE_POINT,
     FIELD_TYPE_LSEG,
@@ -1084,6 +1089,10 @@ begin
       FIELD_TYPE_FLOAT4,
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+
+      FIELD_TYPE_OID,
+      FIELD_TYPE_BYTEA,
+      FIELD_TYPE_TEXT: Result := 1;
 //--------------Geometric types ---------------------------
       FIELD_TYPE_POINT,
       FIELD_TYPE_LSEG,
@@ -2658,6 +2667,7 @@ begin
   FOIDTable := TList.Create;
   FSystemNeed := ASystem;
   IsQuery := False;
+  FPreventRememberBuffer := false; //mi:2008-08-27
 end;
 
 Destructor TNativeDataSet.Destroy;
@@ -2689,6 +2699,7 @@ end;
 
 Procedure TNativeDataSet.SetInternalBuffer(Buffer : Pointer);
 begin
+  if not FPreventRememberBuffer then //mi:2008-08-27 check if we need to remember buffer
   BufferAddress := Buffer;
 end;
 
@@ -2909,7 +2920,6 @@ var
 begin
   GetBookMark(@P);
   CheckParam(@P=nil,DBIERR_INVALIDPARAM);
-  InternalBuffer := PRecord;
   If not FIsLocked then
   begin
     SetToBookMark(@P);
@@ -3817,14 +3827,22 @@ begin
                  FldValue := FConnect.RawToString(FieldBuffer(i));
              case T.NativeType of
                FIELD_TYPE_INT2: SmallInt(Data^) := SmallInt(StrToint(FldValue));
-               FIELD_TYPE_BOOL: if FieldBuffer(I) = 't' then
+               FIELD_TYPE_BOOL: if FldValue = 't' then
                                    SmallInt(Data^) := SmallInt(1) else
                                    SmallInt(Data^) := SmallInt(0);
                FIELD_TYPE_INT4: LongInt(Data^) := LongInt(StrToint(FldValue));
                FIELD_TYPE_INT8: Int64(Data^) := StrToInt64(FldValue);
                FIELD_TYPE_DATE:   TDateTime(Data^) := SQLDateToDateTime(FldValue,False);
                FIELD_TYPE_TIME:   TDateTime(Data^) := SQLDateToDateTime(FldValue,True);
-               FIELD_TYPE_TIMESTAMP: TDateTime(Data^) :=SQLTimeStampToDateTime(FldValue);
+               FIELD_TYPE_TIMESTAMP: if FldValue = 'infinity' then
+                                       TDateTime(Data^) := MaxDateTime
+                                     else
+                                       if FldValue = '-infinity' then
+                                         TDateTime(Data^) := MinDateTime
+                                       else
+                                         TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
+               FIELD_TYPE_TIMESTAMPTZ: StrPCopy(PChar(Data),FldValue);
+
                FIELD_TYPE_FLOAT4,
                FIELD_TYPE_FLOAT8,
                FIELD_TYPE_NUMERIC:   Double(Data^) :=StrToSQLFloat(FldValue);
@@ -4827,7 +4845,8 @@ begin
          case VarType(Param.Value) of
            varSmallint,
            varInteger,
-           varByte     : Value := IntToStr(Param.Value);
+           varByte,
+           varInt64     : Value := IntToStr(Param.Value);
            varSingle,
            varDouble,
            varCurrency : Value := SQLFloatToStr(VarAsType(Param.Value, varDouble));
@@ -5158,12 +5177,20 @@ begin
     FConnect.CheckResult;
 end;
 
-Procedure TNativeDataSet.AcqTableLock(eLockType: DBILockType);
+procedure TNativeDataSet.AcqTableLock(eLockType: word; bNoWait: boolean);
+const _lockmode: array[TPSQLLockType] of AnsiString = ('ACCESS SHARE', 'ROW SHARE',
+        'ROW EXCLUSIVE', 'SHARE UPDATE EXCLUSIVE',
+        'SHARE', 'SHARE ROW EXCLUSIVE', 'EXCLUSIVE',
+        'ACCESS EXCLUSIVE');
+      _nowait: array[boolean] of AnsiString = ('', 'NOWAIT');
+var Res: PPGresult;
 begin
+  Res := PQExec(FConnect.Handle, PAnsiChar(Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]])));
+  try
+    FConnect.CheckResult(Res);
+  finally
+    PQclear(RES);
 end;
-
-Procedure TNativeDataSet.RelTableLock(bAll: Bool; eLockType: DBILockType);
-begin
 end;
 
 Procedure TNativeDataSet.SetToKey(eSearchCond: DBISearchCond; bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer);
@@ -6194,20 +6221,10 @@ begin
   end;
 end;
 
-function TPSQLEngine.AcqTableLock(hCursor: hDBICur;eLockType: DBILockType): DBIResult;
+function TPSQLEngine.AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
 begin
   Try
-    TNativeDataset(hCursor).AcqTableLock(eLockType);
-    Result := DBIERR_NONE;
-  Except
-    Result := CheckError;
-  end;
-end;
-
-function TPSQLEngine.RelTableLock(hCursor: hDBICur;bAll: Bool;eLockType: DBILockType): DBIResult;
-begin
-  Try
-    TNativeDataset(hCursor).RelTableLock(bAll, eLockType);
+    TNativeDataset(hCursor).AcqTableLock(eLockType, bNoWait);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
@@ -7484,8 +7501,8 @@ begin
                         {$IFDEF DELPHI_5}
                          AParam.AsString := IntToStr(Int64(Src^));
                         {$ELSE}
-                         AParam.Value := Int64(Src^);
                          AParam.DataType := DataTypeMap[Fld.FieldType];
+                         AParam.Value := Int64(Src^);
                         {$ENDIF}
                        end;
            fldFloat:   AParam.AsFloat := Double(Src^);
