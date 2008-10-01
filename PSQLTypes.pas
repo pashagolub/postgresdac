@@ -441,7 +441,7 @@ type
   TPQmakeEmptyPGresult  = function(Handle: PPGconn; status: ExecStatusType): PPGresult; cdecl;
   TPQEscapeByteaConn   = function(Handle: PPGconn; from: PChar; from_length: integer; var to_length: integer):PChar; cdecl;
   TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer):PAnsiChar; cdecl;
-  TPQEscapeStringConn = function(Handle: PPGconn; to_str: PChar; const from_str: Pchar; from_size: cardinal; var Error: integer):cardinal;cdecl;
+  TPQEscapeStringConn = function(Handle: PPGconn; to_str: PAnsiChar; const from_str: PAnsiChar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
   Tlo_open         = function(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer; cdecl;
   Tlo_close        = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
@@ -2494,7 +2494,7 @@ begin
     begin
       iFldNum  := Count;
       pValChk^.iFldNum := Count;
-      DataLen := Max(Info.FieldMaxSize,Info.FieldMaxSize);
+      DataLen := Info.FieldMaxSize;
       FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
       if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
          (Info.Fieldtype = FIELD_TYPE_NUMERIC) then

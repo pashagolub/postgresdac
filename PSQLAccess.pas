@@ -144,7 +144,7 @@ Type
     procedure CommitBLOBTran;
     procedure EndTran(hXact : hDBIXact; eEnd : eXEnd);
     procedure GetTranInfo(hXact : hDBIXact; pxInfo : pXInfo);
-    Procedure QExecDirect(eQryLang : DBIQryLang; pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
+    Procedure QExecDirect(pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
     procedure OpenFieldList(pszTableName: PAnsiChar;pszDriverType: PAnsiChar;bPhyTypes: Bool;var hCur: hDBICur);
     Procedure OpenIndexList(pszTableName: PAnsiChar;pszDriverType: PAnsiChar;var hCur: hDBICur);
     function GetCharSet: string;
@@ -290,7 +290,7 @@ Type
       Function DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       Function GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszError: PChar): DBIResult;
       Function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
-      Function QExecDirect(hDb: hDBIDb;eQryLang: DBIQryLang;pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
+      Function QExecDirect(hDb: hDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
       Function QAlloc(hDb: hDBIDb;eQryLang: DBIQryLang;var hStmt: hDBIStmt): DBIResult;
       Function QPrepare(hStmt: hDBIStmt;pszQuery: String): DBIResult;
       Function QExec(hStmt: hDBIStmt;phCur: phDBICur): DBIResult;
@@ -398,8 +398,9 @@ Type
       Function GetNull : Boolean;
       Procedure SetNull(Flag : Boolean);
       function GetFieldDefault : string;//mi
-      procedure SetFieldDefault(aStr : string);//mi
-    Public
+      procedure SetFieldDefault(aStr : string);
+    function GetNativeDataset: TNativeDataSet;//mi
+    public
       Constructor CreateField(Owner : TCollection; P : pFldDesc;P1 :pVCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
       function FieldValue: PChar;
       Property Buffer : Pointer Read FBuffer Write SetBuffer;
@@ -411,7 +412,7 @@ Type
       Property FieldNull : Boolean Read GetNull Write SetNull;
       Property FieldStatus : PFieldStatus Read FStatus;
       Property NullOffset : Word Read FDesc.iNullOffset Write FDesc.iNullOffset;
-    Published
+    published
       Property FieldNumber : Word Read FDesc.iFldNum Write FDesc.iFldNum;
       Property FieldName : String Read GetFieldName Write SetFieldName;
       Property FieldType : Word Read   FDesc.iFldType Write  FDesc.iFldType;
@@ -420,11 +421,13 @@ Type
       Property FieldUnits2 : SmallInt Read   FDesc.iUnits2 Write  FDesc.iUnits2;
       Property FieldLength : Word Read   FDesc.iLen Write  FDesc.iLen;
       property FieldDefault: string read GetFieldDefault write SetFieldDefault;//mi
-      Property NativeType : Word Read   GetLocalType Write  SetLocalType;
-      Property NativeSize : Word Read   GetLocalSize Write  SetLocalSize;
-      Property FieldArray : Boolean Read  FArray write FArray;
-      Property NativeBLOBType: TNativeBLOBType read FNativeBLOBType
+      property NativeType : Word Read   GetLocalType Write  SetLocalType;
+      property NativeSize : Word Read   GetLocalSize Write  SetLocalSize;
+      property FieldArray : Boolean Read  FArray write FArray;
+      property NativeBLOBType: TNativeBLOBType read FNativeBLOBType
                 write FNativeBlobType;
+
+      property NativeDataset : TNativeDataSet read GetNativeDataset;
   end;
 
   //////////////////////////////////////////////////////////
@@ -439,7 +442,9 @@ Type
       Constructor Create(Table : TNativeDataSet);
       Property Field[Index : Integer] : TPSQLField Read  GetField; Default;
       Procedure SetFields(PRecord : Pointer);
-      Function FieldNumberFromName(SearchName : PChar) : Integer;
+      function FieldNumberFromName(SearchName : PChar) : Integer;
+
+      property NativeDataset : TNativeDataSet read FTable;
   end;
 
   //////////////////////////////////////////////////////////
@@ -966,22 +971,13 @@ begin
     Blank  := True;
     Exit;
   end;
-  Blank := False;
+
   Inc(PAnsiChar(Src));
   Case iField.NativeType of
     FIELD_TYPE_BOOL:     SmallInt(Dest^) := SmallInt(Src^);
     FIELD_TYPE_INT2:     SmallInt(Dest^) := SmallInt(Src^);
-    FIELD_TYPE_INT2VECTOR: StrLCopy(PAnsiChar(Dest), PAnsiChar(Src),iField.NativeSize);
     FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
     FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
-    FIELD_TYPE_BIT,      // BIT Field
-    FIELD_TYPE_BPCHAR,
-    FIELD_TYPE_VARCHAR,
-    FIELD_TYPE_CHAR:   StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
-    FIELD_TYPE_NAME:   StrLCopy(PChar(Dest), PChar(Src), 64);
-    FIELD_TYPE_MONEY:   StrLCopy(PChar(Dest), PChar(Src),32);
-    FIELD_TYPE_REGPROC:StrLCopy(PChar(Dest), PChar(Src),16);
-    FIELD_TYPE_INTERVAL : StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize); //TIME INTERVAL
     FIELD_TYPE_DATE:   begin
                           try
                             LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Date;
@@ -996,10 +992,6 @@ begin
                             Result := 1;
                           end;
                        end;
-    FIELD_TYPE_TIMETZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //TIME WITH TIME ZONE
-
-    FIELD_TYPE_UUID: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
-    FIELD_TYPE_TIMESTAMPTZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
     FIELD_TYPE_TIMESTAMP:
                           begin
                             try
@@ -1015,41 +1007,28 @@ begin
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
     FIELD_TYPE_TEXT: Result := 1; //29.09.2008
-//--------------Geometric types ---------------------------
-    FIELD_TYPE_POINT,
-    FIELD_TYPE_LSEG,
-    FIELD_TYPE_PATH,
-    FIELD_TYPE_BOX,
-    FIELD_TYPE_POLYGON,
-    FIELD_TYPE_LINE,
-    FIELD_TYPE_CIRCLE : StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
-//--------------Network Address types ---------------------------
-    FIELD_TYPE_CIDR,
-    FIELD_TYPE_MACADDR,
-    FIELD_TYPE_INET: StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
-//-------------Other types --------------------------------------
-    FIELD_TYPE_OIDVECTOR: StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize);
   else
-         StrLCopy(PChar(Dest), PChar(Src), iField.NativeSize)
+     StrLCopy(PChar(Dest), PChar(Src), iField.FieldUnits1)
   end;
-  If Result <> 0 then Blank  := True;
+
+  Blank := Result <> 0;
 end;
 
-Function AdjustDelphiField(iField:TPSQLField; Src, Dest : Pointer) : Word;
+Function AdjustDelphiField(iField: TPSQLField; Src, Dest: Pointer): Word;
 var
      TimeStamp: TTimeStamp;
 begin
-  ZeroMemory(Dest,iField.FieldLength);
+  ZeroMemory(Dest, iField.NativeSize);
   PAnsiChar(Dest)^:=#1;
   Inc(PAnsiChar(Dest),1);
   Result:=0;
- try
-  Case iField.NativeType of
+
+  case iField.NativeType of
       FIELD_TYPE_BOOL:     SmallInt(Dest^) := SmallInt(Src^);
       FIELD_TYPE_INT2:     SmallInt(Dest^) := SmallInt(Src^);
       FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
       FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
-      FIELD_TYPE_BIT,      //BIT Field
+{      FIELD_TYPE_BIT,      //BIT Field
       FIELD_TYPE_VARCHAR,
       FIELD_TYPE_BPCHAR,
       FIELD_TYPE_CHAR:     CopyMemory(Dest, Src, iField.NativeSize);
@@ -1058,7 +1037,7 @@ begin
       FIELD_TYPE_REGPROC:  StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
       FIELD_TYPE_INTERVAL: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //Time INTERVAL
       FIELD_TYPE_TIMETZ:   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //Time WITH TIME ZONE
-      FIELD_TYPE_UUID:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
+      FIELD_TYPE_UUID:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);}
       FIELD_TYPE_DATE:     begin
                              try
                                 TimeStamp.Date := LongInt(Src^);
@@ -1078,7 +1057,7 @@ begin
                              end;
                            end;
 
-      FIELD_TYPE_TIMESTAMPTZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
+ //     FIELD_TYPE_TIMESTAMPTZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
 
       FIELD_TYPE_TIMESTAMP: begin
                               try
@@ -1094,22 +1073,17 @@ begin
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
       FIELD_TYPE_TEXT: Result := 1;
-//--------------Geometric types ---------------------------
-      FIELD_TYPE_POINT,
-      FIELD_TYPE_LSEG,
-      FIELD_TYPE_PATH,
-      FIELD_TYPE_BOX,
-      FIELD_TYPE_POLYGON,
-      FIELD_TYPE_LINE,
-      FIELD_TYPE_CIRCLE : StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
-//--------------Network Address types ---------------------------
-    FIELD_TYPE_CIDR,
-    FIELD_TYPE_MACADDR,
-    FIELD_TYPE_INET: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
   else
-         StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength)
+    {$IFDEF DELPHI_12}
+    if iField.NativeDataset.FConnect.IsUnicodeUsed then
+      CopyMemory(Dest, Src, iField.NativeSize)
+    else
+    {$ENDIF}
+      StrLCopy(PAnsiChar(Dest), PAnsiChar(Src), iField.NativeSize);
   end;
- except
+
+ if Result = 1 then
+ begin
     ZeroMemory(Dest, iField.FieldLength);
     Result := 0;
  end;
@@ -1721,7 +1695,7 @@ begin
   pxInfo^.eXIL    := FTransLevel;
 end;
 
-Procedure TNativeConnect.QExecDirect(eQryLang : DBIQryLang;pszQuery : String;phCur: phDBICur; var AffectedRows : LongInt);
+Procedure TNativeConnect.QExecDirect(pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
 var
   hStmt : hDBIStmt;
 begin
@@ -1742,7 +1716,10 @@ begin
   end;
 end;
 
-Procedure TNativeConnect.OpenFieldList(pszTableName: PAnsiChar;pszDriverType: PAnsiChar;bPhyTypes: Bool;var hCur: hDBICur);
+Procedure TNativeConnect.OpenFieldList(pszTableName : PAnsiChar;
+                                       pszDriverType: PAnsiChar;
+                                       bPhyTypes    : Bool;
+                                       var hCur     : hDBICur);
 var
   P : TNativeDataSet;
 Procedure ProcessTable;
@@ -2020,6 +1997,11 @@ begin
     FData := nil;
     FStatus := nil;
   end;
+end;
+
+function TPSQLField.GetNativeDataset: TNativeDataSet;
+begin
+  Result := TPSQLFields(Collection).NativeDataset;
 end;
 
 Function TPSQLField.GetNull : Boolean;
@@ -2977,9 +2959,9 @@ begin
   FFilterActive := FALSE;
 end;
 
-Procedure TNativeDataSet.NativeToDelphi(P: TPSQLField;PRecord: Pointer;pDest: Pointer;var bBlank: Bool);
+Procedure TNativeDataSet.NativeToDelphi(P: TPSQLField; PRecord: Pointer; pDest: Pointer; var bBlank: Bool);
 begin
-  CheckParam(PRecord=nil,DBIERR_INVALIDPARAM);
+  CheckParam(PRecord = nil, DBIERR_INVALIDPARAM);
   P.Buffer := PRecord;
   bBlank   := P.FieldNull;
   if not bBlank and (pDest <> nil) then AdjustNativeField(P,P.FieldValue,pDest,bBlank);
@@ -2987,7 +2969,7 @@ end;
 
 Procedure TNativeDataSet.DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
 begin
-  If pSrc <> nil then AdjustDelphiField(P,pSrc,PChar(P.Data)+P.FieldNumber-1);
+  if pSrc <> nil then AdjustDelphiField(P, pSrc, PAnsiChar(P.Data) + P.FieldNumber - 1);
 end;
 
 procedure TNativeDataSet.CheckParam(Exp : Boolean;BDECODE : Word);
@@ -3205,7 +3187,7 @@ var
           Raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := PChar(Trim(SQLQuery));
-       FStatement := PQexec(FConnect.Handle,PAnsiChar(FConnect.StringToRaw(sql_stmt)));
+       FStatement := PQexec(FConnect.Handle, FConnect.StringToRaw(sql_stmt));
        if Assigned(FStatement) then
        begin
           try
@@ -3592,7 +3574,7 @@ begin
     try
       FillDefs(DefSL);
      for I := 0 to FieldCount -1 do
-         FNativeDescs.SetNative(I,FieldName(I),FieldType(I),FieldSize(I),FieldMaxSizeInBytes(I),GetDefault(I));
+         FNativeDescs.SetNative(I,FieldName(I),FieldType(I),FieldMaxSizeInBytes(I),FieldMaxSize(I),GetDefault(I));
     finally
      DefSL.Free;
     end;
@@ -3822,7 +3804,7 @@ begin
              T.FieldChanged := FALSE;
              T.FieldNull    := FieldIsNull(I);
           end;
-          size := T.FieldLength;
+          size := T.NativeSize;
           if T.FieldNull  then
               ZeroMemory(FCurrentBuffer,size)
           else
@@ -4069,8 +4051,9 @@ begin
     Fld.Buffer:= PRecord;
     if (Fld.FieldNull) and (not Fld.FValCheck.bHasDefVal) then continue;
     Src := Fld.FieldValue;
-    Inc(PChar(Src));
-    Fields := Fields + '"'+Fld.FieldName+'"'+', ';
+    Inc(PAnsiChar(Src));
+
+    Fields := Fields + AnsiQuotedStr(Fld.FieldName, '"') + ', ';
     if (Fld.FieldNull) and (Fld.FValCheck.bHasDefVal) then
        Values := Values + 'DEFAULT, '
     else
@@ -4096,12 +4079,10 @@ begin
        end;
     end;
   end;
-  Delete(Fields,Length(Fields)-1,2);
-  Delete(Values,Length(Values)-1,2);
+  Delete(Fields, Length(Fields)-1, 2);
+  Delete(Values, Length(Values)-1, 2);
   if (Fields <> '') and (Values <> '') then
-  begin
-   Result := 'INSERT INTO ' + Table + ' (' + Fields + ') VALUES ('+Values+')'
-  end
+   Result := Format('INSERT INTO %s (%s) VALUES (%s)', [Table, Fields, Values]);
 end;
 
 function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer): String;
@@ -4203,9 +4184,6 @@ end;
 Procedure TNativeDataSet.InsertRecord( eLock : DBILockType; PRecord : Pointer );
 var
   SQL : String;
-  {ATable,
-  Aliace : String;}
-  Query : TNativeDataSet;
   AffRecord : Longint;
   OldQueryFlag: boolean;
   KN: integer;
@@ -4216,24 +4194,16 @@ begin
      Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   AffRecord := 0;
   CheckUniqueKey(KN);
-  Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
-  try
-    {if SQLQuery <> '' then
-       ATable := GetTable(SQLQuery,Aliace) else
-       ATable := TableName;}
-  SQL :=GetINSERTSQL(TableName,PRecord);
-      if Sql <> '' then
-      begin
-          Query.SQLQuery := SQL;
-          Query.Execute;
-          AffRecord := Query.FAffectedRows;
-          RecordState := tsEmpty;
-      end;
-  finally
-   Query.Free;
-  end;
-  FreeBlobStreams(PRecord);  //pasha_golub 15.02.07
-  InternalBuffer := nil;   //pasha_golub 10.08.06
+
+  SQL := GetInsertSQL(TableName, PRecord);
+  if Sql <> '' then
+   begin
+      FConnect.QExecDirect(SQL, nil, AffRecord);
+      RecordState := tsEmpty;
+   end;
+
+  FreeBlobStreams(PRecord);
+  InternalBuffer := nil;
   if not FReFetch then
   begin
      OldQueryFlag := IsQuery;
@@ -4265,22 +4235,16 @@ begin
   CheckUniqueKey(KN);
   Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
   try
-    {if SQLQuery <> '' then
-       ATable := GetTable(SQLQuery,Aliace) else}
-    try
-    SQL := GetUpdateSQL(TableName,OldRecord,PRecord);
+      SQL := GetUpdateSQL(TableName, OldRecord, PRecord);
       if Sql <> '' then
       begin
          Query.SQLQuery := SQL;
          Query.Execute;
          AffRecord := Query.FAffectedRows;
       end;
-    except
-      FReFetch := False;
-      RecordState := tsPos;
-      raise;
-    end;
   finally
+    FReFetch := False;
+    RecordState := tsPos;
     Query.Free;
   end;
   FreeBlobStreams(OldRecord); //pasha_golub 15.02.07
@@ -5914,11 +5878,11 @@ begin
   Result := rslt;
 end;
 
-Function TPSQLEngine.QExecDirect(hDb : hDBIDb; eQryLang : DBIQryLang; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
+Function TPSQLEngine.QExecDirect(hDb : hDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
 begin
   Try
     Database := hDb;
-    TNativeConnect(hDb).QExecDirect(eQryLang,pszQuery,phCur, AffectedRows);
+    TNativeConnect(hDb).QExecDirect(pszQuery,phCur, AffectedRows);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
@@ -7964,7 +7928,7 @@ end;
 
 function TNativeDataSet.StrValue(P : Pointer):String;
 var
-   Buffer : PChar;
+   Buffer : PAnsiChar;
    SZ, Err : Integer;
 begin
     Result := '';
@@ -7974,8 +7938,8 @@ begin
       GetMem(Buffer, 2*SZ+1);
       try
       ZeroMemory(Buffer, 2*SZ+1);
-      SZ := PQEscapeStringConn(FConnect.Handle,Buffer,PChar(P),SZ, Err);
-      Result := ''''+(Copy(Buffer,1,SZ))+'''';
+      SZ := PQEscapeStringConn(FConnect.Handle, Buffer, FConnect.StringToRaw(PWideChar(P)), SZ, Err);
+      Result := '''' + Copy(FConnect.RawToString(Buffer), 1, SZ) + '''';
       finally
        FreeMem(Buffer);
       end;

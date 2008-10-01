@@ -1596,7 +1596,7 @@ begin
       end;
     end
   else
-    Check(Engine, Engine.QExecDirect(Handle, qrylangSQL, SQL, Cursor, Result));
+    Check(Engine, Engine.QExecDirect(Handle, SQL, Cursor, Result));
   if Result = 0 then
      if (Cursor = nil) and (Engine.GetEngProp(hDBIObj(StmtHandle), stmtROWCOUNT,@Result, SizeOf(Result),Len) <> 0) then
         Result := 0;
