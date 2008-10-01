@@ -80,25 +80,25 @@ Type
 {****************************************************************************}
   TNativeConnect = Class(TObject)
   private
-    FHandle: PPGconn;
-    FSystem : Boolean;
-    FLastOperationTime: cardinal;
+    FHandle                   : PPGconn;
+    FSystem                   : Boolean;
+    FLastOperationTime        : cardinal;
     FBlobTransactionInProgress: boolean;
-    FServerVersion: string;
-    FIntServerVersion: integer;
-    FErrorpos:string;
-    FErrorContext:string;
-    FErrorseverity:string;
-    FErrorsqlstate:string;
-    FErrordetail:string;
-    FErrorprimary:string;
-    FErrorhint:string;
-    FErrorinternalpos:string;
-    FErrorinternalquery:string;
-    FErrorsourcefile:string;
-    FErrorsourceline:string;
-    FErrorsourcefunc:string;
-    function GetBackendPID : Integer;
+    FServerVersion            : string;
+    FIntServerVersion         : integer;
+    FErrorpos                 : string;
+    FErrorContext             : string;
+    FErrorseverity            : string;
+    FErrorsqlstate            : string;
+    FErrordetail              : string;
+    FErrorprimary             : string;
+    FErrorhint                : string;
+    FErrorinternalpos         : string;
+    FErrorinternalquery       : string;
+    FErrorsourcefile          : string;
+    FErrorsourceline          : string;
+    FErrorsourcefunc          : string;
+    function GetBackendPID : integer;
     function IsTransactionActive: boolean;
     function GetTransactionStatus: TTransactionStatusType;
   Protected
@@ -191,21 +191,21 @@ Type
   {Postgres Engine}
   TPSQLEngine =  Class(TBaseObject)
     Private
-      FDatabase: hDBIDb;
-      FNativeStatus: Integer;
-      FNativeMsg : String;
-      FNativeErrorPos:string;
-      FNativeErrorContext:string;
-      FNativeErrorseverity:string;
-      FNativeErrorsqlstate:string;
-      FNativeErrordetail:string;
-      FNativeErrorprimary:string;
-      FNativeErrorhint:string;
-      FNativeErrorinternalpos:string;
-      FNativeErrorinternalquery:string;
-      FNativeErrorsourcefile:string;
-      FNativeErrorsourceline:string;
-      FNativeErrorsourcefunc:string;
+      FDatabase                : hDBIDb;
+      FNativeStatus            : Integer;
+      FNativeMsg               : string;
+      FNativeErrorPos          : string;
+      FNativeErrorContext      : string;
+      FNativeErrorseverity     : string;
+      FNativeErrorsqlstate     : string;
+      FNativeErrordetail       : string;
+      FNativeErrorprimary      : string;
+      FNativeErrorhint         : string;
+      FNativeErrorinternalpos  : string;
+      FNativeErrorinternalquery: string;
+      FNativeErrorsourcefile   : string;
+      FNativeErrorsourceline   : string;
+      FNativeErrorsourcefunc   : string;
       Function GetDatabase: hDBIDb;
       Procedure SetDatabase(H : hDBIDb);
     Public
@@ -657,6 +657,7 @@ Type
       function FieldIndex(FieldName: String): Integer;
       function FieldSize(FieldNum: Integer): Integer;
       function FieldMaxSize(FieldNum: Integer): Integer;
+      function FieldMaxSizeInBytes(FieldNum: Integer): Integer;
       function FieldMinSize(FieldNum: Integer): Integer;
       function FieldType(FieldNum: Integer): cardinal;
       function FieldTable(FieldNum: integer): cardinal;
@@ -1987,6 +1988,7 @@ begin
    NativeBLOBType := nbtNotBlob;
   end;
   NativeSize   := LSize;
+
   FieldArray := isArray;
 end;
 
@@ -2100,7 +2102,7 @@ begin
     Result := TPSQLField(Items[Index-1]) else
   begin
     if not ((Index > 0) and (FTable <> nil)) then raise EPSQLException.CreateBDE(DBIERR_INVALIDRECSTRUCT);
-    FTable.GetNativeDesc(Index, @Desc,@ValCheck, LocType, LocSize,LocArray);
+    FTable.GetNativeDesc(Index, @Desc, @ValCheck, LocType, LocSize, LocArray);
     Result := TPSQLField.CreateField(Self, @Desc, @ValCheck, Index, LocType, LocSize,LocArray);
   end;
 end;
@@ -3203,7 +3205,7 @@ var
           Raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := PChar(Trim(SQLQuery));
-       FStatement := PQexec(FConnect.Handle,PAnsiChar(UTF8String(sql_stmt)));
+       FStatement := PQexec(FConnect.Handle,PAnsiChar(FConnect.StringToRaw(sql_stmt)));
        if Assigned(FStatement) then
        begin
           try
@@ -3412,30 +3414,22 @@ Function TNativeDataSet.GetRecordSize: Integer;
 var
    I, Size: Integer;
 begin
-   Size:=0;
-   Result:=0;
-   if FRecSize=-1 then
-   begin
-      if FStatement = nil then exit;
-      For i:=1 to FieldCount do
-      begin
-         case FieldType(I-1) of 
-           FIELD_TYPE_BPCHAR,
-           FIELD_TYPE_CHAR,
-           FIELD_TYPE_VARCHAR,
-           FIELD_TYPE_TINTERVAL,
-           FIELD_TYPE_INT2VECTOR : Inc(Size,Fields.Field[I].FieldLength+1);
-           FIELD_TYPE_NAME: INc(Size, 65);
-           FIELD_TYPE_MONEY :  Inc(Size,33);
-           FIELD_TYPE_REGPROC : Inc(Size,11);
-         else
-           Inc(Size,Fields.Field[I].FieldLength);
-         end;
-      end;
-      Inc(Size,FieldCount);
-      FRecSize:=Size;
-      Result:=Size;
-   end else  Result:=FRecSize;
+   Size := 0;
+   Result := 0;
+   if FRecSize = -1 then
+    begin
+     if FStatement = nil then exit;
+
+     for I := 0 to FieldCount - 1 do
+        Inc(Size, FieldMaxSizeInBytes(I));
+
+     Inc(Size, FieldCount);
+
+     FRecSize := Size;
+     Result := Size;
+    end
+   else
+     Result:=FRecSize;
 end;
 
 function TNativeDataSet.FieldName(FieldNum: Integer): String;
@@ -3457,6 +3451,29 @@ begin
   Result := 0;
   if (FStatement <> nil) and (PQntuples(FStatement) > 0) then
      Result := PQgetlength(FStatement, GetRecNo, FieldNum);
+end;
+
+function TNativeDataSet.FieldMaxSizeInBytes(FieldNum: Integer): Integer;
+begin
+  Result := FieldMaxSize(FieldNum)*2;
+  Exit;
+  if Result > 0 then
+   case FieldType(FieldNum) of
+      FIELD_TYPE_BOOL,
+      FIELD_TYPE_INT2,
+      FIELD_TYPE_INT4,
+      FIELD_TYPE_INT8,
+      FIELD_TYPE_DATE,
+      FIELD_TYPE_TIME,
+      FIELD_TYPE_TIMESTAMP,
+      FIELD_TYPE_FLOAT4,
+      FIELD_TYPE_NUMERIC,
+      FIELD_TYPE_FLOAT8,
+      FIELD_TYPE_UUID: ;
+   else
+      if FConnect.IsUnicodeUsed then
+        Result := Result * SizeOf(Char);
+   end;
 end;
 
 function TNativeDataSet.FieldMaxSize(FieldNum: Integer): Integer;
@@ -3575,7 +3592,7 @@ begin
     try
       FillDefs(DefSL);
      for I := 0 to FieldCount -1 do
-         FNativeDescs.SetNative(I,FieldName(I),FieldType(I),FieldSize(I),FieldMaxSize(I),GetDefault(I));
+         FNativeDescs.SetNative(I,FieldName(I),FieldType(I),FieldSize(I),FieldMaxSizeInBytes(I),GetDefault(I));
     finally
      DefSL.Free;
     end;
@@ -3585,25 +3602,22 @@ begin
      Result :=Item.FDesc;
 end;
 
-Procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer;P : pFldDesc;P1 : pVCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
+Procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; P : pFldDesc; P1 : pVCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
 var
   Fld : TPGFIELD_INFO;
 begin
   if Assigned(P) then
   begin
-    CheckParam(not (FieldNo <= FieldCount),DBIERR_INVALIDRECSTRUCT);
+    CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
     FLD := FieldInfo[FieldNo-1];
     ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P,P1,LocArray);
     LocType := FieldType(FieldNo-1);
     case Loctype of
-      FIELD_TYPE_NAME     : LocSize := 64;
-      FIELD_TYPE_MONEY    : LocSize := 32;
-      FIELD_TYPE_REGPROC : LocSize := 16;
       FIELD_TYPE_BYTEA,
       FIELD_TYPE_TEXT,
-      FIELD_TYPE_OID: LocSize := SizeOf(Pointer);
+      FIELD_TYPE_OID: LocSize := SizeOf(TBlobItem);
     else
-      LocSize := FieldMaxSize(FieldNo-1);
+      LocSize := FieldMaxSizeInBytes(FieldNo-1);
     end;
   end;
 end;
@@ -3667,22 +3681,19 @@ var
   LocalType,LocalSize,NullOffset,RecSize: Word;
   LocArray : Boolean;
 begin
-  Fields.Clear;
-     For i := 1 to FieldCount() do
-     begin
-        try
-          GetNativeDesc(i, @FldInfo,@ValCheck, LocalType, LocalSize,LocArray);
-          TPSQLField.CreateField(Fields, @FldInfo, @ValCheck, i, LocalType, LocalSize,LocArray);
-        except
-        end;
-     end;
-     RecSize  := RecordSize;
-     NullOffset := RecSize+1;
-     For i := 1 to Fields.Count do
-     begin
-        Fields[i].NullOffset := NullOffset;
-        Inc(NullOffset, SizeOf(TFieldStatus));
-     end;
+   Fields.Clear;
+   For i := 1 to FieldCount() do
+    begin
+      GetNativeDesc(i, @FldInfo,@ValCheck, LocalType, LocalSize,LocArray);
+      TPSQLField.CreateField(Fields, @FldInfo, @ValCheck, i, LocalType, LocalSize,LocArray);
+    end;
+   RecSize  := RecordSize;
+   NullOffset := RecSize+1;
+   For i := 1 to Fields.Count do
+   begin
+      Fields[i].NullOffset := NullOffset;
+      Inc(NullOffset, SizeOf(TFieldStatus));
+   end;
 end;
 
 Function TNativeDataSet.GetBufferSize : Word;
@@ -3694,9 +3705,9 @@ end;
 Function TNativeDataSet.GetWorkBufferSize : Word;
 begin
   Result := GetBufferSize;
-  Inc(Result, Succ(FFieldDescs.Count * SizeOf(TFieldStatus)));
+  Inc(Result, FFieldDescs.Count * SizeOf(TFieldStatus) + 1);
   FBookOfs := Result;
-  If FBookOfs > 0 then Inc( Result, BookMarkSize );
+  If FBookOfs > 0 then Inc(Result, BookMarkSize);
 end;
 
 Procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
@@ -3795,11 +3806,7 @@ begin
               FIELD_TYPE_NUMERIC:
                  if SizeOf(Double) > MaxSize then MaxSize := SizeOf(Double);
              else
-              tMS := FieldMaxSize(I);
-             {$IFDEF DELPHI_12}
-             if FConnect.IsUnicodeUsed then
-              tMS := tMS * SizeOf(Char);
-             {$ENDIF}
+              tMS := FieldMaxSizeInBytes(I);
              if tMS > MaxSize then MaxSize := tMS;
              end;
            end;
@@ -3815,7 +3822,7 @@ begin
              T.FieldChanged := FALSE;
              T.FieldNull    := FieldIsNull(I);
           end;
-          size:=T.FieldLength;
+          size := T.FieldLength;
           if T.FieldNull  then
               ZeroMemory(FCurrentBuffer,size)
           else
@@ -3859,10 +3866,7 @@ begin
               begin
                {$IFDEF DELPHI_12}
                if FConnect.IsUnicodeUsed then
-                begin
-                 Size := Size * SizeOf(Char);
-                 StrCopy(PWideChar(Data), PWideChar(UTF8ToWideString(FieldBuffer(I))));
-                end
+                 StrCopy(PWideChar(Data), PWideChar(UTF8ToWideString(FieldBuffer(I))))
                else
                {$ENDIF}
                 StrCopy(PAnsiChar(Data), FieldBuffer(I));
@@ -5185,7 +5189,7 @@ const _lockmode: array[TPSQLLockType] of AnsiString = ('ACCESS SHARE', 'ROW SHAR
       _nowait: array[boolean] of AnsiString = ('', 'NOWAIT');
 var Res: PPGresult;
 begin
-  Res := PQExec(FConnect.Handle, PAnsiChar(Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]])));
+  Res := PQExec(FConnect.Handle, FConnect.StringToRaw(Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]])));
   try
     FConnect.CheckResult(Res);
   finally

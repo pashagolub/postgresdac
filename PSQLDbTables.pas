@@ -2629,11 +2629,12 @@ end;
 
 function TPSQLDataSet.GetOldRecord: PAnsiChar;
 begin
-  UpdateCursorPos;
+  UpdateCursorPos();
+
   if SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, TRUE) then
   try
     AllocCachedUpdateBuffers(True);
-    Check(Engine, Engine.GetRecord(FHandle, dbiNoLock, FUpdateCBBuf.pOldRecBuf, NIL));
+    Check(Engine, Engine.GetRecord(FHandle, dbiNoLock, FUpdateCBBuf.pOldRecBuf, nil));
     Result := PAnsiChar(FUpdateCBBuf.pOldRecBuf);
     AllocCachedUpdateBuffers(False);
   finally
@@ -2750,10 +2751,16 @@ begin
 
     dsCalcFields: RecBuf := CalcBuffer;
 
-    dsFilter: RecBuf := FFilterBuffer;
+    dsFilter:
+      {$IFDEF DELPHI_12}
+      RecBuf := TRecordBuffer(FFilterBuffer);
+      {$ELSE}
+      RecBuf := FFilterBuffer;
+      {$ENDIF}
 
     dsNewValue: if FInUpdateCallback then
-                   RecBuf := FUpdateCBBuf.pNewRecBuf else
+                   RecBuf := FUpdateCBBuf.pNewRecBuf
+                else
                    RecBuf := ActiveBuffer;
 
     dsOldValue: if FInUpdateCallback then
@@ -3383,7 +3390,7 @@ var
   KeyIndex: TKeyIndex;
 begin
   for KeyIndex := Low(TKeyIndex) to High(TKeyIndex) do
-    FreeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
+    DisposeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
 end;
 
 function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;

@@ -2494,8 +2494,8 @@ begin
     begin
       iFldNum  := Count;
       pValChk^.iFldNum := Count;
-      DataLen := Max(Info.FieldSize,Info.FieldMaxSize);
-      FieldMapping(Info.FieldType,DataLen,iFldType,iSubType,LogSize,LocArray);
+      DataLen := Max(Info.FieldMaxSize,Info.FieldMaxSize);
+      FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
       if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
          (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
       begin
