@@ -4001,9 +4001,9 @@ begin
     Fld := FFieldDescs.Field[FieldList[I]];
     Fld.Buffer:= PRecord;
     Src := Fld.FieldValue;
-    Inc(PChar(Src));
+    Inc(PAnsiChar(Src));
     if Result <> '' then  Result := Result + ' AND ';
-    Result := Result + AnsiQuotedStr(Fld.FieldName,'"');
+    Result := Result + AnsiQuotedStr(Fld.FieldName, '"');
     if Fld.FieldNull then
       Result := Result + ' IS NULL'
     else
@@ -4111,9 +4111,9 @@ begin
     Fld := FFieldDescs.Field[FieldList[I]];
     Fld.Buffer:= P;
     Src := Fld.FieldValue;
-    Inc(PChar(Src));
-    if Where <> '' then  Where := Where+' AND ';
-    if Fld.FieldNull then Where := Where +'"'+Fld.FieldName + '"'+' IS NULL'
+    Inc(PAnsiChar(Src));
+    if Where <> '' then  Where := Where + ' AND ';
+    if Fld.FieldNull then Where := Where + AnsiQuotedStr(Fld.FieldName, '"') + ' IS NULL'
     else
        case Fld.FieldType of
          fldBOOL:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(IntToStr(SmallInt(Src^)));
@@ -4132,7 +4132,7 @@ begin
          fldTIMESTAMP:Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),0));
        end;
   end;
-  Result := ' WHERE '+Where;
+  Result := ' WHERE ' + Where;
 end;
 
 begin
@@ -4144,7 +4144,7 @@ begin
     Fld.Buffer:= PRecord;
     if not Fld.FieldChanged then continue;
     Src := Fld.FieldValue;
-    Inc(PChar(Src));
+    Inc(PAnsiChar(Src));
     if Fld.FieldNull then
        Values := Values+'"'+Fld.FieldName+'"'+'=NULL, '
     else
@@ -4184,21 +4184,19 @@ end;
 Procedure TNativeDataSet.InsertRecord( eLock : DBILockType; PRecord : Pointer );
 var
   SQL : String;
-  AffRecord : Longint;
   OldQueryFlag: boolean;
   KN: integer;
 begin
 
   KN := -1;
   if FOMode = dbiREADONLY then
-     Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
-  AffRecord := 0;
+     raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   CheckUniqueKey(KN);
 
   SQL := GetInsertSQL(TableName, PRecord);
   if Sql <> '' then
    begin
-      FConnect.QExecDirect(SQL, nil, AffRecord);
+      FConnect.QExecDirect(SQL, nil, FAffectedRows);
       RecordState := tsEmpty;
    end;
 
@@ -4215,7 +4213,6 @@ begin
           SettoSeqNo(RecordCount);
      except
      end;
-     FAffectedRows := AffRecord;
   end;
   FIsLocked := FALSE;
 end;
@@ -4223,79 +4220,60 @@ end;
 Procedure TNativeDataSet.ModifyRecord(OldRecord,PRecord : Pointer; bFreeLock : Bool; ARecNo : Longint);
 var
   SQL : String;
-  Query : TNativeDataSet;
-  AffRecord : Longint;
   OldQueryFlag: boolean;
   KN : Integer;
 begin
   KN := -1;
   if FOMode = dbiREADONLY then
      Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
-  AffRecord := 0;
   CheckUniqueKey(KN);
-  Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
   try
-      SQL := GetUpdateSQL(TableName, OldRecord, PRecord);
-      if Sql <> '' then
-      begin
-         Query.SQLQuery := SQL;
-         Query.Execute;
-         AffRecord := Query.FAffectedRows;
-      end;
+    SQL := GetUpdateSQL(TableName, OldRecord, PRecord);
+    if Sql <> '' then
+      FConnect.QExecDirect(SQL, nil, FAffectedRows);
   finally
     FReFetch := False;
     RecordState := tsPos;
-    Query.Free;
   end;
-  FreeBlobStreams(OldRecord); //pasha_golub 15.02.07
-  FreeBlobStreams(PRecord);  //pasha_golub 15.02.07
-  InternalBuffer := nil;    //pasha_golub 10.08.06
-  If bFreeLock then LockRecord(dbiNOLOCK); //pasha_golub 22.03.07
 
-  if not FReFetch then
-  begin
-     OldQueryFlag := IsQuery;
-     ReOpenTable;
-     IsQuery := OldQueryFlag;
-     RecordState := tsPos;
-     try
-       if not SetRowPosition(KN,0,PRecord) then
-          SettoSeqNo(RecNo+1);
-     except
+  FreeBlobStreams(OldRecord);
+  FreeBlobStreams(PRecord);
+  InternalBuffer := nil;
+  If bFreeLock then LockRecord(dbiNOLOCK);
+
+  if FAffectedRows > 0 then
+    if not FReFetch then
+     begin
+       OldQueryFlag := IsQuery;
+       ReOpenTable;
+       IsQuery := OldQueryFlag;
+       RecordState := tsPos;
+       try
+         if not SetRowPosition(KN,0,PRecord) then
+            SettoSeqNo(RecNo+1);
+       except
+       end;
      end;
-     FAffectedRows := AffRecord;
-  end;
   FIsLocked := FALSE;
 end;
 
 Procedure TNativeDataSet.DeleteRecord(PRecord : Pointer);
 var
   SQL : String;
- { ATable,
-  Aliace : String;}
-  Query : TNativeDataSet;
-  AffRecord : Longint;
   RN : LongInt;
 begin
   if FOMode = dbiREADONLY then
      Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
-  AffRecord := 0;
   InternalBuffer := PRecord;
-  Query := TNativeDataSet.Create(FConnect,nil,nil,nil,0,0,0);
-  {if SQLQuery <> '' then
-     ATable := GetTable(SQLQuery,Aliace) else
-     ATable := TableName;}
-  SQL :=GetDeleteSQL(TableName,PRecord);
+  SQL := GetDeleteSQL(TableName,PRecord);
   if Sql <> '' then
-  begin
-      Query.SQLQuery := SQL;
-      Query.Execute;
-      AffRecord := Query.FAffectedRows;
-      RecordState := tsEmpty;
-  end;
-  Query.Free;
-  if not FReFetch then
-  begin
+   begin
+    FConnect.QExecDirect(SQL, nil, FAffectedRows);
+    RecordState := tsEmpty;
+   end;
+  if FAffectedRows > 0 then
+    if not FReFetch then
+    begin
      RN := RecordNumber+1;
      ReOpenTable;
      if RN >= RecordCount then
@@ -4305,8 +4283,7 @@ begin
        SettoSeqNo(RN);
      except
      end;
-     FAffectedRows := AffRecord;
-  end;
+    end;
   FIsLocked := FALSE;
 end;
 
@@ -7928,18 +7905,19 @@ end;
 
 function TNativeDataSet.StrValue(P : Pointer):String;
 var
-   Buffer : PAnsiChar;
+   Buffer, AVal : PAnsiChar;
    SZ, Err : Integer;
 begin
     Result := '';
     if P <> nil then
      begin
-      SZ := length(PChar(P));
+      AVal := FConnect.StringToRaw(PWideChar(P));
+      SZ := length(AVal);
       GetMem(Buffer, 2*SZ+1);
       try
       ZeroMemory(Buffer, 2*SZ+1);
-      SZ := PQEscapeStringConn(FConnect.Handle, Buffer, FConnect.StringToRaw(PWideChar(P)), SZ, Err);
-      Result := '''' + Copy(FConnect.RawToString(Buffer), 1, SZ) + '''';
+      SZ := PQEscapeStringConn(FConnect.Handle, Buffer, AVal, SZ, Err);
+      Result := '''' + FConnect.RawToString(Buffer) + '''';
       finally
        FreeMem(Buffer);
       end;
