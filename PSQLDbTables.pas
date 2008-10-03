@@ -311,7 +311,7 @@ type
       destructor Destroy; Override;
   end;
 
-  TFieldDescList = array of FLDDesc;
+
 
     { TLocale }
 
@@ -436,7 +436,7 @@ type
     procedure BlockReadNext; override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
     procedure ActivateFilters;
-    procedure AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
+    procedure AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
       var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
     procedure AllocCachedUpdateBuffers(Allocate: Boolean);
     procedure AllocKeyBuffers;
@@ -674,7 +674,6 @@ type
     procedure GetIndexParams(const IndexName: String; FieldsIndex: Boolean;
       var IndexedName, IndexTag: String);
     function GetMasterFields: String;
-    function GetTableTypeName: PAnsiChar;
     function GetTableLevel: Integer;
     function IndexDefsStored: Boolean;
     procedure MasterChanged(Sender: TObject);
@@ -2383,7 +2382,7 @@ end;
 procedure TPSQLDataSet.InternalInitFieldDefs;
 var
   I, FieldID: Integer;
-  FieldDescs: TFieldDescList;
+  FieldDescs: TFLDDescList;
   ValCheckDesc: VCHKDesc;
   RequiredFields: TBits;
   CursorProps: CurProps;
@@ -2411,12 +2410,12 @@ begin
       RequiredFields.Size := FldDescCount + 1;
     for I := 1 to CursorProps.iValChecks do
     begin
-      Engine.GetVChkDesc(FHandle, I, @ValCheckDesc);
+      Engine.GetVChkDesc(FHandle, I, ValCheckDesc);
       if ValCheckDesc.bRequired and not ValCheckDesc.bHasDefVal then
         RequiredFields[ValCheckDesc.iFldNum] := True;
     end;
     SetLength(FieldDescs, FldDescCount);
-    Engine.GetFieldDescs(FHandle, PFLDDesc(FieldDescs));
+    Engine.GetFieldDescs(FHandle, FieldDescs);
     FieldID := FieldNoOfs;
     I := FieldID - 1;
     FieldDefs.Clear;
@@ -2778,27 +2777,27 @@ begin
   Result := RecBuf <> nil;
 end;
 
-procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
+procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
   var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
 var
   FType: TFieldType;
   FSize: Word;
   FRequired: Boolean;
   FPrecision, I: Integer;
-  FieldName, FName: ansistring;
+  FieldName, FName: string;
   FieldDesc: FLDDesc;
 begin
   FieldDesc := FieldDescs[DescNo];
   Inc(DescNo);
   with FieldDesc do
   begin
-    TNativeToAnsi(Engine, szName, FieldName);
+    FieldName := szName; //TNativeToAnsi(Engine, szName, FieldName);
     I := 0;
     FName := FieldName;
     while FieldDefs.IndexOf(string(FName)) >= 0 do
     begin
       Inc(I);
-      FName := ansistring(Format('%s_%d', [string(FieldName), I]));
+      FName := Format('%s_%d', [string(FieldName), I]);
     end;
     if iFldType < MAXLOGFLDTYPES then
       FType := DataTypeMap[iFldType]
@@ -2855,7 +2854,7 @@ begin
     begin
       FieldNo := FieldID;
       Inc(FieldID);
-      Name := string(FName);
+      Name := FName;
       DataType := FType;
       Size := FSize;
       Precision := FPrecision;
@@ -2877,7 +2876,8 @@ begin
         ftArray:
           begin
             I := FieldID;
-            StrCat(StrCopy(FieldDescs[DescNo].szName, FieldDesc.szName),'[0]');
+            FieldDescs[DescNo].szName := FieldDesc.szName + '[0]';
+            //StrCat(StrCopy(FieldDescs[DescNo].szName, FieldDesc.szName),'[0]');
             AddFieldDesc(FieldDescs, DescNo, I, RequiredFields, ChildDefs);
             Inc(FieldID, iUnits2);
           end;
@@ -3332,9 +3332,9 @@ var
 begin
   ResetCursorRange;
   UpdateCursorPos;
-  Status := Engine.SwitchToIndex(FHandle, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(TagName)), 0, TRUE);
+  Status := Engine.SwitchToIndex(FHandle, IndexName, TagName, 0, TRUE);
   if (Status = DBIERR_NOCURRREC) then
-    Status := Engine.SwitchToIndex(FHandle, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(TagName)), 0, FALSE);
+    Status := Engine.SwitchToIndex(FHandle, IndexName, TagName, 0, FALSE);
   Check(Engine, Status);
   FKeySize := 0;
   FExpIndex := FALSE;
@@ -5315,8 +5315,8 @@ begin
   while TRUE do
   begin
     DBH := DBHandle;
-    RetCode := Engine.OpenTable(DBH, NativeTableName, GetTableTypeName,
-      PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), IndexID, OpenMode, ShareModes[FExclusive],
+    RetCode := Engine.OpenTable(DBH, FTableName, '',
+      IndexName, IndexTag, IndexID, OpenMode, ShareModes[FExclusive],
       xltField, FALSE, NIL, Result, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
       OpenMode := dbiReadOnly    else
@@ -5370,7 +5370,7 @@ end;
 procedure TPSQLTable.InitFieldDefs;
 var
   I, FieldID, FldDescCount: Integer;
-  FieldDescs: TFieldDescList;
+  FieldDescs: TFLDDescList;
   FCursor: HDBICur;
   RequiredFields: TBits;
 begin
@@ -5380,8 +5380,8 @@ begin
     SetDBFlag(dbfFieldList, TRUE);
     try
       if (FTableName = '') then  DatabaseError(SNoTableName, Self);
-        while not CheckOpen(Engine.OpenFieldList(DBHandle, NativeTableName,
-          GetTableTypeName, FALSE, FCursor)) do {Retry};
+        while not CheckOpen(Engine.OpenFieldList(DBHandle, FTableName,
+          '', FALSE, FCursor)) do {Retry};
         try
           Check(Engine, Engine.GetRecordCount(FCursor, FldDescCount));
           SetLength(FieldDescs, FldDescCount);
@@ -5438,13 +5438,14 @@ procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
 var
   IndexOptions: TIndexOptions;
   I: Integer;
-  SSource, SName: PAnsiChar;
+  SSource, SName: string;
   FieldName: String;
-  s : AnsiString;
+  s : String;
 begin
   with IndexDesc do
   begin
-    if szTagName[0] = #0 then
+    //if szTagName[0] = #0 then
+    if szTagName = '' then
     begin
       SName := szName;
       Source := '';
@@ -5453,11 +5454,13 @@ begin
     begin
       SSource := szName;
       SName := szTagName;
-      TNativeToAnsi(Engine, SSource, s);
+      S := SSource;
+      //TNativeToAnsi(Engine, SSource, s);
       Source := string(s);
     end;
 
-    TNativeToAnsi(Engine, SName, s);
+    //TNativeToAnsi(Engine, SName, s);
+    S := SName;
     Name := ExtractFileName(string(s));
     Source := ExtractFileName(Source);
     IndexOptions := [];
@@ -5468,7 +5471,8 @@ begin
     if not bMaintained then Include(IndexOptions, ixNonMaintained);
     if bExpIdx then
     begin
-      TNativeToAnsi(Engine, szKeyExp, S);
+      //TNativeToAnsi(Engine, szKeyExp, S);
+      S := szKeyExp;
       FieldExpression := string(s);
       Include(IndexOptions, ixExpression);
     end else
@@ -5510,7 +5514,8 @@ begin
   FillChar(IndexDesc, SizeOf(IndexDesc), 0);
   with IndexDesc do
   begin
-    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+//    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+    szName      := Name;
     bPrimary    := ixPrimary in Options;
     bUnique     := ixUnique in Options;
     bDescending := (ixDescending in Options) and (DescFields = '');
@@ -5519,7 +5524,8 @@ begin
     if ixExpression in Options then
     begin
       bExpIdx := TRUE;
-      TAnsiToNative(Engine, FieldExpression, szKeyExp, SizeOf(szKeyExp) - 1);
+      //TAnsiToNative(Engine, FieldExpression, szKeyExp, SizeOf(szKeyExp) - 1);
+      szKeyExp := FieldExpression;
     end
     else
     begin
@@ -5552,14 +5558,14 @@ begin
     EncodeIndexDesc(IndexDesc, Name, Fields, Options, DescFields);
     CheckBrowseMode;
     CursorPosChanged;
-    Check(Engine, Engine.AddIndex(DBHandle, Handle, NIL, NIL, IndexDesc, NIL));
+    Check(Engine, Engine.AddIndex(DBHandle, Handle, '', '', IndexDesc, ''));
   end
   else
   begin
       EncodeIndexDesc(IndexDesc, Name, Fields, Options, DescFields);
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.AddIndex(DBHandle, NIL, NativeTableName, GetTableTypeName, IndexDesc, NIL));
+      Check(Engine, Engine.AddIndex(DBHandle, NIL, FTableName, '', IndexDesc, ''));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5575,15 +5581,15 @@ begin
   begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     CheckBrowseMode;
-    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, NIL, NIL, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), 0));
+    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, '', '', IndexName, IndexTag, 0));
   end
   else
   begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.DeleteIndex(DBHandle, NIL, NativeTableName, GetTableTypeName,
-        PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), 0));
+      Check(Engine, Engine.DeleteIndex(DBHandle, NIL, FTableName, '',
+        IndexName, IndexTag, 0));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5611,21 +5617,17 @@ procedure TPSQLTable.GetIndexParams(const IndexName: String;
   FieldsIndex: Boolean; var IndexedName, IndexTag: String);
 var
   IndexStr: TIndexName;
-  SIndexName: DBIMSG;
-  SIndexTag: DBIPATH;
 begin
-  SIndexName[0] := #0;
-  SIndexTag[0] := #0;
+  IndexStr := #0;
   if IndexName <> '' then
   begin
     IndexDefs.Update;
     IndexStr := IndexName;
     if FieldsIndex then
        IndexStr := IndexDefs.FindIndexForFields(IndexName).Name;
-     TAnsiToNative(Engine, IndexStr, SIndexName, SizeOf(SIndexName) - 1);
   end;
-  IndexedName := String(SIndexName);
-  IndexTag := String(SIndexTag);
+  IndexedName := IndexStr;
+  IndexTag := '';
 end;
 
 procedure TPSQLTable.SetIndexDefs(Value: TIndexDefs);
@@ -5706,7 +5708,7 @@ var
     FCursor: HDBICur;
     IndexDesc: IDXDesc;
   begin
-    while not CheckOpen(Engine.OpenIndexList(DBHandle, NativeTableName, GetTableTypeName, FCursor)) do {Retry};
+    while not CheckOpen(Engine.OpenIndexList(DBHandle, FTableName, '', FCursor)) do {Retry};
     try
         while Engine.GetNextRecord(FCursor, dbiNoLock, @IndexDesc, NIL) = 0 do
           if IndexDesc.bMaintained then
@@ -5936,7 +5938,7 @@ begin
       begin
         Check(Engine, Engine.CloneCursor(Handle, True, False, FLookupHandle));
         GetIndexParams(KeyIndexName, FieldsIndex, IndexName, IndexTag);
-        Check(Engine, Engine.SwitchToIndex(FLookupHandle, PAnsiChar(AnsiString(IndexName)), PAnsiChar(AnsiString(IndexTag)), 0, FALSE));
+        Check(Engine, Engine.SwitchToIndex(FLookupHandle, IndexName, IndexTag, 0, FALSE));
       end;
       FLookupKeyFields := KeyFields;
       FLookupCaseIns := CaseInsensitive;
@@ -6053,7 +6055,7 @@ procedure TPSQLTable.CreateTable;
 var
   IndexDescs: TIndexDescList;
   TableDesc: CRTblDesc;
-  FieldDescs: TFieldDescList;
+  FieldDescs: TFLDDescList;
   ValChecks: TValCheckList;
   LvlFldDesc: FLDDesc;
   Level: DBINAME;
@@ -6069,7 +6071,8 @@ var
         iOptParams := 1;
         StrCopy(@Level, PChar(IntToStr(FTableLevel)));
         pOptData := @Level;
-        StrCopy(LvlFldDesc.szName, 'LEVEL');
+        LvlFldDesc.szName := 'LEVEL';
+        //StrCopy(LvlFldDesc.szName, 'LEVEL');
         LvlFldDesc.iLen := StrLen(Level) + 1;
         LvlFldDesc.iOffset := 0;
         pfldOptParams :=  @LvlFldDesc;
@@ -6080,7 +6083,7 @@ var
   procedure InitFieldDescriptors;
   var
     I: Integer;
-    TempFieldDescs: TFieldDescList;
+    TempFieldDescs: TFLDDescList;
   begin
     with TableDesc do
     begin
@@ -6150,14 +6153,14 @@ begin
   if Active then
   begin
     CheckBrowseMode;
-    Check(Engine, Engine.EmptyTable(DBHandle, Handle, NIL, NIL));
+    Check(Engine, Engine.EmptyTable(DBHandle, Handle, '', ''));
     ClearBuffers;
     DataEvent(deDataSetChange, 0);
   end else
   begin
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.EmptyTable(DBHandle, NIL, NativeTableName, GetTableTypeName));
+      Check(Engine, Engine.EmptyTable(DBHandle, NIL, FTableName, ''));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -6177,7 +6180,8 @@ procedure TPSQLTable.EncodeFieldDesc(var FieldDesc: FLDDesc;
 begin
   with FieldDesc do
   begin
-    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+    //TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+    szName := Name;
     iFldType := FldTypeMap[DataType];
     iSubType := FldSubTypeMap[DataType];
     case DataType of
@@ -6206,11 +6210,6 @@ end;
 function TPSQLTable.GetCanModify: Boolean;
 begin
   Result := Inherited GetCanModify and not ReadOnly;
-end;
-
-function TPSQLTable.GetTableTypeName: PAnsiChar;
-begin
-  Result := NIL;
 end;
 
 function TPSQLTable.GetTableLevel: Integer;

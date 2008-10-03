@@ -589,7 +589,7 @@ Type
 
 { typedefs for buffers of various common sizes: }
   DBIPATH            = packed array [0..DBIMAXPATHLEN] of AnsiChar; { holds a DOS path }
-  DBINAME            = packed array [0..DBIMAXNAMELEN] of AnsiChar; { holds a name }
+  DBINAME            = packed array [0..DBIMAXNAMELEN] of Char; { holds a name }
   DBIEXT             = packed array [0..DBIMAXEXTLEN] of AnsiChar; { holds an extension EXT }
   DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of AnsiChar; { holds a table name }
   DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of AnsiChar; { holds a stored procedure name }
@@ -867,11 +867,11 @@ type
 
 type
   pIDXDesc = ^IDXDesc;
-  IDXDesc = packed record               { Index description }
-    szName          : DBITBLNAME;       { Index name }
+  IDXDesc = record               { Index description }
+    szName          : string;       { Index name }
     iIndexId        : Word;             { Index number }
-    szTagName       : DBINAME;          { Tag name (for dBASE) }
-    szFormat        : DBINAME;          { Optional format (BTREE, HASH etc) }
+    szTagName       : string;          { Tag name (for dBASE) }
+    szFormat        : string;          { Optional format (BTREE, HASH etc) }
     bPrimary        : WordBool;         { True, if primary index }
     bUnique         : WordBool;         { True, if unique keys (TRI-STATE for dBASE) }
     bDescending     : WordBool;         { True, for descending index }
@@ -884,8 +884,8 @@ type
     bOutofDate      : WordBool;         { True, if index out of date }
     iKeyExpType     : Word;             { Key type of Expression }
     aiKeyFld        : DBIKEY;           { Array of field numbers in key }
-    szKeyExp        : DBIKEYEXP;        { Key expression }
-    szKeyCond       : DBIKEYEXP;        { Subset condition }
+    szKeyExp        : string;        { Key expression }
+    szKeyCond       : string;        { Subset condition }
     bCaseInsensitive : WordBool;        { True, if case insensitive index }
     iBlockSize      : Word;             { Block size in bytes }
     iRestrNum       : Word;             { Restructure number }
@@ -990,7 +990,7 @@ type
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
     iFldNum         : Word;             { Field number (1..n) }
-    szName          : DBINAME;          { Field name }
+    szName          : string;          { Field name }
     iFldType        : Word;             { Field type }
     iSubType        : Word;             { Field subtype (if applicable) }
     iUnits1         : SmallInt;         { Number of Chars, digits etc }
@@ -1004,6 +1004,7 @@ type
     iUnUsed         : packed array [0..1] of Word;
   end;
 
+  TFLDDescList = array of FLDDesc;
 
 //============================================================================//
 //             Validity check, Referential integrity descriptors              //
@@ -1026,10 +1027,10 @@ type
     bHasDefVal      : WordBool;         { If True, has default value }
     aMinVal         : DBIVCHK;          { Min Value }
     aMaxVal         : DBIVCHK;          { Max Value }
-    aDefVal         : shortstring; //DBIVCHK;          { Default value }
+    aDefVal         : string;           { Default value }
     szPict          : DBIPICT;          { Picture string }
     elkupType       : LKUPType;         { Lookup/Fill type }
-    szLkupTblName   : DBIPATH;          { Lookup Table name }
+    szLkupTblName   : string;          { Lookup Table name }
   end;
 
   RINTType = (                          { Ref integrity type }
@@ -1556,11 +1557,11 @@ type
   PPGFIELD_INFO = ^TPGFIELD_INFO;
   TPGField_Info = record
      FieldIndex   : Integer;
-     FieldName    : AnsiString;
+     FieldName    : String;
      FieldType    : Integer;
      FieldSize    : Integer;
      FieldMaxSize : Integer;
-     FieldDefault : AnsiString;
+     FieldDefault : String;
   end;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -2516,7 +2517,7 @@ begin
       efldvVchk := fldvUNKNOWN;
       if Info.FieldDefault <> '' then pValChk^.bHasDefVal := True;
       pValChk^.aDefVal := Info.FieldDefault;
-      StrPLCopy(@szName, Info.FieldName, Length(Info.FieldName));
+      szName := Info.FieldName;
     end;
   end;
 end;
