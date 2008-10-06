@@ -2252,7 +2252,7 @@ end;
 Constructor TPSQLNative.CreateNative(Owner : TCollection; P : PPGFIELD_INFO);
 begin
   Create(Owner);
-  Move(P^, FDesc, SizeOf(TPGFIELD_INFO));
+  FDesc := P^;
 end;
 
 
@@ -3225,7 +3225,8 @@ begin
         PQClear(FStatement);
         InternalOpen;
        end;
-      If FSortingFields > '' then
+      SetLength(FFieldMinSizes,0);
+      if FSortingFields > '' then
         SortBy(FSortingFields);
       Exit;
     end;
@@ -3414,8 +3415,7 @@ end;
 
 function TNativeDataSet.FieldMaxSizeInBytes(FieldNum: Integer): Integer;
 begin
-  Result := FieldMaxSize(FieldNum)*2;
-  Exit;
+  Result := FieldMaxSize(FieldNum);
   if Result > 0 then
    case FieldType(FieldNum) of
       FIELD_TYPE_BOOL,
@@ -3637,7 +3637,7 @@ var
   i         : Integer;
   FldInfo   : FLDDesc;
   ValCheck  : VCHKDesc;
-  LocalType,LocalSize,NullOffset,RecSize: Word;
+  LocalType, LocalSize, NullOffset, RecSize: Word;
   LocArray : Boolean;
 begin
    Fields.Clear;
@@ -3720,7 +3720,7 @@ begin
 end;
 
 
-Procedure TNativeDataSet.InternalReadBuffer;
+]Procedure TNativeDataSet.InternalReadBuffer;
 var
   i, size: Integer;
   MaxSize, tMS : Integer;
@@ -3742,12 +3742,12 @@ begin
               (aFType <> FIELD_TYPE_BYTEA) then
            begin
              case aFType of
-              FIELD_TYPE_NAME:
+{              FIELD_TYPE_NAME:
                  if 64 > MaxSize then MaxSize := 64;
               FIELD_TYPE_MONEY:
                  if 32 > MaxSize then MaxSize := 32;
               FIELD_TYPE_REGPROC:
-                 if 16 > MaxSize then MaxSize := 16;
+                 if 16 > MaxSize then MaxSize := 16;}
               FIELD_TYPE_TIMESTAMPTZ:
                  if TIMESTAMPTZLEN > MaxSize then MaxSize := TIMESTAMPTZLEN;
               FIELD_TYPE_TIMETZ:
@@ -4838,13 +4838,12 @@ end;
 
 begin
   FIsLocked := FALSE;
-  CheckParam(pszIndexName = '', DBIERR_INVALIDPARAM);
+  //CheckParam(pszIndexName = '', DBIERR_INVALIDPARAM);
   if FFieldDescs.Count = 0 then InitFieldDescs;
   if Length(pszIndexName) > 0 then
-    ParseIndexName(pszIndexName, iIndexId, '') else
-    begin
-      if FPrimaryKeyNumber >= 1 then iIndexId:=FPrimaryKeyNumber;
-    end;
+    ParseIndexName(pszIndexName, iIndexId, '')
+  else
+    if FPrimaryKeyNumber >= 1 then iIndexId := FPrimaryKeyNumber;
   try
     if Ranges then ResetRange;
     KeyNumber := iIndexId;

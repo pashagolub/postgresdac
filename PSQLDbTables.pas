@@ -5618,7 +5618,7 @@ procedure TPSQLTable.GetIndexParams(const IndexName: String;
 var
   IndexStr: TIndexName;
 begin
-  IndexStr := #0;
+  IndexStr := '';
   if IndexName <> '' then
   begin
     IndexDefs.Update;
