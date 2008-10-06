@@ -249,7 +249,7 @@ begin
   try
     if SQL.Count > 0 then
     begin
-      PSQLDBTables.Check(Engine,Engine.QExecDirect(DBHandle, qryLangSQL, PChar(inherited SQL.Text), nil, AffectedRows));
+      PSQLDBTables.Check(Engine,Engine.QExecDirect(DBHandle, PChar(inherited SQL.Text), nil, AffectedRows));
     end
     else DatabaseError(SEmptySQLStatement);
   finally

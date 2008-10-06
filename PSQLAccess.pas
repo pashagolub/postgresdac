@@ -3430,7 +3430,9 @@ begin
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_UUID: ;
    else
+     {$IFDEF DELPHI_12}
       if FConnect.IsUnicodeUsed then
+     {$ENDIF}
         Result := Result * SizeOf(Char);
    end;
 end;
@@ -3720,7 +3722,7 @@ begin
 end;
 
 
-]Procedure TNativeDataSet.InternalReadBuffer;
+Procedure TNativeDataSet.InternalReadBuffer;
 var
   i, size: Integer;
   MaxSize, tMS : Integer;
