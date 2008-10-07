@@ -3225,9 +3225,6 @@ begin
         PQClear(FStatement);
         InternalOpen;
        end;
-      SetLength(FFieldMinSizes,0);
-      if FSortingFields > '' then
-        SortBy(FSortingFields);
       Exit;
     end;
     FLastOperationTime := GetTickCount;
