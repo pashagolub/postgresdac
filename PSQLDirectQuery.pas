@@ -116,7 +116,7 @@ function TPSQLCustomDirectQuery.FieldIndexByName(aFieldName: string): integer;
 begin
   CheckOpen();
 
-  Result := PQfnumber(FStatement, PAnsiChar(AnsiString((aFieldName))));
+  Result := PQfnumber(FStatement, TNativeConnect(FDatabase.Handle).StringToRaw(aFieldName));
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.FieldIsNull(aFieldIndex: integer): boolean;
@@ -182,7 +182,7 @@ function TPSQLCustomDirectQuery.GetFieldName(aIndex: integer): string;
 begin
   if aIndex >= GetFieldsCount then
     raise EPSQLDirectQueryException.Create(SFieldIndexError);
-   Result := string(PQfname(FStatement, aIndex));
+   Result := TNativeConnect(FDatabase.Handle).RawToString(PQfname(FStatement, aIndex));
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.GetFieldsCount: integer;
@@ -199,7 +199,7 @@ begin
   if aIndex >= GetFieldsCount() then
     raise EPSQLDirectQueryException.Create(SFieldIndexError);
 
-  Result := string(PQgetvalue(FStatement, FRecNo, aIndex));
+  Result := TNativeConnect(FDatabase.Handle).RawToString(PQgetvalue(FStatement, FRecNo, aIndex));
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.GetIsEmpty: boolean;
@@ -253,6 +253,7 @@ begin
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TPSQLCustomDirectQuery.Open();
+var NC: TNativeConnect;
 begin
   if FStatement <> nil then
     exit;//already opened, use Refresh() if you want to re-read data
@@ -263,7 +264,9 @@ begin
   if Trim(FSQL.Text) = EmptyStr then
     raise EPSQLDirectQueryException.Create(SEmptySQLStatement);
 
-  FStatement := {$IFDEF M_DEBUG}PSQLAccess.{$ENDIF}PQexec(TNativeConnect(FDatabase.Handle).Handle, PAnsiChar(ansistring(FSQL.Text)));
+  NC := TNativeConnect(FDatabase.Handle);
+
+  FStatement := {$IFDEF M_DEBUG}PSQLAccess.{$ENDIF}PQexec(NC.Handle, NC.StringToRaw(FSQL.Text));
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then
   begin
     FreeHandle();

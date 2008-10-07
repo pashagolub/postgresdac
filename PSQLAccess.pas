@@ -277,13 +277,13 @@ Type
       Function GetRecordCount(hCursor: hDBICur;Var iRecCount: Longint): DBIResult;
       Function ForceReread(hCursor: hDBICur): DBIResult;
       Function GetField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Bool): DBIResult;
-{$IFDEF DELPHI_12}
+(*{$IFDEF DELPHI_12}
       Function AnsiToNative(pNativeStr: PAnsiChar;pAnsiStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
       Function NativeToAnsi(pAnsiStr: PAnsiChar;pNativeStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
 {$ELSE}
       Function AnsiToNative(pNativeStr: PChar;pAnsiStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
       Function NativeToAnsi(pAnsiStr: PChar;pNativeStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
-{$ENDIF}
+{$ENDIF}*)
       Function AddFilter(hCursor: hDBICur;iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter): DBIResult;
       Function DropFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       Function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
@@ -5732,7 +5732,7 @@ begin
   end;
 end;
 
-Function TPSQLEngine.AnsiToNative(pNativeStr: PAnsiChar; pAnsiStr: PAnsiChar; iLen: LongInt;var bDataLoss : Bool): DBIResult;
+(*Function TPSQLEngine.AnsiToNative(pNativeStr: PAnsiChar; pAnsiStr: PAnsiChar; iLen: LongInt;var bDataLoss : Bool): DBIResult;
 begin
   Try
     bDataLoss := FALSE;
@@ -5756,7 +5756,7 @@ begin
   Except
     Result := CheckError;
   end;
-end;
+end; *)
 
 Function TPSQLEngine.GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszError: PChar): DBIResult;
 Var
@@ -6841,7 +6841,7 @@ const
 
   sqlShowParameters810  = 'SELECT NULLIF(proargnames[g.s],''''),   '+
                           '       COALESCE(proargtypes[g.s-1], proallargtypes[g.s]),'+
-                          '       proargmodes[g.s]   '+
+                          '       COALESCE(proargmodes[g.s], ''i'') '+
                           ' FROM                      '+
                           '     			pg_proc p,      '+
                           '           pg_type t JOIN pg_namespace nsp ON t.typnamespace = nsp.oid ,   '+

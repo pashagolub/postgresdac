@@ -1049,11 +1049,6 @@ type
 procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
 procedure Dac4PSQLShowAbout(aComponentName : string);
-function TAnsiToNative(Engine : TPSQLEngine;
-                       const AnsiStr: String;
-                       NativeStr: PAnsiChar;
-                       MaxLen: Integer): PAnsiChar;
-
 
 Var
    DBList : TList;
@@ -1142,7 +1137,7 @@ type
 
 type PCharType = {$IFDEF DELPHI_12}PAnsiChar{$ELSE}PChar{$ENDIF};
 
-{ Utility routines }
+(*{ Utility routines }
 procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
 var
   DataLoss: LongBool;
@@ -1199,7 +1194,7 @@ begin
   SetString(AnsiStr, nil, Len);
   if Len > 0 then
     TNativeToAnsiBuf(Engine, NativeStr, Pointer(AnsiStr), Len);
-end;
+end;           *)
 
 procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
 begin
@@ -1213,7 +1208,7 @@ end;
 
 { Parameter binding routines }
 
-function GetParamDataSize(Param: TParam): Integer;
+(* function GetParamDataSize(Param: TParam): Integer;
 begin
   with Param do
     if ((DataType in [ftString, ftFixedChar]) and (Length(VarToStr(Value)) > 255)) or
@@ -1303,7 +1298,7 @@ begin
     end else
       GetData(Buffer);
 end;
-{$ENDIF}
+{$ENDIF}    *)
 
 { Timer callback function }
 procedure FreeTimer(ForceKill : Boolean = FALSE);
@@ -3031,20 +3026,20 @@ end;
 
 
 function TPSQLDataSet.GetFieldFullName(Field : TField) : String;
-var
+{var
   Len: Word;
   AttrDesc: ObjAttrDesc;
   Buffer: array[0..1024] of AnsiChar;
-  s: AnsiString;
+  s: AnsiString;}
 begin
-  if Field.FieldNo > 0  then
+  {if Field.FieldNo > 0  then
   begin
     AttrDesc.iFldNum := Field.FieldNo;
     AttrDesc.pszAttributeName := Buffer;
     Check(Engine, Engine.GetEngProp(HDBIOBJ(Handle), curFIELDFULLNAME, @AttrDesc, SizeOf(Buffer), Len));
     TNativeToAnsi(Engine, Buffer, S);
     Result := string(S);
-  end else
+  end else}
     Result := inherited GetFieldFullName(Field);
 end;
 
@@ -6065,7 +6060,8 @@ var
     FillChar(TableDesc, SizeOf(TableDesc), 0);
     with TableDesc do
     begin
-      TAnsiToNative(Engine,TableName,szTblName, SizeOf(szTblName) - 1);
+      //TAnsiToNative(Engine,TableName,szTblName, SizeOf(szTblName) - 1);
+      szTblName := TableName;
       if FTableLevel > 0 then
       begin
         iOptParams := 1;
@@ -6517,8 +6513,8 @@ begin
       case Status of
         DBIERR_NONE, DBIERR_ENDOFBLOB:
           begin
-            if FField.Transliterate then
-              TNativeToAnsiBuf(Engine, @Buffer, @Buffer, Result);
+            {if FField.Transliterate then
+              TNativeToAnsiBuf(Engine, @Buffer, @Buffer, Result);}
             if FDataset.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
               (FMode = bmRead) and not FField.Modified and (FPosition = FCacheSize) then
             begin
@@ -6557,8 +6553,8 @@ begin
     begin
       GetMem(Temp, Count+1);
       try
-        TAnsiToNativeBuf(Engine, @Buffer, Temp, Count);
-        Check(Engine, Engine.PutBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, Temp));
+        //TAnsiToNativeBuf(Engine, @Buffer, Temp, Count);
+        Check(Engine, Engine.PutBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer));
       finally
         FreeMem(Temp, Count+1);
       end;

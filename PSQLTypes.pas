@@ -1132,13 +1132,13 @@ type
 
   pCRTblDesc         = ^CRTblDesc;
   CRTblDesc = packed record             { Create/Restruct Table descr }
-    szTblName       : DBITBLNAME;       { TableName incl. optional path & ext }
-    szTblType       : DBINAME;          { Driver type (optional) }
-    szErrTblName    : DBIPATH;          { Error Table name (optional) }
-    szUserName      : DBINAME;          { User name (if applicable) }
-    szPassword      : DBINAME;          { Password (optional) }
-    bProtected      : WordBool;         { Master password supplied in szPassword }
-    bPack           : WordBool;         { Pack table (restructure only) }
+    szTblName       : string;       { TableName incl. optional path & ext }
+    //szTblType       : DBINAME;          { Driver type (optional) }
+    //szErrTblName    : DBIPATH;          { Error Table name (optional) }
+    //szUserName      : DBINAME;          { User name (if applicable) }
+    //szPassword      : DBINAME;          { Password (optional) }
+    //bProtected      : WordBool;         { Master password supplied in szPassword }
+    //bPack           : WordBool;         { Pack table (restructure only) }
     iFldCount       : Word;             { Number of field defs supplied }
     pecrFldOp       : pCROpType;        { Array of field ops }
     pfldDesc        : pFLDDesc;         { Array of field descriptors }
