@@ -5303,8 +5303,8 @@ var
 
   procedure FillAddonProps;
   begin
-   Check(Engine,Engine.GetTableProps(DBHandle,string(NativeTableName),FOwner,
-        FComment,FTablespace,FHasOIDs,FTableID));
+   Check(Engine,Engine.GetTableProps(DBHandle, FTableName, FOwner,
+        FComment, FTablespace, FHasOIDs, FTableID));
   end;
 
 begin
