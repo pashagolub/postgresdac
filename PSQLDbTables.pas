@@ -1135,8 +1135,6 @@ type
       constructor Create(AQuery: TPSQLQuery);
   end;
 
-type PCharType = {$IFDEF DELPHI_12}PAnsiChar{$ELSE}PChar{$ENDIF};
-
 (*{ Utility routines }
 procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
 var
