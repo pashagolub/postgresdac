@@ -993,8 +993,8 @@ type
     szName          : string;          { Field name }
     iFldType        : Word;             { Field type }
     iSubType        : Word;             { Field subtype (if applicable) }
-    iUnits1         : SmallInt;         { Number of Chars, digits etc }
-    iUnits2         : SmallInt;         { Decimal places etc. }
+    iUnits1         : integer;         { Number of Chars, digits etc }
+    iUnits2         : integer;         { Decimal places etc. }
     iOffset         : Word;             { Offset in the record (computed) }
     iLen            : Word;             { Length in bytes (computed) }
     iNullOffset     : Word;             { For Null bits (computed) }
@@ -2490,7 +2490,7 @@ begin
   if Assigned(pRecBuff) then
   begin
     ZeroMemory(pRecBuff, Sizeof(FLDDesc));
-    ZeroMemory(pValChk,SizeOf(VCHKDesc));
+    ZeroMemory(pValChk, SizeOf(VCHKDesc));
     with PRecBuff^ do
     begin
       iFldNum  := Count;

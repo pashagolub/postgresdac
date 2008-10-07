@@ -417,8 +417,8 @@ Type
       Property FieldName : String Read GetFieldName Write SetFieldName;
       Property FieldType : Word Read   FDesc.iFldType Write  FDesc.iFldType;
       Property FieldSubType : Word Read   FDesc.iSubType Write  FDesc.iSubType;
-      Property FieldUnits1 : SmallInt Read   FDesc.iUnits1 Write  FDesc.iUnits1;
-      Property FieldUnits2 : SmallInt Read   FDesc.iUnits2 Write  FDesc.iUnits2;
+      Property FieldUnits1 : integer Read   FDesc.iUnits1 Write  FDesc.iUnits1;
+      Property FieldUnits2 : integer Read   FDesc.iUnits2 Write  FDesc.iUnits2;
       Property FieldLength : Word Read   FDesc.iLen Write  FDesc.iLen;
       property FieldDefault: string read GetFieldDefault write SetFieldDefault;//mi
       property NativeType : Word Read   GetLocalType Write  SetLocalType;
@@ -1961,7 +1961,7 @@ begin
   else
    NativeBLOBType := nbtNotBlob;
   end;
-  NativeSize   := LSize;
+  NativeSize   := Max(LSize, FDesc.iLen);
 
   FieldArray := isArray;
 end;
@@ -3430,7 +3430,7 @@ begin
      {$IFDEF DELPHI_12}
       if FConnect.IsUnicodeUsed then
      {$ENDIF}
-        Result := Result * SizeOf(Char);
+        Result := Result * SizeOf(Char) + 1;
    end;
 end;
 
@@ -3568,7 +3568,7 @@ begin
   begin
     CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
     FLD := FieldInfo[FieldNo-1];
-    ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P,@P1,LocArray);
+    ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, @P1, LocArray);
     LocType := FieldType(FieldNo-1);
     case Loctype of
       FIELD_TYPE_BYTEA,
@@ -3741,12 +3741,6 @@ begin
               (aFType <> FIELD_TYPE_BYTEA) then
            begin
              case aFType of
-{              FIELD_TYPE_NAME:
-                 if 64 > MaxSize then MaxSize := 64;
-              FIELD_TYPE_MONEY:
-                 if 32 > MaxSize then MaxSize := 32;
-              FIELD_TYPE_REGPROC:
-                 if 16 > MaxSize then MaxSize := 16;}
               FIELD_TYPE_TIMESTAMPTZ:
                  if TIMESTAMPTZLEN > MaxSize then MaxSize := TIMESTAMPTZLEN;
               FIELD_TYPE_TIMETZ:
@@ -3780,7 +3774,7 @@ begin
              T.FieldChanged := FALSE;
              T.FieldNull    := FieldIsNull(I);
           end;
-          size := T.NativeSize;
+          size := T.NativeSize; //FieldLength
           if T.FieldNull  then
               ZeroMemory(FCurrentBuffer,size)
           else
