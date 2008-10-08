@@ -7030,8 +7030,8 @@ begin
     List.BeginUpdate;
      try
     for i:=0 to PQntuples(RES)-1 do
-      If Trim(RawToString(PQgetvalue(RES,i,0))) > '' then
-      List.Append(RawToString(PQgetvalue(RES,i,0)));
+      if Trim(RawToString(PQgetvalue(RES,i,0))) > '' then
+        List.Append(RawToString(PQgetvalue(RES,i,0)));
      finally
     List.EndUpdate;
      end;

@@ -103,7 +103,7 @@ const
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
   MAX_BLOB_SIZE    = 8192; //Max Blob size for read and write operation
-  MAX_ENCODING_ID  = 36; //Max encoding id for pg_encoding_to_char
+  MAX_ENCODING_ID  = 40; //Max encoding id for pg_encoding_to_char
   InvalidOid       : cardinal = 0;
 var
   PSQL_DLL             : string = 'libpq.dll';
