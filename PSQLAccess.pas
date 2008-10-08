@@ -1006,7 +1006,7 @@ begin
     FIELD_TYPE_OID,
     FIELD_TYPE_TEXT: Result := 1; //29.09.2008
   else
-     StrLCopy(PChar(Dest), PChar(Src), iField.FieldUnits1)
+     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength)
   end;
 
   Blank := Result <> 0;
@@ -2702,9 +2702,6 @@ begin
      case FieldType(I) of
         FIELD_TYPE_INT2,
         FIELD_TYPE_BOOL: Inc(Result,SizeOf(SmallInt));
-        FIELD_TYPE_NAME: Inc(Result,64+1);
-        FIELD_TYPE_MONEY: Inc(Result,32+1);
-        FIELD_TYPE_REGPROC:Inc(Result,16+1);
         FIELD_TYPE_OID,
         FIELD_TYPE_TEXT,
         FIELD_TYPE_BYTEA: Inc(Result,SizeOf(TBlobItem));
@@ -2721,7 +2718,7 @@ begin
         FIELD_TYPE_FLOAT8:Inc(Result,SizeOf(Double));
 
      else
-       Inc(Result,FieldMaxSize(I)+1);
+       Inc(Result,FieldMaxSizeInBytes(I));
      end;
    end;
 end;
@@ -3377,8 +3374,8 @@ begin
     begin
      if FStatement = nil then exit;
 
-     for I := 0 to FieldCount - 1 do
-        Inc(Size, FieldMaxSizeInBytes(I));
+     for I := 1 to FieldCount do
+        Inc(Size, Fields[i].NativeSize);
 
      Inc(Size, FieldCount);
 
@@ -3386,7 +3383,7 @@ begin
      Result := Size;
     end
    else
-     Result:=FRecSize;
+     Result := FRecSize;
 end;
 
 function TNativeDataSet.FieldName(FieldNum: Integer): String;
@@ -3824,7 +3821,7 @@ begin
               begin
                {$IFDEF DELPHI_12}
                if FConnect.IsUnicodeUsed then
-                 StrCopy(PWideChar(Data), PWideChar(UTF8ToWideString(FieldBuffer(I))))
+                 StrCopy(PWideChar(Data), PWideChar(FldValue))
                else
                {$ENDIF}
                 StrCopy(PAnsiChar(Data), FieldBuffer(I));
