@@ -7846,7 +7846,12 @@ begin
     Result := '';
     if P <> nil then
      begin
-      AVal := FConnect.StringToRaw(PWideChar(P));
+      {$IFDEF DELPHI_12}
+      if FConnect.IsUnicodeUsed then
+       AVal := FConnect.StringToRaw(PWideChar(P))
+      else
+      {$ENDIF}
+       AVal := PAnsiChar(P);
       SZ := length(AVal);
       GetMem(Buffer, 2*SZ+1);
       try
