@@ -3426,8 +3426,10 @@ begin
    else
      {$IFDEF DELPHI_12}
       if FConnect.IsUnicodeUsed then
+        Result := Result * SizeOf(Char) + 1
+      else
      {$ENDIF}
-        Result := Result * SizeOf(Char) + 1;
+        Result := Result + 1;
    end;
 end;
 
@@ -3824,7 +3826,7 @@ begin
                  StrCopy(PWideChar(Data), PWideChar(FldValue))
                else
                {$ENDIF}
-                StrCopy(PAnsiChar(Data), FieldBuffer(I));
+                StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
               end;
              end;
              move(Data^,(PAnsiChar(FCurrentBuffer)+1)^, Size);
