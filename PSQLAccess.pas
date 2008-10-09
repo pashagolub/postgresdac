@@ -897,9 +897,12 @@ begin
 end;
 
 procedure OpenDebugFile;
+var Name: string;
 begin
- AssignFile(F, 'exec_log.html');
- IF FileExists('exec_log.html') then
+ DateTimeToString(Name, '_dd.mm.yy', Now());
+ Name := ChangeFileExt(GetModuleName(HInstance), Name + '_log.html');
+ AssignFile(F, Name);
+ if FileExists(Name) then
   Append(F)
  else
   Rewrite(F);
@@ -3408,28 +3411,44 @@ begin
 end;
 
 function TNativeDataSet.FieldMaxSizeInBytes(FieldNum: Integer): Integer;
+var FT: cardinal;
 begin
-  Result := FieldMaxSize(FieldNum);
-  if Result > 0 then
-   case FieldType(FieldNum) of
+   FT := FieldType(FieldNum);
+   case FT of
       FIELD_TYPE_BOOL,
-      FIELD_TYPE_INT2,
-      FIELD_TYPE_INT4,
-      FIELD_TYPE_INT8,
-      FIELD_TYPE_DATE,
+      FIELD_TYPE_INT2:  Result := SizeOf(Smallint);
+
+      FIELD_TYPE_INT4:  Result := SizeOf(Integer);
+
+      FIELD_TYPE_INT8:  Result := SizeOf(Int64);
+
+      FIELD_TYPE_DATE:  Result := Sizeof(TTimeStamp);
+
       FIELD_TYPE_TIME,
-      FIELD_TYPE_TIMESTAMP,
+      FIELD_TYPE_TIMESTAMP: Result := SizeOf(TDateTime);
+
       FIELD_TYPE_FLOAT4,
       FIELD_TYPE_NUMERIC,
-      FIELD_TYPE_FLOAT8,
-      FIELD_TYPE_UUID: ;
+      FIELD_TYPE_FLOAT8: Result := Sizeof(Double);
+      FIELD_TYPE_TEXT,
+      FIELD_TYPE_BYTEA,
+      FIELD_TYPE_OID: Result := SizeOf(TBlobItem);
    else
+     begin
+       case FT of
+        FIELD_TYPE_UUID: Result := UUIDLEN;
+        FIELD_TYPE_TIMESTAMPTZ: Result := TIMESTAMPTZLEN;
+        FIELD_TYPE_TIMETZ: Result := TIMETZLEN;
+       else
+        Result := FieldMaxSize(FieldNum);
+       end;
      {$IFDEF DELPHI_12}
-      if FConnect.IsUnicodeUsed then
+       if FConnect.IsUnicodeUsed then
         Result := Result * SizeOf(Char) + 1
-      else
+       else
      {$ENDIF}
         Result := Result + 1;
+     end;
    end;
 end;
 

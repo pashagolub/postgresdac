@@ -2398,7 +2398,7 @@ begin
                          BdeType := fldZSTRING;
                          LogSize   := TIMETZLEN+1;
                       end;
-    FIELD_TYPE_NAME: begin
+{    FIELD_TYPE_NAME: begin
                         BdeType := fldZSTRING;
                         LogSize   := 64+1;
                      end;
@@ -2406,7 +2406,7 @@ begin
                      begin
                         BdeType := fldZSTRING;
                         LogSize   := 16+1;
-                     end;
+                     end;                 }
     FIELD_TYPE_OID,
     FIELD_TYPE_BYTEA:  begin
                         BdeType := fldBLOB;
@@ -2421,11 +2421,11 @@ begin
                         BDEType := fldINT16;
                         LogSize := Sizeof(SmallInt);
                       end;
-    FIELD_TYPE_INT2VECTOR:
+{    FIELD_TYPE_INT2VECTOR:
                       begin
                         BdeType := fldZSTRING;
                         LogSize   := phSize+1;
-                      end;
+                      end;                    }
     FIELD_TYPE_INT4:  begin
                         BDEType := fldINT32;
                         LogSize := Sizeof(LongInt);
