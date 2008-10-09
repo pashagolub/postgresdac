@@ -2837,11 +2837,10 @@ begin
     //pg: Unicode playing
     {$IFDEF DELPHI_12}
     if TNativeConnect(FDatabase.Handle).IsUnicodeUsed then
-     begin
-      if FType = ftString then
-        FType := ftWideString
-      else if FType = ftMemo then
-        FType := ftWideMemo;
+     case FType of
+      ftString: FType := ftWideString;
+      ftMemo:   FType := ftWideMemo;
+      ftFixedChar: FType := ftFixedWideChar;
      end;
     {$ENDIF}
 

@@ -439,14 +439,14 @@ type
   TPQgetisnull     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQclear         = procedure(Result: PPGresult); cdecl;
   TPQmakeEmptyPGresult  = function(Handle: PPGconn; status: ExecStatusType): PPGresult; cdecl;
-  TPQEscapeByteaConn   = function(Handle: PPGconn; from: PChar; from_length: integer; var to_length: integer):PChar; cdecl;
+  TPQEscapeByteaConn   = function(Handle: PPGconn; from: PAnsiChar; from_length: integer; var to_length: integer): PAnsiChar; cdecl;
   TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer):PAnsiChar; cdecl;
   TPQEscapeStringConn = function(Handle: PPGconn; to_str: PAnsiChar; const from_str: PAnsiChar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
   Tlo_open         = function(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer; cdecl;
   Tlo_close        = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
-  Tlo_read         = function(Handle: PPGconn; fd: Integer; buf: PChar; len: Integer): Integer; cdecl;
-  Tlo_write        = function(Handle: PPGconn; fd: Integer; buf: PChar; len: Integer): Integer; cdecl;
+  Tlo_read         = function(Handle: PPGconn; fd: Integer; buf: PAnsiChar; len: Integer): Integer; cdecl;
+  Tlo_write        = function(Handle: PPGconn; fd: Integer; buf: PAnsiChar; len: Integer): Integer; cdecl;
   Tlo_lseek        = function(Handle: PPGconn; fd, offset, whence: Integer): Integer; cdecl;
   Tlo_creat        = function(Handle: PPGconn; mode: Integer): Oid; cdecl;
   Tlo_tell         = function(Handle: PPGconn; fd: Integer): Integer; cdecl;

@@ -4439,7 +4439,7 @@ Var
     function BlobSize(columnNumber: Integer; buff :Pointer): LongInt;
     var
       N, L: LongInt;
-      Buffer : PChar;
+      Buffer : PAnsiChar;
     const
       MAX_PART_SIZE = 1024;
     begin
@@ -4562,14 +4562,14 @@ var
           begin
            repeat
             if Len > MAX_BLOB_SIZE then
-               N  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest)+L, MAX_BLOB_SIZE) else
-               N  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest)+L, Len);
+               N  := lo_read(FConnect.Handle,FLocalBHandle, PAnsiChar(Dest)+L, MAX_BLOB_SIZE) else
+               N  := lo_read(FConnect.Handle,FLocalBHandle, PAnsiChar(Dest)+L, Len);
             Dec(Len,MAX_BLOB_SIZE);
             Inc(L, N);
            until N < MAX_BLOB_SIZE;
            Result := L;
           end else
-             Result  := lo_read(FConnect.Handle,FLocalBHandle, PChar(Dest), Length);
+             Result  := lo_read(FConnect.Handle,FLocalBHandle, PAnsiChar(Dest), Length);
          end;
         end;
        end;
@@ -4581,7 +4581,7 @@ var
    begin
     Result := CachedBlobGet(Offset, Length, buff, Dest);
 
-    if (Result = 0) and Assigned(PChar(FieldBuffer(ColumnNumber-1)+Offset)) then
+    if (Result = 0) and Assigned(PAnsiChar(FieldBuffer(ColumnNumber-1)+Offset)) then
      begin
       P := PQUnescapeBytea(FieldBuffer(ColumnNumber-1), Len);
      try
@@ -4602,9 +4602,9 @@ begin
     Field.Buffer := PRecord;
     if not Field.FieldNull then
       If (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
-        iRead := BlobGet(FieldNo, iOffset, iLen, Pchar(Field.Data)+Field.FieldNumber-1 ,pDest)
+        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data)+Field.FieldNumber-1 ,pDest)
       else
-        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, Pchar(Field.Data)+Field.FieldNumber-1 ,pDest)
+        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data)+Field.FieldNumber-1 ,pDest)
   end;
 end;
 
@@ -4649,7 +4649,7 @@ procedure TNativeDataSet.QuerySetParams(Params : TParams; SQLText : String);
 var
   Token, Temp, Value: string;
   Param: TParam;
-  PEsc: PChar;
+  PEsc: PAnsiChar;
   BlSZ: integer;
   i: integer;
   byName: boolean;
@@ -4712,9 +4712,9 @@ begin
           ftADT: Value := 'DEFAULT';
           ftBLOB: begin
                     BlSZ := 0;
-                    PEsc := PQEscapeByteaConn(FConnect.Handle, PChar(Param.AsString), Param.GetDataSize, BlSZ);
+                    PEsc := PQEscapeByteaConn(FConnect.Handle, FConnect.StringToRaw(Param.AsString), Param.GetDataSize, BlSZ);
                     try
-                     Value := '''' + Copy(PEsc,1,BlSZ) + '''';
+                     Value := '''' + FConnect.RawToString(PEsc) + '''';
                     //we don't use AnsiQuotedStr cause PQEscape will never miss quote inside
                     finally
                      PQFreeMem(PEsc);
@@ -4734,7 +4734,12 @@ begin
            varCurrency : Value := SQLFloatToStr(VarAsType(Param.Value, varDouble));
            varBoolean  : if Param.Value then Value := '''Y''' else Value := '''N''';
          else
-           Value := StrValue(PChar(Param.AsString)); //05.06.2008
+           {$IFDEF DELPHI_12}
+           if FConnect.IsUnicodeUsed then
+             Value := StrValue(PWideChar(Param.AsString))
+           else
+           {$ENDIF}
+             Value := StrValue(PAnsiChar(AnsiString(Param.AsString)));
          end;
         end;
       Temp := Temp + Value;
@@ -7362,7 +7367,7 @@ begin
     If CompareText(Fld.FieldName, AFieldName)<>0 then Continue;
     //AParam.DataType := DataTypeMap[Fld.FieldType];
     Src := Fld.FieldValue;
-    Inc(PChar(Src));
+    Inc(PAnsiChar(Src));
     if not Fld.FieldChanged and not UnchangedAsNull then //field was not changed, we put there old value
                                                          //08.01.2008
      begin
@@ -7390,7 +7395,12 @@ begin
                           if Fld.NativeType = FIELD_TYPE_BIT then
                              AParam.AsString := string('B') + PChar(Src)
                           else
-                             AParam.AsString := PChar(Src);
+                           {$IFDEF DELPHI_12}
+                            if FConnect.IsUnicodeUsed then
+                              AParam.AsString := PWideChar(Src)
+                            else
+                            {$ENDIF}
+                              AParam.AsString := String(PAnsiChar(Src));
                        end;
            fldBLOB:    if Fld.NativeBLOBType = nbtOID then
                             AParam.AsInteger := StrToUInt(BlobValue(Src, Fld))
@@ -7885,7 +7895,7 @@ end;
 
 function TNativeDataSet.BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
 var
-   Buffer, PEsc : PChar;
+   Buffer, PEsc : PAnsiChar;
    SZ : Integer;
    Res : LongInt;
    Off, BlSZ: Integer;
@@ -7906,13 +7916,13 @@ begin
            begin
              PEsc := PQEscapeByteaConn(FConnect.Handle,Buffer,SZ,BlSZ);
              try
-              Result := Copy(PEsc,1,BlSZ);
+              Result := FConnect.RawToString(PEsc);
              finally
               PQFreeMem(PEsc);
              end;
            end
           else
-           Result := Copy(Buffer,1,SZ);
+           Result := string(Buffer);
         end
       else    //nbtOID in other case
         begin
