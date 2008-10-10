@@ -186,6 +186,7 @@ Type
     {$ENDIF}
     function RawToString(S: PAnsiChar): string;
     function StringToRaw(S: string): PAnsiChar;
+    function StringToRawS(S: string): AnsiString;
   end;
 
   {Postgres Engine}
@@ -695,8 +696,8 @@ Type
       Property InternalBuffer : Pointer Read  GetInternalBuffer Write SetInternalBuffer;
       Property IndexCount : Integer Read  GetIndexCount;
       //insert, update, delete stuff
-      function StrValue(P : Pointer):String;
-      function MemoValue(P : Pointer):String;
+      function StrValue(P : Pointer; NeedQuote: boolean = True):String;
+      function MemoValue(P : Pointer; NeedQuote: boolean = True):String;
       function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
     procedure ReadBlock(var iRecords: Integer; pBuf: Pointer);
     Public
@@ -1085,7 +1086,7 @@ begin
 
  if Result = 1 then
  begin
-    ZeroMemory(Dest, iField.FieldLength);
+    ZeroMemory(Dest, iField.NativeSize);
     Result := 0;
  end;
 end;
@@ -4084,8 +4085,9 @@ var
   I          : Integer;
   Fld        : TPSQLField;
   Src        : Pointer;
-  Where      : String;
-  Values     : String;
+  Where      : string;
+  Values     : string;
+  FldName      : string;
 
 
 function GetWHERE(P : Pointer) : String;
@@ -4139,26 +4141,27 @@ begin
     if not Fld.FieldChanged then continue;
     Src := Fld.FieldValue;
     Inc(PAnsiChar(Src));
+    FldName := AnsiQuotedStr(Fld.FieldName, '"');
     if Fld.FieldNull then
-       Values := Values+'"'+Fld.FieldName+'"'+'=NULL, '
+       Values := Values + FldName + '=NULL, '
     else
       case Fld.FieldType of
-         fldBOOL:   Values := Values+'"'+Fld.FieldName+'"'+'='+''''+IntToStr(SmallInt(Src^))+''''+', ';
-         fldINT16:  Values := Values+'"'+Fld.FieldName+'"'+'='+IntToStr(SmallInt(Src^))+', ';
-         fldINT32:  Values := Values+'"'+Fld.FieldName+'"'+'=' + IntToStr(LongInt(Src^))+', ';
-         fldINT64:  Values := Values+'"'+Fld.FieldName+'"'+'=' + IntToStr(Int64(Src^))+', ';
-         fldFloat:  Values := Values+'"'+Fld.FieldName+'"'+'=' + SQLFloatToStr(Double(Src^))+', ';
+         fldBOOL:   Values := Values + FldName + '='+ '''' + IntToStr(SmallInt(Src^)) + '''' + ', ';
+         fldINT16:  Values := Values + FldName + '=' + IntToStr(SmallInt(Src^))+', ';
+         fldINT32:  Values := Values + FldName + '=' + IntToStr(LongInt(Src^)) + ', ';
+         fldINT64:  Values := Values + FldName + '=' + IntToStr(Int64(Src^)) + ', ';
+         fldFloat:  Values := Values + FldName + '=' + SQLFloatToStr(Double(Src^))+', ';
          fldBLOB:   if Fld.FieldSubType = fldstMemo then
-                       Values := Values+'"'+Fld.FieldName+'"'+'=' + MemoValue(Src)+ ', '
+                       Values := Values + FldName + '=' + MemoValue(Src)+ ', '
                     else
-                       Values := Values+'"'+Fld.FieldName+'"'+'='+'''' + BlobValue(Src,Fld)+ ''''+', ';
+                       Values := Values + FldName + '=' + '''' + BlobValue(Src,Fld) + '''' + ', ';
          fldZSTRING, fldUUID: if Fld.NativeType = FIELD_TYPE_BIT then
-                                 Values := Values+'"'+Fld.FieldName+'"'+'= B' + StrValue(Src)+', '
+                                 Values := Values + FldName + '= B' + StrValue(Src) + ', '
                               else
-                                 Values := Values+'"'+Fld.FieldName+'"'+'='+ StrValue(Src)+', ';
-         fldDate:   Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
-         fldTime:   Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
-         fldTIMESTAMP: Values := Values+'"'+Fld.FieldName+'"'+'=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
+                                 Values := Values + FldName + '=' + StrValue(Src) + ', ';
+         fldDate:   Values := Values + FldName + '=' + '''' + DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
+         fldTime:   Values := Values + FldName + '=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
+         fldTIMESTAMP: Values := Values + FldName + '=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
       end;
   end;
   Delete(VALUES,Length(Values)-1,2);
@@ -4243,7 +4246,7 @@ begin
        IsQuery := OldQueryFlag;
        RecordState := tsPos;
        try
-         if not SetRowPosition(KN,0,PRecord) then
+         if not SetRowPosition(KN, 0, PRecord) then
             SettoSeqNo(RecNo+1);
        except
        end;
@@ -4412,9 +4415,9 @@ begin
         begin
            //BLOB Trans
            FConnect.BeginBLOBTran;
-           FLocalBHandle := lo_open(Fconnect.Handle,FBlobHandle,Mode);
+           FLocalBHandle := lo_open(Fconnect.Handle, FBlobHandle, Mode);
            if FLocalBHandle >= 0 then
-           FBlobOpen := True;
+             FBlobOpen := True;
         end;
      end;
   end;
@@ -4426,15 +4429,15 @@ Var
   Buff : Pointer;
 begin
   Field := Fields[FieldNo];
-  CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
+  CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
   Field.Buffer := PRecord;
   if not Field.FieldNull then
   begin
     Buff := Field.FieldValue;
-    if PChar(Buff)^=#1 then
+    if PAnsiChar(Buff)^=#1 then
      begin
-       PChar(Buff)^ := #0; //pasha_golub 16.02.07
-       Inc(Pchar(Buff));
+       PAnsiChar(Buff)^ := #0; //pasha_golub 16.02.07
+       Inc(PAnsichar(Buff));
        FreeAndNil(TBlobItem(Buff^).Blob);
      end
     else
@@ -4466,8 +4469,8 @@ Var
       if Field.FieldSubType = fldstMemo then
       begin
          if FieldBuffer(ColumnNumber-1) <> nil then
-            Result := StrLen(FieldBuffer(ColumnNumber-1));
-      end else
+          Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
+     end else
       begin
         if FBlobOpen then
         begin
@@ -4475,7 +4478,7 @@ Var
          Buffer := AllocMem(1);
          repeat
           ReallocMem(Buffer, L + MAX_PART_SIZE);
-          N  := lo_read(FConnect.Handle,FLocalBHandle, Buffer+L, MAX_PART_SIZE);
+          N  := lo_read(FConnect.Handle, FLocalBHandle, Buffer+L, MAX_PART_SIZE);
           Inc(L, N);
          until N < MAX_PART_SIZE;
          FreeMem(Buffer, L);
@@ -4521,9 +4524,9 @@ begin
   if not Field.FieldNULL  then
    begin
     Buff := Field.FieldValue;
-    if PChar(Buff)^=#1 then
+    if PAnsiChar(Buff)^ = #1 then
       begin
-         Inc(Pchar(Buff));
+         Inc(PAnsichar(Buff));
          iSize := TBlobItem(Buff^).Blob.Size;
       end
     else
@@ -4542,9 +4545,9 @@ var
 
     function CachedBlobGet(Offset, Length: longint; buff, Dest: pointer): longint;
     begin
-     if PChar(buff)^=#1 then
+     if PAnsiChar(buff)^=#1 then
       begin
-        Inc(PChar(buff));
+        Inc(PAnsiChar(buff));
         with TBlobItem(buff^) do
         begin
            Blob.Seek(Offset, 0);
@@ -4562,37 +4565,48 @@ var
     begin
      Result := CachedBlobGet(Offset, Length, buff, Dest);
      if Result = 0 then
-       begin
-        if Field.FieldSubType = fldstMemo then
+      if Field.FieldSubType = fldstMemo then
         begin
-           if PChar(FieldBuffer(ColumnNumber-1)+Offset) <> nil then
-           begin
-              Move(PChar(FieldBuffer(ColumnNumber-1)+Offset)^,Dest^,Length);
-              Result := Length;
-           end;
-        end else
+        {$IFDEF DELPHI_12}
+           if FConnect.IsUnicodeUsed then
+            begin
+              Utf8ToUnicode(Dest, Length, PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset), Cardinal(-1));
+              Len := StrLen(PChar(Dest)) *  SizeOf(Char);
+            end
+           else
+        {$ENDIF}
+            begin
+              Move(PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset)^, Dest^, Length);
+              Len := StrBufSize(FieldBuffer(ColumnNumber - 1)) - 1;
+            end;
+
+           if (Offset + Length >= Len) then
+            Result := Len - Offset
+           else
+            Result := Length;
+        end
+      else
         begin
          if FBlobOpen then
          begin
-          lo_lseek(FConnect.Handle,FLocalBHandle,Offset,0);
+          lo_lseek(FConnect.Handle, FLocalBHandle, Offset, 0);
           L := 0;
           Len := Length;
           if Length > MAX_BLOB_SIZE then
           begin
            repeat
             if Len > MAX_BLOB_SIZE then
-               N  := lo_read(FConnect.Handle,FLocalBHandle, PAnsiChar(Dest)+L, MAX_BLOB_SIZE) else
-               N  := lo_read(FConnect.Handle,FLocalBHandle, PAnsiChar(Dest)+L, Len);
-            Dec(Len,MAX_BLOB_SIZE);
+               N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, MAX_BLOB_SIZE) else
+               N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, Len);
+            Dec(Len, MAX_BLOB_SIZE);
             Inc(L, N);
            until N < MAX_BLOB_SIZE;
            Result := L;
           end else
-             Result  := lo_read(FConnect.Handle,FLocalBHandle, PAnsiChar(Dest), Length);
+             Result  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest), Length);
          end;
         end;
        end;
-      end;
 
    Function ByteaBlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
    var P: PAnsiChar;
@@ -4617,13 +4631,13 @@ begin
   If Assigned(pDest) and (iLen > 0) then
   begin
     Field := Fields[FieldNo];
-    CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
+    CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
     Field.Buffer := PRecord;
     if not Field.FieldNull then
       If (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
-        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data)+Field.FieldNumber-1 ,pDest)
+        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
       else
-        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data)+Field.FieldNumber-1 ,pDest)
+        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
   end;
 end;
 
@@ -4633,14 +4647,14 @@ var
 
   Procedure BlobPut(ColumnNumber: Integer; Offset, Length : LongInt; pSrc, buff :Pointer);
   begin
-    if PChar(buff)^ = #0 then
+    if PAnsiChar(buff)^ = #0 then
       begin
-        PChar(buff)^ := #1;
-        Inc(PChar(buff));
+        PAnsiChar(buff)^ := #1;
+        Inc(PAnsiChar(buff));
         TBlobItem(buff^).Blob := TMemoryStream.Create;
       end
     else
-      Inc(PChar(buff));
+      Inc(PAnsiChar(buff));
     with TBlobItem(buff^) do
     begin
       Blob.Seek(Offset, 0);
@@ -4654,7 +4668,7 @@ begin
   Field := Fields[FieldNo];
   CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
   Field.Buffer := PRecord;
-  BlobPut(FieldNo, iOffset, iLen, pSrc, Pchar(Field.Data) + Field.FieldNumber-1);
+  BlobPut(FieldNo, iOffset, iLen, pSrc, PAnsiChar(Field.Data) + Field.FieldNumber-1);
   Field.FieldChanged := True;
   Field.FieldNull := (iOffset + iLen = 0);
 end;
@@ -4672,6 +4686,7 @@ var
   BlSZ: integer;
   i: integer;
   byName: boolean;
+  P: pointer;
 
   function GetDateTime: string;
   var ts: string;
@@ -4739,6 +4754,13 @@ begin
                      PQFreeMem(PEsc);
                     end;
                   end;
+         { ftMemo:
+                  begin
+                   GetMem(P, Param.GetDataSize);
+                   Param.GetData(P);//, P, Param.Size);
+                   Value := StrValue(P);
+                   FreeMem(P);
+                  end;}
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
         else
          case VarType(Param.Value) of
@@ -6441,7 +6463,13 @@ begin
     fldINT32: Result := IntToStr(PLongInt(@Buff)^);
     fldINT64: Result := IntToStr(PInt64(@Buff)^);
     fldFLOAT: Result := FloatToStr(PDouble(@Buff)^);
-    fldZSTRING: Result := string(StrPas(PAnsiChar(@Buff)));
+    fldZSTRING:
+              {$IFDEF DELPHI_12}
+              if FConnect.IsUnicodeUsed then
+                Result := PWideChar(@Buff)
+              else
+              {$ENDIF}
+                Result := String(PAnsiChar(@Buff));
     fldDATE : begin
                  DWORD(TimeStamp.Date) := PDWORD(@Buff)^;
                  TimeStamp.Time := 0;
@@ -6977,6 +7005,16 @@ begin
   Result := PAnsiChar(AnsiString(S));
 end;
 
+function TNativeConnect.StringToRawS(S: string): AnsiString;
+begin
+{$IFDEF DELPHI_12}
+ if IsUnicodeUsed then
+  Result := UTF8Encode(S)
+ else
+{$ENDIF}
+  Result := AnsiString(S);
+end;
+
 function TPSQLEngine.QPrepareProc(hDb: hDBIDb; pszProc: PChar;
   hParams: pointer; var hStmt: hDBIStmt): DBIResult;
 var SQLText,ParStr: string;
@@ -7428,7 +7466,8 @@ begin
                             AParam.Value := Null
                           else
                             if Fld.FieldSubType = fldstMemo then
-                              AParam.LoadFromStream(TBlobItem(Src^).Blob, ftMemo)
+                              AParam.AsString := MemoValue(Src, False)
+                              //  AParam.LoadFromStream(TBlobItem(Src^).Blob, ftMemo)
                             else
                               AParam.LoadFromStream(TBlobItem(Src^).Blob, ftBlob);
            fldDate:    AParam.AsDate := TDateTime(Src^);
@@ -7867,7 +7906,7 @@ begin
  end;
 end;
 
-function TNativeDataSet.StrValue(P : Pointer):String;
+function TNativeDataSet.StrValue(P : Pointer; NeedQuote: boolean = True):String;
 var
    Buffer, AVal : PAnsiChar;
    SZ, Err : Integer;
@@ -7877,23 +7916,28 @@ begin
      begin
       {$IFDEF DELPHI_12}
       if FConnect.IsUnicodeUsed then
-       AVal := FConnect.StringToRaw(PWideChar(P))
+       AVal := PAnsiChar(FConnect.StringToRawS(PWideChar(P)))
       else
       {$ENDIF}
        AVal := PAnsiChar(P);
-      SZ := length(AVal);
+
+      SZ := StrLen(AVal);
       GetMem(Buffer, 2*SZ+1);
       try
       ZeroMemory(Buffer, 2*SZ+1);
       PQEscapeStringConn(FConnect.Handle, Buffer, AVal, SZ, Err);
-      Result := '''' + FConnect.RawToString(Buffer) + '''';
+      if Err > 0 then
+       FConnect.CheckResult;
+      Result := FConnect.RawToString(Buffer);
+      if NeedQuote then
+       Result := '''' + Result + '''';
       finally
        FreeMem(Buffer);
       end;
      end;
 end;
 
-function TNativeDataSet.MemoValue(P : Pointer):String;
+function TNativeDataSet.MemoValue(P : Pointer; NeedQuote: boolean = True):String;
 var
    Buffer : PChar;
    SZ : Integer;
@@ -7907,7 +7951,7 @@ begin
       ZeroMemory(Buffer,SZ+1);
       TBlobItem(P^).Blob.Seek(0,0);
       TBlobItem(P^).Blob.Read(Buffer^, SZ);
-      Result := StrValue(Buffer);
+      Result := StrValue(Buffer, NeedQuote);
       FreeMem(Buffer, SZ+1);
     end;
 end;
