@@ -105,8 +105,8 @@ Type
     FTransState : eXState;  { Transaction end control xsActive, xsInactive }
     FTransLevel : eXILType;  { Transaction isolation levels }
     FStrtStmt   : Integer;
-    function GetConnectString(AHost,APort,ADBName,AUser,APassword, ASSLMode: AnsiString; AConnTimeout: cardinal): ansistring;
-    function ConnectString: ansistring;
+    function GetConnectString(AHost,APort,ADBName,AUser,APassword, ASSLMode: String; AConnTimeout: cardinal): String;
+    function ConnectString: String;
     function GetCommitOperation: Boolean; {Get commit operation}
   Public
     Tables : TContainer; {List of Tables}
@@ -1325,9 +1325,9 @@ begin
   Inherited Destroy;
 end;
 
-function TNativeConnect.GetConnectString(AHost,APort,ADBName,AUser,APassword,ASSLMode: AnsiString; AConnTimeout: cardinal): ansistring;
+function TNativeConnect.GetConnectString(AHost,APort,ADBName,AUser,APassword,ASSLMode: String; AConnTimeout: cardinal): String;
 
-  function GetAddr(Value: Ansistring): Boolean;
+  function GetAddr(Value: String): Boolean;
   var
     I, N: Integer;
   const
@@ -1339,7 +1339,7 @@ function TNativeConnect.GetConnectString(AHost,APort,ADBName,AUser,APassword,ASS
     begin
       if Value[I] = '.' then
         Inc(N)
-      else if not (Value[I] in _Digits) then
+      else if not CharInSet(Value[I], _Digits) then
         Exit;
     end;
     Result := (N = 3);
@@ -1349,7 +1349,7 @@ begin
   if GetAddr(AHost) then
     Result := 'hostaddr=' else
     Result := 'host=';
-  Result := Result + ansistring(Format('%s port=%s dbname=%s user=%s password=%s connect_timeout=%u sslmode=''%s''',
+  Result := Result + (Format('%s port=%s dbname=%s user=%s password=%s connect_timeout=%u sslmode=''%s''',
                               [QuotedStr(string(AHost)),
                                APort,
                                QuotedStr(string(ADbName)),
@@ -1369,7 +1369,7 @@ begin
   OldLoggin := FLoggin;
   if FLoggin then InternalDisconnect;
   with DBOptions do
-    LocHandle := PQconnectdb(PAnsiChar(GetConnectString(Host,ansistring(IntToStr(Port)),'template1',User,Password,SSLMode,ConnectionTimeout)));
+    LocHandle := PQconnectdb(PAnsiChar(UTF8Encode((GetConnectString(Host, IntToStr(Port), 'template1', User, Password, SSLMode, ConnectionTimeout)))));
   if not Assigned(LocHandle) then Exit;
   LocResult := PQexec(LocHandle, PAnsiChar(AnsiString(SQL)));
   if Assigned(LocResult) then
@@ -1385,21 +1385,21 @@ end;
 
 procedure TNativeConnect.ProcessDBParams(Params : TStrings);
 begin
-    DBOptions.User := AnsiString(Params.Values['UID']);
-    DBOptions.Password := AnsiString(Params.Values['PWD']);
-    DBOptions.DatabaseName := AnsiString(Params.Values['DatabaseName']);
+    DBOptions.User := (Params.Values['UID']);
+    DBOptions.Password := (Params.Values['PWD']);
+    DBOptions.DatabaseName := (Params.Values['DatabaseName']);
     DBOptions.Port :=  StrToIntDef(Params.Values['Port'],PSQL_PORT);
     DBOptions.ConnectionTimeout :=  StrToIntDef(Params.Values['ConnectionTimeout'],0);
-    DBOptions.Host := AnsiString(Params.Values['Host']);
-    DBOptions.SSLMode := AnsiString(Params.Values['SSLMode']);
+    DBOptions.Host := (Params.Values['Host']);
+    DBOptions.SSLMode := (Params.Values['SSLMode']);
     If DBOptions.SSLMode = '' then
       DBOptions.SSLMode := 'prefer';
 end;
 
-function TNativeConnect.ConnectString: ansistring;
+function TNativeConnect.ConnectString: String;
 begin
   with DBOptions do
-    Result := GetConnectString(Host,AnsiString(IntToStr(Port)),DatabaseName,User,Password,SSLMode,ConnectionTimeout)
+    Result := GetConnectString(Host,(IntToStr(Port)),DatabaseName,User,Password,SSLMode,ConnectionTimeout)
 end;
 
 
@@ -1410,7 +1410,7 @@ begin
  if not FLoggIn then
   try
    FLastOperationTime := GetTickCount;
-   FHandle := PQconnectdb(PAnsiChar(ConnectString));
+   FHandle := PQconnectdb(PAnsiChar(UTF8Encode(ConnectString)));
    FLastOperationTime := GetTickCount - FLastOperationTime;
    if PQstatus(Handle) = CONNECTION_BAD then
      CheckResult();

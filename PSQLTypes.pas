@@ -1544,12 +1544,12 @@ const
 
 type
   TDBOptions = Record
-    User             : AnsiString;
-    Password         : AnsiString;
-    DatabaseName     : AnsiString;
+    User             : String;
+    Password         : String;
+    DatabaseName     : String;
     Port             : Cardinal;
-    Host             : AnsiString;
-    SSLMode          : Ansistring;
+    Host             : String;
+    SSLMode          : string;
     ConnectionTimeout: cardinal;
   end;
 
