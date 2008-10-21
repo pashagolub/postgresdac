@@ -897,6 +897,15 @@ begin
   LogDebugMessage('ERR ',string(Result));
 end;
 
+{$IFDEF DELPHI_5}
+function GetModuleName(Module: HMODULE): string;
+var
+  ModName: array[0..MAX_PATH] of Char;
+begin
+  SetString(Result, ModName, GetModuleFileName(Module, ModName, SizeOf(ModName)));
+end;
+{$ENDIF}
+
 procedure OpenDebugFile;
 var Name: string;
 begin
@@ -1369,7 +1378,7 @@ begin
   OldLoggin := FLoggin;
   if FLoggin then InternalDisconnect;
   with DBOptions do
-    LocHandle := PQconnectdb(PAnsiChar(UTF8Encode((GetConnectString(Host, IntToStr(Port), 'template1', User, Password, SSLMode, ConnectionTimeout)))));
+    LocHandle := PQconnectdb(PAnsiChar({$IFDEF DELPHI_6}UTF8Encode{$ENDIF}((GetConnectString(Host, IntToStr(Port), 'template1', User, Password, SSLMode, ConnectionTimeout)))));
   if not Assigned(LocHandle) then Exit;
   LocResult := PQexec(LocHandle, PAnsiChar(AnsiString(SQL)));
   if Assigned(LocResult) then
@@ -1410,7 +1419,7 @@ begin
  if not FLoggIn then
   try
    FLastOperationTime := GetTickCount;
-   FHandle := PQconnectdb(PAnsiChar(UTF8Encode(ConnectString)));
+   FHandle := PQconnectdb(PAnsiChar({$IFDEF DELPHI_6}UTF8Encode{$ENDIF}(ConnectString)));
    FLastOperationTime := GetTickCount - FLastOperationTime;
    if PQstatus(Handle) = CONNECTION_BAD then
      CheckResult();
@@ -4686,7 +4695,6 @@ var
   BlSZ: integer;
   i: integer;
   byName: boolean;
-  P: pointer;
 
   function GetDateTime: string;
   var ts: string;
