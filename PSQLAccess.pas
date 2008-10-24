@@ -4478,7 +4478,12 @@ Var
       if Field.FieldSubType = fldstMemo then
       begin
          if FieldBuffer(ColumnNumber-1) <> nil then
-          Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
+         {$IFDEF DELPHI_12}
+          if FConnect.IsUnicodeUsed then
+            Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
+          else
+         {$ENDIF}
+            Result := FieldSize(ColumnNumber-1);
      end else
       begin
         if FBlobOpen then
@@ -4588,6 +4593,7 @@ var
               Move(PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset)^, Dest^, Length);
               Len := StrBufSize(FieldBuffer(ColumnNumber - 1)) - 1;
             end;
+
 
            if (Offset + Length >= Len) then
             Result := Len - Offset
