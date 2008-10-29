@@ -855,7 +855,7 @@ Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF
 {$IFDEF M_DEBUG}
 var F:textfile;
 
-procedure LogDebugMessage(const MsgType, Msg: string);
+procedure LogDebugMessage(const MsgType, Msg: ansistring);
 begin
  if Msg>'' then
   WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD>',Msg,'</TD><TR>');
@@ -864,37 +864,37 @@ end;
 function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
 begin
  Result := PSQLTypes.PQConnectDB(ConnInfo);
- LogDebugMessage('CONN',String(ConnInfo));
+ LogDebugMessage('CONN',AnsiString(ConnInfo));
 end;
 
 function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
 begin
  Result := PSQLTypes.PQexec(Handle,Query);
- LogDebugMessage('EXEC',string(Query));
+ LogDebugMessage('EXEC',AnsiString(Query));
 end;
 
 function lo_creat(Handle: PPGconn; mode: Integer): Oid;
 begin
  Result := PSQLTypes.lo_creat(Handle,mode);
- LogDebugMessage('loCr','LO OID = '+inttostr(Result));
+ LogDebugMessage('loCr', AnsiString('LO OID = '+inttostr(Result)));
 end;
 
 function lo_open(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer;
 begin
  Result := PSQLTypes.lo_open(Handle,lobjId,mode);
- LogDebugMessage('loOp','oid = '+inttostr(lobjId)+'; fd = '+inttostr(Result));
+ LogDebugMessage('loOp', AnsiString('oid = '+inttostr(lobjId)+'; fd = '+inttostr(Result)));
 end;
 
 function lo_close(Handle: PPGconn; fd: Integer): Integer;
 begin
  Result := PSQLTypes.lo_close(Handle,fd);
- LogDebugMessage('loCl','fd = '+inttostr(fd));
+ LogDebugMessage('loCl', AnsiString('fd = '+inttostr(fd)));
 end;
 
 function PQerrorMessage(Handle: PPGconn): PAnsiChar;
 begin
   Result := PSQLTypes.PQerrorMessage(Handle);
-  LogDebugMessage('ERR ',string(Result));
+  LogDebugMessage('ERR ', AnsiString(Result));
 end;
 
 {$IFDEF DELPHI_5}
@@ -4701,6 +4701,7 @@ var
   BlSZ: integer;
   i: integer;
   byName: boolean;
+  P: pointer;
 
   function GetDateTime: string;
   var ts: string;
@@ -4759,8 +4760,10 @@ begin
         case Param.DataType of
           ftADT: Value := 'DEFAULT';
           ftBLOB: begin
-                    BlSZ := 0;
-                    PEsc := PQEscapeByteaConn(FConnect.Handle, FConnect.StringToRaw(Param.AsString), Param.GetDataSize, BlSZ);
+                    BlSZ := Param.GetDataSize;
+                    GetMem(P, BlSZ);
+                    Param.GetData(P);
+                    PEsc := PQEscapeByteaConn(FConnect.Handle, PAnsiChar(P), BlSZ, BlSZ);
                     try
                      Value := '''' + FConnect.RawToString(PEsc) + '''';
                     //we don't use AnsiQuotedStr cause PQEscape will never miss quote inside
@@ -7991,7 +7994,7 @@ begin
         begin
           If NeedEscape then
            begin
-             PEsc := PQEscapeByteaConn(FConnect.Handle,Buffer,SZ,BlSZ);
+             PEsc := PQEscapeByteaConn(FConnect.Handle, Buffer, SZ, BlSZ);
              try
               Result := FConnect.RawToString(PEsc);
              finally
