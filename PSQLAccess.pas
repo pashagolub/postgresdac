@@ -4790,7 +4790,7 @@ begin
            varSingle,
            varDouble,
            varCurrency : Value := SQLFloatToStr(VarAsType(Param.Value, varDouble));
-           varBoolean  : if Param.Value then Value := '''Y''' else Value := '''N''';
+           varBoolean  : if Param.Value then Value := 'TRUE' else Value := 'FALSE';
          else
            {$IFDEF DELPHI_12}
            if FConnect.IsUnicodeUsed then
@@ -7406,22 +7406,25 @@ var AFNum, Len: integer;
 begin
  AFNum := FieldIndex(AFieldName);
  if AFNum = -1 then Exit;
- If FieldIsNull(AFNum) then
+ if FieldIsNull(AFNum) then
   begin                                        
    AParam.Value := Null;
    Exit;
   end;
- if FieldType(AFNum) = FIELD_TYPE_BYTEA then
-  begin
-     FVal := PQUnescapeBytea(FieldBuffer(AFNum),Len);
-     try
-      AParam.SetBlobData(FVal, Len);
-     finally
-      PQFreeMem(FVal);
-     end;
-  end
+ case FieldType(AFNum) of
+  FIELD_TYPE_BYTEA:
+                   begin
+                     FVal := PQUnescapeBytea(FieldBuffer(AFNum),Len);
+                     try
+                      AParam.SetBlobData(FVal, Len);
+                     finally
+                      PQFreeMem(FVal);
+                     end;
+                   end;
+  FIELD_TYPE_BOOL: AParam.AsBoolean := SameText('t', Field(AFNum));
  else
    AParam.Value := Field(AFNum);
+ end;
 end;
 
 
