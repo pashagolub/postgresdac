@@ -149,7 +149,7 @@ Type
     Procedure OpenIndexList(pszTableName: string; pszDriverType: string; var hCur: hDBICur);
     function GetCharSet: string;
     procedure GetCharSetList(var List: TStrings);
-    function SetCharSet(const CharSet: string): string;
+    procedure SetCharSet(var ACharSet: string);
     function GetTimeout: cardinal;
     function SetTimeout(const Timeout: cardinal): cardinal;
     function GetServerVersion: string;
@@ -2482,7 +2482,13 @@ begin
     fldINT64: Result := PInt64(@Dest)^;
     {$ENDIF}
     fldFLOAT: Result := PDouble(@Dest)^;
-    fldZSTRING: Result := StrPas(PAnsiChar(@Dest));
+    fldZSTRING:
+                {$IFDEF DELPHI_12}
+                if FDataset.FConnect.IsUnicodeUsed then
+                  Result := string(PChar(@Dest))
+                else
+                {$ENDIF}
+                  Result := string(PAnsiChar(@Dest));
     fldBOOL : Result := PWordBool(@Dest)^;
     fldDATE : begin
                  DWORD(TimeStamp.Date) := PDWORD(@Dest)^;
@@ -2556,7 +2562,7 @@ begin
     Result := Null;
     Case iType Of
       fldZSTRING   : begin
-                       S:=PChar(Offs);
+                       S:= string(PAnsiChar(Offs));
                        Result := S;
                        FldType := FT_STRING;
                      end;
@@ -7073,22 +7079,28 @@ begin
 end;
 
 
-function TNativeConnect.SetCharSet(const CharSet: string): string;
+procedure TNativeConnect.SetCharSet(var ACharSet: string);
 var
    sql : String;
    RES : PPGresult;
 begin
-  If (CharSet = '') then Exit;
+  if ACharSet = '' then
+   begin
+    ACharSet := GetCharSet();
+    Exit;
+   end;
   InternalConnect;
-  Sql := Format('SELECT set_config(''client_encoding'', ''%s'', false)', [CharSet]);
+  Sql := Format('SELECT set_config(''client_encoding'', ''%s'', false)', [ACharSet]);
   RES := PQexec(Handle, StringToRaw(Sql));
   if Assigned(RES) then
    try
     CheckResult;
-    Result := RawToString(PQgetvalue(RES, 0, 0));
+    ACharSet := UpperCase(RawToString(PQgetvalue(RES, 0, 0)));
    finally
     PQclear(RES);
-   end;
+   end
+  else
+   ACharSet :=  GetCharSet();
 end;
 
 procedure TNativeConnect.GetCharSetList(var List: TStrings);
@@ -7127,7 +7139,7 @@ function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; var CharSet: string): DBIResul
 begin
    try
      Database := hDb;
-     CharSet := TNativeConnect(hDb).SetCharSet(CharSet);
+     TNativeConnect(hDb).SetCharSet(CharSet);
      Result := DBIERR_NONE;
    except
      Result := CheckError;

@@ -1808,8 +1808,7 @@ begin
       {$ENDIF}
       Check(Engine, Engine.OpenDatabase(ParamList, FHandle));
       Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
-      If FCharSet <> '<default>' then //to deal with server encoding
-        Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
+      Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
       Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
       IF Assigned(FHandle) then
         PQSetNoticeProcessor(TNativeConnect(FHandle).Handle,NoticeProcessor,Self);
@@ -3845,26 +3844,16 @@ var
   Status: DBIResult;
   CaseInsensitive: Boolean;
 
-   //addded by pasha_golub 13.01.05
-  {}procedure SetFieldValue(const Fld : TField; const VarValue : Variant);
-  {}begin
-  {$IFNDEF VER150} // not Delphi 7
-  {}  if (Fld is TLargeIntField) then
-  {}    TIntegerField(Fld).Value := VarValue
-  {}  else
-  {$ENDIF}
-  {}    Fld.Value := VarValue;
-  {}end;
-
-  {function IsLongintFld:boolean;
-  var i:integer;
+  procedure SetFieldValue(const Fld : TField; const VarValue : Variant);
   begin
-    i:=0;
-    while (i<Fields.Count-1) and
-          not (TField(Fields[i]) is TLargeIntField) do
-     inc(i);
-    Result := i <> Fields.Count-1
-  end;}
+  {$IFDEF DELPHI_5}
+    if (Fld is TLargeIntField) then
+      TIntegerField(Fld).Value := VarValue
+    else
+  {$ENDIF}
+      Fld.Value := VarValue;
+  end;
+
 
 begin
   CheckBrowseMode;

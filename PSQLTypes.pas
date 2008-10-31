@@ -443,6 +443,9 @@ type
   TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer):PAnsiChar; cdecl;
   TPQEscapeStringConn = function(Handle: PPGconn; to_str: PAnsiChar; const from_str: PAnsiChar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
+  TPQsetClientEncoding = function(Handle: PPGconn; encoding: PAnsiChar): integer;
+  TPQclientEncoding = function(Handle: PPGconn): integer;
+  Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar;
   Tlo_open         = function(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer; cdecl;
   Tlo_close        = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
   Tlo_read         = function(Handle: PPGconn; fd: Integer; buf: PAnsiChar; len: Integer): Integer; cdecl;
@@ -531,6 +534,9 @@ var
   PQUnEscapeBytea: TPQUnEscapeBytea;
   PQEscapeStringConn: TPQEscapeStringConn;
   PQFreeMem:       TPQFreeMem;
+  PQsetClientEncoding: TPQsetClientEncoding;
+  PQclientEncoding: TPQclientEncoding;
+  pg_encoding_to_char: Tpg_encoding_to_char;
   lo_open:         Tlo_open;
   lo_close:        Tlo_close;
   lo_read:         Tlo_read;
@@ -2599,6 +2605,9 @@ begin
          @PQUnEscapeBytea:= GetPSQLProc('PQunescapeBytea');
          @PQEscapeStringConn:=GetPSQLProc('PQescapeStringConn');
          @PQFreeMem      := GetPSQLProc('PQfreemem');
+         @PQsetClientEncoding := GetPSQLProc('PQsetClientEncoding');
+         @PQclientEncoding := GetPSQLProc('PQclientEncoding');
+         @pg_encoding_to_char := GetPSQLProc('pg_encoding_to_char');
          @lo_open        := GetPSQLProc('lo_open');
          @lo_close       := GetPSQLProc('lo_close');
          @lo_read        := GetPSQLProc('lo_read');
