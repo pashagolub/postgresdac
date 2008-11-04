@@ -311,13 +311,14 @@ type
     relname: array [0..NAMEDATALEN-1] of Char; // name of relation containing data
     be_pid:  Integer;			       // process id of backend
   end;}
+  PPGnotify = ^PGnotify;
   PGnotify = packed record
     relname: PAnsiChar; // name of relation containing data
     be_pid:  Integer;	   // process id of backend
     extra:   PAnsiChar;        // extra notification
-    next:    ^PGnotify;        // application should never use this
+    next:    PPGnotify;        // application should never use this
   end;
-  PPGnotify = ^PGnotify;
+
 
 // PQnoticeProcessor is the function type for the notice-message callback.
   PQnoticeProcessor = procedure(arg: Pointer; message: PChar);cdecl;
