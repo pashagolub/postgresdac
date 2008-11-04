@@ -39,7 +39,7 @@
     <PFLAGS value="-$YD -$W -$O- -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zd"/>
-    <LFLAGS value="-D&quot;&quot; -aa -Tpp -Gpd -GD -s -Gn -Gl -Gi -v"/>
+    <LFLAGS value="-D&quot;PostgreSQL Direct Access Components&quot; -aa -Tpp -Gpd -GD -s -Gn -Gl -Gi -v"/>
   </OPTIONS>
   <LINKER>
     <ALLOBJ value="c0pkg32.obj $(PACKAGES) Memmgr.Lib sysinit.obj $(OBJFILES)"/>
