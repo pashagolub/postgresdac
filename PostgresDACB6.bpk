@@ -4,19 +4,17 @@
   <MACROS>
     <VERSION value="BCB.06.00"/>
     <PROJECT value="PostgresDACB6.bpl"/>
-    <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj 
-      PSQLConnFrm.obj PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj 
-      PSQLupdsqled.obj psqlBatch.obj PSQLMacroQuery.obj PSQLMigrator.obj 
-      PSQLMonitor.obj PSQLTools.obj PSQLDump.obj PSQLStoredProcFrm.obj 
-      PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj PSQLDirectQuery.obj"/>
+    <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj  
+      PSQLDbTables.obj PSQLTypes.obj psqlBatch.obj PSQLMacroQuery.obj  
+      PSQLMonitor.obj PSQLTools.obj PSQLDump.obj PSQLCopy.obj PSQLCommon.obj 
+      PSQLExtMask.obj PSQLDirectQuery.obj"/>
     <RESFILES value="PostgresDACB6.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
-    <RESDEPEN value="$(RESFILES) psqlAboutFrm.dfm PSQLConnFrm.dfm PSQLfldlinks.dfm 
-      PSQLupdsqled.dfm PSQLStoredProcFrm.dfm"/>
+    <RESDEPEN value="$(RESFILES) psqlAboutFrm.dfm"/>
     <LIBFILES value=""/>
-    <LIBRARIES value="EnterpriseDBDACB6.lib indy.lib dbxcds.lib dclocx.lib soaprtl.lib bcbie.lib 
+    <LIBRARIES value="indy.lib dbxcds.lib dclocx.lib soaprtl.lib bcbie.lib 
       nmfast.lib dbexpress.lib inetdbxpress.lib inetdbbde.lib bcbsmp.lib 
       dsnapcon.lib dsnapcrba.lib visualdbclx.lib teeqr.lib dss.lib tee.lib 
       teedb.lib teeui.lib qrpt.lib bdecds.lib cds.lib ibxpress.lib vcldbx.lib 
@@ -26,7 +24,7 @@
       visualdbclx.lib dsnapcrba.lib dsnapcon.lib bcbsmp.lib inetdbbde.lib 
       inetdbxpress.lib dbexpress.lib nmfast.lib bcbie.lib soaprtl.lib dclocx.lib 
       dbxcds.lib indy.lib EnterpriseDBDACB6.lib"/>
-    <PACKAGES value="rtl.bpi designide.bpi vcl.bpi dbrtl.bpi vcldb.bpi bdertl.bpi dcldb.bpi"/>
+    <PACKAGES value="rtl.bpi vcl.bpi dbrtl.bpi vcldb.bpi bdertl.bpi"/>
     <PATHCPP value=".;"/>
     <PATHPAS value=".;"/>
     <PATHRC value=".;"/>
@@ -49,7 +47,7 @@
     <PFLAGS value="-$Y- -$L- -$A8 -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zn"/>
-    <LFLAGS value="-D&quot;PostgreSQL Deirect Access Components&quot; -aa -Tpp -GD -s -Gn -Gl -Gi"/>
+    <LFLAGS value="-D&quot;PostgreSQL Direct Access Components&quot; -aa -Tpp -GD -s -Gn -Gl -Gi"/>
     <OTHERFILES value=""/>
   </OPTIONS>
   <LINKER>
@@ -64,25 +62,17 @@
       <FILE FILENAME="..\Lib\rtl.bpi" FORMNAME="" UNITNAME="rtl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="psqlAboutFrm.pas" FORMNAME="AboutComp" UNITNAME="psqlAboutFrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLAccess.pas" FORMNAME="" UNITNAME="PSQLAccess" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLCOMP.pas" FORMNAME="" UNITNAME="PSQLCOMP" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLConnFrm.pas" FORMNAME="ConnForm" UNITNAME="PSQLConnFrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLDbTables.pas" FORMNAME="" UNITNAME="PSQLDbTables" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLfldlinks.pas" FORMNAME="LinkFields" UNITNAME="PSQLfldlinks" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLTypes.pas" FORMNAME="" UNITNAME="PSQLTypes" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\Lib\designide.bpi" FORMNAME="" UNITNAME="designide" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\Lib\vcl.bpi" FORMNAME="" UNITNAME="vcl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\Lib\dbrtl.bpi" FORMNAME="" UNITNAME="dbrtl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\Lib\vcldb.bpi" FORMNAME="" UNITNAME="vcldb" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\Lib\bdertl.bpi" FORMNAME="" UNITNAME="bdertl" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="..\Lib\dcldb.bpi" FORMNAME="" UNITNAME="dcldb" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLupdsqled.pas" FORMNAME="PSQLUpdateSQLEditForm" UNITNAME="PSQLupdsqled" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="psqlBatch.pas" FORMNAME="" UNITNAME="psqlBatch" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLMacroQuery.pas" FORMNAME="" UNITNAME="PSQLMacroQuery" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLMigrator.pas" FORMNAME="" UNITNAME="PSQLMigrator" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLMonitor.pas" FORMNAME="" UNITNAME="PSQLMonitor" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLTools.pas" FORMNAME="" UNITNAME="PSQLTools" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLDump.pas" FORMNAME="" UNITNAME="PSQLDump" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLStoredProcFrm.pas" FORMNAME="PSQLStoredProcProp" UNITNAME="PSQLStoredProcFrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLCopy.pas" FORMNAME="" UNITNAME="PSQLCopy" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLCommon.pas" FORMNAME="" UNITNAME="PSQLCommon" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLExtMask.pas" FORMNAME="" UNITNAME="PSQLExtMask" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
