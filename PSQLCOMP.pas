@@ -4,7 +4,7 @@ unit PSQLCOMP;
 interface            
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
-     {$IFDEF DELPHI_6}DesignIntf,DesignEditors {$ELSE}DsgnIntf{$ENDIF},
+     {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF},
      Db,PSQLFldLinks,PSQLDbTables,PSQLupdsqled,PSQLBatch,PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
      PSQLDirectQuery;
