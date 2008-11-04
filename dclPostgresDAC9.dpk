@@ -37,7 +37,6 @@ requires
   bdertl,
   dcldb,
   vcldesigner,
-  designdgm,
   dclstd,
   vcldb;
 
