@@ -4,10 +4,10 @@
   <MACROS>
     <VERSION value="BCB.06.00"/>
     <PROJECT value="PostgresDACB6.bpl"/>
-    <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj  
-      PSQLDbTables.obj PSQLTypes.obj psqlBatch.obj PSQLMacroQuery.obj  
-      PSQLMonitor.obj PSQLTools.obj PSQLDump.obj PSQLCopy.obj PSQLCommon.obj 
-      PSQLExtMask.obj PSQLDirectQuery.obj"/>
+    <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj PSQLDbTables.obj 
+      PSQLTypes.obj psqlBatch.obj PSQLMacroQuery.obj PSQLMonitor.obj 
+      PSQLTools.obj PSQLDump.obj PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj 
+      PSQLDirectQuery.obj"/>
     <RESFILES value="PostgresDACB6.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -47,7 +47,7 @@
     <PFLAGS value="-$Y- -$L- -$A8 -v -JPHNE -M"/>
     <RFLAGS value=""/>
     <AFLAGS value="/mx /w2 /zn"/>
-    <LFLAGS value="-D&quot;PostgreSQL Direct Access Components&quot; -aa -Tpp -GD -s -Gn -Gl -Gi"/>
+    <LFLAGS value="-D&quot;PostgreSQL Direct Access Components&quot; -aa -Tpp -Gpr -GD -s -Gn -Gl -Gi"/>
     <OTHERFILES value=""/>
   </OPTIONS>
   <LINKER>
