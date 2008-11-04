@@ -28,6 +28,25 @@ package dclPostgresDAC9;
 
 requires
   rtl,
-  DesignIDE;
+  designide,
+  PostgresDAC9,
+  vcl,
+  dbrtl,
+  vclactnband,
+  vclx,
+  bdertl,
+  dcldb,
+  vcldesigner,
+  designdgm,
+  dclstd,
+  vcldb;
+
+contains
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
+  PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
+  PSQLCOMP in 'PSQLCOMP.pas',
+  PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
+  PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
+  PSQLMigrator in 'PSQLMigrator.pas';
 
 end.
