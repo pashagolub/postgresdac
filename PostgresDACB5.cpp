@@ -12,7 +12,6 @@ USEUNIT("PSQLDbTables.pas");
 USEUNIT("PSQLTypes.pas");
 USEUNIT("psqlBatch.pas");
 USEUNIT("PSQLMacroQuery.pas");
-USEUNIT("PSQLMigrator.pas");
 USEUNIT("PSQLMonitor.pas");
 USEUNIT("PSQLDump.pas");
 USEUNIT("PSQLTools.pas");
