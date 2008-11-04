@@ -103,7 +103,7 @@ const
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
   MAX_BLOB_SIZE    = 8192; //Max Blob size for read and write operation
-  MAX_ENCODING_ID  = 36; //Max encoding id for pg_encoding_to_char
+  MAX_ENCODING_ID  = 40; //Max encoding id for pg_encoding_to_char
   InvalidOid       : cardinal = 0;
 var
   PSQL_DLL             : string = 'libpq.dll';
@@ -312,10 +312,10 @@ type
     be_pid:  Integer;			       // process id of backend
   end;}
   PGnotify = packed record
-    relname: PChar; // name of relation containing data
+    relname: PAnsiChar; // name of relation containing data
     be_pid:  Integer;	   // process id of backend
-    extra:   PChar;        // extra notification
-    next:    dword;        // application should never use this
+    extra:   PAnsiChar;        // extra notification
+    next:    ^PGnotify;        // application should never use this
   end;
   PPGnotify = ^PGnotify;
 
@@ -379,7 +379,7 @@ type
 //////////////////////////////////////////////////////////////////
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
-  TPQconnectdb     = function(ConnInfo: PChar): PPGconn; cdecl;
+  TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl;
   TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PChar): PPGconn; cdecl;
   TPQconndefaults  = function: PPQconninfoOption; cdecl;
   TPQfinish        = procedure(Handle: PPGconn); cdecl;
@@ -393,16 +393,16 @@ type
   TPQtty           = function(Handle: PPGconn): PChar; cdecl;
   TPQoptions       = function(Handle: PPGconn): PChar; cdecl;
   TPQstatus        = function(Handle: PPGconn): ConnStatusType; cdecl;
-  TPQerrorMessage  = function(Handle: PPGconn): PChar; cdecl;
+  TPQerrorMessage  = function(Handle: PPGconn): PAnsiChar; cdecl;
   TPQsocket        = function(Handle: PPGconn): Integer; cdecl;
   TPQbackendPID    = function(Handle: PPGconn): Integer; cdecl;
-  TPQparameterStatus = function(Handle: PPGconn; paramName: PChar): PChar; cdecl;
+  TPQparameterStatus = function(Handle: PPGconn; paramName: PAnsiChar): PAnsiChar; cdecl;
   TPQserverVersion = function(Handle: PPGconn): Integer; cdecl;
   TPQtransactionStatus  = function(Handle: PPGconn): TTransactionStatusType; cdecl;
   TPQtrace         = procedure(Handle: PPGconn; DebugPort: Pointer); cdecl;
   TPQuntrace       = procedure(Handle: PPGconn); cdecl;
   TPQsetNoticeProcessor = function(Handle: PPGconn; Proc: PQnoticeProcessor; Arg: Pointer):pointer; cdecl;
-  TPQexec          = function(Handle: PPGconn; Query: PChar): PPGresult; cdecl;
+  TPQexec          = function(Handle: PPGconn; Query: PAnsiChar): PPGresult; cdecl;
   TPQresultErrorField = function(Result: PPGresult;fieldcode:integer): PChar; cdecl;
   TPQnotifies      = function(Handle: PPGconn): PPGnotify; cdecl;
   TPQsendQuery     = function(Handle: PPGconn; Query: PChar): Integer; cdecl;
@@ -423,8 +423,8 @@ type
   TPQntuples       = function(Result: PPGresult): Integer; cdecl;
   TPQnfields       = function(Result: PPGresult): Integer; cdecl;
   TPQbinaryTuples  = function(Result: PPGresult): Integer; cdecl;
-  TPQfname         = function(Result: PPGresult; field_num: Integer): PChar; cdecl;
-  TPQfnumber       = function(Result: PPGresult; field_name: PChar): Integer; cdecl;
+  TPQfname         = function(Result: PPGresult; field_num: Integer): PAnsiChar; cdecl;
+  TPQfnumber       = function(Result: PPGresult; field_name: PAnsiChar): Integer; cdecl;
   TPQftype         = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftable        = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftablecol     = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
@@ -434,19 +434,22 @@ type
   TPQoidValue      = function(Result: PPGresult): Oid; cdecl;
   TPQoidStatus     = function(Result: PPGresult): PChar; cdecl;
   TPQcmdTuples     = function(Result: PPGresult): PChar; cdecl;
-  TPQgetvalue      = function(Result: PPGresult; tup_num, field_num: Integer): PChar; cdecl;
+  TPQgetvalue      = function(Result: PPGresult; tup_num, field_num: Integer): PAnsiChar; cdecl;
   TPQgetlength     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQgetisnull     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQclear         = procedure(Result: PPGresult); cdecl;
   TPQmakeEmptyPGresult  = function(Handle: PPGconn; status: ExecStatusType): PPGresult; cdecl;
-  TPQEscapeByteaConn   = function(Handle: PPGconn; from: PChar; from_length: integer; var to_length: integer):PChar; cdecl;
-  TPQUnEscapeBytea = function(from: PChar; var to_length: integer):PChar; cdecl;
-  TPQEscapeStringConn = function(Handle: PPGconn; to_str: PChar; const from_str: Pchar; from_size: cardinal; var Error: integer):cardinal;cdecl;
+  TPQEscapeByteaConn   = function(Handle: PPGconn; from: PAnsiChar; from_length: integer; var to_length: integer): PAnsiChar; cdecl;
+  TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer):PAnsiChar; cdecl;
+  TPQEscapeStringConn = function(Handle: PPGconn; to_str: PAnsiChar; const from_str: PAnsiChar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
+  TPQsetClientEncoding = function(Handle: PPGconn; encoding: PAnsiChar): integer;
+  TPQclientEncoding = function(Handle: PPGconn): integer;
+  Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar;
   Tlo_open         = function(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer; cdecl;
   Tlo_close        = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
-  Tlo_read         = function(Handle: PPGconn; fd: Integer; buf: PChar; len: Integer): Integer; cdecl;
-  Tlo_write        = function(Handle: PPGconn; fd: Integer; buf: PChar; len: Integer): Integer; cdecl;
+  Tlo_read         = function(Handle: PPGconn; fd: Integer; buf: PAnsiChar; len: Integer): Integer; cdecl;
+  Tlo_write        = function(Handle: PPGconn; fd: Integer; buf: PAnsiChar; len: Integer): Integer; cdecl;
   Tlo_lseek        = function(Handle: PPGconn; fd, offset, whence: Integer): Integer; cdecl;
   Tlo_creat        = function(Handle: PPGconn; mode: Integer): Oid; cdecl;
   Tlo_tell         = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
@@ -531,6 +534,9 @@ var
   PQUnEscapeBytea: TPQUnEscapeBytea;
   PQEscapeStringConn: TPQEscapeStringConn;
   PQFreeMem:       TPQFreeMem;
+  PQsetClientEncoding: TPQsetClientEncoding;
+  PQclientEncoding: TPQclientEncoding;
+  pg_encoding_to_char: Tpg_encoding_to_char;
   lo_open:         Tlo_open;
   lo_close:        Tlo_close;
   lo_read:         Tlo_read;
@@ -588,16 +594,16 @@ Type
 
 
 { typedefs for buffers of various common sizes: }
-  DBIPATH            = packed array [0..DBIMAXPATHLEN] of Char; { holds a DOS path }
+  DBIPATH            = packed array [0..DBIMAXPATHLEN] of AnsiChar; { holds a DOS path }
   DBINAME            = packed array [0..DBIMAXNAMELEN] of Char; { holds a name }
-  DBIEXT             = packed array [0..DBIMAXEXTLEN] of Char; { holds an extension EXT }
-  DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of Char; { holds a table name }
-  DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of Char; { holds a stored procedure name }
+  DBIEXT             = packed array [0..DBIMAXEXTLEN] of AnsiChar; { holds an extension EXT }
+  DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of AnsiChar; { holds a table name }
+  DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of AnsiChar; { holds a stored procedure name }
   DBIKEY             = packed array [0..DBIMAXFLDSINKEY-1] of Word; { holds list of fields in a key }
-  DBIKEYEXP          = packed array [0..DBIMAXKEYEXPLEN] of Char; { holds a key expression }
+  DBIKEYEXP          = packed array [0..DBIMAXKEYEXPLEN] of AnsiChar; { holds a key expression }
   DBIVCHK            = packed array [0..DBIMAXVCHKLEN] of Byte; { holds a validity check }
-  DBIPICT            = packed array [0..DBIMAXPICTLEN] of Char; { holds a picture (Pdox) }
-  DBIMSG             = packed array [0..DBIMAXMSGLEN] of Char; { holds an error message }
+  DBIPICT            = packed array [0..DBIMAXPICTLEN] of AnsiChar; { holds a picture (Pdox) }
+  DBIMSG             = packed array [0..DBIMAXMSGLEN] of AnsiChar; { holds an error message }
 
 
 //============================================================================//
@@ -738,7 +744,7 @@ type
   pObjAttrDesc = ^ObjAttrDesc;
   ObjAttrDesc = packed record
     iFldNum    : Word;                  { Field id }
-    pszAttributeName : PChar;           { Object attribute name }
+    pszAttributeName : PAnsiChar;           { Object attribute name }
   end;
 
   pObjTypeDesc = ^ObjTypeDesc;
@@ -867,11 +873,11 @@ type
 
 type
   pIDXDesc = ^IDXDesc;
-  IDXDesc = packed record               { Index description }
-    szName          : DBITBLNAME;       { Index name }
+  IDXDesc = record               { Index description }
+    szName          : string;       { Index name }
     iIndexId        : Word;             { Index number }
-    szTagName       : DBINAME;          { Tag name (for dBASE) }
-    szFormat        : DBINAME;          { Optional format (BTREE, HASH etc) }
+    szTagName       : string;          { Tag name (for dBASE) }
+    szFormat        : string;          { Optional format (BTREE, HASH etc) }
     bPrimary        : WordBool;         { True, if primary index }
     bUnique         : WordBool;         { True, if unique keys (TRI-STATE for dBASE) }
     bDescending     : WordBool;         { True, for descending index }
@@ -884,8 +890,8 @@ type
     bOutofDate      : WordBool;         { True, if index out of date }
     iKeyExpType     : Word;             { Key type of Expression }
     aiKeyFld        : DBIKEY;           { Array of field numbers in key }
-    szKeyExp        : DBIKEYEXP;        { Key expression }
-    szKeyCond       : DBIKEYEXP;        { Subset condition }
+    szKeyExp        : string;        { Key expression }
+    szKeyCond       : string;        { Subset condition }
     bCaseInsensitive : WordBool;        { True, if case insensitive index }
     iBlockSize      : Word;             { Block size in bytes }
     iRestrNum       : Word;             { Restructure number }
@@ -990,11 +996,11 @@ type
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
     iFldNum         : Word;             { Field number (1..n) }
-    szName          : DBINAME;          { Field name }
+    szName          : string;          { Field name }
     iFldType        : Word;             { Field type }
     iSubType        : Word;             { Field subtype (if applicable) }
-    iUnits1         : SmallInt;         { Number of Chars, digits etc }
-    iUnits2         : SmallInt;         { Decimal places etc. }
+    iUnits1         : integer;         { Number of Chars, digits etc }
+    iUnits2         : integer;         { Decimal places etc. }
     iOffset         : Word;             { Offset in the record (computed) }
     iLen            : Word;             { Length in bytes (computed) }
     iNullOffset     : Word;             { For Null bits (computed) }
@@ -1004,6 +1010,7 @@ type
     iUnUsed         : packed array [0..1] of Word;
   end;
 
+  TFLDDescList = array of FLDDesc;
 
 //============================================================================//
 //             Validity check, Referential integrity descriptors              //
@@ -1026,10 +1033,10 @@ type
     bHasDefVal      : WordBool;         { If True, has default value }
     aMinVal         : DBIVCHK;          { Min Value }
     aMaxVal         : DBIVCHK;          { Max Value }
-    aDefVal         : shortstring; //DBIVCHK;          { Default value }
+    aDefVal         : string;           { Default value }
     szPict          : DBIPICT;          { Picture string }
     elkupType       : LKUPType;         { Lookup/Fill type }
-    szLkupTblName   : DBIPATH;          { Lookup Table name }
+    szLkupTblName   : string;          { Lookup Table name }
   end;
 
   RINTType = (                          { Ref integrity type }
@@ -1131,13 +1138,13 @@ type
 
   pCRTblDesc         = ^CRTblDesc;
   CRTblDesc = packed record             { Create/Restruct Table descr }
-    szTblName       : DBITBLNAME;       { TableName incl. optional path & ext }
-    szTblType       : DBINAME;          { Driver type (optional) }
-    szErrTblName    : DBIPATH;          { Error Table name (optional) }
-    szUserName      : DBINAME;          { User name (if applicable) }
-    szPassword      : DBINAME;          { Password (optional) }
-    bProtected      : WordBool;         { Master password supplied in szPassword }
-    bPack           : WordBool;         { Pack table (restructure only) }
+    szTblName       : string;       { TableName incl. optional path & ext }
+    //szTblType       : DBINAME;          { Driver type (optional) }
+    //szErrTblName    : DBIPATH;          { Error Table name (optional) }
+    //szUserName      : DBINAME;          { User name (if applicable) }
+    //szPassword      : DBINAME;          { Password (optional) }
+    //bProtected      : WordBool;         { Master password supplied in szPassword }
+    //bPack           : WordBool;         { Pack table (restructure only) }
     iFldCount       : Word;             { Number of field defs supplied }
     pecrFldOp       : pCROpType;        { Array of field ops }
     pfldDesc        : pFLDDesc;         { Array of field descriptors }
@@ -1389,7 +1396,7 @@ type
   pSPParamDesc = ^SPParamDesc;
   SPParamDesc = packed record
     uParamNum       : Word;
-    szName          : DBINAME;
+    szName          : string;
     eParamType      : STMTParamType;
     uFldType        : Word;
     uSubType        : Word;
@@ -1484,8 +1491,8 @@ type
 /////////////////////////////////////////////////////////////////////////////
 type
     TFieldArray = array[0..255] of Integer;
-    TTrueArray = Set of Char;
-    TFalseArray = Set of Char;
+    TTrueArray = Set of AnsiChar;
+    TFalseArray = Set of AnsiChar;
 /////////////////////////////////////////////////////////////////////////////
 //                        TPgSQLFilter TYPES AND CONST                     //
 /////////////////////////////////////////////////////////////////////////////
@@ -1681,12 +1688,28 @@ Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
 function UIntToStr(C: cardinal): string;
 function StrToUInt(S: string): cardinal;
 
+{$IFNDEF DELPHI_12}
+type
+ TCharSet = set of char;
+
+ function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
+{$ENDIF}
+
+
 implementation
 
 uses PSQLDbTables;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TCONTAINER OBJECT                       //
 /////////////////////////////////////////////////////////////////////////////
+
+{$IFNDEF DELPHI_12}
+function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
+begin
+ Result := C in CharSet;
+end;
+{$ENDIF}
+
 Constructor TContainer.Create;
 begin
   Inherited Create;
@@ -1960,7 +1983,7 @@ begin
         //changed by pasha_golub 29.12.04, to deal with schema names
         repeat
          Inc(p);
-         LoopEnd := p^ in [Literal,#0];
+         LoopEnd := (p^ = Literal) or (p^ = #0);
          if LoopEnd and (p^ <> #0) then
            begin
             inc(p);
@@ -1992,13 +2015,13 @@ begin
       begin
         StartToken;
         Inc(p);
-        if p^ in ['/','*'] then
+        if (p^ = '/') or (p^ = '*') then
         begin
           if p^ = '*' then
           begin
             repeat Inc(p) until (p = #0) or ((p^ = '*') and (p[1] = '/'));
           end else
-            while not (p^ in [#0, #10, #13]) do Inc(p);
+            while (p^ <> #0) and (p^ <> #10) and (p^ <> #13) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stComment;
           Exit;
@@ -2011,18 +2034,18 @@ begin
           SetString(Token, TokenStart, p - TokenStart);
           Result := GetSQLToken(Token);
           if Result = stSubSelect then
-             repeat Inc(p) until (p^ in [')']) else
+             repeat Inc(p) until (p^ = ')') else
           Exit;
         end else
         begin
-           if not (p^ in ['(',')']) then
-              while (p^ in [' ', #10, #13, ',']) do Inc(p) else
+           if not CharInSet(p^, ['(',')']) then
+              while CharInSet(p^, [' ', #10, #13, ',']) do Inc(p) else
            begin
               BracketCount := 1;
               repeat
                   Inc(p);
-                  if (p^ in ['(']) then Inc(BracketCount);
-                  if (p^ in [')']) then Dec(BracketCount);
+                  if p^ = '(' then Inc(BracketCount);
+                  if p^ = ')' then Dec(BracketCount);
               until (BracketCount = 0) or (p^ = #0) {safety measure};
               Inc(p);
            end;
@@ -2047,7 +2070,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['=','<','>'] do Inc(p);
+          while CharInSet(p^, ['=','<','>']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stPredicate;
           Exit;
@@ -2059,7 +2082,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['0'..'9','.'] do Inc(p);
+          while CharInSet(p^, ['0'..'9','.']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stNumber;
           Exit;
@@ -2258,7 +2281,7 @@ begin
   P := 1;
   Token  := '';
   if Buffer = '' then Exit;
-  while Buffer[P] in [' ',#9] do
+  while CharInSet(Buffer[P], [' ',#9]) do
   begin
     Inc(P);
     if Length(Buffer) < P then  goto ExitProc;
@@ -2269,7 +2292,7 @@ begin
     Inc(P);
     goto ExitProc;
   end;
-  if Buffer[P] in ['"',''''] then
+  if CharInSet(Buffer[P], ['"','''']) then
   begin
     Quote  := Buffer[P];
     Token  := Quote;
@@ -2286,7 +2309,7 @@ begin
     begin
       Token := Token + Buffer[P];
       Inc(P);
-      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0) or (Buffer[P] in ['"','''']) then Break;
+      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0) or CharInSet(Buffer[P], ['"','''']) then Break;
     end;
   end;
 ExitProc:
@@ -2381,7 +2404,7 @@ begin
                          BdeType := fldZSTRING;
                          LogSize   := TIMETZLEN+1;
                       end;
-    FIELD_TYPE_NAME: begin
+{    FIELD_TYPE_NAME: begin
                         BdeType := fldZSTRING;
                         LogSize   := 64+1;
                      end;
@@ -2389,7 +2412,7 @@ begin
                      begin
                         BdeType := fldZSTRING;
                         LogSize   := 16+1;
-                     end;
+                     end;                 }
     FIELD_TYPE_OID,
     FIELD_TYPE_BYTEA:  begin
                         BdeType := fldBLOB;
@@ -2404,11 +2427,11 @@ begin
                         BDEType := fldINT16;
                         LogSize := Sizeof(SmallInt);
                       end;
-    FIELD_TYPE_INT2VECTOR:
+{    FIELD_TYPE_INT2VECTOR:
                       begin
                         BdeType := fldZSTRING;
                         LogSize   := phSize+1;
-                      end;
+                      end;                    }
     FIELD_TYPE_INT4:  begin
                         BDEType := fldINT32;
                         LogSize := Sizeof(LongInt);
@@ -2473,13 +2496,13 @@ begin
   if Assigned(pRecBuff) then
   begin
     ZeroMemory(pRecBuff, Sizeof(FLDDesc));
-    ZeroMemory(pValChk,SizeOf(VCHKDesc));
+    ZeroMemory(pValChk, SizeOf(VCHKDesc));
     with PRecBuff^ do
     begin
       iFldNum  := Count;
       pValChk^.iFldNum := Count;
-      DataLen := Max(Info.FieldSize,Info.FieldMaxSize);
-      FieldMapping(Info.FieldType,DataLen,iFldType,iSubType,LogSize,LocArray);
+      DataLen := Info.FieldMaxSize;
+      FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
       if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
          (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
       begin
@@ -2495,12 +2518,12 @@ begin
         iUnits2  := 0;
         iLen     := LogSize;
       end;
-      if (iFldType = fldINT32) and (Pos('nextval(',lowerCase(Info.FieldDefault)) > 0)  then iSubType := fldstAUTOINC;
+      if (iFldType = fldINT32) and (Pos('nextval(',string(Info.FieldDefault)) > 0)  then iSubType := fldstAUTOINC;
       iOffset := Offset;
       efldvVchk := fldvUNKNOWN;
       if Info.FieldDefault <> '' then pValChk^.bHasDefVal := True;
       pValChk^.aDefVal := Info.FieldDefault;
-      StrPLCopy(@szName, Info.FieldName, Length(Info.FieldName));
+      szName := Info.FieldName;
     end;
   end;
 end;
@@ -2582,6 +2605,9 @@ begin
          @PQUnEscapeBytea:= GetPSQLProc('PQunescapeBytea');
          @PQEscapeStringConn:=GetPSQLProc('PQescapeStringConn');
          @PQFreeMem      := GetPSQLProc('PQfreemem');
+         @PQsetClientEncoding := GetPSQLProc('PQsetClientEncoding');
+         @PQclientEncoding := GetPSQLProc('PQclientEncoding');
+         @pg_encoding_to_char := GetPSQLProc('pg_encoding_to_char');
          @lo_open        := GetPSQLProc('lo_open');
          @lo_close       := GetPSQLProc('lo_close');
          @lo_read        := GetPSQLProc('lo_read');
@@ -2689,21 +2715,21 @@ end;
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
                     MaskChar: Char = '?';
-                    WildCard: Char = '%'): Boolean;
+                    WildCard: Char = '%'): Boolean;//mi:2006-09-07
 var
-  S, M : PAnsiChar;
-  W : PAnsiChar; //mi:2007-06-20 last wildcard position in mask
+  S, M : PChar;
+  W : PChar; //mi:2007-06-20 last wildcard position in mask
 begin
   Result := false;
   if CaseSensitive then
   begin
-    S := PAnsiChar(Str);
-    M := PAnsiChar(Mask);
+    S := PChar(Str);
+    M := PChar(Mask);
   end
   else
   begin
-    S := PAnsiChar(AnsiUpperCase(Str));
-    M := PAnsiChar(AnsiUpperCase(Mask));
+    S := PChar(AnsiUpperCase(Str));
+    M := PChar(AnsiUpperCase(Mask));
   end;
 
   W := nil;
@@ -2730,7 +2756,7 @@ begin
       end
       else//character are not equal
       begin
-        if W <> nil then//there was a wildcard before, we need to rollback mask to it to continue search 
+        if W <> nil then//there was a wildcard before, we need to rollback mask to it to continue search
         begin
           M := W;
           Inc(S);
@@ -2766,11 +2792,16 @@ begin
    end;
    S1 := Op1;
    S2 := Op2;
-   if OEM then
-   begin
-      OemToCharBuff(PChar(S1),PChar(S1), Length(S1));
-      OemToCharBuff(PChar(S2),PChar(S2), Length(S2));
-   end;
+  if OEM then
+  begin
+    {$IFDEF DELPHI_12}
+    OemToCharBuff(PAnsiChar(AnsiString(S1)), PWideChar(S1), Length(S1));
+    OemToCharBuff(PAnsiChar(AnsiString(S2)), PWideChar(S2), Length(S2));
+    {$ELSE}
+    OemToCharBuff(PAnsiChar(S1), PAnsiChar(S1), Length(S1));
+    OemToCharBuff(PAnsiChar(S2), PAnsiChar(S2), Length(S2));
+    {$ENDIF}
+  end;
    If CaseSen then //case insensitive
    begin
       if PartLen = 0 then

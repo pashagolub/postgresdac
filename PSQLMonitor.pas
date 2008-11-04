@@ -428,7 +428,7 @@ begin
    if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FConnectReaderCount^>0) then
    begin
-      st := db.DBOptions.DatabaseName + ': [Connect]'; {do not localize}
+      st := string(db.DBOptions.DatabaseName) + ': [Connect]'; {do not localize}
       st := st + Format(' [Time elapsed (ms): %d]', [db.LastOperationTime]);
       WriteSQLData(st, tfConnect);
    end;
@@ -441,7 +441,7 @@ begin
    if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FConnectReaderCount^>0) then
    begin
-      st := db.DBOptions.DatabaseName + ': [Disconnect]'; {do not localize}
+      st := string(db.DBOptions.DatabaseName) + ': [Disconnect]'; {do not localize}
       st := st + Format(' [Time elapsed (ms): %d]', [db.LastOperationTime]);
       WriteSQLData(st, tfConnect);
    end;
@@ -580,7 +580,7 @@ begin
    if FActive and  bEnabledMonitoring  and (GetMonitorCount>0)
       and (FTransactReaderCount^>0) then
    begin
-       st := db.DBOptions.DatabaseName + ': [Commit (Hard commit)]';
+       st := string(db.DBOptions.DatabaseName) + ': [Commit (Hard commit)]';
        WriteSQLData(st, tfTransact);
    end;
 end;
@@ -592,7 +592,7 @@ begin
    if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FTransactReaderCount^>0) then
    begin
-      st := db.DBOptions.DatabaseName + ': [Rollback]';
+      st := string(db.DBOptions.DatabaseName) + ': [Rollback]';
       WriteSQLData(st, tfTransact);
    end;
 end;
@@ -604,7 +604,7 @@ begin
    if FActive and  bEnabledMonitoring and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FTransactReaderCount^>0) then
    begin
-      st := db.DBOptions.DatabaseName + ': [Start transaction]';
+      st := string(db.DBOptions.DatabaseName) + ': [Start transaction]';
       WriteSQLData(st, tfTransact);
    end;
 end;

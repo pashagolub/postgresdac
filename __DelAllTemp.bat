@@ -25,6 +25,6 @@ del /Q /S *.ild > nul
 del /Q /S *.ilf > nul
 del /Q /S *.ils > nul
 del /Q /S *.identcache > nul
-del /Q /S *.bdsproj.local > nul
+del /Q /S *.local > nul
 del /Q /S __history > nul
 rmdir __history > nul

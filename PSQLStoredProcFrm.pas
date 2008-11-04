@@ -207,7 +207,7 @@ procedure TPSQLStoredProcProp.GetStoredProcList;
 Var SL: TStringList;
     i: integer;
     LI: TlistItem;
-    ParamString: shortstring;
+    ParamString: string;
     Q: TPSQLQuery;
     OldCursor: TCursor;
     SQL: string;

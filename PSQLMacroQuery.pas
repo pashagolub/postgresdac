@@ -94,12 +94,12 @@ uses {$IFDEF DELPHI_6}RTLConsts, {$ENDIF} Consts, Forms, BDEConst;
 { Parse SQL utility routines }
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
 begin
-  Result := (C in [' ', ',', ';', ')', #13, #10]) or (C in Delims);
+  Result := CharInSet(C, [' ', ',', ';', ')', #13, #10] + Delims);
 end;
 
 function IsLiteral(C: Char): Boolean;
 begin
-  Result := C in ['''', '"'];
+  Result := CharInSet(C, ['''', '"']);
 end;
 
 procedure CreateQueryParams(List: TParams; const Value: PChar; Macro: Boolean;
@@ -249,7 +249,7 @@ begin
   try
     if SQL.Count > 0 then
     begin
-      PSQLDBTables.Check(Engine,Engine.QExecDirect(DBHandle, qryLangSQL, PChar(inherited SQL.Text), nil, AffectedRows));
+      PSQLDBTables.Check(Engine,Engine.QExecDirect(DBHandle, PChar(inherited SQL.Text), nil, AffectedRows));
     end
     else DatabaseError(SEmptySQLStatement);
   finally

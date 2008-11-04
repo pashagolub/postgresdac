@@ -12,7 +12,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       PSQLCP, ExtCtrls;
 
 const
-    VERSION : string = '2.4.3';
+    VERSION : string = '2.5.0-Dev';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -311,7 +311,7 @@ type
       destructor Destroy; Override;
   end;
 
-  TFieldDescList = array of FLDDesc;
+
 
     { TLocale }
 
@@ -436,7 +436,7 @@ type
     procedure BlockReadNext; override;
     procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
     procedure ActivateFilters;
-    procedure AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
+    procedure AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
       var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
     procedure AllocCachedUpdateBuffers(Allocate: Boolean);
     procedure AllocKeyBuffers;
@@ -574,7 +574,6 @@ type
     procedure Post; Override;
     procedure RevertRecord;
     function  UpdateStatus: TUpdateStatus; Override;
-    function  Translate(Src, Dest: PAnsiChar; ToOem: Boolean) : Integer;  Override;
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
@@ -616,10 +615,8 @@ type
     property AfterDelete;
     property BeforeScroll;
     property AfterScroll;
-    {$IFNDEF DELPHI_4}
     property BeforeRefresh;
     property AfterRefresh;
-    {$ENDIF}
     property OnCalcFields;
     property OnDeleteError;
     property OnEditError;
@@ -677,7 +674,6 @@ type
     procedure GetIndexParams(const IndexName: String; FieldsIndex: Boolean;
       var IndexedName, IndexTag: String);
     function GetMasterFields: String;
-    function GetTableTypeName: PChar;
     function GetTableLevel: Integer;
     function IndexDefsStored: Boolean;
     procedure MasterChanged(Sender: TObject);
@@ -703,7 +699,6 @@ type
     procedure SetDummyStr(const Value: string);
     function GetTableSpace: string;
   Protected
-    {$IFNDEF DELPHI_4}
     { IProviderSupport }
     function PSGetDefaultOrder: TIndexDef; override;
     function PSGetKeyFields: string; override;
@@ -711,7 +706,6 @@ type
     function PSGetIndexDefs(IndexTypes: TIndexOptions): TIndexDefs; override;
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
-    {$ENDIF}
     function CreateHandle: HDBICur; Override;
     procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
     procedure DefChanged(Sender: TObject); override;
@@ -732,7 +726,7 @@ type
     procedure InitFieldDefs; Override;
     function GetFileName: string;
     function GetTableType: TTableType;
-    function NativeTableName: PChar;
+    function NativeTableName: PAnsiChar;
     procedure PrepareCursor; Override;
     procedure UpdateIndexDefs; Override;
     property MasterLink: TMasterDataLink read FMasterLink;
@@ -839,7 +833,6 @@ type
       procedure SetRequestLive(const Value : Boolean);
       function GetRequestLive : Boolean;
     protected
-      {$IFNDEF DELPHI_4}
       { IProviderSupport }
       procedure PSExecute; override;
       function PSGetDefaultOrder: TIndexDef; override;
@@ -847,7 +840,6 @@ type
       function PSGetTableName: string; override;
       procedure PSSetCommandText(const CommandText: string); override;
       procedure PSSetParams(AParams: TParams); override;
-      {$ENDIF}
       function CreateHandle: HDBICur; Override;
       procedure DefineProperties(Filer: TFiler); Override;
       procedure Disconnect; Override;
@@ -1020,14 +1012,12 @@ type
     procedure SetOverload(const Value: cardinal);
     procedure SetProcName(const Value: string);
 	protected
-    {$IFNDEF DELPHI_4}
     { IProviderSupport }
     procedure PSExecute; override;
     function PSGetTableName: string; override;
     function PSGetParams: TParams; override;
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
-    {$ENDIF}
 		function CreateHandle: HDBICur;override;
 		function CreateCursor(IsExecProc : boolean): HDBICur;
     procedure CloseCursor;override;
@@ -1056,10 +1046,6 @@ type
     property ParamBindMode: TParamBindMode read FBindMode write FBindMode default pbByName;
 	end;
 
-{$IFDEF DELPHI_4}
-procedure FreeAndNil(var Obj);
-{$ENDIF}
-
 procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
 procedure Dac4PSQLShowAbout(aComponentName : string);
@@ -1081,6 +1067,8 @@ var
   SQLDelay: DWORD = 50;
   StartTime: DWORD = 0;
   BDEInitProcs: TList;
+
+
 
 procedure Dac4PSQLShowAbout(aComponentName : string);
 begin
@@ -1147,14 +1135,8 @@ type
       constructor Create(AQuery: TPSQLQuery);
   end;
 
-type PCharType = {$IFDEF DELPHI_12}PAnsiChar{$ELSE}PChar{$ENDIF};
-
-{ Utility routines }
-{$IFDEF DELPHI_12}
+(*{ Utility routines }
 procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
-{$ELSE}
-procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
-{$ENDIF}
 var
   DataLoss: LongBool;
 begin
@@ -1169,11 +1151,25 @@ begin
   end;
 end;
 
-{$IFDEF DELPHI_12}
+function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String; NativeStr: PAnsiChar; MaxLen: Integer): PAnsiChar;
+var
+  Len: Integer;
+begin
+  Len := Length(AnsiStr);
+
+  if Len > MaxLen then
+    Len := MaxLen;
+
+  NativeStr[Len] := #0;
+
+  if Len > 0 then
+    TAnsiToNativeBuf(Engine, Pointer(AnsiStr), NativeStr, Len);
+
+  Result := NativeStr;
+end;
+
+
 procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
-{$ELSE}
-procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PChar; Len: Integer);
-{$ENDIF}
 var
   DataLoss: LongBool;
 begin
@@ -1188,30 +1184,15 @@ begin
   end;
 end;
 
-
-function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String;
-  NativeStr: PCharType; MaxLen: Integer): PCharType;
-var
-  Len: Integer;
-begin
-  Len := Length(AnsiStr);
-  if Len > MaxLen then Len := MaxLen;
-  NativeStr[Len] := #0;
-  if Len > 0 then
-    TAnsiToNativeBuf(Engine, Pointer(AnsiStr), NativeStr, Len);
-  Result := NativeStr;
-end;
-
-
-procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PCharType; var AnsiStr: String);
+procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PAnsiChar; var AnsiStr: AnsiString);
 var
   Len : Integer;
 begin
   Len := StrLen(NativeStr);
-  SetString(AnsiStr, NIL, Len);
+  SetString(AnsiStr, nil, Len);
   if Len > 0 then
     TNativeToAnsiBuf(Engine, NativeStr, Pointer(AnsiStr), Len);
-end;
+end;           *)
 
 procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
 begin
@@ -1225,7 +1206,7 @@ end;
 
 { Parameter binding routines }
 
-function GetParamDataSize(Param: TParam): Integer;
+(* function GetParamDataSize(Param: TParam): Integer;
 begin
   with Param do
     if ((DataType in [ftString, ftFixedChar]) and (Length(VarToStr(Value)) > 255)) or
@@ -1315,7 +1296,7 @@ begin
     end else
       GetData(Buffer);
 end;
-{$ENDIF}
+{$ENDIF}    *)
 
 { Timer callback function }
 procedure FreeTimer(ForceKill : Boolean = FALSE);
@@ -1607,7 +1588,7 @@ begin
       end;
     end
   else
-    Check(Engine, Engine.QExecDirect(Handle, qrylangSQL, SQL, Cursor, Result));
+    Check(Engine, Engine.QExecDirect(Handle, SQL, Cursor, Result));
   if Result = 0 then
      if (Cursor = nil) and (Engine.GetEngProp(hDBIObj(StmtHandle), stmtROWCOUNT,@Result, SizeOf(Result),Len) <> 0) then
         Result := 0;
@@ -1827,8 +1808,7 @@ begin
       {$ENDIF}
       Check(Engine, Engine.OpenDatabase(ParamList, FHandle));
       Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
-      If FCharSet <> '<default>' then //to deal with server encoding
-        Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
+      Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
       Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
       IF Assigned(FHandle) then
         PQSetNoticeProcessor(TNativeConnect(FHandle).Handle,NoticeProcessor,Self);
@@ -2009,73 +1989,49 @@ begin
 end;
 
 procedure TPSQLDatabase.GetStoredProcNames(Pattern: String; List: TStrings);
-var
-   WildCard: PChar;
-   SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenStoredProcList(Handle, WildCard, List));
+    Check(Engine, Engine.OpenStoredProcList(Handle, Pattern, List));
   finally
     List.EndUpdate;
   end;
 end;
 
 procedure TPSQLDatabase.GetTableNames(Pattern: String; SystemTables: Boolean; List: TStrings);
-var
-   WildCard: PChar;
-   SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenTableList(Handle,WildCard, SystemTables, List));
+    Check(Engine, Engine.OpenTableList(Handle, Pattern, SystemTables, List));
   finally
     List.EndUpdate;
   end;
 end;
 
 procedure TPSQLDatabase.GetSchemaNames(Pattern: String; SystemSchemas: Boolean; List: TStrings);
-var
-   WildCard: PChar;
-   SPattern: DBITBLNAME;
 begin
   If not Assigned(List) then Exit;
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenSchemaList(Handle, WildCard, SystemSchemas, List));
+    Check(Engine, Engine.OpenSchemaList(Handle, Pattern, SystemSchemas, List));
   finally
     List.EndUpdate;
   end;
 end;
 
 procedure TPSQLDatabase.GetUserNames(Pattern: String; List: TStrings);
-var
-   WildCard: PChar;
-   SPattern: DBITBLNAME;
 begin
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenUserList(Handle,WildCard, List));
+    Check(Engine, Engine.OpenUserList(Handle,Pattern, List));
   finally
     List.EndUpdate;
   end;
@@ -2101,7 +2057,7 @@ begin
   end;
 end;
 
-procedure TPSQLDatabase.GetDatabases(Pattern: String;List : TStrings);
+procedure TPSQLDatabase.GetDatabases(Pattern: String; List : TStrings);
 var
    OldConn : Boolean;
    OldDbName : string;
@@ -2115,8 +2071,8 @@ begin
    end;
    if Handle = nil then Connected := True;
    if Pattern <> '' then
-      Check(Engine, Engine.GetDatabases(Handle,PChar(Pattern),List)) else
-      Check(Engine, Engine.GetDatabases(Handle,nil,List));
+      Check(Engine, Engine.GetDatabases(Handle, Pattern, List)) else
+      Check(Engine, Engine.GetDatabases(Handle, '', List));
    Connected := OldConn;
    if not Connected then
      DatabaseName := OldDbName;
@@ -2225,19 +2181,13 @@ end;
 
 
 procedure TPSQLDatabase.GetTablespaces(Pattern: String; List: TStrings);
-var
-   WildCard: PChar;
-   SPattern: DBITBLNAME;
 begin
   If not Assigned(List) then Exit;
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
     List.Clear;
-    WildCard := NIL;
-    if Pattern <> '' then
-      WildCard := TAnsiToNative(Engine, Pattern, SPattern, SizeOf(SPattern)- 1);
-    Check(Engine, Engine.OpenTablespaceList(Handle, WildCard, List));
+    Check(Engine, Engine.OpenTablespaceList(Handle, Pattern, List));
   finally
     List.EndUpdate;
   end;
@@ -2385,9 +2335,7 @@ begin
   SetDBFlag(dbfOpened, TRUE);
   Inherited OpenCursor(InfoQuery);
   SetUpdateMode(FUpdateMode);
-  {$IFNDEF DELPHI_4}
   SetupAutoRefresh;
-  {$ENDIF}
 end;
 
 //////////////////////////////////////////////////////////
@@ -2426,7 +2374,7 @@ end;
 procedure TPSQLDataSet.InternalInitFieldDefs;
 var
   I, FieldID: Integer;
-  FieldDescs: TFieldDescList;
+  FieldDescs: TFLDDescList;
   ValCheckDesc: VCHKDesc;
   RequiredFields: TBits;
   CursorProps: CurProps;
@@ -2454,12 +2402,12 @@ begin
       RequiredFields.Size := FldDescCount + 1;
     for I := 1 to CursorProps.iValChecks do
     begin
-      Engine.GetVChkDesc(FHandle, I, @ValCheckDesc);
+      Engine.GetVChkDesc(FHandle, I, ValCheckDesc);
       if ValCheckDesc.bRequired and not ValCheckDesc.bHasDefVal then
         RequiredFields[ValCheckDesc.iFldNum] := True;
     end;
     SetLength(FieldDescs, FldDescCount);
-    Engine.GetFieldDescs(FHandle, PFLDDesc(FieldDescs));
+    Engine.GetFieldDescs(FHandle, FieldDescs);
     FieldID := FieldNoOfs;
     I := FieldID - 1;
     FieldDefs.Clear;
@@ -2491,7 +2439,7 @@ begin
       TypeDesc.iFldNum := ObjectField.FieldNo;
       if (Engine.GetEngProp(hDBIObj(Handle), curFIELDTYPENAME, @TypeDesc,
         SizeOf(TypeDesc), Len) = DBIERR_NONE) and (Len > 0) then
-        ObjectField.ObjectType := TypeDesc.szTypeName;
+        ObjectField.ObjectType := string(TypeDesc.szTypeName);
       with ObjectField do
         if DataType in [ftADT, ftArray] then
         begin
@@ -2550,19 +2498,6 @@ begin
   Result := Handle <> nil;
 end;
 
-{$IFDEF DELPHI_4}
-function TPSQLDataSet.BCDToCurr(BCD: Pointer; var Curr: Currency): Boolean;
-begin
-   Result := FMTBCDToCurr(FMTBCD(BCD^), Curr);
-end;
-
-function TPSQLDataSet.CurrToBCD(const Curr: Currency; BCD: Pointer; Precision,
-  Decimals: Integer): Boolean;
-begin
-   Result := CurrToFMTBCD(Curr, FMTBCD(BCD^), 32, Decimals);
-end;
-{$ENDIF}
-
 procedure TPSQLDataSet.InternalHandleException;
 begin
   Application.HandleException(Self)
@@ -2611,7 +2546,7 @@ var
 begin
   if FCacheBlobs then
     for I := 0 to Pred(BlobFieldCount) do
-      TBlobDataArray(Buffer + FBlobCacheOfs)[ I ] := '';
+      TBlobDataArray(Buffer + FBlobCacheOfs)[ I ] := {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF};
 end;
 
 procedure TPSQLDataSet.ClearCalcFields(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
@@ -2685,11 +2620,12 @@ end;
 
 function TPSQLDataSet.GetOldRecord: PAnsiChar;
 begin
-  UpdateCursorPos;
+  UpdateCursorPos();
+
   if SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, TRUE) then
   try
     AllocCachedUpdateBuffers(True);
-    Check(Engine, Engine.GetRecord(FHandle, dbiNoLock, FUpdateCBBuf.pOldRecBuf, NIL));
+    Check(Engine, Engine.GetRecord(FHandle, dbiNoLock, FUpdateCBBuf.pOldRecBuf, nil));
     Result := PAnsiChar(FUpdateCBBuf.pOldRecBuf);
     AllocCachedUpdateBuffers(False);
   finally
@@ -2806,10 +2742,16 @@ begin
 
     dsCalcFields: RecBuf := CalcBuffer;
 
-    dsFilter: RecBuf := FFilterBuffer;
+    dsFilter:
+      {$IFDEF DELPHI_12}
+      RecBuf := TRecordBuffer(FFilterBuffer);
+      {$ELSE}
+      RecBuf := FFilterBuffer;
+      {$ENDIF}
 
     dsNewValue: if FInUpdateCallback then
-                   RecBuf := FUpdateCBBuf.pNewRecBuf else
+                   RecBuf := FUpdateCBBuf.pNewRecBuf
+                else
                    RecBuf := ActiveBuffer;
 
     dsOldValue: if FInUpdateCallback then
@@ -2827,7 +2769,7 @@ begin
   Result := RecBuf <> nil;
 end;
 
-procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFieldDescList; var DescNo: Integer;
+procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
   var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
 var
   FType: TFieldType;
@@ -2841,13 +2783,13 @@ begin
   Inc(DescNo);
   with FieldDesc do
   begin
-    TNativeToAnsi(Engine, szName, FieldName);
+    FieldName := szName; //TNativeToAnsi(Engine, szName, FieldName);
     I := 0;
     FName := FieldName;
-    while FieldDefs.IndexOf(FName) >= 0 do
+    while FieldDefs.IndexOf(string(FName)) >= 0 do
     begin
       Inc(I);
-      FName := Format('%s_%d', [FieldName, I]);
+      FName := Format('%s_%d', [string(FieldName), I]);
     end;
     if iFldType < MAXLOGFLDTYPES then
       FType := DataTypeMap[iFldType]
@@ -2890,6 +2832,18 @@ begin
           FType := ftGuid;
         end;
     end;
+
+    //pg: Unicode playing
+    {$IFDEF DELPHI_12}
+    if TNativeConnect(FDatabase.Handle).IsUnicodeUsed then
+     case FType of
+      ftString: FType := ftWideString;
+      ftMemo:   FType := ftWideMemo;
+      ftFixedChar: FType := ftFixedWideChar;
+     end;
+    {$ENDIF}
+
+
     with FieldDefs.AddFieldDef do
     begin
       FieldNo := FieldID;
@@ -2902,10 +2856,8 @@ begin
         Attributes := [faRequired];
       if efldrRights = fldrREADONLY then
         Attributes := Attributes + [faReadonly];
-      {$IFNDEF DELPHI_4}
       if iSubType = fldstFIXED then
         Attributes := Attributes + [faFixed];
-      {$ENDIF}
       InternalCalcField := bCalcField;
       case FType of
         ftADT:
@@ -2918,7 +2870,8 @@ begin
         ftArray:
           begin
             I := FieldID;
-            StrCat(StrCopy(FieldDescs[DescNo].szName, FieldDesc.szName),'[0]');
+            FieldDescs[DescNo].szName := FieldDesc.szName + '[0]';
+            //StrCat(StrCopy(FieldDescs[DescNo].szName, FieldDesc.szName),'[0]');
             AddFieldDesc(FieldDescs, DescNo, I, RequiredFields, ChildDefs);
             Inc(FieldID, iUnits2);
           end;
@@ -3071,32 +3024,21 @@ begin
 end;
 
 
-function TPSQLDataSet.Translate(Src, Dest: PChar; ToOem: Boolean) : Integer;
-begin
-  Result := StrLen(Src);
-  if ToOem then
-  begin
-     TAnsiToNativeBuf(Engine, Src, Dest, Result);
-  end else
-  begin
-        TNativeToAnsiBuf(Engine, Src, Dest, Result);
-  end;
-  if Src <> Dest then Dest[ Result ] := #0;
-end;
-
-function TPSQLDataSet.GetFieldFullName(Field : TField) : string;
-var
+function TPSQLDataSet.GetFieldFullName(Field : TField) : String;
+{var
   Len: Word;
   AttrDesc: ObjAttrDesc;
-  Buffer: array[0..1024] of Char;
+  Buffer: array[0..1024] of AnsiChar;
+  s: AnsiString;}
 begin
-  if Field.FieldNo > 0  then
+  {if Field.FieldNo > 0  then
   begin
     AttrDesc.iFldNum := Field.FieldNo;
     AttrDesc.pszAttributeName := Buffer;
     Check(Engine, Engine.GetEngProp(HDBIOBJ(Handle), curFIELDFULLNAME, @AttrDesc, SizeOf(Buffer), Len));
-    TNativeToAnsi(Engine, Buffer, Result);
-  end else
+    TNativeToAnsi(Engine, Buffer, S);
+    Result := string(S);
+  end else}
     Result := inherited GetFieldFullName(Field);
 end;
 
@@ -3217,7 +3159,7 @@ begin
   InternalGotoBookmark(Buffer + FBookmarkOfs);
 end;
 
-function TPSQLDataSet.GetBookmarkFlag(Buffer : PChar) : TBookmarkFlag;
+function TPSQLDataSet.GetBookmarkFlag(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}) : TBookmarkFlag;
 begin
   Result := PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag;
 end;
@@ -3384,9 +3326,9 @@ var
 begin
   ResetCursorRange;
   UpdateCursorPos;
-  Status := Engine.SwitchToIndex(FHandle, PChar(IndexName), PChar(TagName), 0, TRUE);
+  Status := Engine.SwitchToIndex(FHandle, IndexName, TagName, 0, TRUE);
   if (Status = DBIERR_NOCURRREC) then
-    Status := Engine.SwitchToIndex(FHandle, PChar(IndexName), PChar(TagName), 0, FALSE);
+    Status := Engine.SwitchToIndex(FHandle, IndexName, TagName, 0, FALSE);
   Check(Engine, Status);
   FKeySize := 0;
   FExpIndex := FALSE;
@@ -3442,7 +3384,7 @@ var
   KeyIndex: TKeyIndex;
 begin
   for KeyIndex := Low(TKeyIndex) to High(TKeyIndex) do
-    FreeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
+    DisposeMem(FKeyBuffers[ KeyIndex ], SizeOf(TKeyBuffer) + FRecordSize);
 end;
 
 function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
@@ -3724,8 +3666,8 @@ var
   Expr, Node: PExprNode;
   FilterOptions: TFilterOptions;
 begin
-  Expr := nil;
   Node := nil;
+  Expr := nil;
   if loCaseInsensitive in Options then
     FilterOptions := [foNoPartialCompare, foCaseInsensitive]
   else
@@ -3902,26 +3844,16 @@ var
   Status: DBIResult;
   CaseInsensitive: Boolean;
 
-   //addded by pasha_golub 13.01.05
-  {}procedure SetFieldValue(const Fld : TField; const VarValue : Variant);
-  {}begin
-  {$IFNDEF VER150} // not Delphi 7
-  {}  if (Fld is TLargeIntField) then
-  {}    TIntegerField(Fld).Value := VarValue
-  {}  else
-  {$ENDIF}
-  {}    Fld.Value := VarValue;
-  {}end;
-
-  {function IsLongintFld:boolean;
-  var i:integer;
+  procedure SetFieldValue(const Fld : TField; const VarValue : Variant);
   begin
-    i:=0;
-    while (i<Fields.Count-1) and
-          not (TField(Fields[i]) is TLargeIntField) do
-     inc(i);
-    Result := i <> Fields.Count-1
-  end;}
+  {$IFDEF DELPHI_5}
+    if (Fld is TLargeIntField) then
+      TIntegerField(Fld).Value := VarValue
+    else
+  {$ENDIF}
+      Fld.Value := VarValue;
+  end;
+
 
 begin
   CheckBrowseMode;
@@ -3998,24 +3930,20 @@ begin
     GetFieldList(Fields, KeyFields);
     Check(Engine, Engine.SetToBegin(FHandle));
     FilterOptions := [foNoPartialCompare];
-    {$IFDEF DELPHI_4}
-    Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', NIL);
-    {$ELSE}
     Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
-    {$ENDIF}
     try
       if Fields.Count = 1 then
       begin
-         Node := Filter1.NewCompareNode(TField(Fields[0]), {$IFDEF DELPHI_4}canGE {$ELSE}coGE {$ENDIF}, KeyValues);
+         Node := Filter1.NewCompareNode(TField(Fields[0]), coGE, KeyValues);
          Expr := Node;
       end
       else
         for I := 0 to Fields.Count-1 do
         begin
-          Node := Filter1.NewCompareNode(TField(Fields[I]), {$IFDEF DELPHI_4}canGE {$ELSE}coGE {$ENDIF}, KeyValues[I]);
+          Node := Filter1.NewCompareNode(TField(Fields[I]), coGE, KeyValues[I]);
           if I = 0 then
             Expr := Node else
-            Expr := Filter1.NewNode(enOperator, {$IFDEF DELPHI_4}canAND {$ELSE}coAND {$ENDIF}, Unassigned, Expr, Node);
+            Expr := Filter1.NewNode(enOperator, coAND, Unassigned, Expr, Node);
         end;
       if loPartialKey in Options then Node^.FPartial := TRUE;
       Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), NIL,Filter));
@@ -4325,7 +4253,7 @@ begin
     CheckIfParentScrolled;
   inherited DataEvent(Event, Info);
 end;
-{$IFNDEF DELPHI_4}
+
 { TBDEDataSet.IProviderSupport}
 function TPSQLDataSet.PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError;
 var
@@ -4354,7 +4282,6 @@ begin
   If Handle <> NIL then
     Engine.ForceReread(Handle);
 end;
-{$ENDIF}
 
 function TPSQLDataSet.GetHandle: HDBICur;
 begin
@@ -4472,7 +4399,6 @@ begin
    Result := TPSQLDatabase(FDatabase);
 end;
 
-{$IFNDEF DELPHI_4}
 procedure TPSQLDataSet.SetupAutoRefresh;
 const
   PropFlags : array[TAutoRefreshFlag] of LongInt = (0, curFIELDISAUTOINCR, curFIELDISDEFAULT);
@@ -4491,9 +4417,7 @@ begin
         Check(Engine, Engine.SetEngProp(hDbiObj(FHandle), PropFlags[ AutoGenerateValue ], LongInt(@ColDesc)));
       end;
 end;
-{$ENDIF}
 
-{$IFNDEF DELPHI_4}
 { TPSQLDataSet.IProviderSupport }
 procedure TPSQLDataSet.PSGetAttributes(List : TList);
 var
@@ -4605,7 +4529,6 @@ begin
     SetDBFlag(dbfProvider, InProvider);
   end;
 end;
-{$ENDIF}
 
 /////////////////////////////////////////////////////////////////
 //                    TPSQLQuery                                //
@@ -5041,7 +4964,6 @@ begin
         AddFieldToList(Params[i].Name, Self, DetailFields);
 end;
 
-{$IFNDEF DELPHI_4}
 { TPSQLQuery.IProviderSupport }
 function TPSQLQuery.PSGetDefaultOrder: TIndexDef;
 begin
@@ -5077,7 +4999,6 @@ begin
   if (CommandText <> '') then
     SQL.Text := CommandText;
 end;
-{$ENDIF}
 
 procedure TPSQLDataSet.SetByteaAsEscString(const Value: boolean);
 begin
@@ -5366,8 +5287,8 @@ var
 
   procedure FillAddonProps;
   begin
-   Check(Engine,Engine.GetTableProps(DBHandle,NativeTableName,FOwner,
-        FComment,FTablespace,FHasOIDs,FTableID));
+   Check(Engine,Engine.GetTableProps(DBHandle, FTableName, FOwner,
+        FComment, FTablespace, FHasOIDs, FTableID));
   end;
 
 begin
@@ -5378,8 +5299,8 @@ begin
   while TRUE do
   begin
     DBH := DBHandle;
-    RetCode := Engine.OpenTable(DBH, NativeTableName, GetTableTypeName,
-      PChar(IndexName), PChar(IndexTag), IndexID, OpenMode, ShareModes[FExclusive],
+    RetCode := Engine.OpenTable(DBH, FTableName, '',
+      IndexName, IndexTag, IndexID, OpenMode, ShareModes[FExclusive],
       xltField, FALSE, NIL, Result, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
       OpenMode := dbiReadOnly    else
@@ -5433,7 +5354,7 @@ end;
 procedure TPSQLTable.InitFieldDefs;
 var
   I, FieldID, FldDescCount: Integer;
-  FieldDescs: TFieldDescList;
+  FieldDescs: TFLDDescList;
   FCursor: HDBICur;
   RequiredFields: TBits;
 begin
@@ -5443,8 +5364,8 @@ begin
     SetDBFlag(dbfFieldList, TRUE);
     try
       if (FTableName = '') then  DatabaseError(SNoTableName, Self);
-        while not CheckOpen(Engine.OpenFieldList(DBHandle, NativeTableName,
-          GetTableTypeName, FALSE, FCursor)) do {Retry};
+        while not CheckOpen(Engine.OpenFieldList(DBHandle, FTableName,
+          '', FALSE, FCursor)) do {Retry};
         try
           Check(Engine, Engine.GetRecordCount(FCursor, FldDescCount));
           SetLength(FieldDescs, FldDescCount);
@@ -5501,12 +5422,14 @@ procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
 var
   IndexOptions: TIndexOptions;
   I: Integer;
-  SSource, SName: PChar;
+  SSource, SName: string;
   FieldName: String;
+  s : String;
 begin
   with IndexDesc do
   begin
-    if szTagName[0] = #0 then
+    //if szTagName[0] = #0 then
+    if szTagName = '' then
     begin
       SName := szName;
       Source := '';
@@ -5515,10 +5438,14 @@ begin
     begin
       SSource := szName;
       SName := szTagName;
-      TNativeToAnsi(Engine, SSource, Source);
+      S := SSource;
+      //TNativeToAnsi(Engine, SSource, s);
+      Source := string(s);
     end;
-    TNativeToAnsi(Engine, SName, Name);
-    Name := ExtractFileName(Name);
+
+    //TNativeToAnsi(Engine, SName, s);
+    S := SName;
+    Name := ExtractFileName(string(s));
     Source := ExtractFileName(Source);
     IndexOptions := [];
     if bPrimary then Include(IndexOptions, ixPrimary);
@@ -5528,7 +5455,9 @@ begin
     if not bMaintained then Include(IndexOptions, ixNonMaintained);
     if bExpIdx then
     begin
-      TNativeToAnsi(Engine, szKeyExp, FieldExpression);
+      //TNativeToAnsi(Engine, szKeyExp, S);
+      S := szKeyExp;
+      FieldExpression := string(s);
       Include(IndexOptions, ixExpression);
     end else
     begin
@@ -5569,7 +5498,8 @@ begin
   FillChar(IndexDesc, SizeOf(IndexDesc), 0);
   with IndexDesc do
   begin
-    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+//    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+    szName      := Name;
     bPrimary    := ixPrimary in Options;
     bUnique     := ixUnique in Options;
     bDescending := (ixDescending in Options) and (DescFields = '');
@@ -5578,7 +5508,8 @@ begin
     if ixExpression in Options then
     begin
       bExpIdx := TRUE;
-      TAnsiToNative(Engine, FieldExpression, szKeyExp, SizeOf(szKeyExp) - 1);
+      //TAnsiToNative(Engine, FieldExpression, szKeyExp, SizeOf(szKeyExp) - 1);
+      szKeyExp := FieldExpression;
     end
     else
     begin
@@ -5611,14 +5542,14 @@ begin
     EncodeIndexDesc(IndexDesc, Name, Fields, Options, DescFields);
     CheckBrowseMode;
     CursorPosChanged;
-    Check(Engine, Engine.AddIndex(DBHandle, Handle, NIL, NIL, IndexDesc, NIL));
+    Check(Engine, Engine.AddIndex(DBHandle, Handle, '', '', IndexDesc, ''));
   end
   else
   begin
       EncodeIndexDesc(IndexDesc, Name, Fields, Options, DescFields);
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.AddIndex(DBHandle, NIL, NativeTableName, GetTableTypeName, IndexDesc, NIL));
+      Check(Engine, Engine.AddIndex(DBHandle, NIL, FTableName, '', IndexDesc, ''));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5634,15 +5565,15 @@ begin
   begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     CheckBrowseMode;
-    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, NIL, NIL, PChar(IndexName), PChar(IndexTag), 0));
+    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, '', '', IndexName, IndexTag, 0));
   end
   else
   begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.DeleteIndex(DBHandle, NIL, NativeTableName, GetTableTypeName,
-        PChar(IndexName), PChar(IndexTag), 0));
+      Check(Engine, Engine.DeleteIndex(DBHandle, NIL, FTableName, '',
+        IndexName, IndexTag, 0));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5670,21 +5601,17 @@ procedure TPSQLTable.GetIndexParams(const IndexName: String;
   FieldsIndex: Boolean; var IndexedName, IndexTag: String);
 var
   IndexStr: TIndexName;
-  SIndexName: DBIMSG;
-  SIndexTag: DBIPATH;
 begin
-  SIndexName[0] := #0;
-  SIndexTag[0] := #0;
+  IndexStr := '';
   if IndexName <> '' then
   begin
     IndexDefs.Update;
     IndexStr := IndexName;
     if FieldsIndex then
        IndexStr := IndexDefs.FindIndexForFields(IndexName).Name;
-     TAnsiToNative(Engine, IndexStr, SIndexName, SizeOf(SIndexName) - 1);
   end;
-  IndexedName := SIndexName;
-  IndexTag := SIndexTag;
+  IndexedName := IndexStr;
+  IndexTag := '';
 end;
 
 procedure TPSQLTable.SetIndexDefs(Value: TIndexDefs);
@@ -5765,7 +5692,7 @@ var
     FCursor: HDBICur;
     IndexDesc: IDXDesc;
   begin
-    while not CheckOpen(Engine.OpenIndexList(DBHandle, NativeTableName, GetTableTypeName, FCursor)) do {Retry};
+    while not CheckOpen(Engine.OpenIndexList(DBHandle, FTableName, '', FCursor)) do {Retry};
     try
         while Engine.GetNextRecord(FCursor, dbiNoLock, @IndexDesc, NIL) = 0 do
           if IndexDesc.bMaintained then
@@ -5806,7 +5733,7 @@ begin
   if Result or (TableName = '') then  Exit;
   SetDBFlag(dbfTable, TRUE);
   try
-    E := Engine.TableExists(DBHandle, NativeTableName);
+    E := Engine.TableExists(DBHandle, TableName);
     Result := (E = DBIERR_NONE);
   finally
     SetDBFlag(dbfTable, FALSE);
@@ -5995,7 +5922,7 @@ begin
       begin
         Check(Engine, Engine.CloneCursor(Handle, True, False, FLookupHandle));
         GetIndexParams(KeyIndexName, FieldsIndex, IndexName, IndexTag);
-        Check(Engine, Engine.SwitchToIndex(FLookupHandle, PChar(IndexName), PChar(IndexTag), 0, FALSE));
+        Check(Engine, Engine.SwitchToIndex(FLookupHandle, IndexName, IndexTag, 0, FALSE));
       end;
       FLookupKeyFields := KeyFields;
       FLookupCaseIns := CaseInsensitive;
@@ -6112,7 +6039,7 @@ procedure TPSQLTable.CreateTable;
 var
   IndexDescs: TIndexDescList;
   TableDesc: CRTblDesc;
-  FieldDescs: TFieldDescList;
+  FieldDescs: TFLDDescList;
   ValChecks: TValCheckList;
   LvlFldDesc: FLDDesc;
   Level: DBINAME;
@@ -6122,13 +6049,15 @@ var
     FillChar(TableDesc, SizeOf(TableDesc), 0);
     with TableDesc do
     begin
-      TAnsiToNative(Engine,TableName,szTblName, SizeOf(szTblName) - 1);
+      //TAnsiToNative(Engine,TableName,szTblName, SizeOf(szTblName) - 1);
+      szTblName := TableName;
       if FTableLevel > 0 then
       begin
         iOptParams := 1;
         StrCopy(@Level, PChar(IntToStr(FTableLevel)));
         pOptData := @Level;
-        StrCopy(LvlFldDesc.szName, 'LEVEL');
+        LvlFldDesc.szName := 'LEVEL';
+        //StrCopy(LvlFldDesc.szName, 'LEVEL');
         LvlFldDesc.iLen := StrLen(Level) + 1;
         LvlFldDesc.iOffset := 0;
         pfldOptParams :=  @LvlFldDesc;
@@ -6139,7 +6068,7 @@ var
   procedure InitFieldDescriptors;
   var
     I: Integer;
-    TempFieldDescs: TFieldDescList;
+    TempFieldDescs: TFLDDescList;
   begin
     with TableDesc do
     begin
@@ -6209,14 +6138,14 @@ begin
   if Active then
   begin
     CheckBrowseMode;
-    Check(Engine, Engine.EmptyTable(DBHandle, Handle, NIL, NIL));
+    Check(Engine, Engine.EmptyTable(DBHandle, Handle, '', ''));
     ClearBuffers;
     DataEvent(deDataSetChange, 0);
   end else
   begin
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.EmptyTable(DBHandle, NIL, NativeTableName, GetTableTypeName));
+      Check(Engine, Engine.EmptyTable(DBHandle, NIL, FTableName, ''));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -6236,7 +6165,8 @@ procedure TPSQLTable.EncodeFieldDesc(var FieldDesc: FLDDesc;
 begin
   with FieldDesc do
   begin
-    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+    //TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
+    szName := Name;
     iFldType := FldTypeMap[DataType];
     iSubType := FldSubTypeMap[DataType];
     case DataType of
@@ -6265,11 +6195,6 @@ end;
 function TPSQLTable.GetCanModify: Boolean;
 begin
   Result := Inherited GetCanModify and not ReadOnly;
-end;
-
-function TPSQLTable.GetTableTypeName: PChar;
-begin
-  Result := NIL;
 end;
 
 function TPSQLTable.GetTableLevel: Integer;
@@ -6306,11 +6231,9 @@ begin
   Result := ttDefault;
 end;
 
-function TPSQLTable.NativeTableName: PChar;
+function TPSQLTable.NativeTableName: PAnsiChar;
 begin
- //attention, cast type. Need to getmem in other cases
- //pasha_golub 23.12.04
-  Result := PChar(FTableName);
+  Result := PAnsiChar(AnsiString(FTableName));
 end;
 
 procedure TPSQLTable.SetExclusive(Value: Boolean);
@@ -6345,7 +6268,6 @@ begin
    Result := FTableName;
 end;
 
-{$IFNDEF DELPHI_4}
 { TTable.IProviderSupport }
 function TPSQLTable.PSGetDefaultOrder: TIndexDef;
 
@@ -6470,7 +6392,6 @@ begin
     if not IndexFound then Result := '';
   end;
 end;
-{$ENDIF}
 
 ///////////////////////////////////////////////////////////////////////////////
 //                         TPSQLBlobStream                                  //
@@ -6492,7 +6413,7 @@ begin
   if not FField.Modified then
   begin
     if Mode = bmRead then
-     begin
+    begin
       FCached := FDataSet.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
                  (FField.IsNull or (FDataSet.GetBlobData(FField, FBuffer) <> {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF}));
       OpenMode := dbiReadOnly;
@@ -6503,10 +6424,10 @@ begin
       if FField.ReadOnly then DatabaseErrorFmt(SFieldReadOnly, [FField.DisplayName], FDataSet);
       if not (FDataSet.State in [dsEdit, dsInsert]) then DatabaseError(SNotEditing, FDataSet);
       OpenMode := dbiReadWrite;
-     end;
+    end;
 
     if not FCached then
-     begin
+    begin
       if Mode = bmRead then
        begin
         if FDataSet.State = dsBrowse then
@@ -6522,7 +6443,7 @@ begin
        end;
 
       Check(Engine, Engine.OpenBlob(FDataSet.Handle, FBuffer, FFieldNo, OpenMode));
-     end;
+    end;
 
   end;
 
@@ -6581,8 +6502,8 @@ begin
       case Status of
         DBIERR_NONE, DBIERR_ENDOFBLOB:
           begin
-            if FField.Transliterate then
-              TNativeToAnsiBuf(Engine, @Buffer, @Buffer, Result);
+            {if FField.Transliterate then
+              TNativeToAnsiBuf(Engine, @Buffer, @Buffer, Result);}
             if FDataset.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
               (FMode = bmRead) and not FField.Modified and (FPosition = FCacheSize) then
             begin
@@ -6621,8 +6542,8 @@ begin
     begin
       GetMem(Temp, Count+1);
       try
-        TAnsiToNativeBuf(Engine, @Buffer, Temp, Count);
-        Check(Engine, Engine.PutBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, Temp));
+        //TAnsiToNativeBuf(Engine, @Buffer, Temp, Count);
+        Check(Engine, Engine.PutBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer));
       finally
         FreeMem(Temp, Count+1);
       end;
@@ -6631,7 +6552,7 @@ begin
     Inc(FPosition, Count);
     Result := Count;
     FModified := TRUE;
-    FDataSet.SetBlobData(FField, FBuffer, '');
+    FDataSet.SetBlobData(FField, FBuffer, {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF});
   end;
 end;
 
@@ -6860,9 +6781,9 @@ begin
   end;
   if not Assigned(FDatabase) then DatabaseError('Property Database not set!');
   if not FDatabase.Connected then FDatabase.Open;
-  If FHandle = nil then FHandle := CreateHandle;
+  if not Assigned(FHandle) then FHandle := CreateHandle;
   for I := 0 to FListenList.Count-1 do
-      Check(Engine,Engine.ListenTo(FHandle,PChar(FListenList[I])));
+      Check(Engine,Engine.ListenTo(FHandle, FListenList[I]));
   FActive := True;
   FTimer.Enabled := True;
 end;
@@ -6875,13 +6796,13 @@ begin
   FActive := False;
   FTimer.Enabled := False;
   for I := 0 to FListenList.Count-1 do
-      Check(Engine,Engine.UnlistenTo(FHandle,PChar(FListenList[I])));
+      Check(Engine,Engine.UnlistenTo(FHandle, FListenList[I]));
 end;
 
 procedure TPSQLNotify.ListenTo(Event: string);
 begin
   CheckActive;
-  Check(Engine,Engine.ListenTo(FHandle,PChar(Trim(Event))));
+  Check(Engine,Engine.ListenTo(FHandle, Trim(Event)));
   with TStringList(FListenList) do
   begin
     OnChange := nil;
@@ -6895,13 +6816,13 @@ end;
 procedure TPSQLNotify.SendNotify(Event: string);
 begin
   CheckActive;
-  Check(Engine,Engine.DoNotify(FHandle,PChar(Event)));
+  Check(Engine,Engine.DoNotify(FHandle, Event));
 end;
 
 procedure TPSQLNotify.UnlistenTo(Event: string);
 begin
   CheckActive;
-  Check(Engine,Engine.UnlistenTo(FHandle,PChar(Trim(Event))));
+  Check(Engine,Engine.UnlistenTo(FHandle, Trim(Event)));
   with TStringList(FListenList) do
   begin
     OnChange := nil;
@@ -6920,10 +6841,9 @@ begin
   CheckActive;
   while True do
   begin
-    Check(Engine,Engine.CheckEvents(FHandle,Pid,Notify));
+    Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify));
     if Notify = '' then Break;
-//    if FListenList.IndexOf(Notify) >= 0 then
-       if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
+    if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
   end;
 end;
 
@@ -7126,8 +7046,7 @@ end;
 procedure TPSQLStoredProc.RefreshParams;
 var
   Desc: ^SPParamDesc;
-  Buffer: DBISPNAME;
-  ParamName: string;
+  ParamName: String;
   ParamDataType: TFieldType;
   List : TList;
   i:integer;
@@ -7135,15 +7054,14 @@ begin
    if not FNeedRefreshParams then Exit;
    List := TList.Create;
    try
-    TAnsiToNative(Engine, StoredProcName, Buffer, SizeOf(Buffer)-1);
     FParams.Clear;
-    if Engine.OpenStoredProcParams(DBHandle, Buffer, FOverload, List) = 0 then
+    if Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List) = 0 then
       for i:=0 to List.Count-1 do
        begin
         Desc := List[i];
         with Desc^ do
         begin
-          TNativeToAnsi(Engine, szName, ParamName);
+          ParamName := szName;
           if (TParamType(eParamType) = ptResult) and (ParamName = '') then
             ParamName := SResultName;
           if uFldType < MAXLOGFLDTYPES then ParamDataType := DataTypeMap[uFldType]
@@ -7159,7 +7077,7 @@ begin
           begin
             ParamType := TParamType(eParamType);
             DataType := ParamDataType;
-            Name := ParamName;
+            Name := string(ParamName);
           end;
         end;
        end;

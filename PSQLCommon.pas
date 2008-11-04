@@ -137,11 +137,11 @@ type
     function PutConstFMTBCD(const Value: Variant; Decimals: Integer): Integer;
 {$ENDIF}
 
-    function PutConstNode(DataType: TFieldType; Data: PChar;
+    function PutConstNode(DataType: TFieldType; Data: PAnsiChar;
       Size: Integer): Integer;
     function PutConstStr(const Value: string): Integer;
     function PutConstTime(const Value: Variant): Integer;
-    function PutData(Data: PChar; Size: Integer): Integer;
+    function PutData(Data: PAnsiChar; Size: Integer): Integer;
     function PutExprNode(Node: PExprNode; ParentOp: TCANOperator): Integer;
     function PutFieldNode(Field: TField; Node: PExprNode): Integer;
     function PutNode(NodeType: NodeClass; OpType: TCANOperator;
@@ -246,7 +246,7 @@ function IsMultiTableQuery(const SQL: string): Boolean;
 
 implementation
 
-uses SysUtils, DBConsts{$IFDEF DELPHI_6}, FMTBcd{$ENDIF};
+uses SysUtils, DBConsts{$IFDEF DELPHI_6}, FMTBcd{$ENDIF}, PSQLTypes;
 
 { SQL Parser }
 
@@ -356,7 +356,7 @@ begin
         StartToken;
         Literal := p^;
         Mark := p;
-        repeat Inc(p) until (p^ in [Literal,#0]);
+        repeat Inc(p) until CharInSet(p^, [Literal,#0]);
         if p^ = #0 then
         begin
           p := Mark;
@@ -379,13 +379,13 @@ begin
       begin
         StartToken;
         Inc(p);
-        if p^ in ['/','*'] then
+        if CharInSet(p^, ['/','*']) then
         begin
           if p^ = '*' then
           begin
             repeat Inc(p) until (p = #0) or ((p^ = '*') and (p[1] = '/'));
           end else
-            while not (p^ in [#0, #10, #13]) do Inc(p);
+            while not CharInSet(p^, [#0, #10, #13]) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stComment;
           Exit;
@@ -399,7 +399,7 @@ begin
           Result := GetSQLToken(Token);
           Exit;
         end else
-          while (p^ in [' ', #10, #13, ',', '(']) do Inc(p);
+          while CharInSet(p^, [' ', #10, #13, ',', '(']) do Inc(p);
       end;
       '.':
       begin
@@ -419,7 +419,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['=','<','>'] do Inc(p);
+          while CharInSet(p^, ['=','<','>']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stPredicate;
           Exit;
@@ -431,7 +431,7 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
-          while p^ in ['0'..'9','.'] do Inc(p);
+          while CharInSet(p^, ['0'..'9','.']) do Inc(p);
           SetString(Token, TokenStart, p - TokenStart);
           Result := stNumber;
           Exit;
@@ -701,7 +701,7 @@ var
     Result := '';
     C := Current;
     I := Ident;
-    while C^ in ['.',' ',#0] do
+    while CharInSet(C^, ['.',' ',#0]) do
       if C^ = #0 then Exit else Inc(C);
     Terminator := '.';
     if C^ = '"' then
@@ -709,9 +709,9 @@ var
       Terminator := '"';
       Inc(C);
     end;
-    while not (C^ in [Terminator, #0]) do
+    while not CharInSet(C^, [Terminator, #0]) do
     begin
-      if C^ in LeadBytes then
+      if CharInSet(C^, LeadBytes) then
       begin
         I^ := C^;
         Inc(C);
@@ -720,7 +720,7 @@ var
       else if C^ = '\' then
       begin
         Inc(C);
-        if C^ in LeadBytes then
+        if CharInSet(C^, LeadBytes) then
         begin
           I^ := C^;
           Inc(C);
@@ -983,7 +983,7 @@ begin
   Result := PutConstNode(DataType, @I, Size);
 end;
 
-function TFilterExpr.PutConstNode(DataType: TFieldType; Data: PChar;
+function TFilterExpr.PutConstNode(DataType: TFieldType; Data: PAnsiChar;
   Size: Integer): Integer;
 begin
   Result := PutNode(nodeCONST, coCONST2, 3);
@@ -995,12 +995,12 @@ end;
 function TFilterExpr.PutConstStr(const Value: string): Integer;
 var
   Str: string;
-  Buffer: array[0..255] of Char;
+  Buffer: array[0..255] of AnsiChar;
 begin
   if Length(Value) >= SizeOf(Buffer) then
     Str := Copy(Value, 1, SizeOf(Buffer) - 1) else
     Str := Value;
-  FDataSet.Translate(PChar(Str), Buffer, True);
+  FDataSet.Translate(PAnsiChar(AnsiString(Str)), Buffer, True);
   Result := PutConstNode(ftString, Buffer, Length(Str) + 1);
 end;
 
@@ -1016,7 +1016,7 @@ begin
   Result := PutConstNode(ftTime, @TimeStamp.Time, 4);
 end;
 
-function TFilterExpr.PutData(Data: PChar; Size: Integer): Integer;
+function TFilterExpr.PutData(Data: PAnsiChar; Size: Integer): Integer;
 begin
   Move(Data^, GetExprData(FExprBufSize, Size)^, Size);
   Result := FExprDataSize;
@@ -1204,7 +1204,7 @@ begin
     enFunc:
       begin
         Result := PutNode(nodeFUNC, coFUNC2, 2);
-        SetNodeOp(Result, 0,  PutData(PChar(string(Node^.FData)),
+        SetNodeOp(Result, 0,  PutData(PAnsiChar(ansistring(Node^.FData)),
           Length(string(Node^.FData)) + 1));
         if Node^.FArgs <> nil then
         begin
@@ -1237,12 +1237,12 @@ end;
 
 function TFilterExpr.PutFieldNode(Field: TField; Node: PExprNode): Integer;
 var
-  Buffer: array[0..255] of Char;
+  Buffer: array[0..255] of ansiChar;
 begin
   if poFieldNameGiven in FParserOptions then
-    FDataSet.Translate(PChar(Field.FieldName), Buffer, True)
+    FDataSet.Translate(PAnsiChar(Ansistring(Field.FieldName)), Buffer, True)
   else
-    FDataSet.Translate(PChar(string(Node^.FData)), Buffer, True);
+    FDataSet.Translate(PAnsiChar(Ansistring(Node^.FData)), Buffer, True);
   Result := PutNode(nodeFIELD, coFIELD2, 2);
   SetNodeOp(Result, 0, Field.FieldNo);
   SetNodeOp(Result, 1, PutData(Buffer, StrLen(Buffer) + 1));
@@ -1384,7 +1384,7 @@ begin
     if AnsiStrScan(P, '''') <> Nil then     // found another '
     begin
       PTemp := P;  // don't advance P
-      while PTemp[0] in [ ' ', ')' ] do Inc(PTemp);
+      while CharInSet(PTemp[0], [ ' ', ')' ]) do Inc(PTemp);
       if NextSQLToken(PTemp, FName, stValue) in [stFieldName, stUnknown] then
       begin   // 'John's Horse' case: not really end of literal
         Result := False;
@@ -1396,7 +1396,7 @@ end;
 
 procedure TExprParser.NextToken;
 type
-  ASet = Set of Char;
+  ASet = Set of AnsiChar;
 var
   P, TokenStart: PChar;
   L: Integer;
@@ -1411,9 +1411,9 @@ var
   begin
     while TRUE do
     begin
-      if P^ in LeadBytes then
+      if CharInSet(P^, LeadBytes) then
         Inc(P, 2)
-      else if (P^ in TheSet) or IsKatakana(Byte(P^)) then
+      else if CharInSet(P^, TheSet) or IsKatakana(Byte(P^)) then
         Inc(P)
       else
         Exit;
@@ -1443,7 +1443,7 @@ begin
         if not SysLocale.FarEast then
         begin
           Inc(P);
-          while P^ in ['A'..'Z', 'a'..'z', '0'..'9', '_', '.', '[', ']'] do Inc(P);
+          while CharInSet(P^, ['A'..'Z', 'a'..'z', '0'..'9', '_', '.', '[', ']']) do Inc(P);
         end
         else
           Skip(['A'..'Z', 'a'..'z', '0'..'9', '_', '.', '[', ']']);
@@ -1516,7 +1516,7 @@ begin
           begin
             TokenStart := P;
             Inc(P);
-            while (P^ in ['0'..'9', FDecimalSeparator, 'e', 'E', '+', '-']) do
+            while CharInSet(P^, ['0'..'9', FDecimalSeparator, 'e', 'E', '+', '-']) do
               Inc(P);
             if ((P-1)^ = ',') and (FDecimalSeparator = ',') and (P^ = ' ') then
               Dec(P);
