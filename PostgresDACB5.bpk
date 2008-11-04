@@ -4,9 +4,8 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="PostgresDACB5.bpl"/>
-    <OBJFILES value="psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj PSQLConnFrm.obj  
-      PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj PSQLupdsqled.obj 
-      psqlBatch.obj PSQLMacroQuery.obj PSQLMigrator.obj PSQLMonitor.obj 
+    <OBJFILES value="psqlAboutFrm.obj PSQLAccess.obj PSQLDbTables.obj PSQLTypes.obj 
+      psqlBatch.obj PSQLMacroQuery.obj PSQLMonitor.obj 
       PSQLDump.obj PSQLTools.obj PSQLStoredProcFrm.obj 
       PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj PSQLDirectQuery.obj 
       PostgresDACB5.obj"/>
@@ -14,12 +13,11 @@
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
     <DEFFILE value=""/>
-    <RESDEPEN value="$(RESFILES) psqlAboutFrm.dfm PSQLConnFrm.dfm PSQLfldlinks.dfm 
-      PSQLupdsqled.dfm PSQLStoredProcFrm.dfm"/>
+    <RESDEPEN value="$(RESFILES) psqlAboutFrm.dfm"/>
     <LIBFILES value=""/>
     <LIBRARIES value="vclx50.lib"/>
-    <SPARELIBS value="Vcl50.lib Vcldb50.lib Vclbde50.lib dcldb50.lib vclx50.lib"/>
-    <PACKAGES value="vcl50.bpi dcldb50.bpi Vcldb50.bpi Vclbde50.bpi"/>
+    <SPARELIBS value="Vcl50.lib Vcldb50.lib Vclbde50.lib vclx50.lib"/>
+    <PACKAGES value="vcl50.bpi Vcldb50.bpi Vclbde50.bpi"/>
     <PATHCPP value=".;"/>
     <PATHPAS value=".;"/>
     <PATHRC value=".;"/>
