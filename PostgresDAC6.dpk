@@ -23,35 +23,29 @@ package PostgresDAC6;
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
+{$RUNONLY}
 {$IMPLICITBUILD OFF}
 
 requires
   vcl,
   vcldb,
-  dcldb,
   bdertl;
 
 contains
   PSQLTypes in 'PSQLTypes.pas',
   PSQLAccess in 'PSQLAccess.pas',
-  PSQLCOMP in 'PSQLCOMP.pas',
   PSQLDbTables in 'PSQLDbTables.pas',
-  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},
-  PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
-  PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
-  PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
-  psqlBatch in 'psqlBatch.pas',
+  psqlBatch in 'PSQLBatch.pas',
   PSQLMacroQuery in 'PSQLMacroQuery.pas',
-  PSQLMigrator in 'PSQLMigrator.pas',
   PSQLMonitor in 'PSQLMonitor.pas',
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
-  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
   PSQLMetaData in 'PSQLMetaData.pas',
   PSQLConsts in 'PSQLConsts.pas',
   PSQLCommon in 'PSQLCommon.pas',
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
-  PSQLExtMask in 'PSQLExtMask.pas';
+  PSQLExtMask in 'PSQLExtMask.pas',
+  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp};
 
 end.
