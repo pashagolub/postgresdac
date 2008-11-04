@@ -5,7 +5,7 @@
     <VERSION value="BCB.06.00"/>
     <PROJECT value="PostgresDACB6.bpl"/>
     <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj 
-      PSQLConnFrm.obj PSQLCP.obj PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj 
+      PSQLConnFrm.obj PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj 
       PSQLupdsqled.obj psqlBatch.obj PSQLMacroQuery.obj PSQLMigrator.obj 
       PSQLMonitor.obj PSQLTools.obj PSQLDump.obj PSQLStoredProcFrm.obj 
       PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj PSQLDirectQuery.obj"/>
@@ -66,7 +66,6 @@
       <FILE FILENAME="PSQLAccess.pas" FORMNAME="" UNITNAME="PSQLAccess" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLCOMP.pas" FORMNAME="" UNITNAME="PSQLCOMP" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLConnFrm.pas" FORMNAME="ConnForm" UNITNAME="PSQLConnFrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLCP.pas" FORMNAME="" UNITNAME="PSQLCP" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLDbTables.pas" FORMNAME="" UNITNAME="PSQLDbTables" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLfldlinks.pas" FORMNAME="LinkFields" UNITNAME="PSQLfldlinks" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLTypes.pas" FORMNAME="" UNITNAME="PSQLTypes" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

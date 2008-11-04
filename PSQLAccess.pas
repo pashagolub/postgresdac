@@ -5,8 +5,7 @@ unit PSQLAccess;
 Interface
 
 Uses Classes, SysUtils, Windows, Db, PSQLTypes,Math,
-     {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
-     PSQLCP
+     {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF}
      {$IFDEF DELPHI_6},Variants{$ENDIF},
      ActiveX;
 Type

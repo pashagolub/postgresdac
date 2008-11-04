@@ -4,7 +4,7 @@
   <MACROS>
     <VERSION value="BCB.05.03"/>
     <PROJECT value="PostgresDACB5.bpl"/>
-    <OBJFILES value="psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj PSQLConnFrm.obj PSQLCP.obj 
+    <OBJFILES value="psqlAboutFrm.obj PSQLAccess.obj PSQLCOMP.obj PSQLConnFrm.obj  
       PSQLDbTables.obj PSQLfldlinks.obj PSQLTypes.obj PSQLupdsqled.obj 
       psqlBatch.obj PSQLMacroQuery.obj PSQLMigrator.obj PSQLMonitor.obj 
       PSQLDump.obj PSQLTools.obj PSQLStoredProcFrm.obj 

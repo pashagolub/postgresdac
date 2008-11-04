@@ -34,7 +34,6 @@ package PostgresDAC9;
 {%File 'psqlBatch.txvpck'}
 {%File 'PSQLfldlinks.txvpck'}
 {%File 'PSQLConnFrm.txvpck'}
-{%File 'PSQLCP.txvpck'}
 {%File 'PSQLCOMP.txvpck'}
 {%File 'PSQLDbTables.txvpck'}
 {%File 'psqlAboutFrm.txvpck'}
@@ -57,7 +56,6 @@ contains
   PSQLDbTables in 'PSQLDbTables.pas',
   psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
-  PSQLCP in 'PSQLCP.pas',
   PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
   PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
   psqlBatch in 'psqlBatch.pas',

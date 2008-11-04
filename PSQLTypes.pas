@@ -3,7 +3,7 @@ unit PSQLTypes;
 {$Z+,T-} //taken from MySQLDAC 
 interface
 
-uses Windows, Classes, SysUtils,Math,PSQLCP;
+uses Windows, Classes, SysUtils, Math;
 
 //============================================================================//
 //                            Result Error Field Codes                        //

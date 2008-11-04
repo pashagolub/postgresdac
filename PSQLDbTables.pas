@@ -9,7 +9,7 @@ Interface
 Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
       {$IFDEF DELPHI_6}Variants,{$ENDIF}StdVCL, PSQLAccess, PSQLTypes,
-      PSQLCP, ExtCtrls;
+      ExtCtrls;
 
 const
     VERSION : string = '2.5.0-Dev';
