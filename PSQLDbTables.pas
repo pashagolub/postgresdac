@@ -6843,8 +6843,7 @@ begin
   begin
     Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify));
     if Notify = '' then Break;
-//    if FListenList.IndexOf(Notify) >= 0 then
-       if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
+    if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
   end;
 end;
 
