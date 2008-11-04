@@ -330,9 +330,9 @@ Type
       function SetToCursor(hDest, hSrc : hDBICur) : DBIResult;
       function OpenPGNotify(hDb: hDBIDb; var hNotify: hDBIObj): DBIResult;
       Function ClosePGNotify(var hNotify : hDBIObj) : DBIResult;
-      function ListenTo(hNotify : hDBIObj; pszEvent: PChar) : DBIResult;
-      function UnlistenTo(hNotify : hDBIObj; pszEvent: PChar) : DBIResult;
-      function DoNotify(hNotify : hDBIObj; pszEvent: PChar) : DBIResult;
+      function ListenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
+      function UnlistenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
+      function DoNotify(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function CheckEvents(hNotify : hDBIObj; Var Pid : Integer; Var pszOutPut : String)  : DBIResult;
       function GetBackendPID(hDb: hDBIDb; var PID: Integer): DBIResult;
       function GetServerVersion(hDb: hDBIDb; var ServerVersion: string): DBIResult;
@@ -6300,30 +6300,30 @@ begin
   end;
 end;
 
-function TPSQLEngine.ListenTo(hNotify : hDBIObj; pszEvent: PChar) : DBIResult;
+function TPSQLEngine.ListenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
 begin
    try
-     TNativePGNotify(hNotify).ListenTo(StrPas(pszEvent));
+     TNativePGNotify(hNotify).ListenTo(pszEvent);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
    end;
 end;
 
-function TPSQLEngine.UnlistenTo(hNotify : hDBIObj; pszEvent: PChar) : DBIResult;
+function TPSQLEngine.UnlistenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
 begin
    try
-     TNativePGNotify(hNotify).UnlistenTo(StrPas(pszEvent));
+     TNativePGNotify(hNotify).UnlistenTo(pszEvent);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
    end;
 end;
 
-function TPSQLEngine.DoNotify(hNotify : hDBIObj; pszEvent: PChar) : DBIResult;
+function TPSQLEngine.DoNotify(hNotify : hDBIObj; pszEvent: string) : DBIResult;
 begin
    try
-     TNativePGNotify(hNotify).DoNotify(StrPas(pszEvent));
+     TNativePGNotify(hNotify).DoNotify(pszEvent);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
@@ -6400,12 +6400,11 @@ function TNativePGNotify.CheckEvents(var PID : Integer): string;
 begin
   Result := '';
   if not Assigned(FConnect) or not (FConnect.FLoggin) then Exit;
-  //if Assigned(FHandle) then PQfreemem(FHandle); //04.10.2007
   PQconsumeInput(FConnect.Handle);
   FHandle := PQnotifies(FConnect.Handle);
   if Assigned(FHandle) then
   begin
-    Result := StrPas(FHandle^.relname);
+    Result := FConnect.RawToString(FHandle^.relname);
     PID := FHandle^.be_pid;
     PQfreemem(FHandle);
   end;

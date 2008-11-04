@@ -6781,9 +6781,9 @@ begin
   end;
   if not Assigned(FDatabase) then DatabaseError('Property Database not set!');
   if not FDatabase.Connected then FDatabase.Open;
-  If FHandle = nil then FHandle := CreateHandle;
+  if not Assigned(FHandle) then FHandle := CreateHandle;
   for I := 0 to FListenList.Count-1 do
-      Check(Engine,Engine.ListenTo(FHandle,PChar(FListenList[I])));
+      Check(Engine,Engine.ListenTo(FHandle, FListenList[I]));
   FActive := True;
   FTimer.Enabled := True;
 end;
@@ -6796,13 +6796,13 @@ begin
   FActive := False;
   FTimer.Enabled := False;
   for I := 0 to FListenList.Count-1 do
-      Check(Engine,Engine.UnlistenTo(FHandle,PChar(FListenList[I])));
+      Check(Engine,Engine.UnlistenTo(FHandle, FListenList[I]));
 end;
 
 procedure TPSQLNotify.ListenTo(Event: string);
 begin
   CheckActive;
-  Check(Engine,Engine.ListenTo(FHandle,PChar(Trim(Event))));
+  Check(Engine,Engine.ListenTo(FHandle, Trim(Event)));
   with TStringList(FListenList) do
   begin
     OnChange := nil;
@@ -6816,13 +6816,13 @@ end;
 procedure TPSQLNotify.SendNotify(Event: string);
 begin
   CheckActive;
-  Check(Engine,Engine.DoNotify(FHandle,PChar(Event)));
+  Check(Engine,Engine.DoNotify(FHandle, Event));
 end;
 
 procedure TPSQLNotify.UnlistenTo(Event: string);
 begin
   CheckActive;
-  Check(Engine,Engine.UnlistenTo(FHandle,PChar(Trim(Event))));
+  Check(Engine,Engine.UnlistenTo(FHandle, Trim(Event)));
   with TStringList(FListenList) do
   begin
     OnChange := nil;
@@ -6841,7 +6841,7 @@ begin
   CheckActive;
   while True do
   begin
-    Check(Engine,Engine.CheckEvents(FHandle,Pid,Notify));
+    Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify));
     if Notify = '' then Break;
 //    if FListenList.IndexOf(Notify) >= 0 then
        if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);

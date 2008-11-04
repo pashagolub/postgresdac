@@ -312,10 +312,10 @@ type
     be_pid:  Integer;			       // process id of backend
   end;}
   PGnotify = packed record
-    relname: PChar; // name of relation containing data
+    relname: PAnsiChar; // name of relation containing data
     be_pid:  Integer;	   // process id of backend
-    extra:   PChar;        // extra notification
-    next:    dword;        // application should never use this
+    extra:   PAnsiChar;        // extra notification
+    next:    ^PGnotify;        // application should never use this
   end;
   PPGnotify = ^PGnotify;
 
