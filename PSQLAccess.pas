@@ -6215,7 +6215,7 @@ begin
          Field.Buffer := pRecBuffer;
          if (Field.FieldType = fldBLOB) or
             (Field.Description.bCalcField) or
-            (Field.FieldNull) or
+            (Field.FieldNull and (Field.FieldSubType <> fldstAUTOINC)) or
             (Field.NativeType = FIELD_TYPE_TIMESTAMP) then Continue;
          SetLength(Flds,K);
          SetLength(SFlds,K);
