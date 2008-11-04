@@ -1048,15 +1048,17 @@ type
 
 procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
-procedure Dac4PSQLShowAbout(aComponentName : string);
 
 Var
    DBList : TList;
 
 implementation
 
-uses  ActiveX, Forms, DBPWDlg, DBLogDlg, DBConsts, BDEConst, PsqlAboutFrm
-{$IFDEF DELPHI_10}, DBClient{$ENDIF}, PSQLDirectQuery;
+uses  ActiveX, Forms, DBPWDlg, DBLogDlg, DBConsts
+{$IFDEF DELPHI_10}, DBClient{$ENDIF},
+BDEConst
+{$IFDEF TRIAL}, PSQLAboutFrm{$ENDIF},
+PSQLDirectQuery;
 
 {$R DB.DCR}
 
@@ -1069,46 +1071,6 @@ var
   BDEInitProcs: TList;
 
 
-
-procedure Dac4PSQLShowAbout(aComponentName : string);
-begin
-  with TPSQLAboutComp.Create(Application) do
-  try
-    Caption := 'Thank you for trying DAC for MySQL';
-    VersionLabel.Caption := 'v.' + PSQLDBTables.VERSION;
-    Label1.Caption := aComponentName;
-
-    {$IFDEF MICROOLAP_BUSINESS_LICENSE}
-    RegLabel.Caption := 'Business License.';
-    {$ELSE}
-      {$IFDEF MICROOLAP_COMMERCIAL_LICENSE}
-      RegLabel.Caption := 'Commercial License.';
-      {$ELSE}
-        {$IFDEF MICROOLAP_EDU_CLASSROOM_LICENSE}
-        RegLabel.Caption := 'Educational classroom License.';
-        {$ELSE}
-          {$IFDEF MICROOLAP_EDU_INSTITUTION_LICENSE}
-          RegLabel.Caption := 'Educational institution License.';
-          {$ELSE}
-            {$IFDEF MICROOLAP_PERSONAL_LICENSE}
-            RegLabel.Caption := 'Personal License.';
-            {$ELSE}
-              {$IFDEF TRIAL}
-              RegLabel.Caption := 'Trial License.';
-              {$ELSE}
-              RegLabel.Caption := 'Edited license string => Trial license';
-              {$ENDIF}
-            {$ENDIF}
-          {$ENDIF}
-        {$ENDIF}
-      {$ENDIF}
-    {$ENDIF}
-
-    ShowModal();
-  finally
-    Free();
-  end;
-end;
 
 //NoticeProcessor callback function
 procedure NoticeProcessor(arg: Pointer; mes: PChar);
@@ -1135,65 +1097,6 @@ type
       constructor Create(AQuery: TPSQLQuery);
   end;
 
-(*{ Utility routines }
-procedure TAnsiToNativeBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
-var
-  DataLoss: LongBool;
-begin
-  if Len > 0 then
-  begin
-     EnterCriticalSection(CSAnsiToNative);
-     try
-       Engine.AnsiToNative(Dest, Source, Len, DataLoss);
-     finally
-       LeaveCriticalSection(CSAnsiToNative);
-     end;
-  end;
-end;
-
-function TAnsiToNative(Engine : TPSQLEngine; const AnsiStr: String; NativeStr: PAnsiChar; MaxLen: Integer): PAnsiChar;
-var
-  Len: Integer;
-begin
-  Len := Length(AnsiStr);
-
-  if Len > MaxLen then
-    Len := MaxLen;
-
-  NativeStr[Len] := #0;
-
-  if Len > 0 then
-    TAnsiToNativeBuf(Engine, Pointer(AnsiStr), NativeStr, Len);
-
-  Result := NativeStr;
-end;
-
-
-procedure TNativeToAnsiBuf(Engine : TPSQLEngine; Source, Dest: PAnsiChar; Len: Integer);
-var
-  DataLoss: LongBool;
-begin
-  if Len > 0 then
-  begin
-     EnterCriticalSection(CSNativeToAnsi);
-     try
-       Engine.NativeToAnsi(Dest, Source, Len, DataLoss);
-     finally
-       LeaveCriticalSection(CSNativeToAnsi);
-     end;
-  end;
-end;
-
-procedure TNativeToAnsi(Engine : TPSQLEngine; NativeStr: PAnsiChar; var AnsiStr: AnsiString);
-var
-  Len : Integer;
-begin
-  Len := StrLen(NativeStr);
-  SetString(AnsiStr, nil, Len);
-  if Len > 0 then
-    TNativeToAnsiBuf(Engine, NativeStr, Pointer(AnsiStr), Len);
-end;           *)
-
 procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
 begin
   Raise EPSQLDatabaseError.Create(Engine, ErrorCode);
@@ -1203,100 +1106,6 @@ procedure Check(Engine : TPSQLEngine; Status: Word);
 begin
   if Status <> 0 then TDbiError(Engine, Status);
 end;
-
-{ Parameter binding routines }
-
-(* function GetParamDataSize(Param: TParam): Integer;
-begin
-  with Param do
-    if ((DataType in [ftString, ftFixedChar]) and (Length(VarToStr(Value)) > 255)) or
-       (DataType in [ftBlob..ftTypedBinary]) then
-      Result := SizeOf(BlobParamDesc)
-    else
-      Result := GetDataSize;
-end;
-
-{$IFDEF DELPHI_12}
-procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
-begin
-  with Param do
-    if DataType in [ftString, ftFixedChar, ftMemo]  then
-    begin
-
-      NativeStr := VarToStr(Value);
-      if (Length(NativeStr) > 255) or (DataType = ftMemo) then
-      begin
-        with BlobParamDesc(Buffer^) do
-        begin
-          if DrvLocale <> nil then
-            TAnsiToNativeBuf(DrvLocale, PAnsiChar(AnsiString(NativeStr)), PAnsiChar(AnsiString(NativeStr)), Length(NativeStr));
-          pBlobBuffer := PAnsiChar(AnsiString(NativeStr));
-          ulBlobLen := StrLen(PAnsiChar(pBlobBuffer));
-        end;
-      end else
-      begin
-        if (DrvLocale <> nil) then
-          TAnsiToNativeBuf(DrvLocale, PAnsiChar(AnsiString(NativeStr)), Buffer, Length(NativeStr) + 1) else
-          GetData(Buffer);
-      end;
-    end
-    else if (DataType in [ftBlob..ftTypedBinary,ftOraBlob,ftOraClob]) then
-    begin
-      with BlobParamDesc(Buffer^) do
-      begin
-        NativeStr := VarToStr(Value);
-        ulBlobLen := Length(NativeStr);
-        pBlobBuffer := PAnsiChar(AnsiString(NativeStr));
-      end;
-    end else
-      GetData(Buffer);
-end;
-
-{$ELSE}
-
-procedure GetParamData(Param: TParam; Buffer: Pointer; const DrvLocale: TLocale);
-
-  function GetNativeStr: PChar;
-  begin
-    Param.NativeStr := VarToStr(Param.Value);
-    Result := PChar(Param.NativeStr);
-    if DrvLocale <> NIL then
-      TAnsiToNativeBuf(DrvLocale, Result, Result, StrLen(Result));
-  end;
-
-begin
-  with Param do
-    if DataType in [ftString, ftFixedChar, ftMemo]  then
-    begin
-      NativeStr := VarToStr(Value);
-      if (Length(NativeStr) > 255) or (DataType = ftMemo) then
-      begin
-        with BlobParamDesc(Buffer^) do
-        begin
-          if DrvLocale <> NIL then
-            TAnsiToNativeBuf(DrvLocale, PChar(NativeStr), PChar(NativeStr), Length(NativeStr));
-          pBlobBuffer := PChar(NativeStr);
-          ulBlobLen := StrLen(pBlobBuffer);
-        end;
-      end else
-      begin
-        if (DrvLocale <> NIL) then
-          TAnsiToNativeBuf(DrvLocale, PChar(NativeStr), Buffer, Length(NativeStr) + 1) else
-          GetData(Buffer);
-      end;
-    end
-    else if (DataType in [ftBlob..ftTypedBinary]) then
-    begin
-      with BlobParamDesc(Buffer^) do
-      begin
-        NativeStr := VarToStr(Value);
-        ulBlobLen := Length(NativeStr);
-        pBlobBuffer := PChar(NativeStr);
-      end;
-    end else
-      GetData(Buffer);
-end;
-{$ENDIF}    *)
 
 { Timer callback function }
 procedure FreeTimer(ForceKill : Boolean = FALSE);
@@ -1795,16 +1604,7 @@ begin
       if (SQLLibraryHandle = HINSTANCE_ERROR) then
         EPSQLDatabaseError.CreateFmt('Error Loading DLL %s', [PSQL_DLL]);
       {$IFDEF TRIAL}
-        with TPSQLAboutComp.Create(Application) do
-        try
-          Caption := 'Thank you for trying PSQLDAC';
-          VersionLabel.Caption := 'v. '+PSQLDBTables.VERSION;
-          Label1.Caption := Self.ClassName;
-          RegLabel.Caption := 'Trial version.';
-          ShowModal;
-        finally
-          Free;
-        end;
+      Dac4PSQLShowAbout(Self.ClassName);
       {$ENDIF}
       Check(Engine, Engine.OpenDatabase(ParamList, FHandle));
       Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));

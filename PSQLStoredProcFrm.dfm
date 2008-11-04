@@ -1,9 +1,9 @@
 object PSQLStoredProcProp: TPSQLStoredProcProp
   Left = 245
   Top = 145
+  Width = 525
+  Height = 295
   Caption = 'TPSQLStoredProc Editor...'
-  ClientHeight = 261
-  ClientWidth = 500
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -12,15 +12,12 @@ object PSQLStoredProcProp: TPSQLStoredProcProp
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
-  DesignSize = (
-    500
-    261)
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel
     Left = 0
     Top = 0
-    Width = 500
+    Width = 517
     Height = 25
     Align = alTop
     Alignment = taLeftJustify
@@ -57,7 +54,7 @@ object PSQLStoredProcProp: TPSQLStoredProcProp
   object ListView1: TListView
     Left = 0
     Top = 25
-    Width = 500
+    Width = 517
     Height = 192
     Align = alTop
     Columns = <

@@ -38,10 +38,53 @@ type
 var
   PSQLAboutComp: TPSQLAboutComp;
 
+procedure Dac4PSQLShowAbout(aComponentName : string);
+
 implementation
-uses ShellAPI;
+uses ShellAPI, PSQLDbTables;
 
 {$R *.DFM}
+
+
+procedure Dac4PSQLShowAbout(aComponentName : string);
+begin
+  with TPSQLAboutComp.Create(Application) do
+  try
+    Caption := 'Thank you for trying DAC for MySQL';
+    VersionLabel.Caption := 'v.' + PSQLDBTables.VERSION;
+    Label1.Caption := aComponentName;
+
+    {$IFDEF MICROOLAP_BUSINESS_LICENSE}
+    RegLabel.Caption := 'Business License.';
+    {$ELSE}
+      {$IFDEF MICROOLAP_COMMERCIAL_LICENSE}
+      RegLabel.Caption := 'Commercial License.';
+      {$ELSE}
+        {$IFDEF MICROOLAP_EDU_CLASSROOM_LICENSE}
+        RegLabel.Caption := 'Educational classroom License.';
+        {$ELSE}
+          {$IFDEF MICROOLAP_EDU_INSTITUTION_LICENSE}
+          RegLabel.Caption := 'Educational institution License.';
+          {$ELSE}
+            {$IFDEF MICROOLAP_PERSONAL_LICENSE}
+            RegLabel.Caption := 'Personal License.';
+            {$ELSE}
+              {$IFDEF TRIAL}
+              RegLabel.Caption := 'Trial License.';
+              {$ELSE}
+              RegLabel.Caption := 'Edited license string => Trial license';
+              {$ENDIF}
+            {$ENDIF}
+          {$ENDIF}
+        {$ENDIF}
+      {$ENDIF}
+    {$ENDIF}
+
+    ShowModal();
+  finally
+    Free();
+  end;
+end;
 
 procedure TPSQLAboutComp.FormCreate(Sender: TObject);
 begin
