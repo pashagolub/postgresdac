@@ -32,11 +32,9 @@ requires
   PostgresDAC6,
   vcl,
   dbrtl,
-  vclactnband,
   vclx,
   bdertl,
   dcldb,
-  vcldesigner,
   designdgm,
   dclstd,
   vcldb;
