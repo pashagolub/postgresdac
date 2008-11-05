@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <BorlandProject>
 	<PersonalityInfo>
 		<Option>
@@ -175,8 +175,6 @@
 			<VersionInfoKeys Name="ProductName"></VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="Comments"></VersionInfoKeys>
-		</VersionInfoKeys>  <Excluded_Packages>
-      <Excluded_Packages Name="C:\Documents and Settings\Victor\My Documents\Borland Studio Projects\Bpl\PostgresDAC10.bpl">File C:\Documents and Settings\Victor\My Documents\Borland Studio Projects\Bpl\PostgresDAC10.bpl not found</Excluded_Packages>
-    </Excluded_Packages>
+		</VersionInfoKeys>
   </Delphi.Personality>
 </BorlandProject>
