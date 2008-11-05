@@ -4732,6 +4732,7 @@ begin
     //Added: handle of ? params
     if (Token = ':') or (Token = '?') then
     begin
+      ByName := False;
       if Token = ':' then
        begin
          GetToken(SQLText, Token);
@@ -4741,9 +4742,7 @@ begin
            Continue;
           end;
          ByName := True;
-       end
-      else
-         ByName := False;
+       end;
       if (Token <> '') and (Token[1] = '[') then
       begin
          if Token[Length(Token)] = ']' then
