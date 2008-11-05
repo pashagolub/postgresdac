@@ -4732,12 +4732,18 @@ begin
     //Added: handle of ? params
     if (Token = ':') or (Token = '?') then
     begin
-      if Token = ':' then begin
+      if Token = ':' then
+       begin
          GetToken(SQLText, Token);
+         if Token=':' then //handling of double colon case
+          begin            //thanks to Serge Lefevre
+           Temp := Temp + ':';
+           Continue;
+          end;
          ByName := True;
-      end else begin
+       end
+      else
          ByName := False;
-      end;
       if (Token <> '') and (Token[1] = '[') then
       begin
          if Token[Length(Token)] = ']' then
@@ -4776,13 +4782,6 @@ begin
                      PQFreeMem(PEsc);
                     end;
                   end;
-         { ftMemo:
-                  begin
-                   GetMem(P, Param.GetDataSize);
-                   Param.GetData(P);//, P, Param.Size);
-                   Value := StrValue(P);
-                   FreeMem(P);
-                  end;}
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
         else
          case VarType(Param.Value) of
