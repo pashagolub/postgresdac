@@ -23,6 +23,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<RuntimeOnlyPackage>true</RuntimeOnlyPackage>
 			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\6.0\Bpl\PostgresDAC12.bpl</DCC_DependencyCheckOutputName>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DesignOnlyPackage>false</DesignOnlyPackage>
@@ -64,37 +65,21 @@
 			</DelphiCompile>
 			<DCCReference Include="vcl.dcp"/>
 			<DCCReference Include="vcldb.dcp"/>
-			<DCCReference Include="dcldb.dcp"/>
 			<DCCReference Include="bdertl.dcp"/>
 			<DCCReference Include="rtl.dcp"/>
 			<DCCReference Include="dsnap.dcp"/>
 			<DCCReference Include="dbrtl.dcp"/>
 			<DCCReference Include="PSQLTypes.pas"/>
 			<DCCReference Include="PSQLAccess.pas"/>
-			<DCCReference Include="PSQLCOMP.pas"/>
 			<DCCReference Include="PSQLDbTables.pas"/>
 			<DCCReference Include="psqlAboutFrm.pas">
 				<Form>PSQLAboutComp</Form>
 			</DCCReference>
-			<DCCReference Include="PSQLfldlinks.pas">
-				<Form>PSQLLinkFields</Form>
-			</DCCReference>
-			<DCCReference Include="PSQLCP.pas"/>
-			<DCCReference Include="PSQLConnFrm.pas">
-				<Form>PSQLConnForm</Form>
-			</DCCReference>
-			<DCCReference Include="PSQLupdsqled.pas">
-				<Form>PSQLUpdateSQLEditForm</Form>
-			</DCCReference>
 			<DCCReference Include="psqlBatch.pas"/>
 			<DCCReference Include="PSQLMacroQuery.pas"/>
-			<DCCReference Include="PSQLMigrator.pas"/>
 			<DCCReference Include="PSQLMonitor.pas"/>
 			<DCCReference Include="PSQLTools.pas"/>
 			<DCCReference Include="PSQLDump.pas"/>
-			<DCCReference Include="PSQLStoredProcFrm.pas">
-				<Form>PSQLStoredProcProp</Form>
-			</DCCReference>
 			<DCCReference Include="PSQLMetaData.pas"/>
 			<DCCReference Include="PSQLConsts.pas"/>
 			<DCCReference Include="PSQLCommon.pas"/>
@@ -151,7 +136,11 @@
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
-					<Excluded_Packages/>
+					<Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\RaveReports\Lib\dclRave.bpl">Rave Reports 7.6 BE Package</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dcloffice2k120.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
+						<Excluded_Packages Name="$(BDS)\bin\dclofficexp120.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
+					</Excluded_Packages>
 					<Source>
 						<Source Name="MainSource">PostgresDAC12.dpk</Source>
 					</Source>
