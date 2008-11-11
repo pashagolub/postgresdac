@@ -3454,6 +3454,7 @@ begin
         FIELD_TYPE_UUID: Result := UUIDLEN;
         FIELD_TYPE_TIMESTAMPTZ: Result := TIMESTAMPTZLEN;
         FIELD_TYPE_TIMETZ: Result := TIMETZLEN;
+        FIELD_TYPE_NAME: Result := NAMEDATALEN;
        else
         Result := FieldMaxSize(FieldNum);
        end;
@@ -3601,7 +3602,7 @@ begin
   begin
     CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
     FLD := FieldInfo[FieldNo-1];
-    ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, @P1, LocArray);
+    ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray);
     LocType := FieldType(FieldNo-1);
     case Loctype of
       FIELD_TYPE_BYTEA,
@@ -3784,6 +3785,8 @@ begin
                  if TIMESTAMPTZLEN > MaxSize then MaxSize := TIMESTAMPTZLEN;
               FIELD_TYPE_TIMETZ:
                  if TIMETZLEN > MaxSize then MaxSize := TIMETZLEN;
+              FIELD_TYPE_NAME:
+                 if NAMEDATALEN > MaxSize then MaxSize := NAMEDATALEN;
               FIELD_TYPE_DATE,
               FIELD_TYPE_TIME,
               FIELD_TYPE_TIMESTAMP:

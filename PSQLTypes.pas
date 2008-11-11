@@ -92,7 +92,7 @@ const
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
 const
-  NAMEDATALEN      = 32;
+  NAMEDATALEN      = 64;
   TIMESTAMPTZLEN   = length('2006-02-28 09:08:08.677444+02');
   TIMETZLEN        = length('13:45:35.4880123457+13:40');
   UUIDLEN          = length('{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}');
@@ -1665,7 +1665,7 @@ function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
 procedure GetToken(var Buffer, Token: string);
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; pValChk : pVCHKDesc; var LocArray : Boolean);
+Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; ValChk : VCHKDesc; var LocArray : Boolean);
 
 procedure LoadPSQLLibrary;
 procedure UnloadPSQLLibrary;
@@ -2488,7 +2488,7 @@ begin
   end;
 end;
 
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; pValChk : pVCHKDesc; var LocArray : Boolean);
+Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; ValChk : VCHKDesc; var LocArray : Boolean);
 var
   LogSize : Integer;
   dataLen : Integer;
@@ -2497,11 +2497,11 @@ begin
   if Assigned(pRecBuff) then
   begin
     ZeroMemory(pRecBuff, Sizeof(FLDDesc));
-    ZeroMemory(pValChk, SizeOf(VCHKDesc));
+    ZeroMemory(@ValChk, SizeOf(VCHKDesc));
     with PRecBuff^ do
     begin
       iFldNum  := Count;
-      pValChk^.iFldNum := Count;
+      ValChk.iFldNum := Count;
       DataLen := Info.FieldMaxSize;
       FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
       if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
@@ -2522,8 +2522,8 @@ begin
       if (iFldType = fldINT32) and (Pos('nextval(',string(Info.FieldDefault)) > 0)  then iSubType := fldstAUTOINC;
       iOffset := Offset;
       efldvVchk := fldvUNKNOWN;
-      if Info.FieldDefault <> '' then pValChk^.bHasDefVal := True;
-      pValChk^.aDefVal := Info.FieldDefault;
+      if Info.FieldDefault <> '' then ValChk.bHasDefVal := True;
+      ValChk.aDefVal := Info.FieldDefault;
       szName := Info.FieldName;
     end;
   end;
