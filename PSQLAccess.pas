@@ -1018,7 +1018,7 @@ begin
     FIELD_TYPE_OID,
     FIELD_TYPE_TEXT: Result := 1; //29.09.2008
   else
-     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength)
+   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1) //minus null byte
   end;
 
   Blank := Result <> 0;
