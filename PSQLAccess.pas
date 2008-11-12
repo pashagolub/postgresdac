@@ -401,7 +401,7 @@ Type
       procedure SetFieldDefault(aStr : string);
     function GetNativeDataset: TNativeDataSet;//mi
     public
-      Constructor CreateField(Owner : TCollection; P : FldDesc;P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
+      constructor CreateField(Owner : TCollection; P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
       function FieldValue: PChar;
       Property Buffer : Pointer Read FBuffer Write SetBuffer;
       Property Data : Pointer Read FData;
@@ -440,6 +440,7 @@ Type
       Function GetField(Index : Integer) : TPSQLField;
     Public
       Constructor Create(Table : TNativeDataSet);
+      function AddField(P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean): TPSQLField;
       Property Field[Index : Integer] : TPSQLField Read  GetField; Default;
       Procedure SetFields(PRecord : Pointer);
       function FieldNumberFromName(SearchName : PChar) : Integer;
@@ -672,7 +673,7 @@ Type
       function  GetSQLClause: string;
       Function GetBufferSize : Word; Virtual;
       Function GetWorkBufferSize : Word; virtual;
-      Procedure GetNativeDesc(FieldNo : Integer;P : pFldDesc; var P1: VCHKDesc; Var LocType, LocSize : Word; var LocArray: Boolean);
+      Procedure GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1: VCHKDesc; Var LocType, LocSize : Word; var LocArray: Boolean);
       Procedure NativeToDelphi(P: TPSQLField;PRecord: Pointer; pDest: Pointer; var bBlank: Bool);
       Procedure DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
       procedure CheckParam(Exp : Boolean;BDECODE : Word);
@@ -1963,8 +1964,10 @@ end;
 Constructor TPSQLField.CreateField(Owner : TCollection; P : FldDesc; P1 : VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
 begin
   Create(Owner);
+
   FDesc := P;
   FValCheck := P1;
+
   FieldNumber := FNum;
   NativeType   := LType;
   Case NativeType of
@@ -2074,6 +2077,24 @@ end;
 //   TPSQLFields
 //////////////////////////////////////////////////////////
 
+function TPSQLFields.AddField(P: FldDesc; P1: VCHKDesc; FNum, LType,
+  LSize: Word; isArray: Boolean): TPSQLField;
+begin
+ Result := Add as TPSQLField;
+ Result.Description := P;
+ Result.ValCheck := P1;
+ Result.FieldNumber := FNum;
+ Result.NativeType   := LType;
+ case Result.NativeType of
+   FIELD_TYPE_BYTEA: Result.NativeBLOBType := nbtBytea;
+   FIELD_TYPE_OID: Result.NativeBLOBType := nbtOID
+  else
+   Result.NativeBLOBType := nbtNotBlob;
+ end;
+ Result.NativeSize   := Max(LSize, Result.FieldLength);
+ Result.FieldArray := isArray;
+end;
+
 Constructor TPSQLFields.Create(Table : TNativeDataSet);
 begin
   Inherited Create(TPSQLField);
@@ -2093,7 +2114,7 @@ begin
     Result := TPSQLField(Items[Index-1]) else
   begin
     if not ((Index > 0) and (FTable <> nil)) then raise EPSQLException.CreateBDE(DBIERR_INVALIDRECSTRUCT);
-    FTable.GetNativeDesc(Index, @Desc, ValCheck, LocType, LocSize, LocArray);
+    FTable.GetNativeDesc(Index, Desc, ValCheck, LocType, LocSize, LocArray);
     Result := TPSQLField.CreateField(Self, Desc, ValCheck, Index, LocType, LocSize,LocArray);
   end;
 end;
@@ -2656,7 +2677,7 @@ begin
   FOIDTable := TList.Create;
   FSystemNeed := ASystem;
   IsQuery := False;
-  FPreventRememberBuffer := false; //mi:2008-08-27
+  FPreventRememberBuffer := False; //mi:2008-08-27
 end;
 
 Destructor TNativeDataSet.Destroy;
@@ -3594,23 +3615,20 @@ begin
      Result :=Item.FDesc;
 end;
 
-Procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; P : pFldDesc; var P1 : VCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
+Procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1 : VCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
 var
   Fld : TPGFIELD_INFO;
 begin
-  if Assigned(P) then
-  begin
-    CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
-    FLD := FieldInfo[FieldNo-1];
-    ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray);
-    LocType := FieldType(FieldNo-1);
-    case Loctype of
-      FIELD_TYPE_BYTEA,
-      FIELD_TYPE_TEXT,
-      FIELD_TYPE_OID: LocSize := SizeOf(TBlobItem);
-    else
-      LocSize := FieldMaxSizeInBytes(FieldNo-1);
-    end;
+  CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
+  FLD := FieldInfo[FieldNo-1];
+  ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray);
+  LocType := FieldType(FieldNo-1);
+  case Loctype of
+    FIELD_TYPE_BYTEA,
+    FIELD_TYPE_TEXT,
+    FIELD_TYPE_OID: LocSize := SizeOf(TBlobItem);
+  else
+    LocSize := FieldMaxSizeInBytes(FieldNo-1);
   end;
 end;
 
@@ -3676,9 +3694,12 @@ begin
    Fields.Clear;
    For i := 1 to FieldCount() do
     begin
-      GetNativeDesc(i, @FldInfo, ValCheck, LocalType, LocalSize,LocArray);
-      TPSQLField.CreateField(Fields, FldInfo, ValCheck, i, LocalType, LocalSize,LocArray);
+      GetNativeDesc(i, FldInfo, ValCheck, LocalType, LocalSize, LocArray);
+      Fields.AddField(FldInfo, ValCheck, i, LocalType, LocalSize, LocArray);
+      Finalize(FldInfo);  //without this calls we have memory leak
+      Finalize(ValCheck);
     end;
+
    RecSize  := RecordSize;
    NullOffset := RecSize+1;
    For i := 1 to Fields.Count do

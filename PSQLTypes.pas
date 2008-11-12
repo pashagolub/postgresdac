@@ -997,7 +997,7 @@ type
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
     iFldNum         : Word;             { Field number (1..n) }
-    szName          : string;          { Field name }
+    szName          : string{[NAMEDATALEN]};          { Field name }
     iFldType        : Word;             { Field type }
     iSubType        : Word;             { Field subtype (if applicable) }
     iUnits1         : integer;         { Number of Chars, digits etc }
@@ -1665,7 +1665,7 @@ function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
 procedure GetToken(var Buffer, Token: string);
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; ValChk : VCHKDesc; var LocArray : Boolean);
+Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; var RecBuff : FLDDesc; var ValChk : VCHKDesc; var LocArray : Boolean);
 
 procedure LoadPSQLLibrary;
 procedure UnloadPSQLLibrary;
@@ -2488,44 +2488,41 @@ begin
   end;
 end;
 
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; pRecBuff : PFLDDesc; ValChk : VCHKDesc; var LocArray : Boolean);
+Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; var RecBuff : FLDDesc; var ValChk : VCHKDesc; var LocArray : Boolean);
 var
   LogSize : Integer;
   dataLen : Integer;
 //  i       : Integer;
 begin
-  if Assigned(pRecBuff) then
+  ZeroMemory(@RecBuff, Sizeof(FLDDesc));
+  ZeroMemory(@ValChk, SizeOf(VCHKDesc));
+  with RecBuff do
   begin
-    ZeroMemory(pRecBuff, Sizeof(FLDDesc));
-    ZeroMemory(@ValChk, SizeOf(VCHKDesc));
-    with PRecBuff^ do
+    iFldNum  := Count;
+    ValChk.iFldNum := Count;
+    DataLen := Info.FieldMaxSize;
+    FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
+    if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
+       (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
     begin
-      iFldNum  := Count;
-      ValChk.iFldNum := Count;
-      DataLen := Info.FieldMaxSize;
-      FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
-      if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
-         (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
-      begin
-        iUnits1  := 32;
-        iUnits2  := Hi(LogSize);
-        iLen     := Lo(LogSize);
-      end
-      else
-      begin
-        if iFldType = fldZSTRING then
-           iUnits1  := LogSize-1 else
-           iUnits1  := LogSize;
-        iUnits2  := 0;
-        iLen     := LogSize;
-      end;
-      if (iFldType = fldINT32) and (Pos('nextval(',string(Info.FieldDefault)) > 0)  then iSubType := fldstAUTOINC;
-      iOffset := Offset;
-      efldvVchk := fldvUNKNOWN;
-      if Info.FieldDefault <> '' then ValChk.bHasDefVal := True;
-      ValChk.aDefVal := Info.FieldDefault;
-      szName := Info.FieldName;
+      iUnits1  := 32;
+      iUnits2  := Hi(LogSize);
+      iLen     := Lo(LogSize);
+    end
+    else
+    begin
+      if iFldType = fldZSTRING then
+         iUnits1  := LogSize-1 else
+         iUnits1  := LogSize;
+      iUnits2  := 0;
+      iLen     := LogSize;
     end;
+    if (iFldType = fldINT32) and (Pos('nextval(', Info.FieldDefault) > 0)  then iSubType := fldstAUTOINC;
+    iOffset := Offset;
+    efldvVchk := fldvUNKNOWN;
+    if Info.FieldDefault <> '' then ValChk.bHasDefVal := True;
+    ValChk.aDefVal := Info.FieldDefault;
+    szName := Info.FieldName;
   end;
 end;
 
