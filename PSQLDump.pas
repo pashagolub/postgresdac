@@ -8,10 +8,10 @@ Uses Classes, SysUtils, Windows, BDE, Db,DbTables,PSQLTypes,Math,
      PSQLDbTables, PSQLAboutFrm;
 
 type
-  Tpdmvm_dump = function ( app_exe : PChar; database : PChar; pwd : PChar; err_str : PChar; out_file : pchar; err_file : pchar; params : PChar):longint; cdecl;
-  Tpdmvm_restore = function ( app_exe : PChar; filename : PChar; pwd : PChar; out_file : pchar; err_file : pchar; params : PChar):longint; cdecl;
+  Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PAnsiChar; err_file : PAnsiChar; params : PAnsiChar):longint; cdecl;
+  Tpdmvm_restore = function ( app_exe : PAnsiChar; filename : PAnsiChar; pwd : PAnsiChar; out_file : PAnsiChar; err_file : PAnsiChar; params : PAnsiChar):longint; cdecl;
 
-  Tpdmbvm_GetLastError = procedure(out_buffer : PChar);cdecl;//mi:2006-10-12
+  Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar);cdecl;//mi:2006-10-12
   Tpdmbvm_GetVersionAsInt = function ():integer;cdecl;//mi:2007-01-15
   Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer);cdecl;//mi:2007-01-15
   Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer);cdecl;//pg:2007-03-13
@@ -19,7 +19,7 @@ type
   TpdmvmParams = class
   private
     FParams : TStringList;
-    FArr : PChar;
+    FArr : PAnsiChar;
 
     procedure ClearMem();
   public
@@ -29,7 +29,7 @@ type
     procedure Add(aStr : string);
     procedure Clear();
 
-    function GetPCharArray() : PChar;
+    function GetPCharArray() : PAnsiChar;
   end;
 
 
@@ -83,7 +83,7 @@ type
         function GetVersionAsInt: integer;
       protected
         procedure CheckDependencies;
-        function GetParameters: PChar;
+        function GetParameters: PAnsiChar;
         Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
         Constructor Create(Owner : TComponent); override;
@@ -152,7 +152,7 @@ type
         function GetVersionAsInt: integer;
       protected
         procedure CheckDependencies;
-        function GetParameters: PChar;
+        function GetParameters: PAnsiChar;
         Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
         Constructor Create(Owner : TComponent); override;
@@ -249,8 +249,25 @@ const
 
 implementation
 
-{$IFDEF M_DEBUG}
- Uses Dialogs;
+
+{$IFNDEF DELPHI_12}
+
+  {$IFDEF DELPHI_5}
+  function Utf8Encode(const WS: WideString): AnsiString;
+  begin
+    Result := WS;
+  end;
+  {$ENDIF}
+
+  function UTF8ToString(const S: String): string;
+  begin
+    {$IFDEF DELPHI_5}
+    Result := S;
+    {$ELSE}
+    Result := Utf8Decode(S);
+    {$ENDIF}
+  end;
+  
 {$ENDIF}
 
 var ProccessOwner: TComponent = nil;
@@ -268,7 +285,7 @@ end;
 
 procedure TpdmvmParams.ClearMem;
 var
-  s : PChar;
+  s : PAnsiChar;
   p : PInteger; //32-bit pointer
 begin
   if FArr <> nil then
@@ -276,11 +293,11 @@ begin
     p := Pointer(FArr);
 
     repeat
-      s := pchar(p^);
-      if s <> PChar(0) then
+      s := PAnsiChar(p^);
+      if s <> nil then
         FreeMem(s);
       Inc(p);
-    until s = PChar(0);
+    until s = nil;
 
     FreeMem(FArr);
     FArr := nil;
@@ -301,20 +318,21 @@ begin
   inherited;
 end;
 
-function TpdmvmParams.GetPcharArray: PChar;
+function TpdmvmParams.GetPcharArray: PAnsiChar;
 var
-  s : PChar;
+  s, s1 : PAnsiChar;
   p : PInteger; //32-bit pointer
   i : integer;
 begin
   ClearMem();
 
-  GetMem(FArr, sizeof(pchar) * (FParams.Count + 1));
+  GetMem(FArr, SizeOf(PAnsiChar) * (FParams.Count + 1));
   p := Pointer(FArr);
   for i:=0 to FParams.Count - 1 do
   begin
-    GetMem(s, Length(FParams[i]) + 1);
-    StrCopy(s, PChar(FParams[i]));
+    s1 := PAnsiChar(UTF8Encode(FParams[i]));
+    GetMem(s, Length(s1) + 1);
+    StrCopy(s, s1);
     p^ := Integer(s);
     Inc(p);
   end;
@@ -421,7 +439,7 @@ begin
 		                 'Use a different output format.');
 end;
 
-function TPSQLDump.GetParameters: PChar;
+function TPSQLDump.GetParameters: PAnsiChar;
 var I: TDumpOption;
     J: TDumpStrOption;
     k: integer;
@@ -533,57 +551,57 @@ begin
   end;
 end;
 
-procedure ErrorCallBackProc(ModuleName:PChar; s:PChar);cdecl;//mi:2007-01-15
+procedure ErrorCallBackProc(ModuleName: PAnsiChar; S: PAnsiChar);cdecl;
 begin
   {This callback ALWAYS must raise an exception!
   In any way dump or restore process will be aborted}
-  raise EPSQLDumpException.Create(Format('Error in module %s: %s', [string(ModuleName), string(s)]));
+  raise EPSQLDumpException.Create(Format('Error in module %s: %s', [UTF8ToString(ModuleName), UTF8ToString(S)]));
 end;
 
-procedure LogCallBackProc(S: PChar);cdecl;//pg:2007-03-13
-var LogMsg: string;
+procedure LogCallBackProc(S: PAnsiChar);cdecl;
 begin
-  LogMsg := TrimRight(S);
   If Assigned(ProccessOwner) then
      if (ProccessOwner is TPSQLDump) then
-       (ProccessOwner as TPSQLDump).DoLog(LogMsg)
+       (ProccessOwner as TPSQLDump).DoLog(TrimRight(UTF8ToString(S)))
      else
        if (ProccessOwner is TPSQLRestore) then
-        (ProccessOwner as TPSQLRestore).DoLog(LogMsg);
+        (ProccessOwner as TPSQLRestore).DoLog(TrimRight(UTF8ToString(S)));
 end;
 
 procedure TPSQLDump.Dump(const TargetFile, LogFile: string);
 var
   h : Cardinal;
-  ErrBuff : array[0..1023] of char;//error buffer
+  ErrBuff : array[0..1023] of AnsiChar;//error buffer
   Result: longint;
   S: string;
 
-  PLog: PChar;
+  PLog: PAnsiChar;
+  PWD: PAnsiChar;
 
   pdmvm_dump: Tpdmvm_dump;
   pdmvm_GetLastError: Tpdmbvm_GetLastError;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
+
 begin
   If FileExists(TargetFile) and not FRewriteFile then
     raise EPSQLDumpException.Create('Cannot rewrite existing file '+ TargetFile);
 
   h := LoadLibrary('pg_dump.dll');
   try
-    @pdmvm_dump := GetProcAddress(h, PChar('pdmvm_dump'));
+    @pdmvm_dump := GetProcAddress(h, PAnsiChar('pdmvm_dump'));
     if not assigned(@pdmvm_dump) then
       raise EPSQLDumpException.Create('Can''t load pg_dump.dll');
 
-    @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
-    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
+    @pdmvm_GetLastError := GetProcAddress(h, PAnsiChar('pdmbvm_GetLastError'));
+    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
 
     If not (doIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
       raise EPSQLDumpException.Create('Use "Ignore Version" option');
 
-    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
-    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
+    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
+    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
 
 
 
@@ -596,14 +614,15 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PChar(LogFile)
+     PLog := PAnsiChar(UTF8Encode(LogFile))
     else
      PLog := nil;
-    Result := pdmvm_dump(PChar(ParamStr(0)),
-                         PChar(FDatabase.DatabaseName),
-                         PChar(FDatabase.UserPassword),
+    PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
+    Result := pdmvm_dump(PAnsiChar(UTF8Encode(ParamStr(0))),
+                         PAnsiChar(UTF8Encode(FDatabase.DatabaseName)),
+                         PWD,
                          ErrBuff,
-                         Pchar(TargetFile),
+                         PAnsiChar(UTF8Encode(TargetFile)),
                          PLog,
                          GetParameters());
     Case Result of
@@ -615,7 +634,7 @@ begin
         S := 'Uknown dump error';
     end;
     If S > '' then
-      raise EPSQLDumpException.Create(S + #13#10 + ErrBuff);
+      raise EPSQLDumpException.Create(S + #13#10 + Utf8ToString(ErrBuff));
 
   finally
    ProccessOwner := nil;
@@ -657,7 +676,7 @@ begin
   Result := 0;
   h := LoadLibrary('pg_dump.dll');
   try
-   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
+   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));
    if Assigned(pdmbvm_GetVersionAsInt) then
      Result := pdmbvm_GetVersionAsInt();
   finally
@@ -725,7 +744,7 @@ begin
     FAfterRestore(Self);
 end;
 
-function TPSQLRestore.GetParameters: PChar;
+function TPSQLRestore.GetParameters: PAnsiChar;
 var I: TRestoreOption;
     J: TRestoreStrOption;
 begin
@@ -824,23 +843,23 @@ var
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
-  PLog: PChar;
+  PLog: PAnsiChar;
 begin
   S := '';
   h := LoadLibrary('pg_restore.dll');
   try
-    @pdmvm_restore := GetProcAddress(h, PChar('pdmvm_restore'));
+    @pdmvm_restore := GetProcAddress(h, PAnsiChar('pdmvm_restore'));
     if not assigned(@pdmvm_restore) then
      raise EPSQLRestoreException.Create('Can''t load pg_restore.dll');
 
-    @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
-    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
+    @pdmvm_GetLastError := GetProcAddress(h, PAnsiChar('pdmbvm_GetLastError'));
+    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
 
     If not (roIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
       raise EPSQLRestoreException.Create('Database and pg_restore version missmatch. Use "Ignore Version" option');
 
-    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
-    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
+    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
+    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
 
     pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);//mi:2007-01-15
     If Assigned(FOnLog) then
@@ -850,13 +869,13 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PChar(LogFile)
+     PLog := PAnsiChar(UTF8Encode(LogFile))
     else
      PLog := nil;
-    Result := pdmvm_restore(PChar(ParamStr(0)),
-                          PChar(SourceFile),//in file
-                          PChar(FDatabase.UserPassword),
-                          pchar(OutFile),//out file
+    Result := pdmvm_restore(PAnsiChar(UTF8Encode(ParamStr(0))),
+                          PAnsiChar(UTF8Encode(SourceFile)),//in file
+                          PAnsiChar(UTF8Encode(FDatabase.UserPassword)),
+                          PAnsiChar(UTF8Encode(OutFile)),//out file
                           PLog,//out file
                           GetParameters());
 
@@ -895,7 +914,7 @@ begin
   Result := 0;
   h := LoadLibrary('pg_restore.dll');
   try
-   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
+   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));
    if Assigned(pdmbvm_GetVersionAsInt) then
      Result := pdmbvm_GetVersionAsInt();
   finally
