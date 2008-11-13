@@ -118,8 +118,8 @@ Type
     Procedure InternalConnect; {Login to database}
     Procedure InternalDisconnect; {Logout from database}
     procedure Reset; {reset connection to server}
-    procedure Rollback; {Rollback transaction}
-    procedure Commit; {Commit transaction}
+    function Rollback: boolean; {Rollback transaction}
+    function Commit: boolean; {Commit transaction}
     procedure CancelBackend(PID: Integer);
     procedure CheckResult;overload;{Check result last operation}
     procedure CheckResult(FStatement: PPGresult); overload;
@@ -699,7 +699,7 @@ Type
       function StrValue(P : Pointer; NeedQuote: boolean = True):String;
       function MemoValue(P : Pointer; NeedQuote: boolean = True):String;
       function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
-    procedure ReadBlock(var iRecords: Integer; pBuf: Pointer);
+      procedure ReadBlock(var iRecords: Integer; pBuf: Pointer);
     Public
       SQLQuery : String;
       ROWID    : OID;
@@ -789,7 +789,8 @@ Type
     private
       FPreventRememberBuffer : boolean;
     public
-      property PreventRememberBuffer : boolean read FPreventRememberBuffer write FPreventRememberBuffer; 
+      property PreventRememberBuffer : boolean read FPreventRememberBuffer write FPreventRememberBuffer;
+      property Connect: TNativeConnect read FConnect;
 end;
 
  TIndexList = Class(TNativeDataSet)
@@ -1426,10 +1427,11 @@ begin
    Result := PQexec(Handle, 'SET DateStyle TO ''ISO, MDY''');
    PQclear(Result);
    FLoggIn := True;
-   MonitorHook.DBConnect(Self);
+   MonitorHook.DBConnect(Self, True);
   except
    on e:EPSQLException do
     begin
+     MonitorHook.DBConnect(Self, False);
      PQFinish(Handle);
      raise;
     end;
@@ -1470,20 +1472,22 @@ begin
    Result := GetErrorText = '';
 end;
 
-Procedure TNativeConnect.RollBack;
+function TNativeConnect.RollBack: boolean;
 var
-  Result: PPGresult;
+  Res: PPGresult;
 begin
-   Result := PQexec(Handle, 'ROLLBACK');
-   PQclear(Result);
+   Res := PQexec(Handle, 'ROLLBACK');
+   Result := PQresultStatus(Res) = PGRES_COMMAND_OK;
+   PQclear(Res);
 end;
 
-Procedure TNativeConnect.Commit;
+function TNativeConnect.Commit: boolean;
 var
-  Result: PPGresult;
+  Res: PPGresult;
 begin
-   Result := PQexec(Handle, 'COMMIT');
-   PQclear(Result);
+   Res := PQexec(Handle, 'COMMIT');
+   Result := PQresultStatus(Res) = PGRES_COMMAND_OK;
+   PQclear(Res);
 end;
 
 
@@ -1678,21 +1682,16 @@ begin
     end;
     Result := PQexec(Handle, PAnsiChar(TransParam));
     PQclear(Result);
-    MonitorHook.TRStart(Self);
+    MonitorHook.TRStart(Self, PQresultStatus (Result) = PGRES_COMMAND_OK);
   end
 end;
 
 procedure TNativeConnect.EndTran(hXact : hDBIXact; eEnd : eXEnd);
 begin
-  If eEnd = xendABORT then
-  begin
-     Rollback;
-     MonitorHook.TRRollback(Self);
-  end else
-  begin
-     Commit;
-     MonitorHook.TRCommit(Self);
-  end;
+  if eEnd = xendABORT then
+     MonitorHook.TRRollback(Self, Rollback)
+  else
+     MonitorHook.TRCommit(Self, Commit);
   CheckResult;
   FTransState := xsInactive;
 end;
@@ -1717,8 +1716,13 @@ begin
   begin
     Try
       FLastOperationTime := GetTickCount;
-      TNativeDataSet(hStmt).Execute;
-      MonitorHook.SQLExecute(TNativeDataSet(hStmt));
+      try
+        TNativeDataSet(hStmt).Execute;
+        MonitorHook.SQLExecute(TNativeDataSet(hStmt), True);
+      except
+        MonitorHook.SQLExecute(TNativeDataSet(hStmt), False);
+        raise;
+      end;
       FLastOperationTime := GetTickCount - FLastOperationTime;
     Finally
       AffectedRows := TNativeDataSet(hStmt).FAffectedRows;
@@ -3215,7 +3219,9 @@ var
        begin
           try
             FConnect.CheckResult(FStatement);
+            MonitorHook.SQLExecute(Self, True);
           except
+            MonitorHook.SQLExecute(Self, False);
             CloseTable;
             Raise;
           end;
@@ -3266,7 +3272,6 @@ begin
     FLastOperationTime := GetTickCount;
     InternalOpen;
     FLastOperationTime := GetTickCount - FLastOperationTime;
-    MonitorHook.SQLExecute(Self);
     if (KeyNumber = 0) then
     begin
        if FPrimaryKeyNumber <> 0 then
@@ -3382,14 +3387,15 @@ begin
   begin
     try
       FConnect.CheckResult(FStatement);
+      MonitorHook.SQLExecute(Self, True);
     except
+      MonitorHook.SQLExecute(Self, False);
       CloseTable;
-      Raise;
+      raise;
     end;
     FAffectedRows := StrToIntDef(StrPas(PQcmdTuples(FStatement)),0);
     FLastOperationTime := GetTickCount - FLastOperationTime;
-    MonitorHook.SQLExecute(Self);
-    ROWID := PQOidValue(FStatement);
+//    ROWID := PQOidValue(FStatement);
     PQclear(FStatement);
     FStatement := nil;
   end else

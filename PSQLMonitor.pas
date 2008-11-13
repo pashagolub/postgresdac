@@ -1,11 +1,11 @@
-{$I psqldac.inc}
+{$I PSQLDAC.inc}
 unit PSQLMonitor;
 
 interface
 
 uses
   SysUtils, Windows, Messages, Classes, PSQLAccess,
-  Dialogs, Forms, Controls,DB,PSQLDBTables;
+  Dialogs, Forms, Controls, DB, PSQLDBTables;
 
 const
   WM_MIN_MONITOR = WM_USER;
@@ -15,17 +15,18 @@ const
   CRLF = #13#10;
 
 type
-  TPSQLCustomMonitor = class;
+  TCustomMonitor = class;
 
-  EPSQLMonitorError = class(EPSQLDatabaseError);
+  EPSQLMonitorError = class(EPSQLDatabaseError);//mi:2007-04-27 EPSQLMonitorError inherited from EPSQLDACException
 
 
-  TPSQLTraceFlag = (tfQPrepare, tfQExecute, tfQFetch, tfConnect, tfTransact, tfMisc);
+  TPSQLTraceFlag = (tfQPrepare, tfQExecute, tfQFetch,tfConnect, tfTransact,tfMisc);
   TPSQLTraceFlags = set of TPSQLTraceFlag;
 
-  TSQLEvent = procedure(EventText: String; EventTime : TDateTime) of object;
+  TSQLEvent = procedure(const Application, Database, Msg, SQL, ErrorMsg: string;
+      DataType: TPSQLTraceFlag; const ExecutedOK: boolean; EventTime: TDateTime) of object;
 
-  TPSQLCustomMonitor = class(TComponent)
+  TCustomMonitor = class(TComponent)
   private
     FHWnd: HWND;
     FOnSQLEvent: TSQLEvent;
@@ -45,8 +46,11 @@ type
     property   Handle : HWND read FHwnd;
   end;
 
-  TPSQLMonitor = class(TPSQLCustomMonitor)
+  TPSQLMonitor = class(TCustomMonitor)
+  private
+    FAbout : TPSQLDACAbout; //mi:2007-09-28
   published
+    property About : TPSQLDACAbout read FAbout write FAbout;//mi:2007-09-28
     property OnSQL;
     property TraceFlags;
     property Active;
@@ -58,23 +62,25 @@ type
     vEventsCreated : Boolean;
     procedure CreateEvents;
   protected
-    procedure WriteSQLData(const Text: String; DataType: TPSQLTraceFlag);
+    procedure WriteSQLData(const ADatabase, AMsg, ASQL: string; DataType: TPSQLTraceFlag;
+      AExecOK: boolean; const AErrorMsg: string = '');
   public
     constructor Create;
     destructor Destroy; override;
     procedure TerminateWriteThread;
     function  SQLString(k:integer):Byte;
-    procedure RegisterMonitor(SQLMonitor : TPSQLCustomMonitor);
-    procedure UnregisterMonitor(SQLMonitor : TPSQLCustomMonitor);
-    procedure ReleaseMonitor(Arg : TPSQLCustomMonitor);
+    procedure RegisterMonitor(SQLMonitor : TCustomMonitor);
+    procedure UnregisterMonitor(SQLMonitor : TCustomMonitor);
+    procedure ReleaseMonitor(Arg : TCustomMonitor);
     procedure SQLPrepare(qry: TNativeDataset); virtual;
-    procedure SQLExecute(qry: TNativeDataset); virtual;
+    procedure SQLExecute(qry: TNativeDataset; const AExecOK: boolean); overload; virtual;
+    procedure SQLExecute(db: TNativeConnect; const Sql: string; const AExecOK: boolean); overload; virtual;
     procedure SQLFetch(qry: TNativeDataset); virtual;
-    procedure DBConnect(db: TNativeConnect); virtual;
+    procedure DBConnect(db: TNativeConnect; const AExecOK: boolean); virtual;
     procedure DBDisconnect(db: TNativeConnect); virtual;
-    procedure TRStart(db: TNativeConnect); virtual;
-    procedure TRCommit(db: TNativeConnect); virtual;
-    procedure TRRollback(db: TNativeConnect); virtual;
+    procedure TRStart(db: TNativeConnect; const AExecOK: boolean); virtual;
+    procedure TRCommit(db: TNativeConnect; const AExecOK: boolean); virtual;
+    procedure TRRollback(db: TNativeConnect; const AExecOK: boolean); virtual;
     procedure SendMisc(Msg : String);
     function  GetEnabled: Boolean;
     function  GetMonitorCount : Integer;
@@ -114,8 +120,23 @@ type
     FDataType : TPSQLTraceFlag;
     FMsg : String;
     FTimeStamp : TDateTime;
+    FDatabase: string;
+    FExecutedOK: boolean;
+    FSQL: string;
+    FApplication: string;
+    FErrorMsg: string;
   public
-    constructor Create(Msg : String; DataType : TPSQLTraceFlag);
+    constructor Create(const AAppName, ADatabase, AMsg, ASQL: string;
+      ADataType: TPSQLTraceFlag; const AExecOK: boolean; const AErrorMsg: string = '');
+
+    property DataType: TPSQLTraceFlag read FDataType;
+    property Application: string read FApplication;
+    property Msg: string read FMsg;
+    property SQL: string read FSQL;
+    property TimeStamp: TDateTime read FTimeStamp;
+    property Database: string read FDatabase;
+    property ExecutedOK: boolean read FExecutedOK;
+    property ErrorMsg: string read FErrorMsg;
   end;
 
   TReleaseObject = Class(TObject)
@@ -139,7 +160,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure WriteSQLData(Msg : String; DataType : TPSQLTraceFlag);
+    procedure WriteSQLData(const AAppName, ADatabase, AMsg, ASQL: String;
+      ADataType: TPSQLTraceFlag; AExecOK: boolean; const AErrorMsg: string = '');
     procedure ReleaseMonitor(HWnd : THandle);
   end;
 
@@ -155,8 +177,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure  AddMonitor(Arg : TPSQLCustomMonitor);
-    procedure  RemoveMonitor(Arg : TPSQLCustomMonitor);
+    procedure  AddMonitor(Arg : TCustomMonitor);
+    procedure  RemoveMonitor(Arg : TCustomMonitor);
   end;
 
 const
@@ -173,13 +195,23 @@ const
   cDefaultTimeout = 1000; // 1 seconds
 
 var
-  FSharedBuffer,
+  FAppSharedBuf,
+  FDBSharedBuf,
+  FMsgSharedBuf,
+  FSQLSharedBuf,
+  FErrSharedBuf,
   FWriteLock,
   FWriteEvent,
   FWriteFinishedEvent,
   FReadEvent,
   FReadFinishedEvent : THandle;
-  FBuffer : PChar;
+
+  FAppBuffer,
+  FDBBuffer,
+  FMsgBuffer,
+  FSQLBuffer,
+  FErrBuffer: PAnsiChar;
+
   FMonitorCount,
   FReaderCount,
   FTraceDataType,
@@ -188,7 +220,13 @@ var
   FQFetchReaderCount,
   FConnectReaderCount,
   FTransactReaderCount,
-  FBufferSize : PInteger;
+  FAppBufSize,
+  FDBBufSize,
+  FMsgBufSize,
+  FSQLBufSize,
+  FErrBufSize,
+  FExecOK: PInteger;
+//  FBufferSize : PInteger;
   FTimeStamp  : PDateTime;
   FReserved   : PByte;
   FReserved1  : PByte;
@@ -202,7 +240,7 @@ var
   CS : TRTLCriticalSection;
   bEnabledMonitoring:boolean;
 
-constructor TPSQLCustomMonitor.Create(AOwner: TComponent);
+constructor TCustomMonitor.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FActive := true;
@@ -213,8 +251,8 @@ begin
   end;
   TraceFlags := [tfqPrepare .. tfTransact];
 end;
-
-destructor TPSQLCustomMonitor.Destroy;
+//----------------------------------------------------------------------------------------------------------------------
+destructor TCustomMonitor.Destroy();
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -232,10 +270,11 @@ begin
         MonitorHook.UnregisterMonitor(self);
      {$IFDEF DELPHI_6}Classes.{$ENDIF}DeallocateHwnd(FHWnd);
   end;
+
   inherited Destroy;
 end;
-
-procedure TPSQLCustomMonitor.MonitorWndProc(var Message: TMessage);
+//----------------------------------------------------------------------------------------------------------------------
+procedure TCustomMonitor.MonitorWndProc(var Message: TMessage);
 var
   st : TPSQLTraceObject;
 begin
@@ -244,7 +283,8 @@ begin
                       st := TPSQLTraceObject(Message.LParam);
                       if (Assigned(FOnSQLEvent)) and
                          (st.FDataType in FTraceFlags) then
-                         FOnSQLEvent(st.FMsg, st.FTimeStamp);
+                         FOnSQLEvent(st.Application, st.Database, st.Msg,
+                          st.SQL, st.ErrorMsg, st.DataType, st.ExecutedOK, st.TimeStamp);
                       st.Free;
                    end;
      CM_RELEASE :  Free;
@@ -252,13 +292,13 @@ begin
      DefWindowProc(FHWnd, Message.Msg, Message.WParam, Message.LParam);
   end;
 end;
-
-procedure TPSQLCustomMonitor.Release;
+//----------------------------------------------------------------------------------------------------------------------
+procedure TCustomMonitor.Release;
 begin
   MonitorHook.ReleaseMonitor(self);
 end;
 
-procedure TPSQLCustomMonitor.SetActive(const Value: Boolean);
+procedure TCustomMonitor.SetActive(const Value: Boolean);
 begin
    if Value <> FActive then
    begin
@@ -270,7 +310,7 @@ begin
   end;
 end;
 
-procedure TPSQLCustomMonitor.SetTraceFlags(const Value: TPSQLTraceFlags);
+procedure TCustomMonitor.SetTraceFlags(const Value: TPSQLTraceFlags);
 begin
    if not (csDesigning in ComponentState) then
    begin
@@ -345,10 +385,72 @@ begin
   Sa.lpSecurityDescriptor := @Sd;
   Sa.bInheritHandle := true;
 
-  FSharedBuffer := CreateFileMapping($FFFFFFFF, @sa, PAGE_READWRITE,
-                       0, cMonitorHookSize, PChar(MonitorHookNames[1]));
+  FAppSharedBuf := CreateFileMapping(INVALID_HANDLE_VALUE, @sa, PAGE_READWRITE,
+                       0, cMonitorHookSize, PChar(MonitorHookNames[1] + '01'));
 
   MapError:=GetLastError;
+  if  MapError= ERROR_ALREADY_EXISTS then
+  begin
+     FAppSharedBuf := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1] + '01'));
+     if (FAppSharedBuf = 0) then
+        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
+  end else
+  begin
+     FWriteLock := CreateMutex(@sa, False, PChar(MonitorHookNames[0]));
+     FWriteEvent := CreateLocalEvent(2, False);
+     FWriteFinishedEvent := CreateLocalEvent(3, True);
+     FReadEvent := CreateLocalEvent(4, False);
+     FReadFinishedEvent := CreateLocalEvent(5, False);
+  end;
+
+  FDBSharedBuf := CreateFileMapping(INVALID_HANDLE_VALUE, @sa, PAGE_READWRITE,
+                       0, cMonitorHookSize, PChar(MonitorHookNames[1] + '02'));
+
+  MapError := GetLastError();
+  if MapError = ERROR_ALREADY_EXISTS then
+  begin
+     FDBSharedBuf := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1] + '02'));
+     if (FDBSharedBuf = 0) then
+        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
+  end;
+
+  FMsgSharedBuf := CreateFileMapping(INVALID_HANDLE_VALUE, @sa, PAGE_READWRITE,
+                       0, cMonitorHookSize, PChar(MonitorHookNames[1] + '03'));
+
+  MapError := GetLastError;
+  if MapError = ERROR_ALREADY_EXISTS then
+  begin
+     FMsgSharedBuf := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1] + '03'));
+     if (FMsgSharedBuf = 0) then
+        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
+  end;
+
+  FSQLSharedBuf := CreateFileMapping(INVALID_HANDLE_VALUE, @sa, PAGE_READWRITE,
+                       0, cMonitorHookSize, PChar(MonitorHookNames[1] + '04'));
+
+  MapError := GetLastError;
+  if MapError = ERROR_ALREADY_EXISTS then
+  begin
+     FSQLSharedBuf := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1] + '04'));
+     if (FSQLSharedBuf = 0) then
+        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
+  end;
+
+  FErrSharedBuf := CreateFileMapping(INVALID_HANDLE_VALUE, @sa, PAGE_READWRITE,
+                       0, cMonitorHookSize, PChar(MonitorHookNames[1] + '05'));
+
+  MapError := GetLastError;
+  if MapError = ERROR_ALREADY_EXISTS then
+  begin
+     FErrSharedBuf := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1] + '05'));
+     if (FErrSharedBuf = 0) then
+        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
+  end;
+
+{  FSharedBuffer := CreateFileMapping($FFFFFFFF, @sa, PAGE_READWRITE,
+                       0, cMonitorHookSize, PChar(MonitorHookNames[1]));}
+
+{  MapError:=GetLastError;
   if  MapError= ERROR_ALREADY_EXISTS then
   begin
      FSharedBuffer := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1]));
@@ -361,30 +463,35 @@ begin
      FWriteFinishedEvent := CreateLocalEvent(3, True);
      FReadEvent := CreateLocalEvent(4, False);
      FReadFinishedEvent := CreateLocalEvent(5, False);
-  end;
-  FBuffer := MapViewOfFile(FSharedBuffer, FILE_MAP_ALL_ACCESS, 0, 0, 0);
-  if FBuffer = nil then
+  end;}
+//  FBuffer := MapViewOfFile(FSharedBuffer, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+  FAppBuffer := MapViewOfFile(FAppSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+  FDBBuffer := MapViewOfFile(FDBSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+  FMsgBuffer := MapViewOfFile(FMsgSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+  FSQLBuffer := MapViewOfFile(FSQLSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+  FErrBuffer := MapViewOfFile(FErrSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
+
+  if FAppBuffer = nil then
      MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
-  FMonitorCount := PInteger(FBuffer + cMonitorHookSize - SizeOf(Integer));
-  FReaderCount  := PInteger(PChar(FMonitorCount)      -   SizeOf(Integer));
-  FTraceDataType:= PInteger(PChar(FMonitorCount)      - 2*SizeOf(Integer));
-  FBufferSize   := PInteger(PChar(FMonitorCount)      - 3*SizeOf(Integer));
-  FQPrepareReaderCount:=PInteger(PChar(FMonitorCount) - 4*SizeOf(Integer));
-  FQExecuteReaderCount:=PInteger(PChar(FMonitorCount) - 5*SizeOf(Integer));
-  FQFetchReaderCount  :=PInteger(PChar(FMonitorCount) - 6*SizeOf(Integer));
-  FConnectReaderCount :=PInteger(PChar(FMonitorCount) - 7*SizeOf(Integer));
-  FTransactReaderCount:=PInteger(PChar(FMonitorCount) - 8*SizeOf(Integer));
-  FTimeStamp    := PDateTime(PChar(FTransactReaderCount)- SizeOf(TDateTime));
-  FReserved     := PByte(PChar(FTimeStamp)- SizeOf(Byte));
-  FReserved1    := PByte(PChar(FReserved )- SizeOf(Byte));
-
-//  {$IFDEF TRIAL}
-//     if Application.FindComponent('AppBuilder')<>nil then
-//     begin
-//      FReserved1^ := FReserved^;
-//     end;
-//  {$ENDIF}
-
+//  FMonitorCount := PInteger(FBuffer + cMonitorHookSize - SizeOf(Integer));
+  FMonitorCount := PInteger(FAppBuffer + cMonitorHookSize - SizeOf(Integer));
+  FReaderCount  := PInteger(PAnsiChar(FMonitorCount)      -   SizeOf(Integer));
+  FTraceDataType:= PInteger(PAnsiChar(FMonitorCount)      - 2*SizeOf(Integer));
+  FExecOK := PInteger(PAnsiChar(FMonitorCount)      - 3*SizeOf(Integer));
+//  FBufferSize   := PInteger(PChar(FMonitorCount)      - 3*SizeOf(Integer));
+  FAppBufSize   := PInteger(PAnsiChar(FMonitorCount)      - 4*SizeOf(Integer));
+  FDBBufSize   := PInteger(PAnsiChar(FMonitorCount)      - 5*SizeOf(Integer));
+  FMsgBufSize   := PInteger(PAnsiChar(FMonitorCount)      - 6*SizeOf(Integer));
+  FSQLBufSize   := PInteger(PAnsiChar(FMonitorCount)      - 7*SizeOf(Integer));
+  FErrBufSize   := PInteger(PAnsiChar(FMonitorCount)      - 8*SizeOf(Integer));
+  FQPrepareReaderCount:=PInteger(PAnsiChar(FMonitorCount) - 9*SizeOf(Integer));
+  FQExecuteReaderCount:=PInteger(PAnsiChar(FMonitorCount) - 10*SizeOf(Integer));
+  FQFetchReaderCount  :=PInteger(PAnsiChar(FMonitorCount) - 11*SizeOf(Integer));
+  FConnectReaderCount :=PInteger(PAnsiChar(FMonitorCount) - 12*SizeOf(Integer));
+  FTransactReaderCount:=PInteger(PAnsiChar(FMonitorCount) - 13*SizeOf(Integer));
+  FTimeStamp    := PDateTime(PAnsiChar(FTransactReaderCount)- SizeOf(TDateTime));
+  FReserved     := PByte(PAnsiChar(FTimeStamp)- SizeOf(Byte));
+  FReserved1    := PByte(PAnsiChar(FReserved )- SizeOf(Byte));
   if  MapError= ERROR_ALREADY_EXISTS then
   begin
      FWriteLock  := OpenMutex(MUTEX_ALL_ACCESS, False, PChar(MonitorHookNames[0]));
@@ -396,7 +503,8 @@ begin
   begin
      FMonitorCount^       :=0;
      FReaderCount^        :=0;
-     FBufferSize^         :=0;
+//     FBufferSize^         :=0;
+     FMsgBufSize^         :=0;
      FQPrepareReaderCount^:=0;
      FQExecuteReaderCount^:=0;
      FQFetchReaderCount^  :=0;
@@ -421,29 +529,27 @@ begin
 // {$ENDIF}
 end;
 
-procedure TPSQLMonitorHook.DBConnect(db: TNativeConnect);
-var
-  st : String;
+procedure TPSQLMonitorHook.DBConnect(db: TNativeConnect; const AExecOK: boolean);
+{var
+  st : String;}
 begin
    if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FConnectReaderCount^>0) then
    begin
-      st := string(db.DBOptions.DatabaseName) + ': [Connect]'; {do not localize}
-      st := st + Format(' [Time elapsed (ms): %d]', [db.LastOperationTime]);
-      WriteSQLData(st, tfConnect);
+//      st := db.DBOptions.DatabaseName + ': [Connect]'; {do not localize}
+      WriteSQLData(db.DBOptions.DatabaseName, 'Connect', '', tfConnect, AExecOK, db.GetErrorText);
    end;
 end;
 
 procedure TPSQLMonitorHook.DBDisconnect(db: TNativeConnect);
-var
-  st: String;
+{var
+  st: String;}
 begin
    if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FConnectReaderCount^>0) then
    begin
-      st := string(db.DBOptions.DatabaseName) + ': [Disconnect]'; {do not localize}
-      st := st + Format(' [Time elapsed (ms): %d]', [db.LastOperationTime]);
-      WriteSQLData(st, tfConnect);
+//      st := db.DBOptions.DatabaseName + ': [Disconnect]'; {do not localize}
+      WriteSQLData(db.DBOptions.DatabaseName, 'Disconnect', '', tfConnect, True);
    end;
 end;
 
@@ -451,8 +557,19 @@ destructor TPSQLMonitorHook.Destroy;
 begin
    if vEventsCreated then
    begin
-      UnmapViewOfFile(FBuffer);
-      CloseHandle(FSharedBuffer);
+//      UnmapViewOfFile(FBuffer);
+      UnmapViewOfFile(FAppBuffer);
+      UnmapViewOfFile(FDBBuffer);
+      UnmapViewOfFile(FMsgBuffer);
+      UnmapViewOfFile(FSQLBuffer);
+      UnmapViewOfFile(FErrBuffer);
+      CloseHandle(FAppSharedBuf);
+      CloseHandle(FDBSharedBuf);
+      CloseHandle(FMsgSharedBuf);
+      CloseHandle(FSQLSharedBuf);
+      CloseHandle(FErrSharedBuf);
+
+//      CloseHandle(FSharedBuffer);
       CloseHandle(FWriteEvent);
       CloseHandle(FWriteFinishedEvent);
       CloseHandle(FReadEvent);
@@ -474,7 +591,7 @@ begin
       Result := FMonitorCount^;
 end;
 
-procedure TPSQLMonitorHook.RegisterMonitor(SQLMonitor: TPSQLCustomMonitor);
+procedure TPSQLMonitorHook.RegisterMonitor(SQLMonitor: TCustomMonitor);
 begin
    if not vEventsCreated then
    try
@@ -487,7 +604,7 @@ begin
    FPSQLReaderThread.AddMonitor(SQLMonitor);
 end;
 
-procedure TPSQLMonitorHook.ReleaseMonitor(Arg: TPSQLCustomMonitor);
+procedure TPSQLMonitorHook.ReleaseMonitor(Arg: TCustomMonitor);
 begin
    FPSQLWriterThread.ReleaseMonitor(Arg.FHWnd);
 end;
@@ -495,7 +612,7 @@ end;
 procedure TPSQLMonitorHook.SendMisc(Msg: String);
 begin
    if FActive then
-      WriteSQLData(Msg, tfMisc);
+      WriteSQLData('', Msg, '', tfMisc, False);
 end;
 
 procedure TPSQLMonitorHook.SetEnabled(const Value: Boolean);
@@ -510,106 +627,112 @@ begin
       FPSQLWriterThread:=nil;
    end;
 end;
-
-procedure TPSQLMonitorHook.SQLExecute(qry: TNativeDataset);
+//----------------------------------------------------------------------------------------------------------------------
+procedure TPSQLMonitorHook.SQLExecute(qry: TNativeDataset; const AExecOK: boolean);
 var
-  st: String;
+  st: string;
 begin
-   if FActive and  bEnabledMonitoring  and (GetMonitorCount>0)
-      and (FQExecuteReaderCount^>0) then
-   begin
-      if qry.SQLQuery <> '' then
-      begin
-         st := 'Query';
-         st := st + ': [Execute] ' + qry.SQLQuery;
-      end else
-      begin
-         st := qry.TableName;
-         st := st + ': [Execute] ';
-      end;
-      st := st + Format(' [Time elapsed (ms): %d]'+CRLF, [qry.LastOperationTime]);
-      WriteSQLData(st, tfQExecute);
-   end;
-end;
+  if FActive and  bEnabledMonitoring  and (GetMonitorCount>0)
+    and (FQExecuteReaderCount^ > 0)
+  then
+  begin
+    if qry.SQLQuery <> '' then
+      st := qry.SQLQuery
+    else
+      st := string(qry.TableName);
 
+    WriteSQLData(qry.Connect.DBOptions.DatabaseName, 'Execute', st,
+                 tfQExecute, AExecOK, qry.Connect.GetErrorText);
+  end;
+end;
+//----------------------------------------------------------------------------------------------------------------------
+procedure TPSQLMonitorHook.SQLExecute(db: TNativeConnect; const Sql: string; const AExecOK: boolean);
+begin
+  if FActive and  bEnabledMonitoring  and (GetMonitorCount > 0) and
+     (FQExecuteReaderCount^ > 0)
+  then
+  begin
+    WriteSQLData(db.DBOptions.DatabaseName, 'Execute', Sql,
+        tfQExecute, AExecOK, db.GetErrorText);
+  end;
+end;
+//----------------------------------------------------------------------------------------------------------------------
 procedure TPSQLMonitorHook.SQLFetch(qry: TNativeDataset);
 var
   st: String;
 begin
-   if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
-      and (FQFetchReaderCount^>0) then
-   begin
-      if qry.SQLQuery <> '' then
-      begin
-         st := 'Query';
-         st := st + ': [Fetch] Row # '+ IntToStr(qry.RecordNumber) + CRLF;
-      end else
-      begin
-         st := qry.TableName;
-         st := st + ': [Fetch] Row # '+ IntToStr(qry.RecordNumber) + CRLF;
-      end;
-      WriteSQLData(st, tfQFetch);
-   end;
+  if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
+     and (FQFetchReaderCount^>0)
+  then
+  begin
+    if qry.SQLQuery <> '' then
+      st := 'Query'
+    else
+      st := string(qry.TableName);
+
+    st := st + ': Row # '+ IntToStr(qry.RecordNumber) + CRLF;
+    WriteSQLData(qry.Connect.DBOptions.DatabaseName, 'Fetch', st, tfQFetch, True);
+  end;
 end;
 
 procedure TPSQLMonitorHook.SQLPrepare(qry: TNativeDataset);
 var
   st: String;
 begin
-   if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
-      and (FQPrepareReaderCount^>0) then
-   begin
-      if qry.SQLQuery <> '' then
-      begin
-         st := 'Query';
-         st := st + ': [Prepare] ' + qry.SQLQuery;
-      end else
-      begin
-         st := qry.TableName;
-         st := st + ': [Prepare] ';
-      end;
-      st := st + Format(' [Time elapsed (ms): %d]'+CRLF, [qry.LastOperationTime]);
-      WriteSQLData(st, tfQPrepare);
-   end;
+  if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
+     and (FQPrepareReaderCount^>0)
+  then
+  begin
+    if qry.SQLQuery <> '' then
+      st := qry.SQLQuery
+    else
+      st := string(qry.TableName);
+
+    WriteSQLData(qry.Connect.DBOptions.DatabaseName, 'Prepare', st, tfQPrepare, True);
+  end;
 end;
 
-procedure TPSQLMonitorHook.TRCommit(db: TNativeConnect);
-var
-  st: String;
+procedure TPSQLMonitorHook.TRCommit(db: TNativeConnect; const AExecOK: boolean);
+{var
+  st: String;}
 begin
    if FActive and  bEnabledMonitoring  and (GetMonitorCount>0)
       and (FTransactReaderCount^>0) then
    begin
-       st := string(db.DBOptions.DatabaseName) + ': [Commit (Hard commit)]';
-       WriteSQLData(st, tfTransact);
+//       st := db.DBOptions.DatabaseName + ': [Commit (Hard commit)]';
+       WriteSQLData(db.DBOptions.DatabaseName, 'Commit (Hard commit)', '',
+        tfTransact, AExecOK, db.GetErrorText);
    end;
 end;
 
-procedure TPSQLMonitorHook.TRRollback(db: TNativeConnect);
-var
-  st: String;
+procedure TPSQLMonitorHook.TRRollback(db: TNativeConnect; const AExecOK: boolean);
+{var
+  st: String;}
 begin
    if FActive and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FTransactReaderCount^>0) then
    begin
-      st := string(db.DBOptions.DatabaseName) + ': [Rollback]';
-      WriteSQLData(st, tfTransact);
+//      st := db.DBOptions.DatabaseName + ': [Rollback]';
+      WriteSQLData(db.DBOptions.DatabaseName, 'Rollback', '', tfTransact,
+        AExecOK, db.GetErrorText);
    end;
 end;
 
-procedure TPSQLMonitorHook.TRStart(db: TNativeConnect);
-var
-  st: String;
+procedure TPSQLMonitorHook.TRStart(db: TNativeConnect; const AExecOK: boolean);
+{var
+  st: String;}
 begin
    if FActive and  bEnabledMonitoring and  bEnabledMonitoring and (GetMonitorCount>0)
       and (FTransactReaderCount^>0) then
    begin
-      st := string(db.DBOptions.DatabaseName) + ': [Start transaction]';
-      WriteSQLData(st, tfTransact);
+//      st := db.DBOptions.DatabaseName + ': [Start transaction]';
+//      WriteSQLData(st, tfTransact);
+      WriteSQLData(db.DBOptions.DatabaseName, 'Start transaction', '', tfTransact,
+        AExecOK, db.GetErrorText);
    end;
 end;
 
-procedure TPSQLMonitorHook.UnregisterMonitor(SQLMonitor: TPSQLCustomMonitor);
+procedure TPSQLMonitorHook.UnregisterMonitor(SQLMonitor: TCustomMonitor);
 begin
    FPSQLReaderThread.RemoveMonitor(SQLMonitor);
    if FPSQLReaderThread.FMonitors.Count = 0 then
@@ -619,32 +742,36 @@ begin
       begin
          FPSQLWriterThread := TMonitorWriterThread.Create;
       end;
-      FPSQLWriterThread.WriteSQLData(' ', tfMisc);
-      FPSQLReaderThread.Terminate; //added by pasha_golub 01.08.05
+      FPSQLWriterThread.WriteSQLData('', '', '', '', tfMisc, True);
       FPSQLReaderThread.WaitFor;
       FPSQLReaderThread.Free;
       FPSQLReaderThread:=nil;
   end;
 end;
-
-procedure TPSQLMonitorHook.WriteSQLData(const Text: String; DataType: TPSQLTraceFlag);
+//----------------------------------------------------------------------------------------------------------------------
+procedure TPSQLMonitorHook.WriteSQLData(const ADatabase, AMsg, ASQL: string;
+  DataType: TPSQLTraceFlag; AExecOK: boolean; const AErrorMsg: string);
 var
-  vText: string;
+  AppName: string;
 begin
-   if not vEventsCreated then
-   try
-     CreateEvents;
-   except
-     Enabled := false;
-     Exit;
-   end;
-   vText := CRLF + '[Application: ' + Application.Title + ']' + CRLF + Text; {do not localize}
-   if not Assigned(FPSQLWriterThread) then
-      FPSQLWriterThread := TMonitorWriterThread.Create;
-   FPSQLWriterThread.WriteSQLData(vText, DataType);
+  if not vEventsCreated then
+  begin
+    try
+      CreateEvents;
+    except
+      Enabled := false;
+      Exit;
+    end;
+  end;
+
+  AppName := Application.Title;
+//   vText := CRLF + '[Application: ' + Application.Title + ']' + CRLF + Text; {do not localize}
+  if not Assigned(FPSQLWriterThread) then
+    FPSQLWriterThread := TMonitorWriterThread.Create;
+
+  FPSQLWriterThread.WriteSQLData(AppName, ADatabase, AMsg, ASQL, DataType, AExecOK, AErrorMsg);
 end;
-
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TPSQLMonitorHook.TerminateWriteThread;
 begin
    if Assigned(FPSQLWriterThread) then
@@ -653,20 +780,18 @@ begin
      FPSQLWriterThread:=nil
    end;
 end;
-
-
-
+//----------------------------------------------------------------------------------------------------------------------
 constructor TMonitorWriterThread.Create;
 begin
-   StopExec:=False;
-   FMonitorMsgs := TList.Create;
-   inherited Create(False);
-   {$IFNDEF DELPHI_6}
-   if FMonitorCount^ = 0 then
-      Suspend;
-   {$ENDIF}
+  StopExec := False;
+  FMonitorMsgs := TList.Create;
+  inherited Create(False);
+  {$IFNDEF DELPHI_6}
+  if FMonitorCount^ = 0 then
+    Suspend;
+  {$ENDIF}
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 destructor TMonitorWriterThread.Destroy;
 var
   Msg:TObject;
@@ -674,87 +799,107 @@ begin
    {$IFNDEF DELPHI_6}
    Resume;
    {$ENDIF}
+
    if FMonitorMsgs.Count>0 then
    begin
       Msg:=FMonitorMsgs[0];
       FMonitorMsgs.Delete(0);
       Msg.Free;
    end;
+
    FMonitorMsgs.Free;
-   FMonitorMsgs := nil; //mi:2006-09-15
+   FMonitorMsgs := nil;//mi:2006-09-15
    inherited Destroy;
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.Execute;
 begin
-  while (Assigned(FMonitorMsgs))
-        and not StopExec do
+  while (Assigned(FMonitorMsgs)) and not StopExec do
   begin
-     if (Terminated or bDone) and (FMonitorMsgs.Count = 0) then//mi:2006-09-15 removed from while condition to ensure FMonitorMsgs<>nil
-        break;
+    if (Terminated or bDone) and (FMonitorMsgs.Count = 0) then//mi:2006-09-15 removed from while condition to ensure FMonitorMsgs<>nil
+      break;
 
-     if (FMonitorCount^ = 0) then
-     begin
-        while FMonitorMsgs.Count <> 0 do
-           FMonitorMsgs.Remove(FMonitorMsgs[0]);
+    if (FMonitorCount^ = 0) then
+    begin
+      while FMonitorMsgs.Count <> 0 do
+        FMonitorMsgs.Remove(FMonitorMsgs[0]);
+
+      {$IFNDEF DELPHI_6}
+      Suspend;
+      {$ELSE}
+      Sleep(50);
+      {$ENDIF}
+    end
+    else
+    begin
+      if FMonitorMsgs.Count <> 0 then
+      begin
+        if (TObject(FMonitorMsgs.Items[0]) is TReleaseObject) then
+        begin
+          PostMessage(TReleaseObject(FMonitorMsgs.Items[0]).FHandle, CM_RELEASE, 0, 0);
+        end
+        else
+        begin
+          if bEnabledMonitoring  then
+          begin
+            WriteToBuffer();
+          end
+          else
+          begin
+            BeginWrite();
+            TPSQLTraceObject(FMonitorMsgs[0]).Free;
+            FMonitorMsgs.Delete(0);
+            EndWrite();
+          end;
+        end;
+      end
+      else
+      begin
         {$IFNDEF DELPHI_6}
         Suspend;
-       {$ELSE}
+        {$ELSE}
         Sleep(50);
-       {$ENDIF}
-     end else
-     if FMonitorMsgs.Count <> 0 then
-     begin
-        if (TObject(FMonitorMsgs.Items[0]) is TReleaseObject) then
-           PostMessage(TReleaseObject(FMonitorMsgs.Items[0]).FHandle, CM_RELEASE, 0, 0) else
-           begin
-              if bEnabledMonitoring  then
-                 WriteToBuffer else
-                 begin
-                    BeginWrite;
-                    TPSQLTraceObject(FMonitorMsgs[0]).Free;
-                    FMonitorMsgs.Delete(0);
-                    EndWrite;
-                 end;
-           end;
-     end else
-     {$IFNDEF DELPHI_6}
-     Suspend;
-     {$ELSE}
-     Sleep(50);
-     {$ENDIF}
+        {$ENDIF}
+      end;
+    end
   end;
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.Lock;
 begin
    WaitForSingleObject(FWriteLock, INFINITE);
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.Unlock;
 begin
    ReleaseMutex(FWriteLock);
 end;
-
-procedure TMonitorWriterThread.WriteSQLData(Msg : String; DataType: TPSQLTraceFlag);
+//----------------------------------------------------------------------------------------------------------------------
+procedure TMonitorWriterThread.WriteSQLData(const AAppName, ADatabase, AMsg, ASQL: String;
+  ADataType: TPSQLTraceFlag; AExecOK: boolean; const AErrorMsg: string);
+var
+  mto : TPSQLTraceObject;
 begin
-   if (FMonitorCount^ <> 0)   then
-   begin
-      FMonitorMsgs.Add(TPSQLTraceObject.Create(Msg, DataType));
-      {$IFNDEF DELPHI_6}
-      Resume;
-     {$ENDIF}
-   end else
-   begin
-      FreeAndNil(FPSQLWriterThread)
-   end;
-end;
+  if (FMonitorCount^ <> 0)   then
+  begin
+    mto := TPSQLTraceObject.Create(AAppName, ADatabase, AMsg, ASQL, ADataType, AExecOK, AErrorMsg);
+    FMonitorMsgs.Add(mto);
 
+    {$IFNDEF DELPHI_6}
+    Resume;
+    {$ENDIF}
+  end
+  else
+  begin
+    FreeAndNil(FPSQLWriterThread)
+  end;
+end;
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.BeginWrite;
 begin
-   Lock;
+   Lock();
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.EndWrite;
 begin
   {
@@ -770,69 +915,102 @@ begin
    }
   while WaitForSingleObject(FReadEvent, cDefaultTimeout) = WAIT_TIMEOUT do
   begin
-     if FMonitorCount^ > 0 then
-        InterlockedDecrement(FMonitorCount^);
-     if (FReaderCount^ = FMonitorCount^ - 1) or (FMonitorCount^ = 0) then
-        SetEvent(FReadEvent);
+    if FMonitorCount^ > 0 then
+      InterlockedDecrement(FMonitorCount^);
+
+    if (FReaderCount^ = FMonitorCount^ - 1) or (FMonitorCount^ = 0) then
+      SetEvent(FReadEvent);
   end;
+
   ResetEvent(FWriteFinishedEvent);
   ResetEvent(FReadFinishedEvent);
   SetEvent(FWriteEvent); { Let all readers pass through. }
+
   while WaitForSingleObject(FReadFinishedEvent, cDefaultTimeout) = WAIT_TIMEOUT do
-     if (FReaderCount^ = 0) or (InterlockedDecrement(FReaderCount^) = 0) then
-        SetEvent(FReadFinishedEvent);
+  begin
+    if (FReaderCount^ = 0) or (InterlockedDecrement(FReaderCount^) = 0) then
+      SetEvent(FReadFinishedEvent);
+  end;
+
   ResetEvent(FWriteEvent);
   SetEvent(FWriteFinishedEvent);
-  Unlock;
+  Unlock();
 end;
+//----------------------------------------------------------------------------------------------------------------------
+procedure TMonitorWriterThread.WriteToBuffer();
+//local procedures
+  procedure _WriteStrToBuf(const S: string; Buf: PAnsiChar; BufSize: PInteger);
+  var
+    i, len: Integer;
+    Text: String;
+    ptr : {$IFDEF DELPHI_12}PByte{$ELSE}PChar{$ENDIF};
+  begin
+    Text  := EmptyStr;
 
-procedure TMonitorWriterThread.WriteToBuffer;
-var
-  i, len: Integer;
-  Text : String;
-  ps   :PString;
+    for i := 1 to length(S) do
+    begin
+      if ((S[i] >= #0) and (S[i] <= #9))
+        or (S[i] = #$B)
+        or (S[i] = #$C)
+        or ((S[i] >= #$E) and (S[i] <= #31))
+      then
+        Text := Text + '#$' + IntToHex(ord(S[i]), 2)
+      else
+        Text := Text + S[i];
+    end;
+
+    len := Length(Text) * sizeof(Char);//mi:2008-11-12 unicode compatibility
+    ptr := {$IFDEF DELPHI_12}PByte{$ELSE}PChar{$ENDIF}(Text);//mi:2008-11-12
+
+    BufSize^ := 0;
+//   Move(#0, Buf[0], BufSize^);
+    while (len > 0) do
+    begin
+      BufSize^ := Min(len, cMaxBufferSize);
+//      Move(ptr, Buf, BufSize^);
+      CopyMemory(pointer(Buf), ptr, BufSize^);
+      Inc(ptr, cMaxBufferSize);
+      Dec(len, cMaxBufferSize);
+    end;
+  end;
+
 begin
-   Lock;
-   try
-     if FMonitorCount^ = 0 then
-        FMonitorMsgs.Remove(FMonitorMsgs[0]) else
-        begin
-           ps    :=@TPSQLTraceObject(FMonitorMsgs[0]).FMsg;
-           Text  := '';
-           for i := 1 to length(ps^) do
-           begin
-              if ord(ps^[i]) in [0..9,$B,$C,$E..31] then
-                 Text := Text + '#$'+IntToHex(ord(ps^[i]),2) else
-                 Text := Text + ps^[i];
-           end;
-           i := 1;
-           len := Length(Text);
-           while (len > 0) do
-           begin
-              BeginWrite;
-              try
-                FTraceDataType^ := Integer(TPSQLTraceObject(FMonitorMsgs[0]).FDataType);
-                FTimeStamp^ := TPSQLTraceObject(FMonitorMsgs[0]).FTimeStamp;
-                FBufferSize^ := Min(len, cMaxBufferSize);
-                Move(Text[i], FBuffer[0], FBufferSize^);
-                Inc(i, cMaxBufferSize);
-                Dec(len, cMaxBufferSize);
-              finally
-                EndWrite;
-              end;
-           end;
-        end;
-     if FMonitorMsgs.Count>0 then
-     begin
-        TPSQLTraceObject(FMonitorMsgs[0]).Free;
-        FMonitorMsgs.Delete(0);
-     end;
-   finally
-     Unlock;
-   end;
+  Lock();
+
+  try
+    if FMonitorCount^ = 0 then
+    begin
+        FMonitorMsgs.Remove(FMonitorMsgs[0]);
+    end
+    else
+    begin
+      BeginWrite();
+
+      try
+        _WriteStrToBuf(TPSQLTraceObject(FMonitorMsgs[0]).Application, FAppBuffer, FAppBufSize);
+        _WriteStrToBuf(TPSQLTraceObject(FMonitorMsgs[0]).Database, FDBBuffer, FDBBufSize);
+        _WriteStrToBuf(TPSQLTraceObject(FMonitorMsgs[0]).Msg, FMsgBuffer, FMsgBufSize);
+        _WriteStrToBuf(TPSQLTraceObject(FMonitorMsgs[0]).SQL, FSQLBuffer, FSQLBufSize);
+        _WriteStrToBuf(TPSQLTraceObject(FMonitorMsgs[0]).ErrorMsg, FErrBuffer, FErrBufSize);
+
+        FTraceDataType^ := Integer(TPSQLTraceObject(FMonitorMsgs[0]).DataType);
+        FTimeStamp^ := TPSQLTraceObject(FMonitorMsgs[0]).TimeStamp;
+        FExecOK^ := Ord(TPSQLTraceObject(FMonitorMsgs[0]).ExecutedOK);
+      finally
+        EndWrite();
+      end;
+    end;
+
+    if FMonitorMsgs.Count > 0 then
+    begin
+      TPSQLTraceObject(FMonitorMsgs[0]).Free();
+      FMonitorMsgs.Delete(0);
+    end;
+  finally
+    Unlock();
+  end;
 end;
-
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.ReleaseMonitor(HWnd: THandle);
 begin
   FMonitorMsgs.Add(TReleaseObject.Create(HWnd));
@@ -840,11 +1018,17 @@ end;
 
 { TPSQLTraceObject }
 
-constructor TPSQLTraceObject.Create(Msg : String; DataType: TPSQLTraceFlag);
+constructor TPSQLTraceObject.Create(const AAppName, ADatabase, AMsg, ASQL: string;
+  ADataType: TPSQLTraceFlag; const AExecOK: boolean; const AErrorMsg: string);
 begin
-   FMsg := Msg;
-   FDataType := DataType;
-   FTimeStamp := Now;
+  FApplication := AAppName;
+  FDatabase := ADatabase;
+  FMsg := AMsg;
+  FSQL := ASQL;
+  FDataType := ADataType;
+  FExecutedOK := AExecOK;
+  FTimeStamp := Now;
+  FErrorMsg := AErrorMsg;
 end;
 
 {TReleaseObject}
@@ -856,15 +1040,15 @@ end;
 
 {ReaderThread}
 
-procedure TMonitorReaderThread.AddMonitor(Arg: TPSQLCustomMonitor);
+procedure TMonitorReaderThread.AddMonitor(Arg: TCustomMonitor);
 begin
    EnterCriticalSection(CS);
    if FMonitors.IndexOf(Arg) < 0 then
       FMonitors.Add(Arg);
    LeaveCriticalSection(CS);
 end;
-
-procedure TMonitorReaderThread.BeginRead;
+//----------------------------------------------------------------------------------------------------------------------
+procedure TMonitorReaderThread.BeginRead();
 begin
   {
    * 1. Wait for the "previous" write event to complete.
@@ -879,25 +1063,30 @@ begin
      SetEvent(FReadEvent);
   WaitForSingleObject(FWriteEvent, INFINITE);
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 constructor TMonitorReaderThread.Create;
 begin
    inherited Create(true);
-   st := TPSQLTraceObject.Create('', tfMisc);
+   st := TPSQLTraceObject.Create('', '', '', '', tfMisc, True);
    FMonitors := TList.Create;
    InterlockedIncrement(FMonitorCount^);
    Resume;
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 destructor TMonitorReaderThread.Destroy;
 begin
    if FMonitorCount^ > 0 then
       InterlockedDecrement(FMonitorCount^);
-   FMonitors.Free;
-   st.Free;
+
+   FMonitors.Free();
+   FMonitors := nil;//mi:2006-09-15
+
+   st.Free();
+   st := nil; //mi:2006-09-15
+   
    inherited Destroy;
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.EndRead;
 begin
    if InterlockedDecrement(FReaderCount^) = 0 then
@@ -906,42 +1095,71 @@ begin
       SetEvent(FReadFinishedEvent);
    end;
 end;
-
+//----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.Execute;
 var
   i : Integer;
   FTemp : TPSQLTraceObject;
 begin
-   while (not Terminated) and (not bDone) do
-   begin
-      ReadSQLData;
-      if not IsBlank(st.FMsg) then
-         for i := 0 to FMonitors.Count - 1 do
-         begin
-            FTemp := TPSQLTraceObject.Create(st.FMsg,  st.FDataType);
-            PostMessage(TPSQLCustomMonitor(FMonitors[i]).Handle,
-                        WM_SQL_EVENT,
-                        0,
-                        LPARAM(FTemp));
-         end;
-   end;
-end;
+  while (not Terminated) and (not bDone) do
+  begin
+    ReadSQLData();
 
-procedure TMonitorReaderThread.ReadSQLData;
+    if not IsBlank(st.FMsg) then
+    for i := 0 to FMonitors.Count - 1 do
+    begin
+      FTemp := TPSQLTraceObject.Create(st.Application, st.Database,
+                                        st.Msg, st.SQL, st.FDataType, st.ExecutedOK, st.ErrorMsg);
+      PostMessage(TCustomMonitor(FMonitors[i]).Handle,
+                  WM_SQL_EVENT,
+                  0,
+                  LPARAM(FTemp));
+    end;
+  end;
+end;
+//----------------------------------------------------------------------------------------------------------------------
+procedure TMonitorReaderThread.ReadSQLData();
+  function _ReadStr(Buffer : PAnsiChar; Len : Cardinal) : string;
+  begin
+    {$IFDEF DELPHI_12}
+    SetString(Result, PChar(Buffer), Len div sizeof(char));
+    {$ELSE}
+    SetString(Result, Buffer, Len);
+    {$ENDIF}
+  end;
 begin
-   st.FMsg := '';
-   BeginRead;
-   if not bDone then
-   try
-     SetString(st.FMsg, FBuffer, FBufferSize^);
-     st.FDataType := TPSQLTraceFlag(FTraceDataType^);
-     st.FTimeStamp := TDateTime(FTimeStamp^);
-   finally
-     EndRead;
-   end;
-end;
+  st.FMsg := '';
+  st.FApplication := '';
+  st.FDatabase := '';
+  st.FSQL := '';
+  st.FErrorMsg := '';
 
-procedure TMonitorReaderThread.RemoveMonitor(Arg: TPSQLCustomMonitor);
+  BeginRead();
+  if not bDone then
+  try
+{
+//mi:2008-11-12 code refactored for Tiburon compatibility
+    SetString(st.FApplication, FAppBuffer, FAppBufSize^);
+    SetString(st.FDatabase, FDBBuffer, FDBBufSize^);
+    SetString(st.FMsg, FMsgBuffer, FMsgBufSize^);
+    SetString(st.FSQL, FSQLBuffer, FSQLBufSize^);
+    SetString(st.FErrorMsg, FErrBuffer, FErrBufSize^);
+}
+    st.FApplication := _ReadStr(FAppBuffer, FAppBufSize^);
+    st.FDatabase := _ReadStr(FDBBuffer, FDBBufSize^);
+    st.FMsg := _ReadStr(FMsgBuffer, FMsgBufSize^);
+    st.FSQL := _ReadStr(FSQLBuffer, FSQLBufSize^);
+    st.FErrorMsg := _ReadStr(FErrBuffer, FErrBufSize^);
+
+    st.FDataType := TPSQLTraceFlag(FTraceDataType^);
+    st.FTimeStamp := TDateTime(FTimeStamp^);
+    st.FExecutedOK := Boolean(FExecOK^);
+  finally
+    EndRead();
+  end;
+end;
+//----------------------------------------------------------------------------------------------------------------------
+procedure TMonitorReaderThread.RemoveMonitor(Arg: TCustomMonitor);
 begin
    EnterCriticalSection(CS);
    FMonitors.Remove(Arg);
@@ -977,7 +1195,6 @@ begin
   Result := bEnabledMonitoring;
 end;
 
-
 initialization
   InitializeCriticalSection(CS);
   _MonitorHook := nil;
@@ -991,13 +1208,15 @@ finalization
      {$IFDEF DELPHI_6}
      if Assigned(FPSQLWriterThread) then
      begin
-        FPSQLWriterThread.StopExec:=True;
+        FPSQLWriterThread.StopExec := True;
         FPSQLWriterThread.Terminate;
         FPSQLWriterThread.WaitFor;
      end;
      {$ENDIF}
+
      if FPSQLReaderThread <> nil then
         FreeAndNil(FPSQLReaderThread);
+
      {$IFNDEF DELPHI_6}
      if Assigned(FPSQLWriterThread) and not FPSQLWriterThread.Suspended then
         FPSQLWriterThread.Suspend;
