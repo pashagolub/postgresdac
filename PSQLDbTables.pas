@@ -201,6 +201,7 @@ type
       function GetIsTemplate: boolean;
       function GetDBOwner: string;
       function GetTablespace: string;
+    function GetIsUnicodeUsed: Boolean;
     Protected
       procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
@@ -250,6 +251,7 @@ type
       property DataSets[Index: Integer]: TPSQLDataSet read GetDataSet;
       property Handle: HDBIDB read FHandle write SetHandle;
       property InTransaction: Boolean read GetInTransaction;
+      property IsUnicodeUsed: Boolean read GetIsUnicodeUsed;
       property Notifies[Index: Integer]: TObject read GetNotifyItem;
       property NotifyCount: Integer read GetNotifyCount;
       property ServerVersionAsInt: integer read GetServerVersionAsInt;
@@ -1047,7 +1049,7 @@ type
 	end;
 
 procedure Check(Engine : TPSQLEngine; Status: Word);
-procedure NoticeProcessor(arg: Pointer; mes: PChar); cdecl;
+procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar); cdecl;
 
 Var
    DBList : TList;
@@ -1073,13 +1075,16 @@ var
 
 
 //NoticeProcessor callback function
-procedure NoticeProcessor(arg: Pointer; mes: PChar);
+procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar);
 var s:string;
 begin
  if Assigned(TPSQLDatabase(Arg).FOnNotice) then
   begin
-   S := Mes;
-   TPSQLDatabase(Arg).FOnNotice(TPSQLDatabase(Arg),S);
+   if TPSQLDatabase(Arg).IsUnicodeUsed then
+     S := UTF8ToString(Mes)
+   else
+     S := string(Mes);
+   TPSQLDatabase(Arg).FOnNotice(TPSQLDatabase(Arg), S);
   end;
 end;
 
@@ -1611,7 +1616,7 @@ begin
       Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
       Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
       IF Assigned(FHandle) then
-        PQSetNoticeProcessor(TNativeConnect(FHandle).Handle,NoticeProcessor,Self);
+        PQSetNoticeProcessor(TNativeConnect(FHandle).Handle, NoticeProcessor, Self);
     Finally
        ParamList.Free
     end;
@@ -2081,6 +2086,14 @@ function TPSQLDatabase.GetIsTemplate: boolean;
 begin
  FillAddonInfo;
  Result := FIsTemplate;
+end;
+
+function TPSQLDatabase.GetIsUnicodeUsed: Boolean;
+begin
+ if Assigned(FHandle) then
+  Result := TNativeConnect(FHandle).IsUnicodeUsed
+ else
+  Result := False;
 end;
 
 function TPSQLDatabase.GetDbOwner: string;

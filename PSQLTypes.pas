@@ -321,7 +321,7 @@ type
 
 
 // PQnoticeProcessor is the function type for the notice-message callback.
-  PQnoticeProcessor = procedure(arg: Pointer; message: PChar);cdecl;
+  PQnoticeProcessor = procedure(arg: Pointer; message: PAnsiChar);cdecl;
 
 // Print options for PQprint()
 //  We can't use the conventional "bool", because we are designed to be

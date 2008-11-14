@@ -4,7 +4,7 @@ unit PSQLTools;
 interface
 
 Uses Windows, Messages, SysUtils, Classes, Graphics, Controls,
-     psqlDbTables, psqlAccess, Dialogs;
+     PSQLDbTables, PSQLAccess, Dialogs;
 
 type
   EPSQLToolsException = class(Exception);
