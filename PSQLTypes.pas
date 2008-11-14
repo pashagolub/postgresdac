@@ -277,7 +277,7 @@ type
     PGRES_FATAL_ERROR);
 
 // String descriptions of the ExecStatusTypes
-  pgresStatus = array[$00..$ff] of PChar;
+  pgresStatus = array[$00..$ff] of PAnsiChar;
 
   //
   TTransactionStatusType = (
@@ -328,7 +328,7 @@ type
 //  included in a user's program, and user may already have that type
 //  defined.  Pqbool, on the other hand, is unlikely to be used.
 
-  PPChar = ^PChar;
+  PPChar = ^PAnsiChar;
 
   PQprintOpt = packed record
     header:    Byte;	   { print output field headings and row count }
@@ -337,9 +337,9 @@ type
     html3:     Byte;	   { output html tables }
     expanded:  Byte;	   { expand tables }
     pager:     Byte;	   { use pager for output if needed }
-    fieldSep:  PChar;	   { field separator }
-    tableOpt:  PChar;      { insert to HTML <table ...> }
-    caption:   PChar;	   { HTML <caption> }
+    fieldSep:  PAnsiChar;	   { field separator }
+    tableOpt:  PAnsiChar;      { insert to HTML <table ...> }
+    caption:   PAnsiChar;	   { HTML <caption> }
     fieldName: PPChar; 	   { null terminated array of repalcement field names }
   end;
 
@@ -349,12 +349,12 @@ type
 //  Structure for the conninfo parameter definitions returned by PQconndefaults //
 //////////////////////////////////////////////////////////////////////////////////
   PQconninfoOption = packed record
-    keyword:  PChar;	{ The keyword of the option }
-    envvar:   PChar;	{ Fallback environment variable name }
-    compiled: PChar;	{ Fallback compiled in default value  }
-    val:      PChar;	{ Options value	}
-    lab:      PChar;	{ Label for field in connect dialog }
-    dispchar: PChar;	{ Character to display for this field
+    keyword:  PAnsiChar;	{ The keyword of the option }
+    envvar:   PAnsiChar;	{ Fallback environment variable name }
+    compiled: PAnsiChar;	{ Fallback compiled in default value  }
+    val:      PAnsiChar;	{ Options value	}
+    lab:      PAnsiChar;	{ Label for field in connect dialog }
+    dispchar: PAnsiChar;	{ Character to display for this field
 			  in a connect dialog. Values are:
 			  ""	Display entered value as is
 			  "*"	Password field - hide value
@@ -381,18 +381,18 @@ type
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
   TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl;
-  TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PChar): PPGconn; cdecl;
+  TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PAnsiChar): PPGconn; cdecl;
   TPQconndefaults  = function: PPQconninfoOption; cdecl;
   TPQfinish        = procedure(Handle: PPGconn); cdecl;
   TPQreset         = procedure(Handle: PPGconn); cdecl;
   TPQrequestCancel = function(Handle: PPGconn): Integer; cdecl;
-  TPQdb            = function(Handle: PPGconn): PChar; cdecl;
-  TPQuser          = function(Handle: PPGconn): PChar; cdecl;
-  TPQpass          = function(Handle: PPGconn): PChar; cdecl;
-  TPQhost          = function(Handle: PPGconn): PChar; cdecl;
-  TPQport          = function(Handle: PPGconn): PChar; cdecl;
-  TPQtty           = function(Handle: PPGconn): PChar; cdecl;
-  TPQoptions       = function(Handle: PPGconn): PChar; cdecl;
+  TPQdb            = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQuser          = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQpass          = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQhost          = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQport          = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQtty           = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQoptions       = function(Handle: PPGconn): PAnsiChar; cdecl;
   TPQstatus        = function(Handle: PPGconn): ConnStatusType; cdecl;
   TPQerrorMessage  = function(Handle: PPGconn): PAnsiChar; cdecl;
   TPQsocket        = function(Handle: PPGconn): Integer; cdecl;
@@ -404,23 +404,23 @@ type
   TPQuntrace       = procedure(Handle: PPGconn); cdecl;
   TPQsetNoticeProcessor = function(Handle: PPGconn; Proc: PQnoticeProcessor; Arg: Pointer):pointer; cdecl;
   TPQexec          = function(Handle: PPGconn; Query: PAnsiChar): PPGresult; cdecl;
-  TPQresultErrorField = function(Result: PPGresult;fieldcode:integer): PChar; cdecl;
+  TPQresultErrorField = function(Result: PPGresult; fieldcode:integer): PAnsiChar; cdecl;
   TPQnotifies      = function(Handle: PPGconn): PPGnotify; cdecl;
-  TPQsendQuery     = function(Handle: PPGconn; Query: PChar): Integer; cdecl;
+  TPQsendQuery     = function(Handle: PPGconn; Query: PAnsiChar): Integer; cdecl;
   TPQgetResult     = function(Handle: PPGconn): PPGresult; cdecl;
   TPQisBusy        = function(Handle: PPGconn): Integer; cdecl;
   TPQconsumeInput  = function(Handle: PPGconn): Integer; cdecl;
-  TPQgetline       = function(Handle: PPGconn; Str: PChar; length: Integer): Integer; cdecl;
-  TPQputline       = function(Handle: PPGconn; Str: PChar): Integer; cdecl;
-  TPQgetlineAsync  = function(Handle: PPGconn; Buffer: PChar; BufSize: Integer): Integer; cdecl;
-  TPQputnbytes     = function(Handle: PPGconn; Buffer: PChar; NBytes: Integer): Integer; cdecl;
+  TPQgetline       = function(Handle: PPGconn; Str: PAnsiChar; length: Integer): Integer; cdecl;
+  TPQputline       = function(Handle: PPGconn; Str: PAnsiChar): Integer; cdecl;
+  TPQgetlineAsync  = function(Handle: PPGconn; Buffer: PAnsiChar; BufSize: Integer): Integer; cdecl;
+  TPQputnbytes     = function(Handle: PPGconn; Buffer: PAnsiChar; NBytes: Integer): Integer; cdecl;
   TPQendcopy       = function(Handle: PPGconn): Integer; cdecl;
   TPQgetCopyData   = function(Handle: PPGConn; Buffer: PPChar; Async: integer = 0):integer; cdecl;
-  TPQputCopyData   = function(Handle: PPGConn; Buffer: PChar; Len: integer): integer; cdecl;
-  TPQputCopyEnd    = function(Handle: PPGConn; Buffer: PChar = nil): integer; cdecl; 
+  TPQputCopyData   = function(Handle: PPGConn; Buffer: PAnsiChar; Len: integer): integer; cdecl;
+  TPQputCopyEnd    = function(Handle: PPGConn; Buffer: PAnsiChar = nil): integer; cdecl;
   TPQfn            = function(Handle: PPGconn; fnid: Integer; result_buf, result_len: PInteger; result_is_int: Integer; args: PPQArgBlock; nargs: Integer): PPGresult; cdecl;
   TPQresultStatus  = function(Result: PPGresult): ExecStatusType; cdecl;
-  TPQresultErrorMessage = function(Result: PPGresult): PChar; cdecl;
+  TPQresultErrorMessage = function(Result: PPGresult): PAnsiChar; cdecl;
   TPQntuples       = function(Result: PPGresult): Integer; cdecl;
   TPQnfields       = function(Result: PPGresult): Integer; cdecl;
   TPQbinaryTuples  = function(Result: PPGresult): Integer; cdecl;
@@ -431,17 +431,17 @@ type
   TPQftablecol     = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
   TPQfsize         = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
   TPQfmod          = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
-  TPQcmdStatus     = function(Result: PPGresult): PChar; cdecl;
+  TPQcmdStatus     = function(Result: PPGresult): PAnsiChar; cdecl;
   TPQoidValue      = function(Result: PPGresult): Oid; cdecl;
-  TPQoidStatus     = function(Result: PPGresult): PChar; cdecl;
-  TPQcmdTuples     = function(Result: PPGresult): PChar; cdecl;
+  TPQoidStatus     = function(Result: PPGresult): PAnsiChar; cdecl;
+  TPQcmdTuples     = function(Result: PPGresult): PAnsiChar; cdecl;
   TPQgetvalue      = function(Result: PPGresult; tup_num, field_num: Integer): PAnsiChar; cdecl;
   TPQgetlength     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQgetisnull     = function(Result: PPGresult; tup_num, field_num: Integer): Integer; cdecl;
   TPQclear         = procedure(Result: PPGresult); cdecl;
   TPQmakeEmptyPGresult  = function(Handle: PPGconn; status: ExecStatusType): PPGresult; cdecl;
   TPQEscapeByteaConn   = function(Handle: PPGconn; from: PAnsiChar; from_length: integer; var to_length: integer): PAnsiChar; cdecl;
-  TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer):PAnsiChar; cdecl;
+  TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer): PAnsiChar; cdecl;
   TPQEscapeStringConn = function(Handle: PPGconn; to_str: PAnsiChar; const from_str: PAnsiChar; from_size: cardinal; var Error: integer):cardinal;cdecl;
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
   TPQsetClientEncoding = function(Handle: PPGconn; encoding: PAnsiChar): integer;
@@ -455,8 +455,8 @@ type
   Tlo_creat        = function(Handle: PPGconn; mode: Integer): Oid; cdecl;
   Tlo_tell         = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
   Tlo_unlink       = function(Handle: PPGconn; lobjId: Oid): Integer; cdecl;
-  Tlo_import       = function(Handle: PPGconn; filename: PChar): Oid; cdecl;
-  Tlo_export       = function(Handle: PPGconn; lobjId: Oid; filename: PChar): Integer; cdecl;
+  Tlo_import       = function(Handle: PPGconn; filename: PAnsiChar): Oid; cdecl;
+  Tlo_export       = function(Handle: PPGconn; lobjId: Oid; filename: PAnsiChar): Integer; cdecl;
 
 //////////////////////////////////////////////////////////////////
 //            Plain API Function variables definition           //
@@ -1656,7 +1656,7 @@ const
   curAUTOREFETCH     = $00050017;       { rw BOOL, Refetch inserted record }
 {$ENDIF}
 
-function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
+function NextSQLToken(var p: PAnsiChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 function GetTable(const SQL: string; var Aliace : String): string;
 function CompareBegin(Str1, Str2: string): Boolean;
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
@@ -1677,8 +1677,8 @@ function TestMask(const S, Mask: string; MaskChar: Char = 'X'): Boolean;
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
-                    MaskChar: Char = '?';
-                    WildCard: Char = '%'): Boolean;
+                    MaskChar: AnsiChar = '?';
+                    WildCard: AnsiChar = '%'): Boolean;
 
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 function GetBDEErrorMessage(ErrorCode : Word):String;
@@ -1862,13 +1862,13 @@ end;
 //                  IMPLEMENTATION COMMON FUNCTIONS                        //
 /////////////////////////////////////////////////////////////////////////////
 { SQL Parser }
-function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
+function NextSQLToken(var p: PAnsiChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 var
   DotStart: Boolean;
 
   function NextTokenIs(Value: string; var Str: string): Boolean;
   var
-    Tmp: PChar;
+    Tmp: PAnsiChar;
     S: string;
   begin
     Tmp := p;
@@ -1883,7 +1883,7 @@ var
 
   function GetSQLToken(var Str: string): TSQLToken;
   var
-    l: PChar;
+    l: PAnsiChar;
     s: string;
   begin
     if Length(Str) = 0 then
@@ -1957,7 +1957,7 @@ var
   end;
 
 var
-  TokenStart: PChar;
+  TokenStart: PAnsiChar;
 
   procedure StartToken;
   begin
@@ -1966,8 +1966,8 @@ var
   end;
 
 var
-  Literal: Char;
-  Mark: PChar;
+  Literal: AnsiChar;
+  Mark: PAnsiChar;
   BracketCount : integer;
   LoopEnd: boolean;
 begin
@@ -2113,12 +2113,12 @@ end;
 
 function GetTable(const SQL: string; var Aliace : String): string;
 var
-  Start: PChar;
+  Start: PAnsiChar;
   Token: string;
   SQLToken, CurSection: TSQLToken;
 begin
   Result := '';
-  Start := PChar(SQL);
+  Start := PAnsiChar(SQL);
   CurSection := stUnknown;
   repeat
     SQLToken := NextSQLToken(Start, Token, CurSection);
@@ -2161,7 +2161,7 @@ function CompareBegin(Str1, Str2: string): Boolean;
 begin
   if ((Str1 = '') or (Str2 = '')) and (Str1 <> Str2) then
     Result := False  else
-    Result := (StrLIComp(PChar(Str1), PChar(Str2), Min(Length(Str1), Length(Str2))) = 0);
+    Result := (StrLIComp(PAnsiChar(Str1), PAnsiChar(Str2), Min(Length(Str1), Length(Str2))) = 0);
 end;
 
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
@@ -2528,7 +2528,7 @@ end;
 
 Procedure LoadPSQLLibrary; Far;
 
-  Function GetPSQLProc( ProcName : PChar ) : TFarProc;
+  Function GetPSQLProc( ProcName : PAnsiChar ) : TFarProc;
   begin
     Result := GetProcAddress( SQLLibraryHandle, ProcName );
   end;
@@ -2712,22 +2712,22 @@ end;
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
-                    MaskChar: Char = '?';
-                    WildCard: Char = '%'): Boolean;//mi:2006-09-07
+                    MaskChar: AnsiChar = '?';
+                    WildCard: AnsiChar = '%'): Boolean;//mi:2006-09-07
 var
-  S, M : PChar;
-  W : PChar; //mi:2007-06-20 last wildcard position in mask
+  S, M : PAnsiChar;
+  W : PAnsiChar; //mi:2007-06-20 last wildcard position in mask
 begin
   Result := false;
   if CaseSensitive then
   begin
-    S := PChar(Str);
-    M := PChar(Mask);
+    S := PAnsiChar(Str);
+    M := PAnsiChar(Mask);
   end
   else
   begin
-    S := PChar(AnsiUpperCase(Str));
-    M := PChar(AnsiUpperCase(Mask));
+    S := PAnsiChar(AnsiUpperCase(Str));
+    M := PAnsiChar(AnsiUpperCase(Mask));
   end;
 
   W := nil;
@@ -2803,13 +2803,13 @@ begin
    If CaseSen then //case insensitive
    begin
       if PartLen = 0 then
-         Result := AnsiStrIComp(PChar(S1),PChar(S2)) = 0 else  // Full len
-         Result := AnsiStrLIComp(PChar(S1),PChar(S2),PartLen) = 0; //Part len
+         Result := AnsiStrIComp(PAnsiChar(S1),PAnsiChar(S2)) = 0 else  // Full len
+         Result := AnsiStrLIComp(PAnsiChar(S1),PAnsiChar(S2),PartLen) = 0; //Part len
    end else
    begin
       if PartLen = 0 then
-         Result := AnsiStrComp(PChar(S1),PChar(S2)) = 0 else  // Full len
-         Result := AnsiStrLComp(PChar(S1),PChar(S2),PartLen) = 0; //Part len
+         Result := AnsiStrComp(PAnsiChar(S1),PAnsiChar(S2)) = 0 else  // Full len
+         Result := AnsiStrLComp(PAnsiChar(S1),PAnsiChar(S2),PartLen) = 0; //Part len
    end;
 end;
 

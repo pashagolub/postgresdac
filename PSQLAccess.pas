@@ -1229,18 +1229,18 @@ Constructor EPSQLException.Create(PSQL : TNativeConnect);
 begin
   FPSQL := PSQL;
   FPSQLErrorCode := 1;
-     FPSQLErrorPos             :=PSQL.ferrorpos;
-     FPSQLErrorContext            :=PSQL.ferrorcontext;
-     FPSQLErrorseverity        :=PSQL.FErrorseverity;
-     FPSQLErrorsqlstate        :=PSQL.FErrorsqlstate;
-     FPSQLErrorprimary         :=PSQL.FErrorprimary;
-     FPSQLErrordetail          :=PSQL.FErrordetail;
-     FPSQLErrorhint            :=PSQL.FErrorhint;
-     FPSQLErrorinternalpos     :=PSQL.FErrorinternalpos;
-     FPSQLErrorinternalquery   :=PSQL.FErrorinternalquery;
-     FPSQLErrorsourcefile      :=PSQL.FErrorsourcefile;
-     FPSQLErrorsourceline      :=PSQL.FErrorsourceline;
-     FPSQLErrorsourcefunc      :=PSQL.FErrorsourcefunc;
+  FPSQLErrorPos             := PSQL.ferrorpos;
+  FPSQLErrorContext         := PSQL.ferrorcontext;
+  FPSQLErrorseverity        := PSQL.FErrorseverity;
+  FPSQLErrorsqlstate        := PSQL.FErrorsqlstate;
+  FPSQLErrorprimary         := PSQL.FErrorprimary;
+  FPSQLErrordetail          := PSQL.FErrordetail;
+  FPSQLErrorhint            := PSQL.FErrorhint;
+  FPSQLErrorinternalpos     := PSQL.FErrorinternalpos;
+  FPSQLErrorinternalquery   := PSQL.FErrorinternalquery;
+  FPSQLErrorsourcefile      := PSQL.FErrorsourcefile;
+  FPSQLErrorsourceline      := PSQL.FErrorsourceline;
+  FPSQLErrorsourcefunc      := PSQL.FErrorsourcefunc;
   FPSQLErrorMsg  := PSQL.GetErrorText;
   if FPSQLErrorCode > 0 then FBDEERRORCode := DBIERR_INVALIDPARAM;
   Inherited Create('');
@@ -1250,7 +1250,7 @@ Constructor EPSQLException.CreateMsg(PSQL : TNativeConnect; Const ErrorMsg : Str
 begin
   Create(PSQL);
   FPSQLErrorMsg := ErrorMsg;
-  FBDEERRORCode :=1001;
+  FBDEERRORCode := 1001;
 end;
 
 function EPSQLException.GetNativeErrordetail: String;
@@ -1501,18 +1501,18 @@ Procedure TNativeConnect.CheckResult(FStatement:PPGresult);
 begin
  if GetErrorText <> '' then
     begin
-     FErrorseverity:= Trim(PQresultErrorField(fstatement,PG_DIAG_SEVERITY));
-     FErrorsqlstate:= Trim(PQresultErrorField(fstatement,PG_DIAG_SQLSTATE));
-     FErrorprimary:= Trim(PQresultErrorField(fstatement,PG_DIAG_MESSAGE_PRIMARY));
-     FErrordetail:= Trim(PQresultErrorField(fstatement,PG_DIAG_MESSAGE_DETAIL));
-     FErrorhint:= Trim(PQresultErrorField(fstatement,PG_DIAG_MESSAGE_HINT));
-     FErrorinternalpos:= Trim(PQresultErrorField(fstatement,PG_DIAG_INTERNAL_POSITION));
-     FErrorinternalquery:= Trim(PQresultErrorField(fstatement,PG_DIAG_INTERNAL_QUERY));
-     FErrorsourcefile:= Trim(PQresultErrorField(fstatement,PG_DIAG_SOURCE_FILE));
-     FErrorsourceline:= Trim(PQresultErrorField(fstatement,PG_DIAG_SOURCE_LINE));
-     FErrorsourcefunc:= Trim(PQresultErrorField(fstatement,PG_DIAG_SOURCE_FUNCTION));
-     FErrorContext:= Trim(PQresultErrorField(fstatement,PG_DIAG_CONTEXT));
-     FErrorpos:=  Trim(PQresultErrorField(fstatement,PG_DIAG_STATEMENT_POSITION));
+     FErrorSeverity := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SEVERITY)));
+     FErrorSQLState := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SQLSTATE)));
+     FErrorPrimary := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_MESSAGE_PRIMARY)));
+     FErrorDetail := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_MESSAGE_DETAIL)));
+     FErrorHint := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_MESSAGE_HINT)));
+     FErrorInternalPos := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_INTERNAL_POSITION)));
+     FErrorInternalQuery := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_INTERNAL_QUERY)));
+     FErrorSourceFile := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SOURCE_FILE)));
+     FErrorSourceLine := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SOURCE_LINE)));
+     FErrorSourceFunc := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SOURCE_FUNCTION)));
+     FErrorContext := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_CONTEXT)));
+     FErrorPos :=  Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_STATEMENT_POSITION)));
      raise EPSQLException.CreateMsg(self,GetErrorText);
     end;
 end;
