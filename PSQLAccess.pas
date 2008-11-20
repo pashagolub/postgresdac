@@ -3885,11 +3885,13 @@ begin
                                     end;
              else
               begin
-               {$IFDEF DELPHI_12}
                if FConnect.IsUnicodeUsed then
+               {$IFDEF DELPHI_12}
                  StrCopy(PWideChar(Data), PWideChar(FldValue))
-               else
+               {$ELSE}
+                 StrCopy(PAnsiChar(Data), PAnsiChar(UTF8ToString(FldValue)))
                {$ENDIF}
+               else
                 StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
               end;
              end;
@@ -4514,11 +4516,13 @@ Var
       if Field.FieldSubType = fldstMemo then
       begin
          if FieldBuffer(ColumnNumber-1) <> nil then
+         if FConnect.IsUnicodeUsed then
          {$IFDEF DELPHI_12}
-          if FConnect.IsUnicodeUsed then
             Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
-          else
+         {$ELSE}
+            Result := Length(UTF8ToString(FieldBuffer(ColumnNumber-1)))
          {$ENDIF}
+          else
             Result := FieldSize(ColumnNumber-1);
      end else
       begin
@@ -4608,33 +4612,40 @@ var
       Result := 0;
     end;
 
-    function BlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
+    function BlobGet(ColumnNumber: Integer; Offset, ALength : LongInt; buff, Dest :Pointer)  : LongInt;
     var
       L,N : integer;
       Len : LongInt;
+      S: string;
     begin
-     Result := CachedBlobGet(Offset, Length, buff, Dest);
+     Result := CachedBlobGet(Offset, ALength, buff, Dest);
      if Result = 0 then
       if Field.FieldSubType = fldstMemo then
         begin
-        {$IFDEF DELPHI_12}
            if FConnect.IsUnicodeUsed then
+        {$IFDEF DELPHI_12}
             begin
               Utf8ToUnicode(Dest, Length, PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset), Cardinal(-1));
               Len := StrLen(PChar(Dest)) *  SizeOf(Char);
             end
-           else
-        {$ENDIF}
+        {$ELSE}
             begin
-              Move(PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset)^, Dest^, Length);
+              S := UTF8ToString(FieldBuffer(ColumnNumber - 1));
+              Move(PAnsiChar(PAnsiChar(S) + Offset)^, Dest^, ALength);
+              Len := Length(S);
+            end
+        {$ENDIF}
+           else
+            begin
+              Move(PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset)^, Dest^, ALength);
               Len := StrBufSize(FieldBuffer(ColumnNumber - 1)) - 1;
             end;
 
 
-           if (Offset + Length >= Len) then
+           if (Offset + ALength >= Len) then
             Result := Len - Offset
            else
-            Result := Length;
+            Result := ALength;
         end
       else
         begin
@@ -4642,8 +4653,8 @@ var
          begin
           lo_lseek(FConnect.Handle, FLocalBHandle, Offset, 0);
           L := 0;
-          Len := Length;
-          if Length > MAX_BLOB_SIZE then
+          Len := ALength;
+          if ALength > MAX_BLOB_SIZE then
           begin
            repeat
             if Len > MAX_BLOB_SIZE then
@@ -4654,7 +4665,7 @@ var
            until N < MAX_BLOB_SIZE;
            Result := L;
           end else
-             Result  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest), Length);
+             Result  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest), ALength);
          end;
         end;
        end;
