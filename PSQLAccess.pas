@@ -4625,7 +4625,7 @@ var
            if FConnect.IsUnicodeUsed then
         {$IFDEF DELPHI_12}
             begin
-              Utf8ToUnicode(Dest, Length, PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset), Cardinal(-1));
+              Utf8ToUnicode(Dest, ALength, PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset), Cardinal(-1));
               Len := StrLen(PChar(Dest)) *  SizeOf(Char);
             end
         {$ELSE}
@@ -7454,7 +7454,7 @@ procedure TNativeDataSet.FieldOldValue(AFieldName: string; var AParam: TParam);
 var AFNum, Len: integer;
     FVal: PAnsiChar;
 begin
- AFNum := FieldIndex(AFieldName);
+ AFNum := FieldIndex(AnsiQuotedStr(AFieldName, '"'));
  if AFNum = -1 then Exit;
  if FieldIsNull(AFNum) then
   begin                                        
