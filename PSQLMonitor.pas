@@ -15,7 +15,7 @@ const
   CRLF = #13#10;
 
 type
-  TCustomMonitor = class;
+  TPSQLCustomMonitor = class;
 
   EPSQLMonitorError = class(EPSQLDatabaseError);//mi:2007-04-27 EPSQLMonitorError inherited from EPSQLDACException
 
@@ -26,7 +26,7 @@ type
   TSQLEvent = procedure(const Application, Database, Msg, SQL, ErrorMsg: string;
       DataType: TPSQLTraceFlag; const ExecutedOK: boolean; EventTime: TDateTime) of object;
 
-  TCustomMonitor = class(TComponent)
+  TPSQLCustomMonitor = class(TComponent)
   private
     FHWnd: HWND;
     FOnSQLEvent: TSQLEvent;
@@ -46,7 +46,7 @@ type
     property   Handle : HWND read FHwnd;
   end;
 
-  TPSQLMonitor = class(TCustomMonitor)
+  TPSQLMonitor = class(TPSQLCustomMonitor)
   private
     FAbout : TPSQLDACAbout; //mi:2007-09-28
   published
@@ -69,9 +69,9 @@ type
     destructor Destroy; override;
     procedure TerminateWriteThread;
     function  SQLString(k:integer):Byte;
-    procedure RegisterMonitor(SQLMonitor : TCustomMonitor);
-    procedure UnregisterMonitor(SQLMonitor : TCustomMonitor);
-    procedure ReleaseMonitor(Arg : TCustomMonitor);
+    procedure RegisterMonitor(SQLMonitor : TPSQLCustomMonitor);
+    procedure UnregisterMonitor(SQLMonitor : TPSQLCustomMonitor);
+    procedure ReleaseMonitor(Arg : TPSQLCustomMonitor);
     procedure SQLPrepare(qry: TNativeDataset); virtual;
     procedure SQLExecute(qry: TNativeDataset; const AExecOK: boolean); overload; virtual;
     procedure SQLExecute(db: TNativeConnect; const Sql: string; const AExecOK: boolean); overload; virtual;
@@ -177,8 +177,8 @@ type
   public
     constructor Create;
     destructor Destroy; override;
-    procedure  AddMonitor(Arg : TCustomMonitor);
-    procedure  RemoveMonitor(Arg : TCustomMonitor);
+    procedure  AddMonitor(Arg : TPSQLCustomMonitor);
+    procedure  RemoveMonitor(Arg : TPSQLCustomMonitor);
   end;
 
 const
@@ -240,7 +240,7 @@ var
   CS : TRTLCriticalSection;
   bEnabledMonitoring:boolean;
 
-constructor TCustomMonitor.Create(AOwner: TComponent);
+constructor TPSQLCustomMonitor.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
   FActive := true;
@@ -252,7 +252,7 @@ begin
   TraceFlags := [tfqPrepare .. tfTransact];
 end;
 //----------------------------------------------------------------------------------------------------------------------
-destructor TCustomMonitor.Destroy();
+destructor TPSQLCustomMonitor.Destroy();
 begin
   if not (csDesigning in ComponentState) then
   begin
@@ -274,7 +274,7 @@ begin
   inherited Destroy;
 end;
 //----------------------------------------------------------------------------------------------------------------------
-procedure TCustomMonitor.MonitorWndProc(var Message: TMessage);
+procedure TPSQLCustomMonitor.MonitorWndProc(var Message: TMessage);
 var
   st : TPSQLTraceObject;
 begin
@@ -293,12 +293,12 @@ begin
   end;
 end;
 //----------------------------------------------------------------------------------------------------------------------
-procedure TCustomMonitor.Release;
+procedure TPSQLCustomMonitor.Release;
 begin
   MonitorHook.ReleaseMonitor(self);
 end;
 
-procedure TCustomMonitor.SetActive(const Value: Boolean);
+procedure TPSQLCustomMonitor.SetActive(const Value: Boolean);
 begin
    if Value <> FActive then
    begin
@@ -310,7 +310,7 @@ begin
   end;
 end;
 
-procedure TCustomMonitor.SetTraceFlags(const Value: TPSQLTraceFlags);
+procedure TPSQLCustomMonitor.SetTraceFlags(const Value: TPSQLTraceFlags);
 begin
    if not (csDesigning in ComponentState) then
    begin
@@ -591,7 +591,7 @@ begin
       Result := FMonitorCount^;
 end;
 
-procedure TPSQLMonitorHook.RegisterMonitor(SQLMonitor: TCustomMonitor);
+procedure TPSQLMonitorHook.RegisterMonitor(SQLMonitor: TPSQLCustomMonitor);
 begin
    if not vEventsCreated then
    try
@@ -604,7 +604,7 @@ begin
    FPSQLReaderThread.AddMonitor(SQLMonitor);
 end;
 
-procedure TPSQLMonitorHook.ReleaseMonitor(Arg: TCustomMonitor);
+procedure TPSQLMonitorHook.ReleaseMonitor(Arg: TPSQLCustomMonitor);
 begin
    FPSQLWriterThread.ReleaseMonitor(Arg.FHWnd);
 end;
@@ -732,7 +732,7 @@ begin
    end;
 end;
 
-procedure TPSQLMonitorHook.UnregisterMonitor(SQLMonitor: TCustomMonitor);
+procedure TPSQLMonitorHook.UnregisterMonitor(SQLMonitor: TPSQLCustomMonitor);
 begin
    FPSQLReaderThread.RemoveMonitor(SQLMonitor);
    if FPSQLReaderThread.FMonitors.Count = 0 then
@@ -1040,7 +1040,7 @@ end;
 
 {ReaderThread}
 
-procedure TMonitorReaderThread.AddMonitor(Arg: TCustomMonitor);
+procedure TMonitorReaderThread.AddMonitor(Arg: TPSQLCustomMonitor);
 begin
    EnterCriticalSection(CS);
    if FMonitors.IndexOf(Arg) < 0 then
@@ -1110,7 +1110,7 @@ begin
     begin
       FTemp := TPSQLTraceObject.Create(st.Application, st.Database,
                                         st.Msg, st.SQL, st.FDataType, st.ExecutedOK, st.ErrorMsg);
-      PostMessage(TCustomMonitor(FMonitors[i]).Handle,
+      PostMessage(TPSQLCustomMonitor(FMonitors[i]).Handle,
                   WM_SQL_EVENT,
                   0,
                   LPARAM(FTemp));
@@ -1159,7 +1159,7 @@ begin
   end;
 end;
 //----------------------------------------------------------------------------------------------------------------------
-procedure TMonitorReaderThread.RemoveMonitor(Arg: TCustomMonitor);
+procedure TMonitorReaderThread.RemoveMonitor(Arg: TPSQLCustomMonitor);
 begin
    EnterCriticalSection(CS);
    FMonitors.Remove(Arg);

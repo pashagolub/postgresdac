@@ -1656,9 +1656,9 @@ const
   curAUTOREFETCH     = $00050017;       { rw BOOL, Refetch inserted record }
 {$ENDIF}
 
-function NextSQLToken(var p: PAnsiChar; out Token: string; CurSection: TSQLToken): TSQLToken;
-function GetTable(const SQL: string; var Aliace : String): string;
-function CompareBegin(Str1, Str2: string): Boolean;
+function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
+function GetTable(const SQL: String; var Aliace : String): String;
+function CompareBegin(Str1, Str2: ansistring): Boolean;
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;
@@ -1677,8 +1677,8 @@ function TestMask(const S, Mask: string; MaskChar: Char = 'X'): Boolean;
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
-                    MaskChar: AnsiChar = '?';
-                    WildCard: AnsiChar = '%'): Boolean;
+                    MaskChar: Char = '?';
+                    WildCard: Char = '%'): Boolean;
 
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 function GetBDEErrorMessage(ErrorCode : Word):String;
@@ -1696,6 +1696,16 @@ type
  function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
 {$ENDIF}
 
+{$IFNDEF DELPHI_12}
+
+ {$IFDEF DELPHI_5}
+   function Utf8Encode(const WS: WideString): AnsiString;
+ {$ENDIF}
+
+ function UTF8ToString(const S: String): string;
+
+{$ENDIF}
+
 
 implementation
 
@@ -1703,6 +1713,28 @@ uses PSQLDbTables;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TCONTAINER OBJECT                       //
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+{$IFNDEF DELPHI_12}
+
+  {$IFDEF DELPHI_5}
+  function Utf8Encode(const WS: WideString): AnsiString;
+  begin
+    Result := WS;
+  end;
+  {$ENDIF}
+
+  function UTF8ToString(const S: String): string;
+  begin
+    {$IFDEF DELPHI_5}
+    Result := S;
+    {$ELSE}
+    Result := Utf8Decode(S);
+    {$ENDIF}
+  end;
+
+{$ENDIF}
 
 {$IFNDEF DELPHI_12}
 function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
@@ -1862,13 +1894,13 @@ end;
 //                  IMPLEMENTATION COMMON FUNCTIONS                        //
 /////////////////////////////////////////////////////////////////////////////
 { SQL Parser }
-function NextSQLToken(var p: PAnsiChar; out Token: string; CurSection: TSQLToken): TSQLToken;
+function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 var
   DotStart: Boolean;
 
   function NextTokenIs(Value: string; var Str: string): Boolean;
   var
-    Tmp: PAnsiChar;
+    Tmp: PChar;
     S: string;
   begin
     Tmp := p;
@@ -1883,7 +1915,7 @@ var
 
   function GetSQLToken(var Str: string): TSQLToken;
   var
-    l: PAnsiChar;
+    l: PChar;
     s: string;
   begin
     if Length(Str) = 0 then
@@ -1957,7 +1989,7 @@ var
   end;
 
 var
-  TokenStart: PAnsiChar;
+  TokenStart: PChar;
 
   procedure StartToken;
   begin
@@ -1966,8 +1998,8 @@ var
   end;
 
 var
-  Literal: AnsiChar;
-  Mark: PAnsiChar;
+  Literal: Char;
+  Mark: PChar;
   BracketCount : integer;
   LoopEnd: boolean;
 begin
@@ -2111,14 +2143,14 @@ begin
   end;
 end;
 
-function GetTable(const SQL: string; var Aliace : String): string;
+function GetTable(const SQL: String; var Aliace : String): string;
 var
-  Start: PAnsiChar;
+  Start: PChar;
   Token: string;
   SQLToken, CurSection: TSQLToken;
 begin
   Result := '';
-  Start := PAnsiChar(SQL);
+  Start := PChar(SQL);
   CurSection := stUnknown;
   repeat
     SQLToken := NextSQLToken(Start, Token, CurSection);
@@ -2157,7 +2189,7 @@ end;
 
 
 
-function CompareBegin(Str1, Str2: string): Boolean;
+function CompareBegin(Str1, Str2: ansistring): Boolean;
 begin
   if ((Str1 = '') or (Str2 = '')) and (Str1 <> Str2) then
     Result := False  else
@@ -2712,22 +2744,22 @@ end;
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
-                    MaskChar: AnsiChar = '?';
-                    WildCard: AnsiChar = '%'): Boolean;//mi:2006-09-07
+                    MaskChar: Char = '?';
+                    WildCard: Char = '%'): Boolean;//mi:2006-09-07
 var
-  S, M : PAnsiChar;
-  W : PAnsiChar; //mi:2007-06-20 last wildcard position in mask
+  S, M : PChar;
+  W : PChar; //mi:2007-06-20 last wildcard position in mask
 begin
   Result := false;
   if CaseSensitive then
   begin
-    S := PAnsiChar(Str);
-    M := PAnsiChar(Mask);
+    S := PChar(Str);
+    M := PChar(Mask);
   end
   else
   begin
-    S := PAnsiChar(AnsiUpperCase(Str));
-    M := PAnsiChar(AnsiUpperCase(Mask));
+    S := PChar(AnsiUpperCase(Str));
+    M := PChar(AnsiUpperCase(Mask));
   end;
 
   W := nil;
@@ -2779,6 +2811,8 @@ begin
   end;
 end;
 
+
+
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 var
   S1,S2 : String;
@@ -2803,15 +2837,15 @@ begin
    If CaseSen then //case insensitive
    begin
       if PartLen = 0 then
-         Result := AnsiStrIComp(PAnsiChar(S1),PAnsiChar(S2)) = 0 else  // Full len
-         Result := AnsiStrLIComp(PAnsiChar(S1),PAnsiChar(S2),PartLen) = 0; //Part len
+         Result := AnsiStrIComp(PChar(S1), PChar(S2)) = 0 else  // Full len
+         Result := AnsiStrLIComp(PChar(S1), PChar(S2), PartLen) = 0; //Part len
    end else
    begin
       if PartLen = 0 then
-         Result := AnsiStrComp(PAnsiChar(S1),PAnsiChar(S2)) = 0 else  // Full len
-         Result := AnsiStrLComp(PAnsiChar(S1),PAnsiChar(S2),PartLen) = 0; //Part len
+         Result := AnsiStrComp(PChar(S1), PChar(S2)) = 0 else  // Full len
+         Result := AnsiStrLComp(PChar(S1), PChar(S2), PartLen) = 0; //Part len
    end;
-end;
+ end;
 
 function GetBDEErrorMessage(ErrorCode : Word):String;
 begin

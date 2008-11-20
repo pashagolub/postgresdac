@@ -186,7 +186,7 @@ end;
 procedure TCustomPSQLCopy.DoClientSideCopyPut(Stream: TStream);
 var Result, Result2: PPGresult;
     Count: cardinal;
-    Buffer: array[Word] of char;
+    Buffer: array[Word] of AnsiChar;
     AConnect: TNativeConnect;
 begin
   if Assigned(FBeforeCopyPut) then

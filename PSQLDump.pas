@@ -250,26 +250,6 @@ const
 implementation
 
 
-{$IFNDEF DELPHI_12}
-
-  {$IFDEF DELPHI_5}
-  function Utf8Encode(const WS: WideString): AnsiString;
-  begin
-    Result := WS;
-  end;
-  {$ENDIF}
-
-  function UTF8ToString(const S: String): string;
-  begin
-    {$IFDEF DELPHI_5}
-    Result := S;
-    {$ELSE}
-    Result := Utf8Decode(S);
-    {$ENDIF}
-  end;
-  
-{$ENDIF}
-
 var ProccessOwner: TComponent = nil;
 
 { TpdmvmParams }

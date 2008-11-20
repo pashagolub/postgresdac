@@ -180,9 +180,9 @@ Type
 
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; aFieldNumber : integer):string; overload;
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
-    {$IFDEF DELPHI_12}
+
     function IsUnicodeUsed: boolean;
-    {$ENDIF}
+
     function RawToString(S: PAnsiChar): string;
     function StringToRaw(S: string): PAnsiChar;
     function StringToRawS(S: string): AnsiString;
@@ -3393,7 +3393,7 @@ begin
       CloseTable;
       raise;
     end;
-    FAffectedRows := StrToIntDef(StrPas(PQcmdTuples(FStatement)),0);
+    FAffectedRows := StrToIntDef(String(PQcmdTuples(FStatement)), 0);
     FLastOperationTime := GetTickCount - FLastOperationTime;
 //    ROWID := PQOidValue(FStatement);
     PQclear(FStatement);
@@ -4361,7 +4361,8 @@ var
   J : Integer;
   LastIdx: integer;
   sSQLQuery: string;
-  ATablename, Aliace, Tbl, ASchema: string;
+  ATablename, Aliace: String;
+  Tbl, ASchema: string;
   RES: PPGresult;
 begin
   Result :=0;
@@ -4373,7 +4374,7 @@ begin
     If FConnect.GetserverVersionAsInt <= 070400 then
      begin
         if SQLQuery <> ''then
-           ATableName := GetTable(SQLQuery,Aliace) else
+           ATableName := GetTable(SQLQuery, Aliace) else
            ATableName := TableName;
         if ATableName = '' then Exit;
         ATableName := StringReplace(ATableName,'"','',[rfReplaceAll]);
@@ -8222,14 +8223,12 @@ begin
   end;
 end;
 
-{$IFDEF DELPHI_12}
 function TNativeConnect.IsUnicodeUsed: boolean;
 var S: string;
 begin
  S := GetCharSet();
  Result := (S = 'UNICODE') or (S = 'UTF8');
 end;
-{$ENDIF}
 
 function TPSQLEngine.GetFieldTypeOID(hCursor: hDBICur; const FieldNum: integer): cardinal;
 begin
