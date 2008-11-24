@@ -328,7 +328,7 @@ type
 //  included in a user's program, and user may already have that type
 //  defined.  Pqbool, on the other hand, is unlikely to be used.
 
-  PPChar = ^PAnsiChar;
+  PPAnsiChar = ^PAnsiChar;
 
   PQprintOpt = packed record
     header:    Byte;	   { print output field headings and row count }
@@ -340,7 +340,7 @@ type
     fieldSep:  PAnsiChar;	   { field separator }
     tableOpt:  PAnsiChar;      { insert to HTML <table ...> }
     caption:   PAnsiChar;	   { HTML <caption> }
-    fieldName: PPChar; 	   { null terminated array of repalcement field names }
+    fieldName: PPAnsiChar; 	   { null terminated array of repalcement field names }
   end;
 
   PPQprintOpt = ^PQprintOpt;
@@ -415,7 +415,7 @@ type
   TPQgetlineAsync  = function(Handle: PPGconn; Buffer: PAnsiChar; BufSize: Integer): Integer; cdecl;
   TPQputnbytes     = function(Handle: PPGconn; Buffer: PAnsiChar; NBytes: Integer): Integer; cdecl;
   TPQendcopy       = function(Handle: PPGconn): Integer; cdecl;
-  TPQgetCopyData   = function(Handle: PPGConn; Buffer: PPChar; Async: integer = 0):integer; cdecl;
+  TPQgetCopyData   = function(Handle: PPGConn; Buffer: PPAnsiChar; Async: integer = 0):integer; cdecl;
   TPQputCopyData   = function(Handle: PPGConn; Buffer: PAnsiChar; Len: integer): integer; cdecl;
   TPQputCopyEnd    = function(Handle: PPGConn; Buffer: PAnsiChar = nil): integer; cdecl;
   TPQfn            = function(Handle: PPGconn; fnid: Integer; result_buf, result_len: PInteger; result_is_int: Integer; args: PPQArgBlock; nargs: Integer): PPGresult; cdecl;

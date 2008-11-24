@@ -147,8 +147,8 @@ end;
 procedure TCustomPSQLCopy.DoClientSideCopyGet(Stream: TStream);
 var Result: PPGresult;
     LineRes: integer;
-    Buffer: PChar;
-    S: string;
+    Buffer: PAnsiChar;
+    S: AnsiString;
     AConnect: TNativeConnect;
 begin
   if Assigned(FBeforeCopyGet) then
@@ -168,7 +168,7 @@ begin
           S := Copy(Buffer,1,LineRes);
           Stream.Write(Pointer(S)^,length(S));
          end;
-        If Buffer <> nil then
+        if Buffer <> nil then
           PQfreemem (Buffer);
        Until LineRes < 0;
        If PQresultStatus(Result) <> PGRES_COMMAND_OK then
