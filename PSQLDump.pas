@@ -8,8 +8,8 @@ Uses Classes, SysUtils, Windows, BDE, Db,DbTables,PSQLTypes,Math,
      PSQLDbTables, PSQLAboutFrm;
 
 type
-  Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PAnsiChar; err_file : PAnsiChar; params : PAnsiChar):longint; cdecl;
-  Tpdmvm_restore = function ( app_exe : PAnsiChar; filename : PAnsiChar; pwd : PAnsiChar; out_file : PAnsiChar; err_file : PAnsiChar; params : PAnsiChar):longint; cdecl;
+  Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
+  Tpdmvm_restore = function ( app_exe : PAnsiChar; filename : PWideChar; pwd : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
 
   Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar);cdecl;//mi:2006-10-12
   Tpdmbvm_GetVersionAsInt = function ():integer;cdecl;//mi:2007-01-15
@@ -555,7 +555,7 @@ var
   Result: longint;
   S: string;
 
-  PLog: PAnsiChar;
+  PLog: PWideChar;
   PWD: PAnsiChar;
 
   pdmvm_dump: Tpdmvm_dump;
@@ -594,7 +594,7 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PAnsiChar(UTF8Encode(LogFile))
+     PLog := PWideChar(LogFile)
     else
      PLog := nil;
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
@@ -602,7 +602,7 @@ begin
                          PAnsiChar(UTF8Encode(FDatabase.DatabaseName)),
                          PWD,
                          ErrBuff,
-                         PAnsiChar(UTF8Encode(TargetFile)),
+                         PWideChar(TargetFile),
                          PLog,
                          GetParameters());
     Case Result of
@@ -823,7 +823,7 @@ var
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
-  PLog: PAnsiChar;
+  PLog: PWideChar;
 begin
   S := '';
   h := LoadLibrary('pg_restore.dll');
@@ -849,13 +849,13 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PAnsiChar(UTF8Encode(LogFile))
+     PLog := PWideChar(LogFile)
     else
      PLog := nil;
     Result := pdmvm_restore(PAnsiChar(UTF8Encode(ParamStr(0))),
-                          PAnsiChar(UTF8Encode(SourceFile)),//in file
+                          PWideChar(SourceFile),//in file
                           PAnsiChar(UTF8Encode(FDatabase.UserPassword)),
-                          PAnsiChar(UTF8Encode(OutFile)),//out file
+                          PWideChar(OutFile),//out file
                           PLog,//out file
                           GetParameters());
 
