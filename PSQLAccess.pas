@@ -910,7 +910,7 @@ end;
 procedure OpenDebugFile;
 var Name: string;
 begin
- DateTimeToString(Name, '_dd.mm.yy', Now());
+ DateTimeToString(Name, '_dd.mm.yy_hh.nn.ss', Now());
  Name := ChangeFileExt(GetModuleName(HInstance), Name + '_log.html');
  AssignFile(F, Name);
  if FileExists(Name) then
