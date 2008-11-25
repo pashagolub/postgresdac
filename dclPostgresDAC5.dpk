@@ -28,7 +28,8 @@ package dclPostgresDAC5;
 
 requires
   vcl50,
-  PostgresDAC5;
+  PostgresDAC5,
+  dcldb50;
 
 contains
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
