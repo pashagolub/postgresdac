@@ -3487,7 +3487,7 @@ begin
        end;
      {$IFDEF DELPHI_12}
        if FConnect.IsUnicodeUsed then
-        Result := Result * SizeOf(Char) + 1
+        Result := (Result + 1 )* SizeOf(Char) //we need two #0 bytes here 25.11.2008
        else
      {$ENDIF}
         Result := Result + 1;
@@ -3884,7 +3884,6 @@ begin
                                         continue;
                                     end;
              else
-              begin
                if FConnect.IsUnicodeUsed then
                {$IFDEF DELPHI_12}
                  StrCopy(PWideChar(Data), PWideChar(FldValue))
@@ -3893,10 +3892,9 @@ begin
                {$ENDIF}
                else
                 StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
-              end;
              end;
-             move(Data^,(PAnsiChar(FCurrentBuffer)+1)^, Size);
-             PAnsiChar(FCurrentBuffer)^:=#1; {null indicator 1=Data 0=null}
+             move(Data^, (PAnsiChar(FCurrentBuffer)+1)^, Size);
+             PAnsiChar(FCurrentBuffer)^ := #1; {null indicator 1=Data 0=null}
           end;
           Inc(PAnsiChar(FCurrentBuffer), Size+1); {plus 1 for null byte}
        end;
@@ -4616,7 +4614,9 @@ var
     var
       L,N : integer;
       Len : LongInt;
+     {$IFNDEF DELPHI_12}
       S: string;
+     {$ENDIF}
     begin
      Result := CachedBlobGet(Offset, ALength, buff, Dest);
      if Result = 0 then
