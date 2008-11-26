@@ -635,8 +635,6 @@ type
   TTableType = (ttDefault, ttParadox, ttDBase, ttFoxPro, ttASCII);
   TIndexName = type string;
 
-  TIndexDescList = array of IDXDesc;
-
   TValCheckList = array of VCHKDesc;
 
   TPSQLTable = Class(TPSQLDataSet)
@@ -5471,7 +5469,7 @@ var
     I: Integer;
     Cursor: HDBICur;
     CursorProps: CurProps;
-    IndexDescs: TIndexDescList;
+    IndexDescs: TIDXDescList;
   begin
     if Handle = nil then
        Cursor := GetHandle('', '') else
@@ -5481,7 +5479,7 @@ var
       if CursorProps.iIndexes > 0 then
       begin
         SetLength(IndexDescs, CursorProps.iIndexes);
-        Engine.GetIndexDescs(Cursor, PIDXDesc(IndexDescs));
+        Engine.GetIndexDescs(Cursor, IndexDescs);
         for I := 0 to CursorProps.iIndexes - 1 do
         begin
           DecodeIndexDesc(IndexDescs[I], Src, IdxName, Flds, DescFlds, Opts);
@@ -5518,6 +5516,7 @@ var
               DescFields := DescFlds;
               Options := Opts;
             end;
+            Finalize(IndexDesc);
           end;
     finally
       Engine.CloseCursor(FCursor);
@@ -5850,7 +5849,7 @@ end;
 {New 29.05.2001}
 procedure TPSQLTable.CreateTable;
 var
-  IndexDescs: TIndexDescList;
+  IndexDescs: TIDXDescList;
   TableDesc: CRTblDesc;
   FieldDescs: TFLDDescList;
   ValChecks: TValCheckList;

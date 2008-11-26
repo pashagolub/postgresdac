@@ -594,7 +594,7 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PWideChar(LogFile)
+     PLog := PWideChar(WideString(LogFile))
     else
      PLog := nil;
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
@@ -602,7 +602,7 @@ begin
                          PAnsiChar(UTF8Encode(FDatabase.DatabaseName)),
                          PWD,
                          ErrBuff,
-                         PWideChar(TargetFile),
+                         PWideChar(WideString(TargetFile)),
                          PLog,
                          GetParameters());
     Case Result of
@@ -849,13 +849,13 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PWideChar(LogFile)
+     PLog := PWideChar(WideString(LogFile))
     else
      PLog := nil;
     Result := pdmvm_restore(PAnsiChar(UTF8Encode(ParamStr(0))),
-                          PWideChar(SourceFile),//in file
+                          PWideChar(WideString(SourceFile)),//in file
                           PAnsiChar(UTF8Encode(FDatabase.UserPassword)),
-                          PWideChar(OutFile),//out file
+                          PWideChar(WideString(OutFile)),//out file
                           PLog,//out file
                           GetParameters());
 
