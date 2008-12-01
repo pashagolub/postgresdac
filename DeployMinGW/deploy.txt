@@ -1,0 +1,18 @@
+
+In order to run applications using PostgresDAC 2.5.0, the PostgreSQL 8.3.5 client
+library must be available on a computer, it includes the following
+files:
+
+    libpq.dll
+    pg_dump.dll
+    pg_restore.dll
+    ssleay32.dll
+    libeay32.dll
+
+Copy these files to a directory on your PATH environment variable
+(e.g. Windows\System32) or place them in the directory where the
+client application is installed.
+
+Alternatively, you can make use of the installation package from
+PostgreSQL.org and install only the v8.3.5 client libraries.
+
