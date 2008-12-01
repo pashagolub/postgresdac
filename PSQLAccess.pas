@@ -1583,8 +1583,7 @@ begin
      CheckResult;
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := PChar(PQgetvalue(RES,I,0));
-        List.Add(StrPas(CREC));
+        List.Add(RawToString(PQgetvalue(RES,I,0)));
      end;
   end;
  finally
@@ -1594,7 +1593,6 @@ end;
 
 procedure TNativeConnect.SchemaList(pszWild : string; SystemSchemas: Boolean; List : TStrings);
 var
-   CRec : PChar;
    I : LongInt;
    sql : String;
    RES : PPGresult;
@@ -1614,8 +1612,7 @@ begin
      CheckResult;
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := PChar(PQgetvalue(RES,I,0));
-        List.Add(StrPas(CREC));
+        List.Add(RawToString(PQgetvalue(RES,I,0)));
      end;
   end;
  finally
