@@ -1,4 +1,4 @@
-{$DEFINE M_DEBUG}//remove "." to go into M_DEBUG mode
+{.$DEFINE M_DEBUG}//remove "." to go into M_DEBUG mode
                   //don't do this until you exactly know what you are doing
 
 {$IFDEF M_DEBUG}
