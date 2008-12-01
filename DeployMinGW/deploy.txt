@@ -6,7 +6,7 @@ files:
     libpq.dll
     pg_dump.dll
     pg_restore.dll
-    ssleay32.dll
+    libssl32.dll
     libeay32.dll
 
 Copy these files to a directory on your PATH environment variable
