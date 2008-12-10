@@ -50,7 +50,7 @@ procedure Dac4PSQLShowAbout(aComponentName : string);
 begin
   with TPSQLAboutComp.Create(Application) do
   try
-    Caption := 'Thank you for trying DAC for MySQL';
+    Caption := 'Thank you for trying PostgresDAC';
     VersionLabel.Caption := 'v.' + PSQLDBTables.VERSION;
     Label1.Caption := aComponentName;
 

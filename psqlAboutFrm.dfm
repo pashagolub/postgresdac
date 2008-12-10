@@ -15,6 +15,9 @@ object PSQLAboutComp: TPSQLAboutComp
   OldCreateOrder = True
   Position = poScreenCenter
   OnCreate = FormCreate
+  DesignSize = (
+    287
+    278)
   PixelsPerInch = 96
   TextHeight = 13
   object Bevel1: TBevel

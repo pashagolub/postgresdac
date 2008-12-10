@@ -1566,7 +1566,6 @@ end;
 
 procedure TNativeConnect.UserList(pszWild : string; List : TStrings);
 var
-   CRec : PChar;
    I : LongInt;
    sql : String;
    RES : PPGresult;
