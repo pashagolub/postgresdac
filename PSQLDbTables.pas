@@ -71,7 +71,6 @@ type
 
   { Forward declarations }
   TPSQLDatabase      = Class;
-  TPSQLParams        = TParams;
   TPSQLParam         = TParam;
   TPSQLDatabaseClass = Class of TPSQLDatabase;
   TPSQLDataSet       = Class;
@@ -117,6 +116,12 @@ type
   end;
 
   ENoResultSet = class(EDatabaseError);
+
+
+  TPSQLParams = class(TParams)
+   public
+    function ParseSQL(SQL: string; DoCreate: Boolean): string; reintroduce;
+  end;
 
   TDatabaseNoticeEvent = procedure (Sender: TPSQLDatabase; Message: string) of object;
   TBaseDatabaseLoginEvent = procedure(Database: TPSQLDatabase; LoginParams: TStrings) of object;
@@ -7017,6 +7022,99 @@ begin
    end;
 end;
 
+
+{ TPSQLParams }
+
+function TPSQLParams.ParseSQL(SQL: string; DoCreate: Boolean): string;
+const
+  Literals = ['''', '"', '`'];
+var
+  Value, CurPos, StartPos: PChar;
+  CurChar: Char;
+  Literal: Boolean;
+  EmbeddedLiteral: Boolean;
+  Name: string;
+
+  function NameDelimiter: Boolean;
+  begin
+    Result := CharInSet(CurChar, [' ', ',', ';', ')', #13, #10]);
+  end;
+
+  function IsLiteral: Boolean;
+  begin
+    Result := CharInSet(CurChar, Literals);
+  end;
+
+  function StripLiterals(Buffer: PChar): string;
+  var
+    Len: integer;
+    TempBuf: PChar;
+
+    procedure StripChar;
+    begin
+      if CharInSet(TempBuf^, Literals) then
+      begin
+        StrMove(TempBuf, TempBuf + 1, Len - 1);
+        if CharInSet((TempBuf + (Len-2))^, Literals) then
+          (TempBuf + Len-2)^ := #0;
+      end;
+    end;
+
+  begin
+    Len := StrLen(Buffer);
+    TempBuf := AllocMem((Len + 1) * SizeOf(Char));
+    try
+      StrCopy(TempBuf, Buffer);
+      StripChar;
+      Result := TempBuf;
+    finally
+      FreeMem(TempBuf, (Len + 1) * SizeOf(Char));
+    end;
+  end;
+
+begin
+  Result := SQL;
+  Value := PChar(Result);
+  if DoCreate then Clear;
+  CurPos := Value;
+  Literal := False;
+  EmbeddedLiteral := False;
+  repeat
+    CurChar := CurPos^;
+    if (CurChar = ':') and not Literal and ((CurPos + 1)^ <> ':') and ((CurPos + 1)^ <> '=') then
+    begin
+      StartPos := CurPos;
+      while (CurChar <> #0) and (Literal or not NameDelimiter) do
+      begin
+        Inc(CurPos);
+        CurChar := CurPos^;
+        if IsLiteral then
+        begin
+          Literal := Literal xor True;
+          if CurPos = StartPos + 1 then EmbeddedLiteral := True;
+        end;
+      end;
+      CurPos^ := #0;
+      if EmbeddedLiteral then
+      begin
+        Name := StripLiterals(StartPos + 1);
+        EmbeddedLiteral := False;
+      end
+      else Name := string(StartPos + 1);
+      if DoCreate then
+        TParam(Add).Name := Name;
+      CurPos^ := CurChar;
+      StartPos^ := '?';
+      Inc(StartPos);
+      StrMove(StartPos, CurPos, StrLen(CurPos) + 1);
+      CurPos := StartPos;
+    end
+    else if (CurChar = ':') and not Literal and ((CurPos + 1)^ = ':') then
+      StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
+    else if IsLiteral then Literal := Literal xor True;
+    Inc(CurPos);
+  until CurChar = #0;
+end;
 
 Initialization
 

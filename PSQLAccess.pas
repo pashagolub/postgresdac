@@ -4786,9 +4786,9 @@ begin
       if Token = ':' then
        begin
          GetToken(SQLText, Token);
-         if Token=':' then //handling of double colon case
-          begin            //thanks to Serge Lefevre
-           Temp := Temp + ':';
+         if (length(Token) = 1) and CharInSet(Token[1], [':','=']) then //handling of double colon & assignment
+          begin
+           Temp := Temp + Token;
            Continue;
           end;
          ByName := True;
