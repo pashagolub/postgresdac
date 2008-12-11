@@ -7538,7 +7538,8 @@ begin
                         {$ENDIF}
                        end;
            fldFloat:   AParam.AsFloat := Double(Src^);
-           fldZSTRING: begin
+           fldZSTRING,
+           fldUUID: begin
                           if Fld.NativeType = FIELD_TYPE_BIT then
                              AParam.AsString := string('B') + PChar(Src)
                           else
