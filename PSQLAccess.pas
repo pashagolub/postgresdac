@@ -5325,7 +5325,7 @@ begin
 end;
 
 {******************************************************************************}
-{                           SQL Anywhere Engine                                }
+{                           TPSQLEngine                                        }
 {******************************************************************************}
 Constructor TPSQLEngine.Create(P : TObject; Container : TContainer);
 begin
