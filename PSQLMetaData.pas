@@ -160,6 +160,7 @@ end;
 function TPSQLUser.GetCursor(GenHandle: Boolean): HDBICur;
 var
   PCursor: phDBICur;
+  AffRows: integer;
 begin
   Result := NIL;
   if GenHandle then
@@ -168,7 +169,7 @@ begin
   Check(Engine, Engine.GetUserProps(Database.Handle, FUserName, FSuperUser,
                   FCanCreateDB, FCanUpdateSysCatalogs,
                   FUserID, FAccountValidUntil));
-  Check(Engine, Engine.QExec(StmtHandle, PCursor));
+  Check(Engine, Engine.QExec(StmtHandle, PCursor, AffRows));
 end;
 
 procedure TPSQLUser.Prepare;
