@@ -293,7 +293,7 @@ Type
       function QExecDirect(hDb: hDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
       function QAlloc(hDb: hDBIDb;eQryLang: DBIQryLang;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt;pszQuery: String): DBIResult;
-      function QExec(hStmt: hDBIStmt;phCur: phDBICur): DBIResult;
+      function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
       function QPrepareExt(hDb: hDBIDb;eQryLang: DBIQryLang;pszQuery: PChar;propBits: Word;var hStmt: hDBIStmt): DBIResult;
       function QFree(var hStmt: hDBIStmt): DBIResult;
       function QPrepareProc (hDb: hDBIDb; pszProc: PChar; hParams: pointer; var hStmt: hDBIStmt): DBIResult;
@@ -5950,13 +5950,14 @@ begin
   end;
 end;
 
-function TPSQLEngine.QExec(hStmt: hDBIStmt; phCur : phDBICur): DBIResult;
+function TPSQLEngine.QExec(hStmt: hDBIStmt; phCur : phDBICur; var AffectedRows: integer): DBIResult;
 begin
    Try
     if phCur = nil then
     begin
       try
         TNativeDataSet(hStmt).Execute;
+        AffectedRows := TNativeDataSet(hStmt).FAffectedRows;
         Result := DBIERR_NONE;
       except
         Result := CheckError;

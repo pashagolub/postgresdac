@@ -1399,7 +1399,7 @@ begin
       StmtHandle := GetStatementHandle;
       try
         Check(Engine, Engine.QuerySetParams(StmtHandle, Params, SQL)); //SetQueryParams(Engine, Self, StmtHandle, Params);
-        Check(Engine, Engine.QExec(StmtHandle, Cursor));
+        Check(Engine, Engine.QExec(StmtHandle, Cursor, Result));
       finally
         if not Cache then  Engine.QFree(StmtHandle);
       end;
@@ -4678,7 +4678,7 @@ begin
     PCursor := NIL;
   if FParams.Count > 0 then
       Check(Engine,Engine.QuerySetParams(hDBIStmt(FHandle),Params,SQL.Text));
-  Check(Engine, Engine.QExec(hDBIStmt(FHandle), PCursor));
+  Check(Engine, Engine.QExec(hDBIStmt(FHandle), PCursor, FRowsAffected));
   //pasha_golub 20.12.06
   CanLive := False;
   if FRequestLive and not ForceUpdateCallback and not FExecSQL then
@@ -6730,6 +6730,7 @@ end;
 function TPSQLStoredProc.CreateCursor(IsExecProc : boolean): HDBICur;
 var
   PCursor: phDBICur;
+  AffectedRows: integer;
 begin
   Result := nil;
 
@@ -6764,7 +6765,7 @@ begin
 
   Check(Engine, Engine.QSetProcParams(hDBIStmt(FHandle), FParams));
 
-	Check(Engine, Engine.QExec(hDBIStmt(FHandle), PCursor));
+	Check(Engine, Engine.QExec(hDBIStmt(FHandle), PCursor, AffectedRows));
 
   Check(Engine, Engine.QGetProcParams(hDBIStmt(FHandle), FParams));
 end;
