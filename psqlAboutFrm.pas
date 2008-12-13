@@ -1,3 +1,4 @@
+{$I psqldac.inc}
 unit psqlAboutFrm;
 
 interface
