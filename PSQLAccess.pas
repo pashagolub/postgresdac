@@ -3797,6 +3797,7 @@ var
   origBuffer: Pointer;
   FldValue : String;
   Data : pointer;
+  _CharSize: integer;
 {$IFDEF DELPHI_5}
 const
   MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }
@@ -3807,7 +3808,11 @@ begin
    T := nil;
    if assigned(FCurrentBuffer) then
    begin
-       MaxSize:=0;
+       MaxSize := 0;
+       if FConnect.IsUnicodeUsed then
+          _CharSize := SizeOf(Char)
+       else
+          _CharSize := SizeOf(AnsiChar);
        for i:=0 to FieldCount-1 do
        begin
            aFType := FieldType(I);
@@ -3817,11 +3822,11 @@ begin
            begin
              case aFType of
               FIELD_TYPE_TIMESTAMPTZ:
-                 if TIMESTAMPTZLEN > MaxSize then MaxSize := TIMESTAMPTZLEN;
+                 if TIMESTAMPTZLEN * _CharSize > MaxSize then MaxSize := TIMESTAMPTZLEN * _CharSize;
               FIELD_TYPE_TIMETZ:
-                 if TIMETZLEN > MaxSize then MaxSize := TIMETZLEN;
+                 if TIMETZLEN * _CharSize > MaxSize then MaxSize := TIMETZLEN * _CharSize;
               FIELD_TYPE_NAME:
-                 if NAMEDATALEN > MaxSize then MaxSize := NAMEDATALEN;
+                 if NAMEDATALEN * _CharSize > MaxSize then MaxSize := NAMEDATALEN * _CharSize;
               FIELD_TYPE_DATE,
               FIELD_TYPE_TIME,
               FIELD_TYPE_TIMESTAMP:
