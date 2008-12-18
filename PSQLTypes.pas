@@ -810,7 +810,7 @@ type
     bIndexed        : WordBool;         { Index is in use }
     iSeqNums        : SmallInt;         { 1: Has Seqnums; 0: Has Record# }
     bSoftDeletes    : WordBool;         { Supports soft deletes }
-    bDeletedOn      : WordBool;         { If above, deleted recs seen }
+    bDeletedOn      : WordBool;         { if above, deleted recs seen }
     iRefRange       : Word;             { Not used }
     exltMode        : XLTMode;          { Translate Mode }
     iRestrVersion   : Word;             { Restructure version number }
@@ -1030,10 +1030,10 @@ type
   pVCHKDesc = ^VCHKDesc;
   VCHKDesc = packed record              { Val Check structure }
     iFldNum         : Word;             { Field number }
-    bRequired       : WordBool;         { If True, value is required }
-    bHasMinVal      : WordBool;         { If True, has min value }
-    bHasMaxVal      : WordBool;         { If True, has max value }
-    bHasDefVal      : WordBool;         { If True, has default value }
+    bRequired       : WordBool;         { if True, value is required }
+    bHasMinVal      : WordBool;         { if True, has min value }
+    bHasMaxVal      : WordBool;         { if True, has max value }
+    bHasDefVal      : WordBool;         { if True, has default value }
     aMinVal         : DBIVCHK;          { Min Value }
     aMaxVal         : DBIVCHK;          { Max Value }
     aDefVal         : string;           { Default value }
@@ -1380,8 +1380,8 @@ type
     dtDate          : DBIDATE;          { Date on the table }
     tmTime          : Time;             { Time on the table }
     iSize           : Longint;          { Size in bytes }
-    bView           : WordBool;         { If this a view }
-    bSynonym        : WordBool;         { If this is a synonym }
+    bView           : WordBool;         { if this a view }
+    bSynonym        : WordBool;         { if this is a synonym }
   end;
 
 {======================================================================}
@@ -1669,7 +1669,7 @@ function SQLFloatToStr(Value: Double): string;
 procedure GetToken(var Buffer, Token: string);
 Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; var RecBuff : FLDDesc; var ValChk : VCHKDesc; var LocArray : Boolean);
 
-procedure LoadPSQLLibrary;
+procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
 
@@ -1705,18 +1705,28 @@ type
  {$ENDIF}
 
  function UTF8ToString(const S: String): string;
+{$ENDIF}
 
+{$IFDEF DELPHI_5}
+function GetModuleName(Module: HMODULE): string;
 {$ENDIF}
 
 
 implementation
 
-uses PSQLDbTables;
+uses PSQLDbTables, PSQLAccess;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TCONTAINER OBJECT                       //
 /////////////////////////////////////////////////////////////////////////////
 
-
+{$IFDEF DELPHI_5}
+  function GetModuleName(Module: HMODULE): string;
+  var
+    ModName: array[0..MAX_PATH] of Char;
+  begin
+    SetString(Result, ModName, GetModuleFileName(Module, ModName, SizeOf(ModName)));
+  end;
+{$ENDIF}
 
 {$IFNDEF DELPHI_12}
 
@@ -1832,7 +1842,7 @@ end;
 
 Procedure TContainer.FreeItem( Item : pointer );
 begin
-  If Item <> nil  then TObject(Item).Free;
+  if Item <> nil  then TObject(Item).Free;
 end;
 
 Function TContainer.Get(AIndex : integer) : pointer;
@@ -1883,12 +1893,12 @@ begin
   Inherited Create;
   FParent    := P;
   FContainer := Container;
-  If FContainer <> nil then FContainer.Insert(Self);
+  if FContainer <> nil then FContainer.Insert(Self);
 end;
 
 Destructor TBaseObject.Destroy;
 begin
-  If FContainer <> nil then FContainer.Delete(Self);
+  if FContainer <> nil then FContainer.Delete(Self);
   Inherited Destroy;
 end;
 
@@ -2168,11 +2178,11 @@ begin
         begin
            Result := Token;
            Aliace := '';
-           If Start[0] = '.' then
+           if Start[0] = '.' then
             begin
              CurSection := SQLToken;
              SQLToken := NextSQLToken(Start, Token, CurSection);
-             If (SQLToken = stFieldName) or (SQLToken = stValue)
+             if (SQLToken = stFieldName) or (SQLToken = stValue)
               then Result := Result + '.' + Token;
             end;
 
@@ -2254,10 +2264,10 @@ function SQLTimestampToDateTime(Value: string): TDateTime;
 var
   Year, Month, Day, Hour, Min, Sec, MSec: Integer;
 begin
-  If value = 'infinity' then
+  if value = 'infinity' then
       Result := 1.7e+308	//EncodeDate(9999, 12, 31) + EncodeTime(0, 0, 0, 0)
   else
-   If value = '-infinity' then
+   if value = '-infinity' then
       Result := -5.0e+324  //EncodeDate(0, 1, 1) + EncodeTime(0, 0, 0, 0)
    else
     begin
@@ -2408,7 +2418,7 @@ function StrToUInt(S: string): cardinal;
 var E: integer;
 begin
   Val(S,Result,E);
-  If E <> 0 then raise EConvertError.Create(S + ' is not valid cardinal value');
+  if E <> 0 then raise EConvertError.Create(S + ' is not valid cardinal value');
 end;
 
 Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
@@ -2431,7 +2441,7 @@ begin
                      begin
                         BdeType := fldZSTRING;
                         LogSize   := phSize+1;
-                        If FieldType = FIELD_TYPE_BPCHAR then
+                        if FieldType = FIELD_TYPE_BPCHAR then
                            BdeSubType := fldstFIXED;
                      end;
     FIELD_TYPE_TIMETZ:
@@ -2560,18 +2570,24 @@ begin
   end;
 end;
 
-Procedure LoadPSQLLibrary; Far;
+Procedure LoadPSQLLibrary(LibPQPath: string = '');
 
-  Function GetPSQLProc( ProcName : PAnsiChar ) : TFarProc;
+  function GetPSQLProc( ProcName : PAnsiChar ) : TFarProc;
   begin
     Result := GetProcAddress( SQLLibraryHandle, ProcName );
+    {$IFDEF M_DEBUG}
+    if not Assigned(Result) then
+     LogDebugMessage('PROC', Format('No entry address for procedure <b>"%s"</b>', [ProcName]));
+    {$ENDIF}
+
   end;
 
 begin
-   If ( SQLLibraryHandle <= HINSTANCE_ERROR ) then
+   if LibPQPath = EmptyStr then LibPQPath := PSQL_DLL;
+   if ( SQLLibraryHandle <= HINSTANCE_ERROR ) then
    begin
-      SQLLibraryHandle := LoadLibrary(PChar(PSQL_DLL) );
-      If ( SQLLibraryHandle > HINSTANCE_ERROR ) then
+      SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
+      if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
          @PQsetdbLogin   := GetPSQLProc('PQsetdbLogin');
@@ -2652,13 +2668,16 @@ begin
          @lo_export      := GetPSQLProc('lo_export');
       end
      else
-      CheckLibraryLoaded(); 
+      CheckLibraryLoaded();
+      {$IFDEF M_DEBUG}
+       LogDebugMessage('LIB', GetModuleName(SQLLibraryHandle));
+      {$ENDIF}
    end;
 end;
 
-Procedure UnloadPSQLLibrary; Far;
+Procedure UnloadPSQLLibrary;
 begin
-  If ( SQLLibraryHandle > HINSTANCE_ERROR ) then
+  if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
      FreeLibrary( SQLLibraryHandle );
   SQLLibraryHandle := HINSTANCE_ERROR;
 end;
@@ -2819,7 +2838,7 @@ function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boo
 var
   S1,S2 : String;
 begin
-   If CaseSen then //case insensitive
+   if CaseSen then //case insensitive
    begin
       Op1 := AnsiUpperCase(Op1);
       Op2 := AnsiUpperCase(Op2);
@@ -2836,7 +2855,7 @@ begin
     OemToCharBuff(PAnsiChar(S2), PAnsiChar(S2), Length(S2));
     {$ENDIF}
   end;
-   If CaseSen then //case insensitive
+   if CaseSen then //case insensitive
    begin
       if PartLen = 0 then
          Result := AnsiStrIComp(PChar(S1), PChar(S2)) = 0 else  // Full len
@@ -2875,9 +2894,11 @@ begin
 end;
 
 
-Initialization
-   LoadPSQLLibrary;
-Finalization
+initialization
+  SQLLibraryHandle := HINSTANCE_ERROR;
+
+finalization
   UnloadPSQLLibrary;
+
 end.
 

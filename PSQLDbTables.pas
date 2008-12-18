@@ -1068,8 +1068,6 @@ PSQLDirectQuery;
 {$R DB.DCR}
 
 var
-  CSNativeToAnsi: TRTLCriticalSection;
-  CSAnsiToNative: TRTLCriticalSection;
   TimerID: Word = 0;
   SQLDelay: DWORD = 50;
   StartTime: DWORD = 0;
@@ -1218,7 +1216,6 @@ end;
 constructor TPSQLDatabase.Create(AOwner : TComponent);
 begin
   Inherited Create(AOwner);
-  CheckLibraryLoaded; //04.10.2007 will raise exception is no libpq.dll present
   FParams := TStringList.Create;
   TStringList(FParams).OnChanging := ParamsChanging;
   FKeepConnection := TRUE;
@@ -1535,7 +1532,7 @@ end;
 
 function TPSQLDatabase.GetTransactionStatus: TTransactionStatusType;
 begin
- If Handle <> nil then
+ if Handle <> nil then
    Engine.GetTranStatus(Handle,Result)
  else
    Result := trstUnknown;
@@ -1691,7 +1688,7 @@ begin
   if FCommandTimeout <> Value then
     begin
       FCommandTimeout := Value;
-      If Connected then
+      if Connected then
        Check(Engine, Engine.SetCommandTimeout(FHandle,FCommandTimeout));
     end;
 end;
@@ -1710,7 +1707,7 @@ end;
 procedure TPSQLDatabase.SetUseSSL(const Value : Boolean);
 begin
     if FUseSSL <> Value then
-      If Value then
+      if Value then
        SSLMode := sslPrefer
       else
        SSLMode := sslDisable;
@@ -1822,7 +1819,7 @@ end;
 
 procedure TPSQLDatabase.GetSchemaNames(Pattern: String; SystemSchemas: Boolean; List: TStrings);
 begin
-  If not Assigned(List) then Exit;
+  if not Assigned(List) then Exit;
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
@@ -1857,10 +1854,10 @@ end;
 
 procedure TPSQLDatabase.SetCharSet(CharSet: string);
 begin
-  If FCharSet <> CharSet then
+  if FCharSet <> CharSet then
   begin
    FCharSet := CharSet;
-   If Connected then
+   if Connected then
      Engine.SetCharacterSet(Handle,CharSet)
   end;
 end;
@@ -1990,7 +1987,7 @@ end;
 
 procedure TPSQLDatabase.GetTablespaces(Pattern: String; List: TStrings);
 begin
-  If not Assigned(List) then Exit;
+  if not Assigned(List) then Exit;
   List.BeginUpdate;
   try
     if Handle = nil then Connected := True;
@@ -2003,7 +2000,7 @@ end;
 
 procedure TPSQLDatabase.SetSSLMode(const Value: TSSLMode);
 begin
-  If FSSLMode <> Value then
+  if FSSLMode <> Value then
    begin
      if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
@@ -2115,7 +2112,6 @@ end;
 constructor TPSQLDataSet.Create(AOwner : TComponent);
 begin
   Inherited Create(AOwner);
-  CheckLibraryLoaded; //04.10.2007 will raise exception is no libpq.dll present
   FCacheBlobs := False;
   FAutoRefresh := FALSE;
   FAllowSequenced := False; //Added by Nicolas Ring
@@ -2141,7 +2137,7 @@ end;
 procedure TPSQLDataSet.OpenCursor(InfoQuery: Boolean);
 begin
   if Database=nil then raise EDatabaseError.Create('Property Database not set!');
-  If FHandle = nil then
+  if FHandle = nil then
      FHandle := CreateHandle;
   if FHandle = nil then
   begin
@@ -2884,12 +2880,12 @@ end;
 
 procedure TPSQLDataSet.InternalPost;
 begin
-  If Assigned(FUpdateObject) then
+  if Assigned(FUpdateObject) then
    begin
      if State = dsEdit then
        FUpdateObject.Apply(ukModify)
      else
-       If State = dsInsert then
+       if State = dsInsert then
          FUpdateObject.Apply(ukInsert);
    end //if assigned
   else
@@ -2902,7 +2898,7 @@ begin
       if State = dsEdit then
         Check(Engine, Engine.ModifyRecord(FHandle,FOldBuffer, ActiveBuffer, TRUE,RecNo))
       else
-        If State = dsInsert then
+        if State = dsInsert then
           Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, ActiveBuffer));
     end; //else
   if assigned(fOldBuffer) then  FreeRecordBuffer(FOldBuffer);
@@ -2912,7 +2908,7 @@ procedure TPSQLDataSet.InternalDelete;
 var
   Result: Word;
 begin
-  If not Assigned(FUpdateObject) then
+  if not Assigned(FUpdateObject) then
    begin
     Result := Engine.DeleteRecord(FHandle, ActiveBuffer);
     if (Result <> DBIERR_NONE) then Check(Engine, Result);
@@ -2952,9 +2948,9 @@ end;
 
 procedure TPSQLDataSet.InternalCancel;
 begin
-  If State = dsEdit then
+  if State = dsEdit then
     Engine.RelRecordLock(FHandle, FALSE);
-  If assigned(fOldBuffer) then
+  if assigned(fOldBuffer) then
     FreeRecordBuffer(FOldBuffer);
 end;
 
@@ -4020,7 +4016,7 @@ begin
     FUpdateObject := Value;
     if Assigned(FUpdateObject) then
     begin
-      { If another dataset already references this updateobject, then
+      { if another dataset already references this updateobject, then
         remove the reference }
       if Assigned(FUpdateObject.DataSet) and (FUpdateObject.DataSet <> Self) then
         FUpdateObject.DataSet.UpdateObject := NIL;
@@ -4095,7 +4091,7 @@ end;
 procedure TPSQLDataSet.PSReset;
 begin
   inherited PSReset;
-  If Handle <> NIL then
+  if Handle <> NIL then
     Engine.ForceReread(Handle);
 end;
 
@@ -4222,7 +4218,7 @@ var
   I       : Integer;
   ColDesc : ServerColDesc;
 begin
-  If AutoRefresh then
+  if AutoRefresh then
     Check(Engine, Engine.SetEngProp(hDbiObj(FHandle),curAUTOREFETCH,LongInt(TRUE)));
   for I := 0 to Fields.Count - 1 do
     with Fields[I] do
@@ -4332,7 +4328,7 @@ begin
            Q.Open;
         Result := Q.RowsAffected;
       finally
-       If Assigned(ResultSet) then
+       if Assigned(ResultSet) then
          TPSQLDataset(ResultSet^) := Q
        else
          Q.Free;
@@ -4402,7 +4398,7 @@ end;
 
 procedure TPSQLQuery.Prepare;
 begin
-  If Assigned(FHandle) then
+  if Assigned(FHandle) then
    begin
     SetDBFlag(dbfPrepared, TRUE);
     SetPrepared(TRUE);
@@ -4724,7 +4720,7 @@ begin
   try
     TNativeDataset(FHandle).OIDAsInt := FOIDAsInt;
     TNativeDataset(FHandle).ByteaAsEscString := FByteaAsEscString;
-    If not FExecSQL then
+    if not FExecSQL then
     begin
       Check(Engine, Engine.SetEngProp(hDbiObj(FHandle),stmtLIVENESS,
            DataType[RequestLive and not ForceUpdateCallback]));
@@ -4818,24 +4814,24 @@ end;
 
 procedure TPSQLDataSet.SetByteaAsEscString(const Value: boolean);
 begin
-  If FByteaAsEscString = Value then Exit;
+  if FByteaAsEscString = Value then Exit;
   FByteaAsEscString := Value;
-  If Assigned(FHandle) then
+  if Assigned(FHandle) then
     TNativeDataset(FHandle).ByteaAsEscString := Value;
 end;
 
 procedure TPSQLDataSet.SetOIDAsInt(const Value: boolean);
 begin
-  If FOIDAsInt = Value then Exit;
+  if FOIDAsInt = Value then Exit;
   FOIDAsInt := Value;
-  If Assigned(FHandle) then
+  if Assigned(FHandle) then
     TNativeDataset(FHandle).OIDAsInt := Value;
 end;
 
 function TPSQLDataSet.GetLastInsertID(const FieldNum: integer): integer;
 begin
  CheckActive;
- If Assigned(FHandle) then
+ if Assigned(FHandle) then
     Check(Engine, Engine.GetLastInsertId(FHandle, FieldNum, Result))
  else
     Result := -1;
@@ -4876,7 +4872,7 @@ end;
 
 function TPSQLDataSet.GetSortFieldNames: string;
 begin
- If not Active or
+ if not Active or
     not Assigned(FHandle) or
     not TNativeDataSet(FHandle).IsSortedLocally then
   FSortFieldNames := '';
@@ -4886,7 +4882,7 @@ end;
 function TPSQLDataSet.GetFieldTypeOID(const FieldNum: integer): cardinal;
 begin
  CheckActive;
- If Assigned(FHandle) then
+ if Assigned(FHandle) then
     Result := Engine.GetFieldTypeOID(FHandle, FieldNum)
  else
     Result := InvalidOID;
@@ -4929,7 +4925,7 @@ begin
        TNativeDataset(FDataset.Handle).OpenTable;
 //       FDataset.DisableControls;
        TNativeDataset(FDataset.Handle).RecordState := tsPos;
-       If UpdateKind <> ukDelete then
+       if UpdateKind <> ukDelete then
          TNativeDataset(FDataset.Handle).SetRowPosition(-1,0,FDataset.ActiveBuffer)
        else
          begin
@@ -4945,7 +4941,7 @@ begin
        TNativeDataset(FDataset.Handle).IsLocked := False;
 //       FDataSet.EnableControls;
     end;
-    If Assigned(FRecordChangeCompleteEvent) then
+    if Assigned(FRecordChangeCompleteEvent) then
       FRecordChangeCompleteEvent(FDataset,UpdateKind);
   end;
 end;
@@ -5087,7 +5083,7 @@ end;
 
 procedure TPSQLTable.SetLimit(const Value : Integer);
 begin
-   If FLimit <> Value then
+   if FLimit <> Value then
       FLimit := Value;
 end;
 
@@ -5614,7 +5610,7 @@ begin
     UseKey := Engine.ExtractKey(Handle,RecBuffer,IndexBuffer) = 0;
     if UseKey then RecBuffer := IndexBuffer;
 
-    If Engine.GetRecordForKey(Handle, {SearchCond,} UseKey, KeyBuffer^.FieldCount, 0,RecBuffer, nil, False) = 0
+    if Engine.GetRecordForKey(Handle, {SearchCond,} UseKey, KeyBuffer^.FieldCount, 0,RecBuffer, nil, False) = 0
        then  Resync([rmCenter]);
   finally
     FreeMem(IndexBuffer, KeySize);
@@ -5689,7 +5685,7 @@ end;
 procedure TPSQLTable.SetBatchModify(const Value : Boolean);
 begin
    if FHandle = nil then Exit;
-   If Value then
+   if Value then
       Check(Engine, Engine.SetEngProp(hDbiObj(FHandle),curAUTOREFETCH,LongInt(TRUE))) else
       begin
          Check(Engine, Engine.SetEngProp(hDbiObj(FHandle),curAUTOREFETCH,LongInt(FALSE)));
@@ -5711,7 +5707,7 @@ begin
     DestroyLookupCursor;
     IndexFound := FALSE;
     FieldsIndex := FALSE;
-    { If a range is active, don't use a lookup cursor }
+    { if a range is active, don't use a lookup cursor }
     if not FKeyBuffers[kiCurRangeStart].Modified and
        not FKeyBuffers[kiCurRangeEnd].Modified then
     begin
@@ -6721,7 +6717,7 @@ end;
 function TPSQLStoredProc.CreateBlobStream(Field: TField;
   Mode: TBlobStreamMode): TStream;
 begin
- If Mode = bmRead then
+ if Mode = bmRead then
   Result := TPSQLBlobStream.Create(Field as TBlobField, Mode)
  else
   raise EPSQLDatabaseError.CreateFmt(SCantCreateWriteBLOB,[]);
@@ -6974,7 +6970,7 @@ end;
 
 function TPSQLTable.GetTableSpace: string;
 begin
- If FTableSpace = '<DEFAULT>' then
+ if FTableSpace = '<DEFAULT>' then
   begin
    if Database.Connected then
      Result := Database.Tablespace
@@ -6986,7 +6982,7 @@ end;
 procedure TPSQLQuery.SetByteaAsEscString(const Value: boolean);
 begin
   inherited;
-  If Active then
+  if Active then
    begin
     Close;
     Open;
@@ -6996,7 +6992,7 @@ end;
 procedure TPSQLQuery.SetOIDAsInt(const Value: boolean);
 begin
   inherited;
-  If Active then
+  if Active then
    begin
     Close;
     Open;
@@ -7006,7 +7002,7 @@ end;
 procedure TPSQLTable.SetByteaAsEscString(const Value: boolean);
 begin
   inherited;
-  If Active then
+  if Active then
    begin
     Close;
     Open;
@@ -7016,7 +7012,7 @@ end;
 procedure TPSQLTable.SetOIDAsInt(const Value: boolean);
 begin
   inherited;
-  If Active then
+  if Active then
    begin
     Close;
     Open;
@@ -7117,7 +7113,7 @@ begin
   until CurChar = #0;
 end;
 
-Initialization
+initialization
 
   if not IsLibrary then
    begin
@@ -7125,13 +7121,9 @@ Initialization
     InitProc := @InitDBTables;
    end;
   DBList := TList.Create;
-  InitializeCriticalSection(CSNativeToAnsi);
-  InitializeCriticalSection(CSAnsiToNative);
 
 finalization
 
-  DeleteCriticalSection(CSAnsiToNative);
-  DeleteCriticalSection(CSNativeToAnsi);
   DBList.Free;
   FreeAndNil(BDEInitProcs);
   FreeTimer(TRUE);
@@ -7139,8 +7131,6 @@ finalization
   if NeedToUninitialize then  CoUninitialize;
 
   if not IsLibrary then
-   begin
-    InitProc := SaveInitProc;//mi:2006-09-18 thnks to Sebastien Hordeaux (#242)
-   end;
+    InitProc := SaveInitProc;
 
 end.

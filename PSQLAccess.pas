@@ -854,6 +854,7 @@ function QuoteIdentifier(IdentifierName: string): string;
 
 {$IFDEF M_DEBUG}
 function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
+procedure LogDebugMessage(const MsgType, Msg: ansistring);
 {$ENDIF}
 
 Implementation
@@ -867,11 +868,12 @@ Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF
 
 
 {$IFDEF M_DEBUG}
-var F:textfile;
+var F: TextFile;
+    DebugFileOpened: boolean = False;
 
 procedure LogDebugMessage(const MsgType, Msg: ansistring);
 begin
- if Msg>'' then
+ if DebugFileOpened and (Msg > EmptyStr) then
   WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD>',Msg,'</TD><TR>');
 end;
 
@@ -911,37 +913,31 @@ begin
   LogDebugMessage('ERR ', AnsiString(Result));
 end;
 
-{$IFDEF DELPHI_5}
-function GetModuleName(Module: HMODULE): string;
-var
-  ModName: array[0..MAX_PATH] of Char;
-begin
-  SetString(Result, ModName, GetModuleFileName(Module, ModName, SizeOf(ModName)));
-end;
-{$ENDIF}
-
 procedure OpenDebugFile;
 var Name: string;
 begin
  DateTimeToString(Name, '_dd.mm.yy_hh.nn.ss', Now());
  Name := ChangeFileExt(GetModuleName(HInstance), Name + '_log.html');
  AssignFile(F, Name);
+ {$I-}
  if FileExists(Name) then
   Append(F)
  else
   Rewrite(F);
+ {$I+}
+ DebugFileOpened := IOResult = 0;
+ if not DebugFileOpened then Exit;
  WriteLn(F,'<HR>','<TABLE BORDER="1">');
  LogDebugMessage('INFO','----- Session started -----');
 end;
 
 procedure CloseDebugFile;
 begin
+ if not DebugFileOpened then Exit;
  LogDebugMessage('INFO','----- Session closed -----');
  WriteLn(F,'</TABLE>'); 
  CloseFile(F);
 end;
-
-
 {$ENDIF}
 
 function TimeOf(const ADateTime: TDateTime): TDateTime;
@@ -1389,6 +1385,7 @@ var
   ErrStr: String;
   OldLoggin : Boolean;
 begin
+  if SQLLibraryHandle <= HINSTANCE_ERROR then LoadPSQLLibrary();
   OldLoggin := FLoggin;
   if FLoggin then InternalDisconnect;
   with DBOptions do
@@ -1432,6 +1429,7 @@ var
 begin
  if not FLoggIn then
   try
+   if SQLLibraryHandle <= HINSTANCE_ERROR then LoadPSQLLibrary();
    FLastOperationTime := GetTickCount;
    FHandle := PQconnectdb(PAnsiChar({$IFDEF DELPHI_6}UTF8Encode{$ENDIF}(ConnectString)));
    FLastOperationTime := GetTickCount - FLastOperationTime;
