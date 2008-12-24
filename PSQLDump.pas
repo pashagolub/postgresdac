@@ -81,6 +81,7 @@ type
         procedure SetExcludeTables(const Value: TStrings);
         procedure DoLog(const Value: string);
         function GetVersionAsInt: integer;
+    function GetVersionAsStr: string;
       protected
         procedure CheckDependencies;
         function GetParameters: PAnsiChar;
@@ -94,6 +95,7 @@ type
         procedure DumpToFile(const FileName: string; Log: TStrings); overload;
       	procedure DumpToFile(const FileName, LogFileName: string); overload;
         property VersionAsInt: integer read GetVersionAsInt;
+        property VersionAsStr: string read GetVersionAsStr;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
         property SchemaName: string  index dsoSchema read GetStrOptions write SetStrOptions;
@@ -387,23 +389,26 @@ end;
 
 procedure TPSQLDump.CheckDependencies;
 begin
-   if not FDatabase.Connected then
-    FDatabase.Connected := True;
+   if not Assigned(FDatabase) then
+     raise EDatabaseError.Create('Property Database not set!');
 
-   If [doDataOnly, doSchemaOnly] * FDumpOptions = [doDataOnly, doSchemaOnly]
+   if not FDatabase.Connected then
+     FDatabase.Connected := True;
+
+   if [doDataOnly, doSchemaOnly] * FDumpOptions = [doDataOnly, doSchemaOnly]
     then
 	      Raise EPSQLDumpException.Create('Options "Schema only" and "Data only"'+
                                  ' cannot be used together');
-   If [doDataOnly, doClean] * FDumpOptions = [doDataOnly, doClean]
+   if [doDataOnly, doClean] * FDumpOptions = [doDataOnly, doClean]
     then
         Raise EPSQLDumpException.Create('Options "Clean" and "Data only"'+
                                  ' cannot be used together');
-   If (doIncludeBLOBs in FDumpOptions)
+   if (doIncludeBLOBs in FDumpOptions)
         and (FDumpStrOPtions[dsoTable] > '')
     then
         Raise EPSQLDumpException.Create('Large-object output not supported for a single table.'#13#10+
 		                 'Use a full dump instead');
-   If (doIncludeBLOBs in FDumpOptions)
+   if (doIncludeBLOBs in FDumpOptions)
         and (FDumpStrOPtions[dsoSchema] > '')
     then
         Raise EPSQLDumpException.Create('Large-object output not supported for a single schema.'#13#10+
@@ -451,7 +456,7 @@ begin
 
  FmiParams.Add(DumpCommandLineFormatValues[FDumpFormat]);
 
- If FDumpFormat = dfCompressedArchive then
+ If FDumpFormat in [dfCompressedArchive, dfPlain] then
    FmiParams.Add(Format('--compress=%d',[FCompressLevel]));
 
  With FDatabase do
@@ -662,6 +667,16 @@ begin
   finally
    FreeLibrary(H);
   end;
+end;
+
+function TPSQLDump.GetVersionAsStr: string;
+var VerInt, Major, Minor, Revision: integer;
+begin
+  VerInt := GetVersionAsInt;
+  Major := VerInt div 10000;
+  Minor := VerInt mod 10000 div 100;
+  Revision := VerInt mod 100;
+  Result := Format('%d.%d.%d', [Major, Minor, Revision]);
 end;
 
 {TPSQLRestore}
