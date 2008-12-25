@@ -1606,8 +1606,6 @@ begin
     Try
       CheckDB;
       OEMConv := FOEMConvert;
-      if (SQLLibraryHandle = HINSTANCE_ERROR) then
-        EPSQLDatabaseError.CreateFmt('Error Loading DLL %s', [PSQL_DLL]);
       {$IFDEF TRIAL}
       Dac4PSQLShowAbout(Self.ClassName);
       {$ENDIF}
