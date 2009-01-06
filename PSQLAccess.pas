@@ -2759,9 +2759,6 @@ begin
         FIELD_TYPE_DATE,
         FIELD_TYPE_TIME: Inc(Result,SizeOf(TDateTime));
         FIELD_TYPE_TIMESTAMP: Inc(Result,SizeOf(TDateTime));
-        FIELD_TYPE_TIMESTAMPTZ:Inc(Result, TIMESTAMPTZLEN+1);
-        FIELD_TYPE_TIMETZ:Inc(Result,TIMETZLEN+1);
-        FIELD_TYPE_UUID:  Inc(Result,UUIDLEN+1);
         FIELD_TYPE_FLOAT4,
         FIELD_TYPE_NUMERIC,
         FIELD_TYPE_FLOAT8:Inc(Result,SizeOf(Double));
@@ -3880,7 +3877,7 @@ begin
                                          TDateTime(Data^) := MinDateTime
                                        else
                                          TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
-               FIELD_TYPE_TIMESTAMPTZ: StrPCopy(PChar(Data),FldValue);
+               //FIELD_TYPE_TIMESTAMPTZ: StrPCopy(PChar(Data),FldValue);
 
                FIELD_TYPE_FLOAT4,
                FIELD_TYPE_FLOAT8,

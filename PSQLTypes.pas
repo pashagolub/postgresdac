@@ -2309,14 +2309,6 @@ begin
   DecimalSeparator := Temp;
 end;
 
-{function StrToBool(TrueVal : TTrueArray;FalseVal : TFalsearray;Value : String): boolean;
-var
-  val : Char;
-begin
-   Val := LowerCase(Value)[1];
-   if (Val in TrueVal) then Result := True else Result := False;
-end;}
-
 procedure GetToken(var Buffer, Token: string);
 label ExitProc;
 var
@@ -2376,39 +2368,6 @@ begin
    end;
 end;
 
-//function FullTrim(S: string): string;
-//var
-//  I: Integer;
-//  Prev: Char;
-//  Quote: Char;
-//begin
-//  Result := Trim(S);
-//  Prev := #0;
-//  Quote := #0;
-//  I := 1;
-//  while I <= Length(Result) do
-//  begin
-//    if (Result[I] in [' ',#9,#10,#13]) and (Quote = #0) then
-//    begin
-//      if Prev = ' ' then
-//      begin
-//        Delete(Result, I, 1);
-//        Dec(I);
-//      end else
-//        Result[I] := ' ';
-//    end;
-//    if (Result[I] in ['"', '''']) and (Prev <> '\') then
-//    begin
-//      if Quote = #0 then
-//        Quote := Result[I]
-//      else if Quote = Result[I] then
-//        Quote := #0;
-//    end;
-//    Prev := Result[I];
-//    Inc(I);
-//  end;
-//end;
-
 function UIntToStr(C: cardinal): string;
 begin
   Result := IntToStr(C);
@@ -2444,20 +2403,6 @@ begin
                         if FieldType = FIELD_TYPE_BPCHAR then
                            BdeSubType := fldstFIXED;
                      end;
-    FIELD_TYPE_TIMETZ:
-                      begin
-                         BdeType := fldZSTRING;
-                         LogSize   := TIMETZLEN+1;
-                      end;
-{    FIELD_TYPE_NAME: begin
-                        BdeType := fldZSTRING;
-                        LogSize   := 64+1;
-                     end;
-    FIELD_TYPE_REGPROC:
-                     begin
-                        BdeType := fldZSTRING;
-                        LogSize   := 16+1;
-                     end;                 }
     FIELD_TYPE_OID,
     FIELD_TYPE_BYTEA:  begin
                         BdeType := fldBLOB;
@@ -2472,11 +2417,6 @@ begin
                         BDEType := fldINT16;
                         LogSize := Sizeof(SmallInt);
                       end;
-{    FIELD_TYPE_INT2VECTOR:
-                      begin
-                        BdeType := fldZSTRING;
-                        LogSize   := phSize+1;
-                      end;                    }
     FIELD_TYPE_INT4:  begin
                         BDEType := fldINT32;
                         LogSize := Sizeof(LongInt);
@@ -2498,11 +2438,6 @@ begin
                       begin
                          BdeType := fldTIMESTAMP;
                          LogSize := SizeOf(TDateTime);
-                      end;
-    FIELD_TYPE_TIMESTAMPTZ:
-                      begin
-                         BdeType := fldZSTRING;
-                         LogSize := TIMESTAMPTZLEN+1;
                       end;
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_NUMERIC,
