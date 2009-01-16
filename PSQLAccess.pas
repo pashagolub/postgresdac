@@ -3554,6 +3554,9 @@ begin
    FIELD_TYPE_OID: If FOIDAsInt then Result := FIELD_TYPE_INT4;
    FIELD_TYPE_BYTEA: If FByteaAsEscString then Result := FIELD_TYPE_TEXT;
    FIELD_TYPE_OIDVECTOR: Result := FIELD_TYPE_VARCHAR;
+   FIELD_TYPE_CID,
+   FIELD_TYPE_XID,
+   FIELD_TYPE_TID: Result := FIELD_TYPE_INT4;
   else
    if (Result = FIELD_TYPE_VARCHAR) AND
       ((PQfmod(FStatement,FieldNum)<0) or (PQfmod(FStatement,FieldNum)>8192) ) then
