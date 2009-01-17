@@ -4649,7 +4649,7 @@ var
            else
             begin
               Move(PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset)^, Dest^, ALength);
-              Len := StrBufSize(FieldBuffer(ColumnNumber - 1)) - 1;
+              Len := StrLen(FieldBuffer(ColumnNumber - 1));
             end;
 
 
