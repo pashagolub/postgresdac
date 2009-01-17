@@ -1,6 +1,6 @@
 object PSQLAboutComp: TPSQLAboutComp
-  Left = 393
-  Top = 253
+  Left = 411
+  Top = 251
   BorderIcons = [biSystemMenu]
   BorderStyle = bsDialog
   Caption = 'About...'
