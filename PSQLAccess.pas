@@ -184,7 +184,7 @@ Type
     function IsUnicodeUsed: boolean;
 
     function RawToString(S: PAnsiChar): string;
-    function StringToRaw(S: string): PAnsiChar;
+    function StringToRaw(S: string): PAnsiChar; //need to be free by StrDispose
     function StringToRawS(S: string): AnsiString;
   end;
 
@@ -852,9 +852,11 @@ function BDETOPSQLStr(Field : TPSQLField): String;
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
 function QuoteIdentifier(IdentifierName: string): string;
 
+function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
+
 {$IFDEF M_DEBUG}
-function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
-procedure LogDebugMessage(const MsgType, Msg: ansistring);
+function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
+procedure LogDebugMessage(const MsgType, Msg: string);
 {$ENDIF}
 
 Implementation
@@ -871,7 +873,7 @@ Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF
 var F: TextFile;
     DebugFileOpened: boolean = False;
 
-procedure LogDebugMessage(const MsgType, Msg: ansistring);
+procedure LogDebugMessage(const MsgType, Msg: string);
 begin
  if DebugFileOpened and (Msg > EmptyStr) then
   WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD>',Msg,'</TD><TR>');
@@ -880,37 +882,37 @@ end;
 function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
 begin
  Result := PSQLTypes.PQConnectDB(ConnInfo);
- LogDebugMessage('CONN',AnsiString(ConnInfo));
+ LogDebugMessage('CONN', String(ConnInfo));
 end;
 
 function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
 begin
  Result := PSQLTypes.PQexec(Handle,Query);
- LogDebugMessage('EXEC',AnsiString(Query));
+ LogDebugMessage('EXEC', String(Query));
 end;
 
 function lo_creat(Handle: PPGconn; mode: Integer): Oid;
 begin
  Result := PSQLTypes.lo_creat(Handle,mode);
- LogDebugMessage('loCr', AnsiString('LO OID = '+inttostr(Result)));
+ LogDebugMessage('loCr', 'LO OID = '+inttostr(Result));
 end;
 
 function lo_open(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer;
 begin
  Result := PSQLTypes.lo_open(Handle,lobjId,mode);
- LogDebugMessage('loOp', AnsiString('oid = '+inttostr(lobjId)+'; fd = '+inttostr(Result)));
+ LogDebugMessage('loOp', 'oid = '+inttostr(lobjId)+'; fd = '+inttostr(Result));
 end;
 
 function lo_close(Handle: PPGconn; fd: Integer): Integer;
 begin
  Result := PSQLTypes.lo_close(Handle,fd);
- LogDebugMessage('loCl', AnsiString('fd = '+inttostr(fd)));
+ LogDebugMessage('loCl', 'fd = '+inttostr(fd));
 end;
 
 function PQerrorMessage(Handle: PPGconn): PAnsiChar;
 begin
   Result := PSQLTypes.PQerrorMessage(Handle);
-  LogDebugMessage('ERR ', AnsiString(Result));
+  LogDebugMessage('ERR ', string(Result));
 end;
 
 procedure OpenDebugFile;
@@ -939,6 +941,25 @@ begin
  CloseFile(F);
 end;
 {$ENDIF}
+
+function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
+var Q: PAnsiChar;
+    S: AnsiString;
+begin
+  {$IFDEF DELPHI_12}
+  if AConnection.IsUnicodeUsed then
+    S := UTF8Encode(AQuery)
+  else
+  {$ENDIF}
+    S := AnsiString(AQuery);
+  GetMem(Q, Length(S) + 1);
+  try
+    StrPCopy(Q, S);
+    Result := PQExec(AConnection.Handle, Q);
+  finally
+   FreeMem(Q);
+  end;
+end;
 
 function TimeOf(const ADateTime: TDateTime): TDateTime;
 var
@@ -1391,7 +1412,7 @@ begin
   with DBOptions do
     LocHandle := PQconnectdb(PAnsiChar({$IFDEF DELPHI_6}UTF8Encode{$ENDIF}((GetConnectString(Host, IntToStr(Port), 'template1', User, Password, SSLMode, ConnectionTimeout)))));
   if not Assigned(LocHandle) then Exit;
-  LocResult := PQexec(LocHandle, PAnsiChar(AnsiString(SQL)));
+  LocResult := _PQExecute(Self, SQL);
   if Assigned(LocResult) then
   begin
      ErrStr := RawToString(PQerrorMessage(LocHandle));
@@ -1549,7 +1570,7 @@ begin
   if pszWild <> '' then
     Sql := Sql + ' AND relname LIKE '''+ pszWild+ '''';
   Sql := Sql + ' ORDER BY 2,1';
-  RES := PQexec(Handle,StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
   begin
      CheckResult;
@@ -1573,7 +1594,7 @@ begin
   if pszWild <> '' then
     Sql := Sql + ' WHERE usename LIKE ''' + pszWild + '''';
   Sql := Sql + ' ORDER BY 1';
-  RES := PQexec(Handle,StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
  try
   if Assigned(RES) then
   begin
@@ -1602,7 +1623,7 @@ begin
     Sql := Sql + ' AND nspname NOT IN (''pg_catalog'', ''pg_toast'','+
                     '''pg_sysviews'', ''information_schema'')';
   Sql := Sql + ' ORDER BY 1';
-  RES := PQexec(Handle,StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
  try
   if Assigned(RES) then
   begin
@@ -1630,7 +1651,7 @@ begin
    if pszWild <> '' then
     Sql := Sql + ' WHERE datname LIKE '''+pszWild+'''';
   Sql := Sql + ' ORDER BY datname';
-  RES := PQexec(Handle,StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
   begin
      for I := 0 to PQntuples(RES)-1 do
@@ -3217,7 +3238,7 @@ var
           Raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := Trim(SQLQuery);
-       FStatement := PQexec(FConnect.Handle, FConnect.StringToRaw(sql_stmt));
+       FStatement := _PQExecute(FConnect, sql_stmt);
        if Assigned(FStatement) then
        begin
           try
@@ -3384,7 +3405,10 @@ begin
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
   FLastOperationTime := GetTickCount;
 
-  FStatement := PQexec(FConnect.Handle, FConnect.StringToRaw(SQLQuery));
+
+  //FStatement := PQexec(FConnect.Handle, FConnect.StringToRaw(SQLQuery));
+
+  FStatement := _PQExecute(FConnect, SQLQuery);
 
   if FStatement <> nil  then
   begin
@@ -3442,10 +3466,18 @@ begin
 end;
 
 function TNativeDataSet.FieldIndex(FieldName: String): Integer;
+var P: PAnsiChar;
 begin
    Result := -1;
    if FStatement <> nil then
-      Result := PQfnumber(FStatement, FConnect.StringToRaw(FieldName));
+   begin
+    P := FConnect.StringToRaw(FieldName);
+    try
+      Result := PQfnumber(FStatement, P);
+    finally
+      StrDispose(P);
+    end;
+   end;
 end;
 
 function TNativeDataSet.FieldSize(FieldNum: Integer): Integer;
@@ -3645,11 +3677,11 @@ begin
 end;
 
 procedure TNativeDataSet.FillDefs(SL: TStrings);
-Var inS: string;
+Var inS: String;
     i, j, fPos: integer;
     tabOID: cardinal;
     RES: PPGresult;
-    sql: string;
+    sql: String;
 const
       tS = ' c.oid = %d AND ad.adnum = %d ';
 
@@ -3680,7 +3712,7 @@ begin
  If inS > '' then
   begin
     sql := Format(sql,[inS]);
-    Res := PQExec(FConnect.Handle, FConnect.StringToRaw(sql));
+    Res := PQExec(FConnect.Handle, PAnsiChar(AnsiString(sql)));
     if Assigned(RES) then
      try
       FConnect.CheckResult;
@@ -4422,7 +4454,7 @@ begin
        sSQLQuery := Format(sSQLQuery,[ATableOID]);
       end;
    try
-    Res := PQExec(FConnect.Handle, FConnect.StringToRaw(sSQLQuery));
+    Res := _PQExecute(FConnect, sSQLQuery);
     if Assigned(RES) then
      try
       FConnect.CheckResult;
@@ -5121,7 +5153,7 @@ begin
   S := Format('TRUNCATE TABLE %s',[TableName]);
   FAffectedRows := 0;
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
-  Result := PQexec(FConnect.Handle,FConnect.StringToRaw(S));
+  Result := _PQexecute(FConnect, S);
   if Result <> nil then
   begin
     FConnect.CheckResult;
@@ -5149,7 +5181,7 @@ var
 
 begin
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
-  Result := PQexec(FConnect.Handle, FConnect.StringToRaw(CreateSQLForAddIndex));
+  Result := _PQexecute(FConnect, CreateSQLForAddIndex);
   if Result <> nil  then
   begin
     PQclear(Result);
@@ -5162,7 +5194,7 @@ var
    Result : PPGResult;
 begin
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
-    Result := PQexec(FConnect.Handle,FConnect.StringToRaw(Format('DROP INDEX %s ON %s',[pszIndexName,TableName])));
+    Result := _PQexecute(FConnect, Format('DROP INDEX %s ON %s',[pszIndexName, TableName]));
   if Result <> nil  then
   begin
     PQclear(Result);
@@ -5178,7 +5210,7 @@ const _lockmode: array[TPSQLLockType] of AnsiString = ('ACCESS SHARE', 'ROW SHAR
       _nowait: array[boolean] of AnsiString = ('', 'NOWAIT');
 var Res: PPGresult;
 begin
-  Res := PQExec(FConnect.Handle, FConnect.StringToRaw(Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]])));
+  Res := _PQExecute(FConnect, Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]]));
   try
     FConnect.CheckResult(Res);
   finally
@@ -6433,7 +6465,7 @@ procedure TNativePGNotify.InternalExecute(Sql: string);
 var
    locResult : PPGResult;
 begin
-  LocResult := PQexec(FConnect.Handle, FConnect.StringToRaw(SQL));
+  LocResult := _PQexecute(FConnect, SQL);
   if Assigned(LocResult) then
      PQclear(LocResult);
 end;
@@ -6929,7 +6961,7 @@ begin
    if pszWild <> '' then
     Sql := Sql + ', p.proname LIKE ' + QuotedStr(pszWild);
   Sql := Sql + ' ORDER BY 2,3';
-  RES := PQexec(Handle, StringToRaw(Sql));
+  RES := _PQexecute(Self, Sql);
   if Assigned(RES) then
   try
     begin
@@ -7033,7 +7065,7 @@ begin
 
 
 
-  RES := PQexec(Handle, StringToRaw(MinOIDSel));
+  RES := _PQexecute(Self, MinOIDSel);
   if (PQresultStatus(RES) = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
    begin
     ArgNum := StrToInt(RawToString(PQgetvalue(RES,0,0)));
@@ -7050,7 +7082,7 @@ begin
   else
     Sql := Format(sqlShowParameters,[ArgNum,ProcOID]);
 
-  RES := PQexec(Handle, StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if PQresultStatus(RES) = PGRES_TUPLES_OK then
   begin
      for I := 0 to PQntuples(RES)-1 do
@@ -7081,13 +7113,15 @@ begin
 end;
 
 function TNativeConnect.StringToRaw(S: string): PAnsiChar;
+var _S: AnsiString;
 begin
-{$IFDEF DELPHI_12}
- if IsUnicodeUsed then
-  Result := PAnsiChar(UTF8Encode(S))
- else
-{$ENDIF}
-  Result := PAnsiChar(AnsiString(S));
+  _S := StringToRawS(S);
+  {$IFDEF DELPHI_12}
+  Result := AnsiStrAlloc(Length(S) + 1);
+  {$ELSE}
+  Result := StrAlloc(Length(S) + 1);
+  {$ENDIF}
+  StrPCopy(Result, _S);
 end;
 
 function TNativeConnect.StringToRawS(S: string): AnsiString;
@@ -7153,7 +7187,7 @@ begin
    end;
   InternalConnect;
   Sql := Format('SELECT set_config(''client_encoding'', ''%s'', false)', [ACharSet]);
-  RES := PQexec(Handle, StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
    try
     CheckResult;
@@ -7296,7 +7330,7 @@ begin
   Sql := 'SELECT usesysid, usecreatedb, usesuper, usecatupd, valuntil '+
          ' FROM pg_user WHERE usename = '''+UserName+'''';
  try
-  RES := PQexec(Handle, StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
    try
     CheckResult;
@@ -7345,7 +7379,7 @@ begin
    Sql := Format(Sql,['spcname,','pg_tablespace as tsp,','tsp.oid = dattablespace AND'])
   else
    Sql := Format(Sql,['','','']);
-  RES := PQexec(Handle,StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
    try
     CheckResult;
@@ -7409,7 +7443,7 @@ begin
   else
    Sql := Format(Sql,['','',Tbl,Schema]);
  try
-  RES := PQexec(Handle,StringToRaw(Sql));
+  RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
    try
     CheckResult;
@@ -7603,7 +7637,7 @@ begin
    Exit;
   InternalConnect;
   S := Format('SELECT set_config(''statement_timeout'', ''%d'', false)',[Timeout]);
-  RES := PQexec(Handle, StringToRaw(S));
+  RES := PQexec(Handle, PAnsiChar(AnsiString(S)));
   if Assigned(RES) then
    try
     CheckResult;
@@ -7985,7 +8019,7 @@ begin
   if pszWild <> '' then
     Sql := Sql + ' WHERE spcname LIKE ' + AnsiQuotedStr(pszWild,'''');
   Sql := Sql + ' ORDER BY 1';
- RES := PQexec(Handle,StringToRaw(Sql));
+ RES := _PQExecute(Self, Sql);
  try
   if Assigned(RES) then
   begin
@@ -8223,7 +8257,7 @@ begin
   Result := '';
 	InternalConnect;
 
-	Stmt := PQExec(Handle, StringToRaw(pszQuery));
+	Stmt := _PQExecute(Self, pszQuery);
   try
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (PQnfields(Stmt) > aFieldNumber) and
@@ -8241,19 +8275,22 @@ function TNativeConnect.SelectStringDirect(pszQuery: string;
   var IsOk: boolean; pszFieldName : string): string;
 var
 	Stmt : PPGresult;
+  P: PAnsiChar;
 begin
   Result := '';
 	InternalConnect;
 
-	Stmt := PQExec(Handle, StringToRaw(pszQuery));
+	Stmt := _PQExecute(Self, pszQuery);
   try
+    P := StringToRaw(pszFieldName);
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
-            (PQfnumber(Stmt, StringToRaw(pszFieldName)) > -1) and
+            (PQfnumber(Stmt, P) > -1) and
             (PQntuples(Stmt) > 0);
     if IsOK then
-      Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, StringToRaw(pszFieldName))))
+      Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)))
     else
       CheckResult;
+    StrDispose(P);
   finally
    PQClear(Stmt);
   end;

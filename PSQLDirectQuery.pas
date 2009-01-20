@@ -113,10 +113,12 @@ begin
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.FieldIndexByName(aFieldName: string): integer;
+var P: PAnsiChar;
 begin
   CheckOpen();
-
-  Result := PQfnumber(FStatement, TNativeConnect(FDatabase.Handle).StringToRaw(aFieldName));
+  P := TNativeConnect(FDatabase.Handle).StringToRaw(aFieldName);
+  Result := PQfnumber(FStatement, P);
+  StrDispose(P);
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.FieldIsNull(aFieldIndex: integer): boolean;
@@ -266,7 +268,7 @@ begin
 
   NC := TNativeConnect(FDatabase.Handle);
 
-  FStatement := {$IFDEF M_DEBUG}PSQLAccess.{$ENDIF}PQexec(NC.Handle, NC.StringToRaw(FSQL.Text));
+  FStatement := _PQExecute(NC, FSQL.Text);
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then
   begin
     FreeHandle();
