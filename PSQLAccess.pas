@@ -885,10 +885,10 @@ begin
  LogDebugMessage('CONN', String(ConnInfo));
 end;
 
-function PQExec(Handle: PPGconn; Query: PAnsiChar): PPGresult;
+function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
 begin
- Result := PSQLTypes.PQexec(Handle,Query);
- LogDebugMessage('EXEC', String(Query));
+ Result := PSQLTypes.PQexec(Handle,AQuery);
+ LogDebugMessage('EXEC', String(AQuery));
 end;
 
 function lo_creat(Handle: PPGconn; mode: Integer): Oid;
