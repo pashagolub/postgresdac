@@ -7364,10 +7364,15 @@ begin
   Owner := '';
   SV := GetServerVersionAsInt;
 
+  if SV >= 080200 then
+   Sql := Format(' LEFT JOIN %s ON (db.oid = %s.objoid), ', ['pg_shdescription', 'pg_shdescription'])
+  else
+   Sql := Format(' LEFT JOIN %s ON (db.oid = %s.objoid), ', ['pg_description', 'pg_description']);
+
   Sql := 'SELECT db.oid, datistemplate, usename, %s '+
          ' COALESCE(description,'''')::varchar '+
          ' FROM pg_database as db '+
-         ' LEFT JOIN pg_description ON (db.oid = pg_description.objoid), '+
+         Sql +
          ' %s '+
          ' pg_user as sh '+
          ' WHERE '+
@@ -7375,10 +7380,13 @@ begin
          ' sh.usesysid = datdba AND '+
          ' db.datname = '''+DB+'''';
 
-  If SV >= 080000 then
+
+
+  if SV >= 080000 then
    Sql := Format(Sql,['spcname,','pg_tablespace as tsp,','tsp.oid = dattablespace AND'])
   else
    Sql := Format(Sql,['','','']);
+
   RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
    try
@@ -7390,6 +7398,7 @@ begin
       Owner := RawToString(PQgetvalue(RES,0,2));
       If SV >= 800000 then
         Tablespace := RawToString(PQgetvalue(RES,0,3));
+      Comment := RawToString(PQgetvalue(RES,0,4));
      end;
    finally
     PQclear(RES);

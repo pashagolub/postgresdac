@@ -207,6 +207,7 @@ type
       function GetDBOwner: string;
       function GetTablespace: string;
     function GetIsUnicodeUsed: Boolean;
+    function GetDatabaseComment: string;
     Protected
       procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
@@ -270,7 +271,7 @@ type
       property BeforeDisconnect;
       property CharSet: string read FCharSet write SetCharSet;
       property CommandTimeout: cardinal read FCommandTimeout write SetCommandTimeout default 0;
-      property Comment: string read FComment write SetDummyStr stored False;
+      property Comment: string read GetDatabaseComment write SetDummyStr stored False;
       property Connected;
       property ConnectionTimeout: cardinal read FConnectionTimeout write SetConnectionTimeout default 15;
       property DatabaseID: cardinal read GetDatabaseID write SetDummyInt stored False;
@@ -2072,6 +2073,12 @@ begin
   if not Connected or (FDatabaseID > 0) then Exit;
   Engine.GetDBProps(FHandle,FDatabaseName, FOwner, FTablespace,
         FIsTemplate,FDatabaseId, FComment);
+end;
+
+function TPSQLDatabase.GetDatabaseComment: string;
+begin
+ FillAddonInfo;
+ Result := FComment;
 end;
 
 function TPSQLDatabase.GetDatabaseID: cardinal;
