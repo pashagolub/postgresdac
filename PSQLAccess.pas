@@ -182,6 +182,7 @@ Type
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
 
     function IsUnicodeUsed: boolean;
+    function IsSSLUsed: boolean;
 
     function RawToString(S: PAnsiChar): string;
     function StringToRaw(S: string): PAnsiChar; //need to be free by StrDispose
@@ -6889,6 +6890,15 @@ Begin
   except
     Result := -1;
   end;
+end;
+
+function TNativeConnect.IsSSLUsed: boolean;
+var P: pointer;
+begin
+  Result := False;
+  if not FLoggin then Exit;
+  P := PQgetssl(FHandle);
+  Result := Assigned(P);
 end;
 
 function TNativeConnect.IsTransactionActive: boolean;

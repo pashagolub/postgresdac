@@ -208,6 +208,7 @@ type
       function GetTablespace: string;
     function GetIsUnicodeUsed: Boolean;
     function GetDatabaseComment: string;
+    function GetIsSSLUsed: Boolean;
     Protected
       procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
@@ -258,6 +259,7 @@ type
       property Handle: HDBIDB read FHandle write SetHandle;
       property InTransaction: Boolean read GetInTransaction;
       property IsUnicodeUsed: Boolean read GetIsUnicodeUsed;
+      property IsSSLUsed: Boolean read GetIsSSLUsed;
       property Notifies[Index: Integer]: TObject read GetNotifyItem;
       property NotifyCount: Integer read GetNotifyCount;
       property ServerVersionAsInt: integer read GetServerVersionAsInt;
@@ -2085,6 +2087,14 @@ function TPSQLDatabase.GetDatabaseID: cardinal;
 begin
  FillAddonInfo;
  Result := FDatabaseID;
+end;
+
+function TPSQLDatabase.GetIsSSLUsed: Boolean;
+begin
+ if Assigned(FHandle) then
+  Result := TNativeConnect(FHandle).IsSSLUsed
+ else
+  Result := False;
 end;
 
 function TPSQLDatabase.GetIsTemplate: boolean;

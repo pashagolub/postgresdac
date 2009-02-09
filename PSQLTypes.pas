@@ -446,6 +446,7 @@ type
   TPQFreeMem       = procedure(Ptr: pointer);cdecl;
   TPQsetClientEncoding = function(Handle: PPGconn; encoding: PAnsiChar): integer;
   TPQclientEncoding = function(Handle: PPGconn): integer;
+  TPQgetssl = function(Handle: PPGconn): pointer;
   Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar;
   Tlo_open         = function(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer; cdecl;
   Tlo_close        = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
@@ -537,6 +538,7 @@ var
   PQFreeMem:       TPQFreeMem;
   PQsetClientEncoding: TPQsetClientEncoding;
   PQclientEncoding: TPQclientEncoding;
+  PQgetssl:        TPQgetssl;
   pg_encoding_to_char: Tpg_encoding_to_char;
   lo_open:         Tlo_open;
   lo_close:        Tlo_close;
@@ -2590,6 +2592,7 @@ begin
          @PQFreeMem      := GetPSQLProc('PQfreemem');
          @PQsetClientEncoding := GetPSQLProc('PQsetClientEncoding');
          @PQclientEncoding := GetPSQLProc('PQclientEncoding');
+         @PQgetssl := GetPSQLProc('PQgetssl');
          @pg_encoding_to_char := GetPSQLProc('pg_encoding_to_char');
          @lo_open        := GetPSQLProc('lo_open');
          @lo_close       := GetPSQLProc('lo_close');
