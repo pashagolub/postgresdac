@@ -1225,7 +1225,7 @@ begin
   FOEMConvert := False;
   SetConnectionTimeout(15);
   SetServerPort(PSQL_PORT);
-  SetSSLMode(sslDisable);
+  SetSSLMode(sslPrefer);
   FTransIsolation := tiReadCommitted;
   AddDatabase(Self);
   FNotifyList := TList.Create;
