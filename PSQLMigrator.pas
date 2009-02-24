@@ -344,7 +344,8 @@ begin
     If DeleteSourceComponents then
      for I:=0 to FDataSets.Count-1 do
       begin
-       GetObjectProp(FDataSets.OldDataSets[I], 'UpdateObject').Free;
+       if GetPropInfo(FDataSets.OldDataSets[I], 'UpdateObject') <> nil then
+         GetObjectProp(FDataSets.OldDataSets[I], 'UpdateObject').Free;
        FDataSets.OldDataSets[I].Free;
       end;
     ShowMessage(Format('%d dataset descendants processed successfully',[FDataSets.Count]));
@@ -408,7 +409,9 @@ begin
   if OldDataSet.ClassNameIs('TQuery') and (convBDE in FConvertComponents)  or
      OldDataSet.ClassNameIs('TZQuery') and (convZeos in FConvertComponents) or
      OldDataSet.ClassNameIs('TSQLQuery') and (convDBX in FConvertComponents) or
-     OldDataSet.ClassNameIs('TADOQuery') and (convADO in FConvertComponents) then
+     OldDataSet.ClassNameIs('TSQLDataset') and (convDBX in FConvertComponents) or
+     OldDataSet.ClassNameIs('TADOQuery') and (convADO in FConvertComponents) or
+     OldDataSet.ClassNameIs('TADODataset') and (convADO in FConvertComponents) then
   begin
     aDataSet := TPSQLQuery.Create(OldDataSet.Owner);
     UpdateDesignInfo(OldDataSet,aDataSet);
@@ -450,13 +453,16 @@ begin
          TPSQLQuery(aDataSet).SQL.Assign(AObj as TStrings)
       end
   else
+   if OldDataSet.ClassNameIs('TSQLDataset') or OldDataSet.ClassNameIs('TADODataset') then
+         TPSQLQuery(aDataSet).SQL.Text := GetStrProp(OldDataSet, 'CommandText')
+  else
    if OldDataSet.ClassNameIs('TTable') or OldDataSet.ClassNameIs('TZTable') or
       OldDataSet.ClassNameIs('TSQLTable') or OldDataSet.ClassNameIs('TADOTable') then
        begin
         TPSQLTable(aDataSet).TableName := GetStrProp(OldDataSet, 'TableName');
-        If GetPropInfo(OldDataset,'Filtered') <> nil then
+        if GetPropInfo(OldDataset,'Filtered') <> nil then
            TPSQLTable(aDataSet).Filtered := Boolean(GetOrdProp(OldDataSet, 'Filtered'));
-        If GetPropInfo(OldDataset,'Filter') <> nil then
+        if GetPropInfo(OldDataset,'Filter') <> nil then
            TPSQLTable(aDataSet).Filter := GetStrProp(OldDataSet, 'Filter');
        end
   else
@@ -484,7 +490,7 @@ var
    end;
 
 begin
-    If GetPropInfo(OldDataset,'UpdateObject') <> nil then
+    if GetPropInfo(OldDataset,'UpdateObject') <> nil then
       Obj := GetObjectProp(OldDataSet, 'UpdateObject')
     else
       Exit;
