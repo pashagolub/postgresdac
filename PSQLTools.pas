@@ -93,11 +93,19 @@ begin
 end;
 
 constructor TPSQLTools.Create(Owner: TComponent);
+var I: integer;
 begin
   inherited Create(Owner);
   FQuery := TPSQLQuery.Create(nil);
   FColumnList := TStringList.Create;
   FVacuumOptions := [];
+  if (csDesigning in ComponentState) and Assigned(Owner) then
+    for I := Owner.ComponentCount - 1 downto 0 do
+      if Owner.Components[I] is TPSQLDatabase then
+      begin
+         Database := Owner.Components[I] as TPSQLDatabase;
+         Break;
+      end;
 end;
 
 destructor TPSQLTools.Destroy;

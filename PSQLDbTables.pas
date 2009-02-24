@@ -1066,7 +1066,7 @@ uses  ActiveX, Forms, DBPWDlg, DBLogDlg, DBConsts
 {$IFDEF DELPHI_10}, DBClient{$ENDIF},
 BDEConst
 {$IFDEF TRIAL}, PSQLAboutFrm{$ENDIF},
-PSQLDirectQuery;
+PSQLDirectQuery, Math;
 
 {$R DB.DCR}
 
@@ -2125,11 +2125,20 @@ end;
 
 { TPSQLDataSet }
 constructor TPSQLDataSet.Create(AOwner : TComponent);
+var I: integer;
 begin
   Inherited Create(AOwner);
   FCacheBlobs := False;
   FAutoRefresh := FALSE;
   FAllowSequenced := False; //Added by Nicolas Ring
+
+  if (csDesigning in ComponentState) and Assigned(AOwner) then
+    for I := AOwner.ComponentCount - 1 downto 0 do
+      if AOwner.Components[I] is TPSQLDatabase then
+      begin
+         Database := AOwner.Components[I] as TPSQLDatabase;
+         Break;
+      end;
 end;
 
 destructor TPSQLDataSet.Destroy;
@@ -3229,8 +3238,8 @@ end;
 function TPSQLDataSet.SetCursorRange: Boolean;
 var
   RangeStart, RangeEnd: PKeyBuffer;
-  StartKey, EndKey: PChar;
-  IndexBuffer: PChar;
+  StartKey, EndKey: PAnsiChar;
+  IndexBuffer: PAnsiChar;
   UseStartKey, UseEndKey, UseKey: Boolean;
 begin
    Result := FALSE;
@@ -3244,7 +3253,7 @@ begin
       RangeStart := FKeyBuffers[kiRangeStart];
       if RangeStart.Modified then
       begin
-        StartKey := PChar(RangeStart) + SizeOf(TKeyBuffer);
+        StartKey := PAnsiChar(RangeStart) + SizeOf(TKeyBuffer);
         UseStartKey := Engine.ExtractKey(Handle, StartKey, IndexBuffer) = 0;
       end
       else
@@ -3252,7 +3261,7 @@ begin
       RangeEnd := FKeyBuffers[kiRangeEnd];
       if RangeEnd.Modified then
       begin
-        EndKey := PChar(RangeEnd) + SizeOf(TKeyBuffer);
+        EndKey := PAnsiChar(RangeEnd) + SizeOf(TKeyBuffer);
         UseEndKey := (Engine.ExtractKey(Handle, EndKey, IndexBuffer + KeySize) = 0);
       end
       else
@@ -5325,8 +5334,8 @@ begin
   FillChar(IndexDesc, SizeOf(IndexDesc), 0);
   with IndexDesc do
   begin
-//    TAnsiToNative(Engine, Name, szName, SizeOf(szName) - 1);
-    szName      := Name;
+    Move(Name[1], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
+    //szName      := Copy(Name, 1, length(Name));
     bPrimary    := ixPrimary in Options;
     bUnique     := ixUnique in Options;
     bDescending := (ixDescending in Options) and (DescFields = '');
@@ -5586,7 +5595,7 @@ end;
 function TPSQLTable.GotoKey: Boolean;
 var
   KeyBuffer: PKeyBuffer;
-  IndexBuffer, RecBuffer: PChar;
+  IndexBuffer, RecBuffer: PAnsiChar;
   UseKey: Boolean;
 begin
   CheckBrowseMode;
@@ -5595,7 +5604,7 @@ begin
   KeyBuffer := GetKeyBuffer(kiLookup);
   IndexBuffer := AllocMem(KeySize);
   try
-    RecBuffer := PChar(KeyBuffer) + SizeOf(TKeyBuffer);
+    RecBuffer := PAnsiChar(KeyBuffer) + SizeOf(TKeyBuffer);
     UseKey := Engine.ExtractKey(Handle, RecBuffer, IndexBuffer) = 0;
     if UseKey then RecBuffer := IndexBuffer;
     Result := Engine.GetRecordForKey(Handle, UseKey, KeyBuffer^.FieldCount, 0, RecBuffer, nil,True) = 0;
@@ -5610,7 +5619,7 @@ procedure TPSQLTable.GotoNearest;
 var
   SearchCond: DBISearchCond;
   KeyBuffer: PKeyBuffer;
-  IndexBuffer, RecBuffer: PChar;
+  IndexBuffer, RecBuffer: PAnsiChar;
   UseKey: Boolean;
 begin
   CheckBrowseMode;
@@ -5621,7 +5630,7 @@ begin
     SearchCond := keySEARCHGEQ;
   IndexBuffer := AllocMem(KeySize);
   try
-    RecBuffer := PChar(KeyBuffer) + SizeOf(TKeyBuffer);
+    RecBuffer := PAnsiChar(KeyBuffer) + SizeOf(TKeyBuffer);
     UseKey := Engine.ExtractKey(Handle,RecBuffer,IndexBuffer) = 0;
     if UseKey then RecBuffer := IndexBuffer;
 
@@ -6443,6 +6452,7 @@ end;
 
 
 constructor TPSQLNotify.Create(AOwner: TComponent);
+var I: integer;
 begin
   inherited Create(AOwner);
   FListenList := TStringList.Create;
@@ -6460,6 +6470,14 @@ begin
   FTimer.OnTimer := ListenProc;
   FActive := False;
   FFirstConnect := True;
+
+  if (csDesigning in ComponentState) and Assigned(AOwner) then
+    for I := AOwner.ComponentCount - 1 downto 0 do
+      if AOwner.Components[I] is TPSQLDatabase then
+      begin
+         Database := AOwner.Components[I] as TPSQLDatabase;
+         Break;
+      end;
 end;
 
 destructor TPSQLNotify.Destroy;
@@ -6544,12 +6562,12 @@ begin
     for I := 0 to FBackupList.Count-1 do
     begin
       if FListenList.IndexOf(FBackupList[I]) = -1 then
-         Check(Engine,Engine.UnlistenTo(FHandle,PChar(Trim(FBackupList[I]))));
+         Check(Engine,Engine.UnlistenTo(FHandle, Trim(FBackupList[I])));
     end;
     for I := 0 to FListenList.Count-1 do
     begin
       if FBackupList.IndexOf(FListenList[I])=-1 then
-         Check(Engine,Engine.ListenTo(fHandle,PChar(Trim(FListenList[I]))));
+         Check(Engine,Engine.ListenTo(fHandle,Trim(FListenList[I])));
     end;
   finally
     with TStringList(FListenList) do
@@ -6880,7 +6898,7 @@ var
   List : TList;
   i:integer;
 begin
-   if not FNeedRefreshParams then Exit;
+   if not FNeedRefreshParams or not FDatabase.Connected then Exit;
    List := TList.Create;
    try
     FParams.Clear;

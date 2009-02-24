@@ -96,11 +96,19 @@ begin
 end;
 //----------------------------------------------------------------------------------------------------------------------
 constructor TPSQLCustomDirectQuery.Create(aOwner: TComponent);
+var I: integer;
 begin
   inherited Create(AOwner);
 
   FStatement := nil;
   FSQL := TStringList.Create();
+  if (csDesigning in ComponentState) and Assigned(AOwner) then
+    for I := AOwner.ComponentCount - 1 downto 0 do
+      if AOwner.Components[I] is TPSQLDatabase then
+      begin
+         Database := AOwner.Components[I] as TPSQLDatabase;
+         Break;
+      end;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 destructor TPSQLCustomDirectQuery.Destroy();
@@ -117,8 +125,11 @@ var P: PAnsiChar;
 begin
   CheckOpen();
   P := TNativeConnect(FDatabase.Handle).StringToRaw(aFieldName);
-  Result := PQfnumber(FStatement, P);
-  StrDispose(P);
+  try
+   Result := PQfnumber(FStatement, P);
+  finally
+   StrDispose(P);
+  end;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 function TPSQLCustomDirectQuery.FieldIsNull(aFieldIndex: integer): boolean;

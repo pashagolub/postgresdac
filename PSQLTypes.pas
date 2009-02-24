@@ -110,6 +110,8 @@ var
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
   OEMConv              : Boolean; //Global OEM->ANSI Variable
 
+type
+  _NAME = string[NAMEDATALEN+1];
 
 const
 
@@ -877,9 +879,9 @@ type
 type
   pIDXDesc = ^IDXDesc;
   IDXDesc = record               { Index description }
-    szName          : string;       { Index name }
+    szName          : DBINAME;       { Index name }
     iIndexId        : Word;             { Index number }
-    szTagName       : string;          { Tag name (for dBASE) }
+    szTagName       : DBINAME;          { Tag name (for dBASE) }
     szFormat        : string;          { Optional format (BTREE, HASH etc) }
     bPrimary        : WordBool;         { True, if primary index }
     bUnique         : WordBool;         { True, if unique keys (TRI-STATE for dBASE) }
@@ -999,7 +1001,7 @@ type
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
     iFldNum         : Word;             { Field number (1..n) }
-    szName          : string{[NAMEDATALEN]};          { Field name }
+    szName          : string;          { Field name }
     iFldType        : Word;             { Field type }
     iSubType        : Word;             { Field subtype (if applicable) }
     iUnits1         : integer;         { Number of Chars, digits etc }

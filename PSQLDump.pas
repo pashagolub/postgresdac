@@ -329,6 +329,7 @@ end;
 {TPSQLDump}
 
 Constructor TPSQLDump.Create(Owner : TComponent);
+var I: integer;
 begin
   inherited Create(Owner);
   FDumpOptions := [];
@@ -339,6 +340,13 @@ begin
   FExcludeSchemas := TStringList.Create;
   FSchemaNames := TStringList.Create;
   FmiParams := TpdmvmParams.Create;
+  if (csDesigning in ComponentState) and Assigned(Owner) then
+    for I := Owner.ComponentCount - 1 downto 0 do
+      if Owner.Components[I] is TPSQLDatabase then
+      begin
+         Database := Owner.Components[I] as TPSQLDatabase;
+         Break;
+      end;
 end;
 
 destructor TPSQLDump.Destroy;
@@ -685,12 +693,20 @@ end;
 {TPSQLRestore}
 
 constructor TPSQLRestore.Create(Owner: TComponent);
+var I: integer;
 begin
   inherited;
   FRestoreOptions := [];
   FmiParams := TpdmvmParams.Create;
   FRestoreFormat := rfAuto;
   ZeroMemory(@FRestoreStrOptions,sizeof(FRestoreStrOptions));
+  if (csDesigning in ComponentState) and Assigned(Owner) then
+    for I := Owner.ComponentCount - 1 downto 0 do
+      if Owner.Components[I] is TPSQLDatabase then
+      begin
+         Database := Owner.Components[I] as TPSQLDatabase;
+         Break;
+      end;
 end;
 
 destructor TPSQLRestore.Destroy;
