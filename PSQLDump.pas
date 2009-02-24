@@ -46,7 +46,8 @@ type
 
     TDumpOptions = set of TDumpOption;
 
-    TDumpStrOption = (dsoSchema, dsoSuperuser, dsoTable, dsoExcludeSchema, dsoExcludeTable);
+    TDumpStrOption = (dsoSchema, dsoSuperuser, dsoTable, dsoExcludeSchema,
+                      dsoExcludeTable, dsoEncoding);
 
     TDumpFormat = (dfPlain, dfTarArchive, dfCompressedArchive);
 
@@ -106,6 +107,7 @@ type
         property ExcludeTables: TStrings read FExcludeTables write SetExcludeTables;
         property SuperUserName: string  index dsoSuperUser read GetStrOptions write SetStrOptions;
         property CompressLevel: TCompressLevel read FCompressLevel write SetCompressLevel default 0;
+        property Encoding: string index dsoEncoding read GetStrOptions write SetStrOptions;
         property Database   : TPSQLDatabase read FDatabase write SetDatabase;
         property Options : TDumpOptions read FDumpOptions write FDumpOptions default [];
         property DumpFormat : TDumpFormat read FDumpFormat write FDumpFormat default dfPlain;
@@ -222,7 +224,8 @@ const
      '--superuser=',     //dsoSuperuser
      '--table=',          //dsoTable
      '--exclude-schema', //dsoExcludeSchema
-     '--exclude-table='  //dsoExcludeTable
+     '--exclude-table=',  //dsoExcludeTable
+     '--encoding=' //dsoEncoding
     );
 
     RestoreCommandLineStrParameters: array[TRestoreStrOption] of string =(
@@ -456,7 +459,7 @@ begin
 
  FmiParams.Add(DumpCommandLineFormatValues[FDumpFormat]);
 
- If FDumpFormat in [dfCompressedArchive, dfPlain] then
+ if FDumpFormat in [dfCompressedArchive, dfPlain] then
    FmiParams.Add(Format('--compress=%d',[FCompressLevel]));
 
  With FDatabase do
