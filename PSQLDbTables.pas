@@ -227,12 +227,12 @@ type
       destructor Destroy; Override;
 
       function  Engine : TPSQLEngine;
-      function Execute(const SQL: string; Params: TParams = NIL; Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
+      function Execute(const SQL: string; Params: TParams = nil; Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
       function GetBackendPID: Integer;
-      function SelectString(aSQL : string; var IsOk : boolean; aFieldName : string):string; overload;
-      function SelectString(aSQL : string; var IsOk : boolean; aFieldNumber : integer = 0):string; overload;
-      function SelectStringDef(aSQL : string; aDefaultValue : string; aFieldName : string):string; overload;
-      function SelectStringDef(aSQL : string; aDefaultValue : string; aFieldNumber : integer = 0):string; overload;
+      function SelectString(aSQL: string; var IsOk: boolean; aFieldName: string): string; overload;
+      function SelectString(aSQL: string; var IsOk: boolean; aFieldNumber: integer = 0): string; overload;
+      function SelectStringDef(aSQL: string; aDefaultValue: string; aFieldName: string): string; overload;
+      function SelectStringDef(aSQL: string; aDefaultValue: string; aFieldNumber: integer = 0): string; overload;
 
       procedure AddNotify(AItem: TObject);
       procedure ApplyUpdates(const DataSets: array of TPSQLDataSet);
@@ -2132,13 +2132,17 @@ begin
   FAutoRefresh := FALSE;
   FAllowSequenced := False; //Added by Nicolas Ring
 
-  if (csDesigning in ComponentState) and Assigned(AOwner) then
-    for I := AOwner.ComponentCount - 1 downto 0 do
-      if AOwner.Components[I] is TPSQLDatabase then
+  if (csDesigning in ComponentState) and Assigned(AOwner) and (DBList.Count > 0) then
+   begin
+    for I := DBList.Count - 1 downto 0 do
+      if TCustomConnection(DBList[I]).Owner = AOwner then
       begin
-         Database := AOwner.Components[I] as TPSQLDatabase;
+         Database := TPSQLDatabase(DBList[I]);
          Break;
       end;
+      if not Assigned(Database) then
+        Database := TPSQLDatabase(DBList[DBList.Count - 1]);
+   end;
 end;
 
 destructor TPSQLDataSet.Destroy;
@@ -7111,7 +7115,7 @@ begin
   EmbeddedLiteral := False;
   repeat
     CurChar := CurPos^;
-    if (CurChar = ':') and not Literal and ((CurPos + 1)^ <> ':') and ((CurPos + 1)^ <> '=') then
+    if (CurChar = ':') and not Literal and not CharInSet((CurPos + 1)^, [':', '=']) then
     begin
       StartPos := CurPos;
       while (CurChar <> #0) and (Literal or not NameDelimiter) do
@@ -7139,7 +7143,7 @@ begin
       StrMove(StartPos, CurPos, StrLen(CurPos) + 1);
       CurPos := StartPos;
     end
-    else if (CurChar = ':') and not Literal and ((CurPos + 1)^ = ':') then
+    else if (CurChar = ':') and not Literal and CharInSet((CurPos + 1)^, [':','=']) then
       StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
     else if IsLiteral then Literal := Literal xor True;
     Inc(CurPos);
