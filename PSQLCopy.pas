@@ -115,17 +115,14 @@ type
 
   end;
 
-//////////////////////////////////////////////////////////////////
-//            Plain API Function variables definition           //
-//////////////////////////////////////////////////////////////////
-{var
-  PQgetCopyData: TPQgetCopyData;}
-
 implementation
+
+Uses DB;
 
 { TAbstractCopyObject }
 
-constructor TAbstractCopyObject.Create;
+constructor TAbstractCopyObject.Create(AOwner: TComponent);
+var I: integer;
 begin
  inherited;
  FColumns := TStringList.Create;
@@ -134,6 +131,17 @@ begin
  FDelimiter := #0;
  FNullValue := '';
  FTableName := '';
+ if (csDesigning in ComponentState) and Assigned(AOwner) and (DBList.Count > 0) then
+ begin
+  for I := DBList.Count - 1 downto 0 do
+    if TCustomConnection(DBList[I]).Owner = AOwner then
+    begin
+       Database := TPSQLDatabase(DBList[I]);
+       Break;
+    end;
+    if not Assigned(Database) then
+      Database := TPSQLDatabase(DBList[DBList.Count - 1]);
+ end;
 end;
 
 destructor TAbstractCopyObject.Destroy;
