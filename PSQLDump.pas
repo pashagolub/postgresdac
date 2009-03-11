@@ -254,6 +254,7 @@ const
 
 implementation
 
+uses PSQLAccess;
 
 var ProccessOwner: TComponent = nil;
 
@@ -581,10 +582,13 @@ var
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
 begin
-  If FileExists(TargetFile) and not FRewriteFile then
+  if FileExists(TargetFile) and not FRewriteFile then
     raise EPSQLDumpException.Create('Cannot rewrite existing file '+ TargetFile);
 
   h := LoadLibrary('pg_dump.dll');
+  {$IFDEF M_DEBUG}
+   LogDebugMessage('DUMPLIB', GetModuleName(h));
+  {$ENDIF}
   try
     @pdmvm_dump := GetProcAddress(h, PAnsiChar('pdmvm_dump'));
     if not assigned(@pdmvm_dump) then
@@ -593,7 +597,10 @@ begin
     @pdmvm_GetLastError := GetProcAddress(h, PAnsiChar('pdmbvm_GetLastError'));
     @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
 
-    If not (doIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
+    {$IFDEF M_DEBUG}
+    LogDebugMessage('DUMPVER', IntToStr(pdmbvm_GetVersionAsInt()));
+    {$ENDIF}
+    if not (doIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
       raise EPSQLDumpException.Create('Use "Ignore Version" option');
 
     @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
@@ -861,6 +868,9 @@ var
 begin
   S := '';
   h := LoadLibrary('pg_restore.dll');
+  {$IFDEF M_DEBUG}
+  LogDebugMessage('RESTLIB', GetModuleName(h));
+  {$ENDIF}
   try
     @pdmvm_restore := GetProcAddress(h, PAnsiChar('pdmvm_restore'));
     if not assigned(@pdmvm_restore) then
@@ -869,7 +879,10 @@ begin
     @pdmvm_GetLastError := GetProcAddress(h, PAnsiChar('pdmbvm_GetLastError'));
     @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
 
-    If not (roIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
+    {$IFDEF M_DEBUG}
+    LogDebugMessage('RESTVER', IntToStr(pdmbvm_GetVersionAsInt()));
+    {$ENDIF}
+    if not (roIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
       raise EPSQLRestoreException.Create('Database and pg_restore version missmatch. Use "Ignore Version" option');
 
     @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
