@@ -144,6 +144,17 @@ begin
  inherited Destroy;
 end;
 
+
+procedure TAbstractCopyObject.SetColumns(const Value: TStrings);
+begin
+  if Assigned(Value) then FColumns.Assign(Value);
+end;
+
+procedure TAbstractCopyObject.SetDatabase(const Value: TPSQLDatabase);
+begin
+  if (Value <> FDatabase) then FDatabase := Value;
+end;
+
 procedure TCustomPSQLCopy.DoClientSideCopyGet(Stream: TStream);
 var Result: PPGresult;
     LineRes: integer;
@@ -250,19 +261,6 @@ begin
   if Assigned(FAfterCopyGet) then
     FAfterCopyGet(Self);
 end;
-
-procedure TAbstractCopyObject.SetColumns(const Value: TStrings);
-begin
-  If Assigned(Value) then FColumns.Assign(Value);
-end;
-
-procedure TAbstractCopyObject.SetDatabase(const Value: TPSQLDatabase);
-begin
-  If (Value <> FDatabase) then FDatabase := Value;
-end;
-
-
-{       TCustomCopyTool        }
 
 procedure TCustomPSQLCopy.DoServerSideCopyPut;
   var
