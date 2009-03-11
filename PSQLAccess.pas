@@ -278,13 +278,6 @@ Type
       function GetRecordCount(hCursor: hDBICur;Var iRecCount: Longint): DBIResult;
       function ForceReread(hCursor: hDBICur): DBIResult;
       function GetField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Bool): DBIResult;
-(*{$IFDEF DELPHI_12}
-      function AnsiToNative(pNativeStr: PAnsiChar;pAnsiStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
-      function NativeToAnsi(pAnsiStr: PAnsiChar;pNativeStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
-{$ELSE}
-      function AnsiToNative(pNativeStr: PChar;pAnsiStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
-      function NativeToAnsi(pAnsiStr: PChar;pNativeStr: PChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
-{$ENDIF}*)
       function AddFilter(hCursor: hDBICur;iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter): DBIResult;
       function DropFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
@@ -456,12 +449,14 @@ Type
   TPSQLIndex = Class(TCollectionItem)
     Private
       FDesc      : IDXDesc;
+    function GetIndexName: string;
+    procedure SetIndexName(const Value: string);
     Public
       Constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
       Property Description : IDXDesc Read FDesc Write FDesc;
     Published
       Property IndexNumber : Word Read FDesc.iIndexID Write FDesc.iIndexID;
-      Property IndexName   : String Read FDesc.szName Write FDesc.szName;
+      Property IndexName   : string Read GetIndexName Write SetIndexName;
       Property Primary     : WordBool Read FDesc.bPrimary Write FDesc.bPrimary;
       Property Unique      : WordBool Read FDesc.bUnique Write FDesc.bUnique;
       Property Descending  : WordBool Read FDesc.bDescending Write FDesc.bDescending;
@@ -854,6 +849,7 @@ function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLField
 function QuoteIdentifier(IdentifierName: string): string;
 
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
+function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams): PPGResult;
 
 {$IFDEF M_DEBUG}
 function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
@@ -957,6 +953,44 @@ begin
   try
     StrPCopy(Q, S);
     Result := PQExec(AConnection.Handle, Q);
+  finally
+   FreeMem(Q);
+  end;
+end;
+
+function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams): PPGResult;
+var Q: PAnsiChar;
+    S: AnsiString;
+    paramValues: array of PAnsiChar;
+    i: integer;
+begin
+  {$IFDEF DELPHI_12}
+  if AConnection.IsUnicodeUsed then
+    S := UTF8Encode(AQuery)
+  else
+  {$ENDIF}
+    S := AnsiString(AQuery);
+  GetMem(Q, Length(S) + 1);
+  try
+    StrPCopy(Q, S);
+    SetLength(paramValues, AParams.Count);
+    for i := 0 to AParams.Count - 1 do
+     begin
+      {$IFDEF DELPHI_12}
+      if AConnection.IsUnicodeUsed then
+        S := UTF8Encode(AParams[i].AsString)
+      else
+      {$ENDIF}
+        S := AnsiString(AParams[i].AsString);
+      GetMem(paramValues[i], Length(S) + 1);
+      StrPCopy(paramValues[i], S);
+     end;
+    try
+      Result := PQexecParams(AConnection.Handle, Q, AParams.Count, nil, @paramValues[0], nil, nil, 0);
+    finally
+     for i := 0 to AParams.Count - 1 do
+       FreeMem(paramValues[i]);
+    end;
   finally
    FreeMem(Q);
   end;
@@ -1071,16 +1105,6 @@ begin
       FIELD_TYPE_INT2:     SmallInt(Dest^) := SmallInt(Src^);
       FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
       FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
-{      FIELD_TYPE_BIT,      //BIT Field
-      FIELD_TYPE_VARCHAR,
-      FIELD_TYPE_BPCHAR,
-      FIELD_TYPE_CHAR:     CopyMemory(Dest, Src, iField.NativeSize);
-      FIELD_TYPE_NAME,
-      FIELD_TYPE_MONEY:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
-      FIELD_TYPE_REGPROC:  StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
-      FIELD_TYPE_INTERVAL: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //Time INTERVAL
-      FIELD_TYPE_TIMETZ:   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength); //Time WITH TIME ZONE
-      FIELD_TYPE_UUID:     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);}
       FIELD_TYPE_DATE:     begin
                              try
                                 TimeStamp.Date := LongInt(Src^);
@@ -1099,8 +1123,6 @@ begin
                                Result := 1;
                              end;
                            end;
-
- //     FIELD_TYPE_TIMESTAMPTZ: StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength);
 
       FIELD_TYPE_TIMESTAMP: begin
                               try
@@ -2534,7 +2556,7 @@ begin
     fldINT64: Result := PInt64(@Dest)^;
     {$ENDIF}
     fldFLOAT: Result := PDouble(@Dest)^;
-    fldZSTRING:
+    fldZSTRING, fldUUID:
                 {$IFDEF DELPHI_12}
                 if FDataset.FConnect.IsUnicodeUsed then
                   Result := string(PChar(@Dest))
@@ -4408,6 +4430,7 @@ var
   ATablename, Aliace: String;
   Tbl, ASchema: string;
   RES: PPGresult;
+  IdxName: string;
 begin
   Result :=0;
   if not FIndexDescs.Updated then
@@ -4467,7 +4490,8 @@ begin
         Buffer :=  FConnect.RawToString(PQgetvalue(Res,i,2));
         for J :=1 to Length(Buffer) do
            if Buffer[J] = ' ' then Buffer[J] := ',';
-        LastIdx := FIndexDescs.SetIndex(FConnect.RawToString(PQgetvalue(Res,i,0)),Buffer,aPrim,aUniq,aSort);
+        IdxName := FConnect.RawToString(PQgetvalue(Res,i,0));
+        LastIdx := FIndexDescs.SetIndex(IdxName, Buffer, aPrim, aUniq, aSort);
         if LastIdx > 0 then
           if aPrim and (FPrimaryKeyNumber = 0) then
              FPrimaryKeyNumber := LastIdx; //pg: 14.02.07
@@ -4809,6 +4833,7 @@ var
   end;
 
 begin
+  if Params.Count = 0 then Exit;
   Temp := '';
   i := 0;
   while SQLText <> '' do
@@ -4844,13 +4869,15 @@ begin
             Token := Copy(Token, 2, Length(Token)-1);
       end;
       // if Params is set with ":" then select param by name
-      if ByName then begin
-         Param := Params.ParamByName(Token);
-      end else begin
-         Param := Params[i];
+      Param := nil;
+      if ByName then
+         Param := Params.FindParam(Token)
+      else
+       begin
+         if i < Params.Count then Param := Params[i];
          Inc(i);
-      end;
-      If (VarType(Param.Value) = varEmpty) or (VarType(Param.Value) = varNull) then
+       end;
+      if not Assigned(Param) or (VarType(Param.Value) = varEmpty) or (VarType(Param.Value) = varNull) then
         Value := 'NULL'
       else
         case Param.DataType of
@@ -4904,10 +4931,10 @@ end;
 procedure TNativeDataSet.ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
 var
   i : Word;
-  MKey    : PChar;
+  MKey    : PAnsiChar;
   Field   : TPSQLField;
   bBlank  : bool;
-  Buffer  : Array[0..255] of Char;
+  Buffer  : Array[0..255] of AnsiChar;
   iFields : Word;
 begin
   if not Assigned(PRecord) then PRecord := CurrentBuffer;
@@ -4918,7 +4945,7 @@ begin
   begin
     Field := Fields[FKeyDesc.aiKeyFld[i]];
     NativeToDelphi(Field, PRecord, @Buffer, bBlank);
-   if not bBlank then  AdjustDelphiField(Field,@Buffer, MKey);
+   if not bBlank then  AdjustDelphiField(Field, @Buffer, MKey);
    if bBlank then ZeroMemory(MKey, Field.FieldLength);
    Inc(MKey, Succ(Field.FieldLength));
   end;
@@ -5018,7 +5045,7 @@ var
   FldVal    : String;
   bBlank    : bool;
   Buff : Array[0..255] of Char;
-  CurBuffer : PChar;
+  CurBuffer : PAnsiChar;
   TimeStamp: TTimeStamp;
 begin
     For i := 0 to iFields-1 do
@@ -5029,25 +5056,20 @@ begin
       end;
 
     WHERE := '';
-    CurBuffer:=PChar(pKey);
+    CurBuffer := PAnsiChar(pKey);
     For i := 0 to iFields-1 do
     begin
       Field := Fields[FKeyDesc.aiKeyFld[i]];
       if bKeyItself then
-        AdjustNativeField(Field, CurBuffer,@Buff, bBlank)
+        AdjustNativeField(Field, CurBuffer, @Buff, bBlank)
       else
         NativeToDelphi(Field, CurBuffer, @Buff, bBlank);
-      Inc(CurBuffer,Field.FieldLength+1);
+      Inc(CurBuffer, Field.FieldLength+1);
       if bBlank then Continue; //19.05.2008
       if RangeClause.Count > 0  then WHERE := 'and ' else WHERE := 'where ';
       WHERE := WHERE + AnsiQuotedStr(Field.FieldName,'"');
-      if bKeyIncl then
-      begin
-        if First then WHERE := WHERE + '>=' else WHERE := WHERE + '<=';
-      end else
-      begin
-        if First then WHERE := WHERE + '>' else WHERE := WHERE + '<';
-      end;
+      if First then WHERE := WHERE + '>' else WHERE := WHERE + '<';
+      if bKeyIncl then WHERE := WHERE + '=';
       case Field.Fieldtype of
         fldINT16: FldVal := IntToStr(PSmallInt(@Buff)^);
         fldINT32: FldVal := IntToStr(PLongInt(@Buff)^);
@@ -5903,32 +5925,6 @@ begin
   end;
 end;
 
-(*function TPSQLEngine.AnsiToNative(pNativeStr: PAnsiChar; pAnsiStr: PAnsiChar; iLen: LongInt;var bDataLoss : Bool): DBIResult;
-begin
-  Try
-    bDataLoss := FALSE;
-    If OEMConv then
-       CharToOEMBuff(PChar(pAnsiStr), pNativeStr, iLen) else
-       Move(pAnsiStr^,pNativeStr^, iLen);
-    Result := DBIERR_NONE;
-  Except
-    Result := CheckError;
-  end;
-end;
-
-function TPSQLEngine.NativeToAnsi(pAnsiStr: PAnsiChar;pNativeStr: PAnsiChar;iLen: LongInt;var bDataLoss : Bool): DBIResult;
-begin
-  Try
-    bDataLoss := FALSE;
-    If OEMConv then
-      OemToCharBuff(pNativeStr, PChar(pAnsiStr), iLen) else
-      Move(pNativeStr^, pAnsiStr^, iLen);
-    Result := DBIERR_NONE;
-  Except
-    Result := CheckError;
-  end;
-end; *)
-
 function TPSQLEngine.GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszError: PChar): DBIResult;
 Var
   tmp        : String;
@@ -6047,7 +6043,7 @@ end;
 
 function TPSQLEngine.CheckError : DBIResult;
 begin
-  If ExceptObject is EPSQLException then
+  if ExceptObject is EPSQLException then
   begin
     if EPSQLException(ExceptObject).BDEErrors then
       Result := EPSQLException(ExceptObject).BDEErrorCode
@@ -6637,7 +6633,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Bool; iFields,
               Field := Fields[FKeyDesc.aiKeyFld[I]];
               Flds[I] := FldNo-1;
               FieldPtr := pKey;
-              Inc(PChar(FieldPtr),Len + i);
+              Inc(PAnsiChar(FieldPtr),Len + i);
               SFlds[I] := FieldVal(FldNo, FieldPtr);
               Inc(Len, Field.FieldLength);
         end;
@@ -6683,7 +6679,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Bool; iFields,
           if bDirectKey then
           begin
              FieldPtr := pKey;
-             Inc(PChar(FieldPtr),Len + i);
+             Inc(PAnsiChar(FieldPtr),Len + i);
              SFlds[I] := S+FieldVal(FldNo, FieldPtr);
              Inc(Len, Field.FieldLength);
           end else
@@ -6699,7 +6695,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Bool; iFields,
 
 begin
    SetToLookupKey;
-   if MasterCursor<> nil then
+   if MasterCursor <> nil then
       SetToMasterKey;
 end;
 
@@ -7597,15 +7593,14 @@ begin
            fldFloat:   AParam.AsFloat := Double(Src^);
            fldZSTRING,
            fldUUID: begin
-                          if Fld.NativeType = FIELD_TYPE_BIT then
-                             AParam.AsString := string('B') + PChar(Src)
-                          else
                            {$IFDEF DELPHI_12}
                             if FConnect.IsUnicodeUsed then
                               AParam.AsString := PWideChar(Src)
                             else
                             {$ENDIF}
                               AParam.AsString := String(PAnsiChar(Src));
+                            if (Fld.NativeType = FIELD_TYPE_BIT) or (Fld.NativeType = FIELD_TYPE_VARBIT) then
+                             AParam.AsString := 'B' + AParam.AsString;
                        end;
            fldBLOB:    if Fld.NativeBLOBType = nbtOID then
                             AParam.AsInteger := StrToUInt(BlobValue(Src, Fld))
@@ -8362,6 +8357,16 @@ end;
 procedure TFieldList.SetToBookmark(P: Pointer);
 begin
    SetToBegin;
+end;
+
+function TPSQLIndex.GetIndexName: string;
+begin
+ Result := FDesc.szName;
+end;
+
+procedure TPSQLIndex.SetIndexName(const Value: string);
+begin
+ Move(Value[1], FDesc.szName, (Max(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
 end;
 
 initialization
