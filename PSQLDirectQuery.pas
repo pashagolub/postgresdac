@@ -10,7 +10,6 @@ type
 
   TPSQLCustomDirectQuery = class(TComponent)
   private
-    { Private declarations }
     FDatabase: TPSQLDatabase;
     FSQL : TStrings;
     FStatement : PPGresult;
@@ -18,6 +17,7 @@ type
     FRecNo: integer;
     FEOF: boolean;
     FBOF: boolean;
+    FParams: TPSQLParams;
 
     procedure FreeHandle();
     function GetActive(): boolean;
@@ -31,12 +31,11 @@ type
     function GetFieldValue(aIndex: integer): string;
     function GetFieldsCount : integer;
     function GetFieldName(aIndex: integer): string;
+    procedure SetParamsList(const Value: TPSQLParams);
   protected
-    { Protected declarations }
     procedure SetDatabase(Value : TPSQLDatabase);
     function GetDatabase : TPSQLDatabase;
   public
-    { Public declarations }
     constructor Create(aOwner: TComponent);override;
     destructor Destroy();override;
 
@@ -66,8 +65,8 @@ type
     property FieldsCount : integer read GetFieldsCount; 
     property FieldValues[aIndex : integer]: string read GetFieldValue;
     property FieldNames[aIndex : integer]: string read GetFieldName;
+    property Params: TPSQLParams read FParams write SetParamsList;
   published
-    { Published declarations }
     property About : TPSQLDACAbout read FAbout;
   end;
 
@@ -75,6 +74,7 @@ type
   published
     property Database;
     property SQL;
+    property Params;
   end;
 
 implementation
@@ -89,19 +89,19 @@ begin
   if FStatement = nil then
     raise EPSQLDirectQueryException.Create(SDataSetClosed);
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.Close();
 begin
   FreeHandle();
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 constructor TPSQLCustomDirectQuery.Create(aOwner: TComponent);
 var I: integer;
 begin
   inherited Create(AOwner);
-
   FStatement := nil;
   FSQL := TStringList.Create();
+  FParams := TPSQLParams.Create(Self);
   if (csDesigning in ComponentState) and Assigned(AOwner) then
     for I := AOwner.ComponentCount - 1 downto 0 do
       if AOwner.Components[I] is TPSQLDatabase then
@@ -110,16 +110,16 @@ begin
          Break;
       end;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 destructor TPSQLCustomDirectQuery.Destroy();
 begin
-  SetDatabase(nil);  //03.04.2008
+  FParams.Free();
+  SetDatabase(nil);  
   FreeHandle();
   FSQL.Free();
-
   inherited;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.FieldIndexByName(aFieldName: string): integer;
 var P: PAnsiChar;
 begin
@@ -131,7 +131,7 @@ begin
    StrDispose(P);
   end;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.FieldIsNull(aFieldIndex: integer): boolean;
 begin
   if GetRecordCount() <= 0 then
@@ -139,10 +139,9 @@ begin
 
   if aFieldIndex >= GetFieldsCount() then
     raise EPSQLDirectQueryException.Create(SFieldIndexError);
-
   Result := PQgetisnull(FStatement, FRecNo, aFieldIndex) = 1;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.FieldIsNull(aFieldName: string): boolean;
 var
   i : integer;
@@ -150,10 +149,9 @@ begin
   i := FieldIndexByName(aFieldName);
   if i = -1 then
     raise EPSQLDirectQueryException.Create(Format(SFieldNotFound, [aFieldName]));
-
   Result := FieldIsNull(i);
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.FieldValueByFieldName(aFieldName: string): string;
 var
   i : integer;
@@ -161,17 +159,15 @@ begin
   i := FieldIndexByName(aFieldName);
   if i = -1 then
     raise EPSQLDirectQueryException.Create(Format(SFieldNotFound, [aFieldName]));
-
   Result := FieldValues[i];
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.First;
 begin
   CheckOpen();
-
   RecNo := 0;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.FreeHandle;
 begin
   if FStatement <> nil then
@@ -180,30 +176,30 @@ begin
     FStatement := nil;
   end;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetActive: boolean;
 begin
   Result := FStatement <> nil;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetDatabase: TPSQLDatabase;
 begin
   Result := FDatabase;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetFieldName(aIndex: integer): string;
 begin
   if aIndex >= GetFieldsCount then
     raise EPSQLDirectQueryException.Create(SFieldIndexError);
    Result := TNativeConnect(FDatabase.Handle).RawToString(PQfname(FStatement, aIndex));
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetFieldsCount: integer;
 begin
   CheckOpen();
   Result := PQnfields(FStatement);
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetFieldValue(aIndex: integer): string;
 begin
   if GetRecordCount() = 0 then
@@ -214,29 +210,29 @@ begin
 
   Result := TNativeConnect(FDatabase.Handle).RawToString(PQgetvalue(FStatement, FRecNo, aIndex));
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetIsEmpty: boolean;
 begin
   Result := GetRecordCount() = 0;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetRecNo: integer;
 begin
   Result := FRecNo;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.GetRecordCount: integer;
 begin
   CheckOpen();
   Result := PQntuples(FStatement);
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.Last();
 begin
   CheckOpen();
   FRecNo := Pred(GetRecordCount());
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 function TPSQLCustomDirectQuery.MoveBy(aDistance: integer): integer;
 var
   NewRecNo: integer;
@@ -257,19 +253,19 @@ begin
   if EOF or BOF then
     Result := 0;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.Next;
 begin
   CheckOpen();
-
   RecNo := RecNo + 1;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.Open();
 var NC: TNativeConnect;
+    Res: ExecStatusType;
 begin
   if FStatement <> nil then
-    exit;//already opened, use Refresh() if you want to re-read data
+    Exit;//already opened, use Refresh() if you want to re-read data
 
   if FDatabase = nil then
     raise EPSQLDirectQueryException.Create(SDatabaseNameMissing);
@@ -279,30 +275,35 @@ begin
 
   NC := TNativeConnect(FDatabase.Handle);
 
-  FStatement := _PQExecute(NC, FSQL.Text);
+  if FParams.Count > 0 then
+    FStatement := _PQExecuteParams(NC, FSQL.Text, FParams)
+  else
+    FStatement := _PQExecute(NC, FSQL.Text);
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then
   begin
     FreeHandle();
-    raise EPSQLDatabaseError.Create(FDatabase.Engine(), 0);
+    try
+      NC.CheckResult(FStatement);
+    except
+      if FDatabase.Engine().CheckError <> 0 then
+       raise EPSQLDatabaseError.Create(FDatabase.Engine(), FDatabase.Engine().Status);
+    end;
   end;
-
   RecNo := 0;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+
 procedure TPSQLCustomDirectQuery.Prior;
 begin
   CheckOpen();
-
   RecNo := RecNo - 1;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.Refresh();
-//mi:2007-04-27 nice method :)
 begin
   Close();
   Open();
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.SetActive(const Value: boolean);
 begin
   if Value then
@@ -310,34 +311,33 @@ begin
   else
     Close();
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
 procedure TPSQLCustomDirectQuery.SetDatabase(Value: TPSQLDatabase);
 begin
   if Active then
     Close();
-
   if Assigned(FDatabase) then
     FDatabase.UnregisterDirectQuery(Self);
-
   FDatabase := Value;
-
   if Assigned(FDatabase) then
     FDatabase.RegisterDirectQuery(Self);
 end;
-//----------------------------------------------------------------------------------------------------------------------
+ 
+procedure TPSQLCustomDirectQuery.SetParamsList(const Value: TPSQLParams);
+begin
+  FParams.AssignValues(Value);
+end;
+
 procedure TPSQLCustomDirectQuery.SetRecNo(const Value: integer);
 begin
   CheckOpen();
-
   FEOF := Value >= GetRecordCount();
   FBOF := Value < 0;
-
   if FEOF or FBOF then
     Exit;
-
   FRecNo := Value;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+
 procedure TPSQLCustomDirectQuery.SetSQL(const Value: TStrings);
 begin
   if FSQL.Text <> Value.Text then
@@ -351,6 +351,6 @@ begin
     end;
   end;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+
 
 end.
