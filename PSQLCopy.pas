@@ -32,6 +32,7 @@ type
     FSQL: TStrings;
     FEscape: char;
     FQuote: char;
+    FRowsAffected: Integer;
     procedure SetColumns(const Value: TStrings);
     procedure SetDatabase(const Value: TPSQLDatabase);
     procedure SetOptions(const Value: TCopyOptions);
@@ -60,6 +61,7 @@ type
     property Database: TPSQLDatabase read FDatabase write SetDatabase;
     property Options: TCopyOptions read FOptions write SetOptions default [];
     property SQL: TStrings read FSQL write SetSQL;
+    property RowsAffected: Integer read FRowsAffected;
   end;
 
   TCustomPSQLCopy = class(TAbstractCopyObject)
@@ -152,7 +154,6 @@ begin
  inherited Destroy;
 end;
 
-
 procedure TAbstractCopyObject.SetColumns(const Value: TStrings);
 begin
   if Assigned(Value) then FColumns.Assign(Value);
@@ -172,31 +173,39 @@ var Result: PPGresult;
 begin
   if Assigned(FBeforeCopyGet) then
     FBeforeCopyGet(Self);
+  FRowsAffected := -1;
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
     Stream.Position := 0;
     Stream.Size := 0;
-    if PQresultStatus(Result) = PGRES_COPY_OUT then
-      begin
-       Repeat
-        LineRes := PQgetCopyData(AConnect.Handle, @Buffer);
-        If (LineRes > 0) and Assigned(Buffer) then
-         begin
-          S := Copy(Buffer,1,LineRes);
-          Stream.Write(Pointer(S)^,length(S));
-         end;
-        if Buffer <> nil then
-          PQfreemem (Buffer);
-       Until LineRes < 0;
-       If PQresultStatus(Result) <> PGRES_COMMAND_OK then
-         AConnect.CheckResult;
-       if Assigned(FAfterCopyGet) then
-         FAfterCopyGet(Self);
-     end
-    else
-      AConnect.CheckResult;
+    try
+      if PQresultStatus(Result) = PGRES_COPY_OUT then
+        begin
+         Repeat
+          LineRes := PQgetCopyData(AConnect.Handle, @Buffer);
+          If (LineRes > 0) and Assigned(Buffer) then
+           begin
+            S := Copy(Buffer,1,LineRes);
+            Stream.Write(Pointer(S)^,length(S));
+           end;
+          if Buffer <> nil then
+            PQfreemem (Buffer);
+         Until LineRes < 0;
+         if PQresultStatus(Result) <> PGRES_COMMAND_OK then
+           AConnect.CheckResult;
+         if Assigned(FAfterCopyGet) then
+           FAfterCopyGet(Self);
+       end
+      else
+        AConnect.CheckResult;
+    except
+     on E: EPSQLException do
+        raise EPSQLDatabaseError.Create(FDatabase.Engine, FDatabase.Engine.CheckError);
+     else
+        raise;
+    end;
   finally
    PQClear(Result);
   end;
@@ -210,6 +219,7 @@ var Result, Result2: PPGresult;
 begin
   if Assigned(FBeforeCopyPut) then
     FBeforeCopyPut(Self);
+  FRowsAffected := -1;
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
@@ -231,6 +241,7 @@ begin
            Result2 := PQgetResult(AConnect.Handle);
            try
             AConnect.CheckResult(Result2);
+            FRowsAffected := StrToIntDef(String(PQcmdTuples(Result2)), -1);
            finally
             PQClear(Result2);
            end;
@@ -258,13 +269,22 @@ var
 begin
   if Assigned(FBeforeCopyGet) then
     FBeforeCopyGet(Self);
+  FRowsAffected := -1;
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
-   AConnect.CheckResult(Result);
-  finally
-   PQClear(Result);
+    try
+     AConnect.CheckResult(Result);
+     FRowsAffected := StrToIntDef(String(PQcmdTuples(Result)), -1);
+    finally
+     PQClear(Result);
+    end;
+  except
+   on E: EPSQLException do
+      raise EPSQLDatabaseError.Create(FDatabase.Engine, FDatabase.Engine.CheckError);
+   else
+      raise;
   end;
   if Assigned(FAfterCopyGet) then
     FAfterCopyGet(Self);
@@ -277,13 +297,22 @@ procedure TCustomPSQLCopy.DoServerSideCopyPut;
 begin
   if Assigned(FBeforeCopyPut) then
     FBeforeCopyPut(Self);
+  FRowsAffected := -1;
   FDatabase.Connected := True;
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
-    AConnect.CheckResult;
-  finally
-    PQClear(Result);
+    try
+      AConnect.CheckResult;
+      FRowsAffected := StrToIntDef(String(PQcmdTuples(Result)), -1);
+    finally
+      PQClear(Result);
+    end;
+  except
+   on E: EPSQLException do
+      raise EPSQLDatabaseError.Create(FDatabase.Engine, FDatabase.Engine.CheckError);
+   else
+      raise;
   end;
   if Assigned(FAfterCopyPut) then
     FAfterCopyPut(Self);
