@@ -943,11 +943,9 @@ function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
 var Q: PAnsiChar;
     S: AnsiString;
 begin
-  {$IFDEF DELPHI_12}
   if AConnection.IsUnicodeUsed then
     S := UTF8Encode(AQuery)
   else
-  {$ENDIF}
     S := AnsiString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
@@ -964,11 +962,9 @@ var Q: PAnsiChar;
     paramValues: array of PAnsiChar;
     i: integer;
 begin
-  {$IFDEF DELPHI_12}
   if AConnection.IsUnicodeUsed then
     S := UTF8Encode(AQuery)
   else
-  {$ENDIF}
     S := AnsiString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
@@ -976,11 +972,9 @@ begin
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
-      {$IFDEF DELPHI_12}
       if AConnection.IsUnicodeUsed then
         S := UTF8Encode(AParams[i].AsString)
       else
-      {$ENDIF}
         S := AnsiString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
       StrPCopy(paramValues[i], S);

@@ -262,7 +262,6 @@ end;
  
 procedure TPSQLCustomDirectQuery.Open();
 var NC: TNativeConnect;
-    Res: ExecStatusType;
 begin
   if FStatement <> nil then
     Exit;//already opened, use Refresh() if you want to re-read data
@@ -272,6 +271,8 @@ begin
 
   if Trim(FSQL.Text) = EmptyStr then
     raise EPSQLDirectQueryException.Create(SEmptySQLStatement);
+
+  if not FDatabase.Connected then FDatabase.Open;
 
   NC := TNativeConnect(FDatabase.Handle);
 
