@@ -23,7 +23,7 @@
       bdecds.lib qrpt.lib teeui.lib teedb.lib tee.lib dss.lib teeqr.lib 
       visualdbclx.lib dsnapcrba.lib dsnapcon.lib bcbsmp.lib inetdbbde.lib 
       inetdbxpress.lib dbexpress.lib nmfast.lib bcbie.lib soaprtl.lib dclocx.lib 
-      dbxcds.lib indy.lib EnterpriseDBDACB6.lib"/>
+      dbxcds.lib indy.lib"/>
     <PACKAGES value="rtl.bpi vcl.bpi dbrtl.bpi vcldb.bpi bdertl.bpi"/>
     <PATHCPP value=".;"/>
     <PATHPAS value=".;"/>
