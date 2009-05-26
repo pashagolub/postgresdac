@@ -7360,7 +7360,7 @@ var
 begin
   DBOid := 0;
   IsTemplate := False;
-  Tablespace := '<none>';
+  Tablespace := '';
   Owner := '';
   SV := GetServerVersionAsInt;
 
@@ -7396,7 +7396,7 @@ begin
       DBOid := StrToInt64(string(PQgetvalue(RES,0,0)));
       IsTemplate := PQgetvalue(RES,0,1) = 't';
       Owner := RawToString(PQgetvalue(RES,0,2));
-      If SV >= 800000 then
+      If SV >= 080000 then
         Tablespace := RawToString(PQgetvalue(RES,0,3));
       Comment := RawToString(PQgetvalue(RES,0,4));
      end;
