@@ -39,7 +39,7 @@ const
     fldUNKNOWN, fldUNKNOWN, fldUNKNOWN, fldZSTRING{$IFDEF DELPHI_6}, fldDATETIME, fldBCD{$ENDIF} //26..37
     {$IFDEF DELPHI_10}, fldZSTRING, fldBLOB, fldDATETIME, fldINT32{$ENDIF} //38..41
     {$IFDEF DELPHI_12}, fldINT32, fldINT16, fldUNKNOWN, fldFLOATIEEE, fldUNKNOWN, fldUNKNOWN, fldUNKNOWN{$ENDIF} //42..48
-    {$IFDEF DELPHI_13}, fldUNKNOWN, fldUNKNOWN, fldUNKNOWN{$ENDIF} //49..52
+    {$IFDEF DELPHI_14}, fldUNKNOWN, fldUNKNOWN, fldUNKNOWN{$ENDIF} //49..52
     );
 
   FldSubTypeMap: array[TFieldType] of Word = (
@@ -49,7 +49,7 @@ const
     0, 0, 0, 0, 0, fldstHBINARY, fldstHMEMO, 0, 0, 0, 0{$IFDEF DELPHI_6} , 0, 0{$ENDIF}
     {$IFDEF DELPHI_10}, fldstFIXED, fldstMEMO, 0, 0 {$ENDIF} //38..41
     {$IFDEF DELPHI_12}, 0, 0, 0, 0, 0, 0, 0{$ENDIF} //42..48
-    {$IFDEF DELPHI_13}, 0, 0, 0{$ENDIF} //49..52
+    {$IFDEF DELPHI_14}, 0, 0, 0{$ENDIF} //49..52
     );
 
   DataTypeMap: array[0..MAXLOGFLDTYPES - 1] of TFieldType = (
