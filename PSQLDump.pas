@@ -82,9 +82,12 @@ type
         procedure SetExcludeTables(const Value: TStrings);
         procedure DoLog(const Value: string);
         function GetVersionAsInt: integer;
-    function GetVersionAsStr: string;
+        function GetVersionAsStr: string;
+        procedure ReadTableName(Reader: TReader); //deal with old missing properties
+        procedure ReadSchemaName(Reader: TReader); //deal with old missing properties
       protected
         procedure CheckDependencies;
+        procedure DefineProperties(Filer: TFiler); override;
         function GetParameters: PAnsiChar;
         Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
@@ -99,8 +102,6 @@ type
         property VersionAsStr: string read GetVersionAsStr;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
-        property SchemaName: string  index dsoSchema read GetStrOptions write SetStrOptions;
-        property TableName: string index dsoTable read GetStrOptions write SetStrOptions;
         property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;
         property ExcludeSchemas: TStrings read FExcludeSchemas write SetExcludeSchemas;
         property TableNames: TStrings read FTableNames write SetTableNames;
@@ -695,6 +696,27 @@ begin
   Minor := VerInt mod 10000 div 100;
   Revision := VerInt mod 100;
   Result := Format('%d.%d.%d', [Major, Minor, Revision]);
+end;
+
+procedure TPSQLDump.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  Filer.DefineProperty('TableName', ReadTableName, nil, False);
+  Filer.DefineProperty('SchemaName', ReadSchemaName, nil, False);
+end;
+
+procedure TPSQLDump.ReadSchemaName(Reader: TReader);
+var S: string;
+begin
+  S := Reader.ReadString;
+  if S > '' then  FSchemaNames.Append(S);
+end;
+
+procedure TPSQLDump.ReadTableName(Reader: TReader);
+var S: string;
+begin
+  S := Reader.ReadString;
+  if S > '' then  FTableNames.Append(S);
 end;
 
 {TPSQLRestore}
