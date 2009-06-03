@@ -247,8 +247,9 @@ end;
 procedure TPgSSHDatabase.DoOnTunnelConnected(Sender: TObject);
 begin
   try
-  TwodTunnel(Sender).Channels.StartAll();
+    TwodTunnel(Sender).Channels.StartAll();
   except
+  	FIsSSHConnecting := False;
     Exit;
   end;
 
