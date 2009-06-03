@@ -57,7 +57,8 @@ const
     ftInteger, ftFloat, ftBCD, ftBytes, ftTime, ftDateTime,
     ftWord, ftInteger, ftUnknown, ftVarBytes, ftUnknown, ftUnknown,
     ftLargeInt, ftLargeInt, ftADT, ftArray, ftReference, ftDataSet
-    {$IFDEF DELPHI_6},ftTimeStamp{$ENDIF});
+    {$IFDEF DELPHI_6},ftTimeStamp{$ENDIF}
+    {$IFDEF DELPHI_12},ftFMTBcd, ftWideString{$ENDIF});
 
   BlobTypeMap: array[fldstMEMO..fldstBFILE] of TFieldType = (
     ftMemo, ftBlob, ftFmtMemo, ftParadoxOle, ftGraphic, ftDBaseOle,

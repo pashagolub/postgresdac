@@ -2621,7 +2621,9 @@ Var
   Offs      : Integer;
   TimeStamp : TTimeStamp;
   DateData  : Double;
-  S:String;
+  S: String;
+  Len: word;
+  buffer: PChar;
 begin
   With ANode^ Do
   begin
@@ -2634,6 +2636,18 @@ begin
                        Result := S;
                        FldType := FT_STRING;
                      end;
+{$IFDEF DELPHI_12}
+      fldUNICODE   : begin
+                       buffer := ValuePtr;
+                       Len := Word(buffer[0]);
+                       Inc(buffer);
+                       SetLength(S, Len div 2);
+                       if Len > 0 then
+                         S := Copy(buffer, 1, Len div 2);
+                       Result := S;
+                       FldType := FT_STRING;
+                     end;
+{$ENDIF}
       fldDATE      : begin
                        DWORD( TimeStamp.Date ) := PDWORD( Offs )^;
                        TimeStamp.Time := 0;
@@ -2658,7 +2672,7 @@ begin
                        Result := Pint64( Offs )^;
                        FldType := FT_INT;
                      end;
-      {$ENDIF}                     
+      {$ENDIF}
       fldFLOAT     : begin
                        Result := PDouble( Offs )^;
                        FldType := FT_FLOAT;
@@ -3929,8 +3943,6 @@ begin
                                          TDateTime(Data^) := MinDateTime
                                        else
                                          TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
-               //FIELD_TYPE_TIMESTAMPTZ: StrPCopy(PChar(Data),FldValue);
-
                FIELD_TYPE_FLOAT4,
                FIELD_TYPE_FLOAT8,
                FIELD_TYPE_NUMERIC:   Double(Data^) :=StrToSQLFloat(FldValue);

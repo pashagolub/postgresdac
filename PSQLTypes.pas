@@ -1069,11 +1069,22 @@ const
   fldTABLE           = 23;              { Nested table (reference) }
   {$IFDEF DELPHI_6}
   fldDATETIME        = 24;              { DateTime structure field }
-
-  MAXLOGFLDTYPES     = 25;              { Number of logical fieldtypes }
+     {$IFDEF DELPHI_12}
+      fldFMTBCD          = 25;              { BCD Variant type: required by Midas, same as BCD for DBExpress}
+      fldWIDESTRING      = 26;              { UCS2 null terminated string }
+      MAXLOGFLDTYPES     = 27;              { Number of logical fieldtypes }
+     {$ELSE}
+     MAXLOGFLDTYPES     = 25;              { Number of logical fieldtypes }
+     {$ENDIF}
   {$ELSE}
   MAXLOGFLDTYPES     = 24;              { Number of logical fieldtypes }
   {$ENDIF}
+
+  {$IFDEF DELPHI_12}
+  { Additional (non-BDE fieldtypes }
+  fldUNICODE          = $1007;          { Unicode }
+  {$ENDIF}
+
   //POSTGRES SPECIFIC    //pasha_golub 19.03.06
   fldTIMESTAMPTZ     = MAXLOGFLDTYPES + 1; {Timestamp with time zone}
   fldUUID            = MAXLOGFLDTYPES + 2;
