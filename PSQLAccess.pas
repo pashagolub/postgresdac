@@ -2622,8 +2622,10 @@ Var
   TimeStamp : TTimeStamp;
   DateData  : Double;
   S: String;
+{$IFDEF DELPHI_12}
   Len: word;
   buffer: PChar;
+{$ENDIF}
 begin
   With ANode^ Do
   begin
