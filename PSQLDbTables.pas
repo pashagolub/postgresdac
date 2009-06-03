@@ -344,24 +344,24 @@ type
      property DataSet: TPSQLDataSet read GetDataSet write SetDataSet;
   end;
 
-  TKeyIndex = (kiLookup, kiRangeStart, kiRangeEnd, kiCurRangeStart,
+ TKeyIndex = (kiLookup, kiRangeStart, kiRangeEnd, kiCurRangeStart,
     kiCurRangeEnd, kiSave);
 
-   PKeyBuffer = ^TKeyBuffer;
-   TKeyBuffer = packed record
+ PKeyBuffer = ^TKeyBuffer;
+ TKeyBuffer = packed record
      Modified: Boolean;
      Exclusive: Boolean;
      FieldCount: Integer;
-   end;
+ end;
 
-   PRecInfo = ^TRecInfo;
-   TRecInfo = packed record
+ PRecInfo = ^TRecInfo;
+ TRecInfo = packed record
       RecordNumber: Longint;
       UpdateStatus: TUpdateStatus;
       BookmarkFlag: TBookmarkFlag;
-   end;
+ end;
 
-  TBlobDataArray = array of TBlobData;
+ TBlobDataArray = array of TBlobData;
 
  TPSQLDataSet = Class(TDataSet)
   Private
@@ -406,9 +406,8 @@ type
     FUpdateMode: TUpdateMode;
     FDatabase: TPSQLDatabase;
     FAllowSequenced : Boolean;  //Add by Nicolas Ring
-    FByteaAsEscString: boolean;
-    FOIDAsInt: boolean;
     FSortFieldNames: string;
+    FOptions: TPSQLDatasetOptions;
     procedure ClearBlobCache(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
     function GetActiveRecBuf(var RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean;
     function GetBlobData(Field: TField; Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): TBlobData;
@@ -424,27 +423,26 @@ type
     {$IFNDEF DELPHI_4}
     procedure SetupAutoRefresh;
     {$ENDIF}
-    procedure SetByteaAsEscString(const Value: boolean); virtual;
-    procedure SetOIDAsInt(const Value: boolean); virtual;
     function GetStmtHandle: HDBIStmt;
     procedure SetSortFieldNames(const Value: string);
     function GetSortFieldNames: string;
-
-
+    procedure ReadByteaOpt(Reader: TReader); //deal with old missing properties
+    procedure ReadOIDOpt(Reader: TReader); //deal with old missing properties
   protected
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
-      { IProviderSupport }
-      procedure PSEndTransaction(Commit: Boolean); override;
-      function PSExecuteStatement(const ASQL: string; AParams: TParams;
-        ResultSet: Pointer = NIL): Integer; override;
-      procedure PSGetAttributes(List: TList); override;
-      function PSGetQuoteChar: string; override;
-      function PSInTransaction: Boolean; override;
-      function PSIsSQLBased: Boolean; override;
-      function PSIsSQLSupported: Boolean; override;
-      procedure PSStartTransaction; override;
-      procedure PSReset; override;
-      function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
+    procedure DefineProperties(Filer: TFiler); Override;    
+    { IProviderSupport }
+    procedure PSEndTransaction(Commit: Boolean); override;
+    function PSExecuteStatement(const ASQL: string; AParams: TParams;
+      ResultSet: Pointer = NIL): Integer; override;
+    procedure PSGetAttributes(List: TList); override;
+    function PSGetQuoteChar: string; override;
+    function PSInTransaction: Boolean; override;
+    function PSIsSQLBased: Boolean; override;
+    function PSIsSQLSupported: Boolean; override;
+    procedure PSStartTransaction; override;
+    procedure PSReset; override;
+    function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
   Protected
     function  Engine : TPSQLEngine; Virtual; Abstract;
     procedure SetBlockReadSize(Value: Integer); override;
@@ -546,6 +544,7 @@ type
     procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); Override;
     procedure SetOnFilterRecord(const Value: TFilterRecordEvent); Override;
     procedure SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);
+    procedure SetOptions(const Value: TPSQLDatasetOptions); virtual;
     procedure SetRecNo(Value: Integer); Override;
     procedure SetupCallBack(Value: Boolean);
     procedure SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
@@ -559,9 +558,7 @@ type
     property DBFlags: TDBFlags read FDBFlags;
     property UpdateMode: TUpdateMode read FUpdateMode write SetUpdateMode default upWhereAll;
     property StmtHandle: HDBIStmt read GetStmtHandle;
-    property ByteaAsEscString: boolean read FByteaAsEscString
-        write SetByteaAsEscString;
-    property OIDAsInt: boolean read FOIDAsInt write SetOIDAsInt;
+    property Options: TPSQLDatasetOptions read FOptions write SetOptions;
   Public
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
@@ -742,9 +739,8 @@ type
     function NativeTableName: PAnsiChar;
     procedure PrepareCursor; Override;
     procedure UpdateIndexDefs; Override;
+    procedure SetOptions(const Value: TPSQLDatasetOptions); override;
     property MasterLink: TMasterDataLink read FMasterLink;
-    procedure SetByteaAsEscString(const Value: boolean); override;
-    procedure SetOIDAsInt(const Value: boolean); override;
   Public
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
@@ -801,9 +797,8 @@ type
     property Tablespace: string read GetTableSpace write SetDummyStr stored False;
     property TableID: cardinal read FTableID write SetDummyInt stored False;
     property Comment: string read FComment write SetDummyStr stored False;
-    property OIDAsInt;
-    property ByteaAsEscString;
     property SortFieldNames;
+    property Options;    
   end;
 
 
@@ -856,14 +851,12 @@ type
       function CreateHandle: HDBICur; Override;
       procedure DefineProperties(Filer: TFiler); Override;
       procedure Disconnect; Override;
-//      procedure FreeStatement; virtual;
       function GetDataSource: TDataSource; Override;
       function GetParamsCount: Word;
       function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; override;
+      procedure SetOptions(const Value: TPSQLDatasetOptions); override;
       procedure GetStatementHandle(SQLText: PChar); virtual;
       property DataLink: TDataLink read FDataLink;
-      procedure SetByteaAsEscString(const Value: boolean); override;
-      procedure SetOIDAsInt(const Value: boolean); override;
     Public
       constructor Create(AOwner: TComponent); Override;
       destructor Destroy; Override;
@@ -888,10 +881,9 @@ type
       property SQL: TStrings read GetQuery write SetQuery;
       property Params: TPSQLParams read FParams write SetParamsList;
       property UniDirectional: Boolean read FUniDirectional write FUniDirectional default FALSE;
+      property Options;
       property UpdateMode;
       property UpdateObject;
-      property OIDAsInt;
-      property ByteaAsEscString;
       property SortFieldNames;
   end;
 
@@ -2129,6 +2121,23 @@ begin
 end;
 
 { TPSQLDataSet }
+procedure TPSQLDataSet.ReadByteaOpt(Reader: TReader); //deal with old missing properties
+begin
+ if Reader.ReadBoolean then Include(FOptions, dsoByteaAsEscString);
+end;
+
+procedure TPSQLDataSet.ReadOIDOpt(Reader: TReader); //deal with old missing properties
+begin
+ if Reader.ReadBoolean then Include(FOptions, dsoOIDAsInt);
+end;
+
+procedure TPSQLDataSet.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  Filer.DefineProperty('ByteaAsEscString', ReadByteaOpt, nil, False); //missing
+  Filer.DefineProperty('OIDAsInt', ReadOIDOpt, nil, False); //missing
+end;
+
 constructor TPSQLDataSet.Create(AOwner : TComponent);
 var I: integer;
 begin
@@ -4735,6 +4744,17 @@ begin
   end;
 end;
 
+procedure TPSQLQuery.SetOptions(const Value: TPSQLDatasetOptions);
+begin
+ if Value = FOptions then Exit;
+ inherited;
+ if Active then
+  begin
+   Close;
+   Open;
+  end;
+end;
+
 procedure TPSQLQuery.PrepareSQL(Value: PChar);
 begin
   GetStatementHandle(Value);
@@ -4751,8 +4771,7 @@ begin
   DBh := DBHandle;
   Check(Engine,Engine.QAlloc(DBH, qrylangSQL, hDBIStmt(FHandle)));
   try
-    TNativeDataset(FHandle).OIDAsInt := FOIDAsInt;
-    TNativeDataset(FHandle).ByteaAsEscString := FByteaAsEscString;
+    TNativeDataset(FHandle).Options := Options;
     if not FExecSQL then
     begin
       Check(Engine, Engine.SetEngProp(hDbiObj(FHandle),stmtLIVENESS,
@@ -4845,22 +4864,6 @@ begin
     SQL.Text := CommandText;
 end;
 
-procedure TPSQLDataSet.SetByteaAsEscString(const Value: boolean);
-begin
-  if FByteaAsEscString = Value then Exit;
-  FByteaAsEscString := Value;
-  if Assigned(FHandle) then
-    TNativeDataset(FHandle).ByteaAsEscString := Value;
-end;
-
-procedure TPSQLDataSet.SetOIDAsInt(const Value: boolean);
-begin
-  if FOIDAsInt = Value then Exit;
-  FOIDAsInt := Value;
-  if Assigned(FHandle) then
-    TNativeDataset(FHandle).OIDAsInt := Value;
-end;
-
 function TPSQLDataSet.GetLastInsertID(const FieldNum: integer): integer;
 begin
  CheckActive;
@@ -4892,6 +4895,11 @@ begin
     raise;
    end;
 	end;
+end;
+
+procedure TPSQLDataSet.SetOptions(const Value: TPSQLDatasetOptions);
+begin
+  FOptions := Value;
 end;
 
 procedure TPSQLDataSet.SetSortFieldNames(const Value: string);
@@ -5084,12 +5092,6 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 //                         TPSQLTable                                       //
 ///////////////////////////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////
-//Constructor : TPSQLTable.Create
-//Description : TPSQLTable conponent
-//////////////////////////////////////////////////////////
-//Input       : AOwner: TComponent
-//////////////////////////////////////////////////////////
 constructor TPSQLTable.Create(AOwner: TComponent);
 begin
   Inherited Create(AOwner);
@@ -5177,8 +5179,7 @@ begin
   IndexDefs.Updated := FALSE;
   GetIndexParams(FIndexName, FFieldsIndex, IndexName, IndexTag);
   Result := GetHandle(IndexName, IndexTag);
-  TNativeDataset(Result).OIDAsInt := FOIDAsInt;
-  TNativeDataset(Result).ByteaAsEscString := FByteaAsEscString;
+  TNativeDataset(Result).Options := Options;
 end;
 
 function TPSQLTable.GetLanguageDriverName: string;
@@ -7021,47 +7022,16 @@ begin
   Result := FTablespace;
 end;
 
-procedure TPSQLQuery.SetByteaAsEscString(const Value: boolean);
+procedure TPSQLTable.SetOptions(const Value: TPSQLDatasetOptions);
 begin
-  inherited;
-  if Active then
-   begin
-    Close;
-    Open;
-   end;
+ if Value = FOptions then Exit;
+ inherited;
+ if Active then
+  begin
+   Close;
+   Open;
+  end;
 end;
-
-procedure TPSQLQuery.SetOIDAsInt(const Value: boolean);
-begin
-  inherited;
-  if Active then
-   begin
-    Close;
-    Open;
-   end;
-end;
-
-procedure TPSQLTable.SetByteaAsEscString(const Value: boolean);
-begin
-  inherited;
-  if Active then
-   begin
-    Close;
-    Open;
-   end;
-end;
-
-procedure TPSQLTable.SetOIDAsInt(const Value: boolean);
-begin
-  inherited;
-  if Active then
-   begin
-    Close;
-    Open;
-   end;
-end;
-
-
 { TPSQLParams }
 
 function TPSQLParams.ParseSQL(SQL: string; DoCreate: Boolean): string;

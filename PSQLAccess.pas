@@ -607,6 +607,7 @@ Type
       FFieldMinSizes  : array of integer; //to decrease FieldMinSize routine access
       FSortingIndex   : array of integer; //filled with SortBy method
       FSortingFields  : string; //"fieldname" ASC|DESC, ...
+      FOptions        : TPSQLDatasetOptions;
       //////////////////////////////////////////////////////////
       //            PROTECTED METHODS                         //
       //////////////////////////////////////////////////////////
@@ -678,8 +679,6 @@ Type
       procedure ReOpenTable;
       procedure ClearIndexInfo;
      private
-      FByteaAsEscString: boolean;
-      FOIDAsInt: boolean;
       FTableName: string;
       Property KeyNumber: SmallInt Read FKeyNumber Write SetKeyNumber;
       property RecordCount : LongInt Read GetRecCount;
@@ -768,8 +767,7 @@ Type
       Property RecordState: TRecordState  Read  FRecordState Write FRecordState;
       Property TableName : string Read  GetTableName Write SetTableName;
 
-      property OIDAsInt: boolean read FOIDAsInt write FOIDAsInt;
-      property ByteaAsEscString: boolean read FByteaAsEscString write FByteaAsEscString;
+      property Options: TPSQLDatasetOptions read FOptions write FOptions;
 
       procedure FieldOldValue(AFieldName: string; var AParam: TParam);
       procedure FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean);
@@ -1003,16 +1001,16 @@ var
    I: integer;
 begin
   Result := IdentifierName;
-  If IdentifierName = '' then
+  if IdentifierName = '' then
     Exit;
-  If Result[1] <> '"' then
+  if Result[1] <> '"' then
     Result := '"' + Result;
-  If Result[length(Result)] <> '"' then
+  if Result[length(Result)] <> '"' then
     Result := Result + '"';
   I := 2;
   while I <= length(Result)-1 do
    begin
-   If Result[i]='.' then
+   if Result[i]='.' then
     begin
      if Result[i-1] <> '"' then
       begin
@@ -1173,7 +1171,7 @@ begin
     case Field.FieldType of
       fldZString  : begin
                       Result := Format('%s %s',[ColName,_IsVarChar[Field.FieldSubType <> fldstFIXED]]);
-                      If Field.FieldUnits1 > 0 then
+                      if Field.FieldUnits1 > 0 then
                       Result := Result + Format('(%s)',[IntToStr(Field.FieldUnits1)]);
                     end;
 
@@ -1231,14 +1229,14 @@ var IdxName: string;
 begin
     result := '';
 
-    If Index.IndexName = '' then
+    if Index.IndexName = '' then
      begin
        Tbl := Pchar(TableName);
        IdxName := AnsiExtractQuotedStr(Tbl,'"');
        if Index.Primary then
         idxName := 'PK_'+IdxName
        else
-        If Index.Unique then
+        if Index.Unique then
          idxName := 'UNI_'+IdxName
         else
          idxName := 'IDX_'+IdxName
@@ -1247,7 +1245,7 @@ begin
      IdxName := Index.IndexName;
     IdxName := AnsiQuotedStr(IdxName,'"');
 
-    If Index.Primary then
+    if Index.Primary then
       Result := Format('ALTER TABLE %s ADD CONSTRAINT %s PRIMARY KEY(%s);',[TableName,IdxName,GetFieldList])
     else
       if Index.Unique then
@@ -1450,7 +1448,7 @@ begin
     DBOptions.ConnectionTimeout :=  StrToIntDef(Params.Values['ConnectionTimeout'],0);
     DBOptions.Host := (Params.Values['Host']);
     DBOptions.SSLMode := (Params.Values['SSLMode']);
-    If DBOptions.SSLMode = '' then
+    if DBOptions.SSLMode = '' then
       DBOptions.SSLMode := 'prefer';
 end;
 
@@ -1636,7 +1634,7 @@ begin
   Sql := 'SELECT nspname FROM pg_namespace WHERE True ';
   if pszWild <> '' then
     Sql := Sql + ' AND nspname LIKE ''' + pszWild + '''';
-  If not SystemSchemas then
+  if not SystemSchemas then
     Sql := Sql + ' AND nspname NOT IN (''pg_catalog'', ''pg_toast'','+
                     '''pg_sysviews'', ''information_schema'')';
   Sql := Sql + ' ORDER BY 1';
@@ -1744,7 +1742,7 @@ end;
 procedure TNativeConnect.GetTranInfo(hXact : hDBIXact; pxInfo : pXInfo);
 begin
   ZeroMemory(pxInfo, Sizeof(pxInfo^));
-  If GetTransactionStatus in [trstACTIVE, trstINTRANS, trstINERROR] then
+  if GetTransactionStatus in [trstACTIVE, trstINTRANS, trstINERROR] then
       FTransState := xsActive;
   pxInfo^.eXState := FTransState;
   pxInfo^.eXIL    := FTransLevel;
@@ -1757,7 +1755,7 @@ begin
   hStmt := NIL;
   QueryAlloc(hStmt);
   QueryPrepare(hStmt, pszQuery);
-  If hStmt <> nil then
+  if hStmt <> nil then
   begin
     Try
       FLastOperationTime := GetTickCount;
@@ -1878,7 +1876,7 @@ begin
   Try
     TNativeDataSet(hCursor).EmptyTable;
   Finally
-    If isNotOpen then
+    if isNotOpen then
       TNativeDataSet(hCursor).Free;
   end;
 end;
@@ -1974,13 +1972,13 @@ procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: string; pszDri
 var
   NDS : TNativeDataSet;
 begin
-  If Assigned(hCursor) then
+  if Assigned(hCursor) then
     NDS := TNativeDataSet(hCursor) else
     OpenTable(pszTableName, '', IdxDesc.iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), 0, 0);
   Try
     NDS.AddIndex(idxDesc,pszKeyViolName);
   Finally
-    If not Assigned(hCursor) then NDS.Free;
+    if not Assigned(hCursor) then NDS.Free;
   end;
 end;
 
@@ -1988,13 +1986,13 @@ procedure TNativeConnect.DeleteIndex(hCursor: hDBICur; pszTableName: string; psz
 var
   NDS : TNativeDataSet;
 begin
-  If Assigned(hCursor) then
+  if Assigned(hCursor) then
     NDS := TNativeDataSet(hCursor) else
     OpenTable(pszTableName, pszIndexName, iIndexId,dbiREADWRITE,dbiOPENEXCL,hDBICur(NDS),0,0);
   Try
     NDS.DeleteIndex(pszIndexName, pszIndexTagName, iIndexID);
   Finally
-    If not Assigned(hCursor) then NDS.Free;
+    if not Assigned(hCursor) then NDS.Free;
   end;
 end;
 
@@ -2046,7 +2044,7 @@ begin
   begin
     FData := FBuffer;
     Inc(PAnsiChar(FData), FDesc.iOffset);
-    If FDesc.INullOffset > 0 then
+    if FDesc.INullOffset > 0 then
     begin
       FStatus := FBuffer;
       Inc(PAnsiChar(FStatus), FDesc.iNullOffset);
@@ -2066,14 +2064,14 @@ end;
 
 function TPSQLField.GetNull : Boolean;
 begin
-  If FStatus <> nil then Result := TFieldStatus(FStatus^).isNULL = -1 else  Result := FALSE;
+  if FStatus <> nil then Result := TFieldStatus(FStatus^).isNULL = -1 else  Result := FALSE;
 end;
 
 procedure TPSQLField.SetNull( Flag : Boolean );
 Const
   VALUES : Array[ Boolean ] of SmallInt = ( 0, -1 );
 begin
-  If FStatus <> nil then  FStatus^.isNULL := VALUES[ Flag ];
+  if FStatus <> nil then  FStatus^.isNULL := VALUES[ Flag ];
 end;
 
 function TPSQLField.GetChanged : Boolean;
@@ -2083,7 +2081,7 @@ end;
 
 procedure TPSQLField.SetChanged(Flag : Boolean);
 begin
-  If FStatus <> nil then TFieldStatus(FStatus^).Changed := Flag;
+  if FStatus <> nil then TFieldStatus(FStatus^).Changed := Flag;
 end;
 
 function TPSQLField.GetLocalSize : Word;
@@ -2281,13 +2279,13 @@ begin
     for J := 0 to FieldList.Count-1 do
     begin
        I := StrToIntDef(FieldList[J],0);
-       If FTable.FConnect.GetserverVersionAsInt >= 070400 then
+       if FTable.FConnect.GetserverVersionAsInt >= 070400 then
          I := GetLogicalIndexByPhysical(I)
        else
          I := I; //dropped columns will make problems here
                  //however, handling this in < 7.4.0 is too complex
                  
-       If I = 0 then //we have index built on expressions.
+       if I = 0 then //we have index built on expressions.
          begin   
           Item.Free;
           Exit;
@@ -2374,10 +2372,10 @@ begin
   if Assigned(Exp) then
   begin
     FExprSize := CANExpr(Exp^).iTotalSize;
-    If FExprSize > 0 then
+    if FExprSize > 0 then
     begin
       GetMem(FExpression, FExprSize);
-      If Assigned(FExpression) then Move(Exp^, FExpression^, FExprSize);
+      if Assigned(FExpression) then Move(Exp^, FExpression^, FExprSize);
     end;
   end;
   FPfFilter:= pfFilt;
@@ -2386,7 +2384,7 @@ end;
 
 Destructor TPSQLFilter.Destroy;
 begin
-  If (FExprSize > 0) and Assigned(FExpression) then FreeMem(FExpression, FExprSize);
+  if (FExprSize > 0) and Assigned(FExpression) then FreeMem(FExpression, FExprSize);
   Inherited Destroy;
 end;
 
@@ -2465,7 +2463,7 @@ begin
   While True Do
   begin
     Inc(I);
-    If CurNode^.iNextOffset = 0 Then break;
+    if CurNode^.iNextOffset = 0 Then break;
     CurNode := pCanListElem(GetNodeByOffset(NodeStart + CurNode^.iNextOffset));
   end;
   Result := varArrayCreate([1, I], varVariant);
@@ -2473,7 +2471,7 @@ begin
   While True Do
   begin
     Result[ I ] := CalcExpression(PCanNode(GetNodeByOffset(NodeStart + ANode^.iOffset)));
-    If ANode^.iNextOffset = 0 Then break;
+    if ANode^.iNextOffset = 0 Then break;
     ANode := pCanListElem(GetNodeByOffset(NodeStart + ANode^.iNextOffset));
     Inc(I);
   end;
@@ -2489,7 +2487,7 @@ Var
   Save   : Variant;
   I, Top : Integer;
 begin
-  If varType(AOp1) = varArray then
+  if varType(AOp1) = varArray then
   begin
     Save := AOp2;
     AOp2 := AOp1;
@@ -2498,7 +2496,7 @@ begin
   Result := True;
   Top := VarArrayHighBound(AOp2, 1);
   For I := VarArrayLowBound(AOp2, 1) to Top do
-    If AOp1 = AOp2[I] then Exit;
+    if AOp1 = AOp2[I] then Exit;
   Result := False;
 end;
 
@@ -2518,13 +2516,13 @@ Var
 begin
    Op1 := GetNodeValue(Anode^.iOperand1);
    Op2 := GetNodeValue(Anode^.iOperand2);
-   If varIsNull(Op1) Or varIsEmpty(Op1) Then Op1 := '';
-   If varIsNull(Op2) Or varIsEmpty(Op2) Then Op2 := '';
+   if varIsNull(Op1) Or varIsEmpty(Op1) Then Op1 := '';
+   if varIsNull(Op2) Or varIsEmpty(Op2) Then Op2 := '';
    if ANode.canOp = canLike then
       Result := PerformLikeCompare(Op1,Op2, ANode^.bCaseInsensitive) else
    begin
       Result := Search(Op1,Op2, OEMConv, Anode^.bCaseInsensitive, Anode^.iPartialLen);
-      If Anode^.canOp = canNE Then  Result := Not Result;
+      if Anode^.canOp = canNE Then  Result := Not Result;
    end;
 
 end;
@@ -2720,7 +2718,7 @@ begin
   Inherited Create;
   FStatement := nil;
   FFilters    := TContainer.Create;
-  If IndexName <> '' then FIndexName := IndexName;
+  if IndexName <> '' then FIndexName := IndexName;
   FFieldDescs := TPSQLFields.Create(Self);
   FIndexDescs := TPSQLIndexes.Create(Self);
   FNativeDescs := TPSQLNatives.Create(Self);
@@ -2797,7 +2795,7 @@ var
    i: SmallInt;
 begin
    Result:=0;
-   If not ((iField>=1) or (iField<=FieldCount)) then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
+   if not ((iField>=1) or (iField<=FieldCount)) then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
    Dec(iField);
    Dec(iField);
    for i:=0 to iField do
@@ -2832,7 +2830,7 @@ procedure TNativeDataSet.SetBufBookmark;
 Var
   Buffer : Pointer;
 begin
-  If (CurrentBuffer <> nil) and (FBookOfs > 0) then
+  if (CurrentBuffer <> nil) and (FBookOfs > 0) then
   begin
     Buffer := CurrentBuffer;
     Inc(LongInt(Buffer), FBookOfs);
@@ -2988,7 +2986,7 @@ var
 begin
   GetBookMark(@P);
   CheckParam(@P=nil,DBIERR_INVALIDPARAM);
-  If not FIsLocked then
+  if not FIsLocked then
   begin
     SetToBookMark(@P);
     if eLock = dbiWRITELOCK then LockRecord(eLock);
@@ -3012,7 +3010,7 @@ var
   I    : Integer;
 begin
   Result := TRUE;
-  If FFilterActive then
+  if FFilterActive then
   begin
     For i := 0 to FFilters.Count-1 do
     begin
@@ -3034,7 +3032,7 @@ begin
   For i := 0 to FFilters.Count-1 do
   begin
     P := FFilters.Items[i];
-    If (P <> NIL) and (P.Active) then
+    if (P <> NIL) and (P.Active) then
     begin
       FFilterActive := TRUE;
       Exit;
@@ -3058,7 +3056,7 @@ end;
 
 procedure TNativeDataSet.CheckParam(Exp : Boolean;BDECODE : Word);
 begin
-   If Exp then Raise EPSQLException.CreateBDE(BDECODE);
+   if Exp then Raise EPSQLException.CreateBDE(BDECODE);
 end;
 
 /////////////////////////////////////////////////////////////////////
@@ -3084,7 +3082,7 @@ begin
             end
             else
             begin
-              If eLock = dbiWRITELOCK then FIsLocked := FALSE;
+              if eLock = dbiWRITELOCK then FIsLocked := FALSE;
               Raise;
             end;
           end;
@@ -3180,7 +3178,7 @@ begin
   begin
     Count := FFilters.Count;
     FFilters.Delete(hFilter);
-    If Count <> FFilters.Count then
+    if Count <> FFilters.Count then
     begin
       TPSQLFilter(hFilter).Free;
       UpdateFilterStatus;
@@ -3198,14 +3196,14 @@ begin
   For i := 0 to FFilters.Count-1 do
   begin
     P := FFilters.Items[i];
-    If (hFilter = nil) or (hFilter = hDBIFilter(P)) then
+    if (hFilter = nil) or (hFilter = hDBIFilter(P)) then
     begin
       P.Active      := TRUE;
       FFilterActive := TRUE;
       Found         := TRUE;
     end;
   end;
-  If not Found and (hFilter <> nil) then raise EPSQLException.CreateBDE(DBIERR_NOSUCHFILTER);
+  if not Found and (hFilter <> nil) then raise EPSQLException.CreateBDE(DBIERR_NOSUCHFILTER);
 end;
 
 procedure TNativeDataSet.DeactivateFilter(hFilter: hDBIFilter);
@@ -3312,7 +3310,7 @@ begin
       limitClause.Clear;
       if FLimit > 0 then
          LimitClause.Add(Format('LIMIT %s',[IntToStr(FLimit)]));
-      If FOffset > 0 then
+      if FOffset > 0 then
          LimitClause.Add(Format('OFFSET %s',[IntToStr(FOffset)]));
       if IndexCount > 0 then
        begin
@@ -3341,7 +3339,7 @@ begin
     end;
   Finally
    SetLength(FFieldMinSizes,0);
-   If FSortingFields > '' then
+   if FSortingFields > '' then
       SortBy(FSortingFields);
   end;
 end;
@@ -3353,7 +3351,7 @@ begin
   CheckParam(PRecord=nil,DBIERR_INVALIDPARAM);
   T := FFieldDescs[FieldNo];
   T.Buffer := PRecord;
-  If Assigned(pDest) then
+  if Assigned(pDest) then
      NativeToDelphi(T, PRecord, pDest, bBlank) else  bBlank := T.FieldNull;
 end;
 
@@ -3588,12 +3586,12 @@ var
   I, H: Integer;
 begin
   Result := 0;
-  If not Assigned(FFieldMinSizes) or
+  if not Assigned(FFieldMinSizes) or
      (High(FFieldMinSizes) < FieldNum) or
      (FFieldMinSizes[FieldNum] = -1)
     then
      begin
-      If Assigned(FFieldMinSizes) then
+      if Assigned(FFieldMinSizes) then
        H := High(FFieldMinSizes)+1
       else
        H := 0;
@@ -3616,8 +3614,8 @@ begin
   if FStatement <> nil then
      Result := PQftype(FStatement, FieldNum);
   case Result of
-   FIELD_TYPE_OID: If FOIDAsInt then Result := FIELD_TYPE_INT4;
-   FIELD_TYPE_BYTEA: If FByteaAsEscString then Result := FIELD_TYPE_TEXT;
+   FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then Result := FIELD_TYPE_INT4;
+   FIELD_TYPE_BYTEA: if dsoByteaAsEscString in FOptions then Result := FIELD_TYPE_TEXT;
    FIELD_TYPE_OIDVECTOR: Result := FIELD_TYPE_VARCHAR;
    FIELD_TYPE_CID,
    FIELD_TYPE_XID,
@@ -3668,7 +3666,7 @@ var
    begin
      Result := '';
      for j:=0 to DefSL.Count-1 do
-      If integer(DefSL.Objects[j]) = FieldNum then
+      if integer(DefSL.Objects[j]) = FieldNum then
        begin
         Result := DefSL[j];
         DefSL.Delete(j);
@@ -3719,8 +3717,8 @@ const
       tS = ' c.oid = %d AND ad.adnum = %d ';
 
 begin
- If not Assigned(SL) then Exit;
- If IsQuery and (FOMode = dbiReadOnly) then Exit;
+ if not Assigned(SL) then Exit;
+ if IsQuery and (FOMode = dbiReadOnly) then Exit;
  sql := 'SELECT ad.adnum, '+
         ' c.oid, '+                      // AS col_number_in_source_table
         ' pg_get_expr(ad.adbin, ad.adrelid) '+                      // AS column_default
@@ -3729,20 +3727,20 @@ begin
         ' WHERE ad.adrelid = c.oid AND '+
         ' (%s) ';                          //c.oid = %d AND ad.adnum = %d OR ...
 
- If not isQuery then
+ if not isQuery then
    inS := ' c.oid = ' + IntToStr(FieldTable(0))
  else
    for i:=0 to FieldCount-1 do
     begin
      tabOID := FieldTable(I);
      fPos := FieldPosInTable(I);
-     If (tabOID > InvalidOid) and (fPos > -1) then
-       If inS > '' then
+     if (tabOID > InvalidOid) and (fPos > -1) then
+       if inS > '' then
           inS := inS + 'OR' + Format(ts,[tabOID,fPos])
        else
           inS := Format(ts,[tabOID,fPos]);
     end;
- If inS > '' then
+ if inS > '' then
   begin
     sql := Format(sql,[inS]);
     Res := PQExec(FConnect.Handle, PAnsiChar(AnsiString(sql)));
@@ -3751,7 +3749,7 @@ begin
       FConnect.CheckResult;
       for i:=0 to PQntuples(RES)-1 do
        for j:=0 to FieldCount-1 do
-         If (IntToStr(FieldTable(j)) = FConnect.RawToString(PQGetValue(Res,i,1))) and
+         if (IntToStr(FieldTable(j)) = FConnect.RawToString(PQGetValue(Res,i,1))) and
             (IntToStr(FieldPosInTable(j)) = FConnect.RawToString(PQGetValue(Res,i,0))) then
          SL.AddObject(FConnect.RawToString(PQgetvalue(RES,i,2)), TObject(j));
      finally
@@ -3797,7 +3795,7 @@ begin
   Result := GetBufferSize;
   Inc(Result, FFieldDescs.Count * SizeOf(TFieldStatus) + 1);
   FBookOfs := Result;
-  If FBookOfs > 0 then Inc(Result, BookMarkSize);
+  if FBookOfs > 0 then Inc(Result, BookMarkSize);
 end;
 
 procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
@@ -4029,14 +4027,14 @@ procedure TNativeDataSet.CompareBookMarks( pBookMark1, pBookMark2 : Pointer; var
 begin
   CheckParam(pBookMark1=nil,DBIERR_INVALIDPARAM);
   CheckParam(pBookMark2=nil,DBIERR_INVALIDPARAM);
-  If (TPSQLBookMark(pBookMark1^).Position <> 0) then
+  if (TPSQLBookMark(pBookMark1^).Position <> 0) then
     CmpBkMkResult:=cmp2Values( TPSQLBookMark(pBookMark1^).Position, TPSQLBookMark(pBookMark2^).Position) else
     CmpBkMkResult := CMPGtr;
 end;
 
 procedure TNativeDataSet.InitRecord(PRecord : Pointer);
 begin
-  If PRecord = nil then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
+  if PRecord = nil then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
   ZeroMemory(PRecord, GetWorkBufferSize);
   FFieldDescs.SetFields(PRecord);
   CurrentBuffer := PRecord;
@@ -4142,7 +4140,7 @@ var
   I    : Integer;
 begin
   for I := 1 to FFieldDescs.Count do
-    If FFieldDescs.Field[I].FieldType = fldBLOB then
+    if FFieldDescs.Field[I].FieldType = fldBLOB then
       FreeBlob(PRecord,i);
 end;
 
@@ -4354,7 +4352,7 @@ begin
   FreeBlobStreams(OldRecord);
   FreeBlobStreams(PRecord);
   InternalBuffer := nil;
-  If bFreeLock then LockRecord(dbiNOLOCK);
+  if bFreeLock then LockRecord(dbiNOLOCK);
 
   if FAffectedRows > 0 then
     if not FReFetch then
@@ -4443,10 +4441,10 @@ begin
   Result :=0;
   if not FIndexDescs.Updated then
   begin
-    If isQuery and (FOMode = dbiReadOnly) or (FieldCount <= 0)
+    if isQuery and (FOMode = dbiReadOnly) or (FieldCount <= 0)
       then Exit; //multitable or non-Select SQL query
 
-    If FConnect.GetserverVersionAsInt <= 070400 then
+    if FConnect.GetserverVersionAsInt <= 070400 then
      begin
         if SQLQuery <> ''then
            ATableName := GetTable(SQLQuery, Aliace) else
@@ -4460,7 +4458,7 @@ begin
                      ' AND t2.relname = ''%s''';
                      //' AND i.indexprs IS NULL';
         I := Pos('.',ATableName);
-        If I > 0 then
+        if I > 0 then
           begin
            ASchema := Copy(ATableName, 1, I-1);
            Tbl := Copy(ATableName, I+1, MaxInt);
@@ -4509,7 +4507,7 @@ begin
       PQclear(RES);
      end;
     except
-     If FConnect.GetserverVersionAsInt >= 070401
+     if FConnect.GetserverVersionAsInt >= 070401
       then raise;
       //in case if parser failed to get correct tablename
       //and ver <= 7.4.0 swallow exception
@@ -4628,10 +4626,10 @@ Var
       I := 0;
       While i <= Len - 1  do
        begin
-        If P[i] = '\' then
+        if P[i] = '\' then
          begin
           inc(i);
-          If P[i] = '\' then
+          if P[i] = '\' then
              inc(i)
             else
              inc(i,3);
@@ -4658,7 +4656,7 @@ begin
          iSize := TBlobItem(Buff^).Blob.Size;
       end
     else
-     If (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
+     if (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
        iSize  := BlobSize(FieldNo, Field.FieldValue)
      else
        iSize  := ByteaSize(FieldNo);
@@ -4766,13 +4764,13 @@ var
 
 begin
   iRead  := 0;
-  If Assigned(pDest) and (iLen > 0) then
+  if Assigned(pDest) and (iLen > 0) then
   begin
     Field := Fields[FieldNo];
     CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
     Field.Buffer := PRecord;
     if not Field.FieldNull then
-      If (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
+      if (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
         iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
       else
         iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
@@ -4796,7 +4794,7 @@ var
     with TBlobItem(buff^) do
     begin
       Blob.Seek(Offset, 0);
-      If Length > 0 then
+      if Length > 0 then
         Blob.Write(pSrc^, Length) else
         if Offset = 0 then Blob.Clear;
     end;
@@ -4964,7 +4962,7 @@ procedure TNativeDataSet.GetIndexDesc(iIndexSeqNo: Word; var idxDesc: IDXDesc);
 begin
   CheckParam(not(IndexCount > 0) ,DBIERR_NOASSOCINDEX);
   ZeroMemory(@idxDesc, Sizeof(idxDesc));
-  If (iIndexSeqNo = 0) and not FGetKeyDesc then
+  if (iIndexSeqNo = 0) and not FGetKeyDesc then
      if KeyNumber <> 0 then iIndexSeqNo := KeyNumber;
   if iIndexSeqNo = 0 then iIndexSeqNo := 1;
   CheckParam(FIndexDescs.mIndex[iIndexSeqNo] = nil,DBIERR_NOSUCHINDEX);
@@ -5412,7 +5410,7 @@ end;
 
 procedure TPSQLEngine.SetDatabase( H : hDBIDb );
 begin
-  If H = nil then  Raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
+  if H = nil then  Raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
   FDatabase := H;
 end;
 
@@ -5562,7 +5560,7 @@ begin
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
-    If Result = DBIERR_EOF then Result := DBIERR_BOF;
+    if Result = DBIERR_EOF then Result := DBIERR_BOF;
   end;
 end;
 
@@ -5881,7 +5879,7 @@ end;
 
 function TPSQLEngine.GetObjFromObj( Source : hDBIObj; eObjType : DBIOBJType; var hObj : hDBIObj ) : DBIResult;
 begin
-  If ( eObjType = objSESSION ) then
+  if ( eObjType = objSESSION ) then
   begin
     Result := DBIERR_NONE;
   end
@@ -5939,8 +5937,8 @@ Var
 
   procedure AddMessage( P : pChar );
   begin
-    If ( StrLen( P ) > 0 ) then
-      If ( Tmp <> '' ) then
+    if ( StrLen( P ) > 0 ) then
+      if ( Tmp <> '' ) then
         Tmp := Tmp + #13#10 + StrPas( P ) else
         Tmp := StrPas( P );
   end;
@@ -6555,7 +6553,7 @@ end;
 
 function TNativeConnect.GetServerVersion: string;
 begin
-  If FServerVersion > '' then
+  if FServerVersion > '' then
    begin
     Result := FServerVersion;
     Exit;
@@ -6838,7 +6836,7 @@ var
                                     Result := CompWithoutLen(PChar(S1), PChar(SqlDateToBDEDateTime(S2)));
 
           FIELD_TYPE_BOOL: begin
-                            If S1 = '' then
+                            if S1 = '' then
                              BoolChar := 'F'
                             else
                              BoolChar := 'T';
@@ -6938,7 +6936,7 @@ procedure TNativeConnect.RollbackBLOBTran;
 var
   Result: PPGresult;
 begin
-  If FBlobTransactionInProgress AND
+  if FBlobTransactionInProgress AND
      (GetTransactionStatus <> trstIDLE) then
   begin
     FBlobTransactionInProgress := False;
@@ -6951,7 +6949,7 @@ procedure TNativeConnect.CommitBLOBTran;
 var
   Result: PPGresult;
 begin
-  If FBlobTransactionInProgress AND
+  if FBlobTransactionInProgress AND
     (GetTransactionStatus <> trstIDLE) then
   begin
     FBlobTransactionInProgress := False;
@@ -7048,10 +7046,10 @@ begin
     MinOIDSel :=  'SELECT GREATEST(pronargs, array_upper(proallargtypes,1)), '
   else
     MinOIDSel :=  'SELECT pronargs, ';
-  If ProcOID = 0 then
+  if ProcOID = 0 then
    begin
     I := Pos('.',pszPName);
-    If I > 0 then
+    if I > 0 then
      begin
       ProcSchema := Copy(pszPName,1,I-1);
       ProcSchema := StringReplace(ProcSchema, '"', '', [rfReplaceAll]);
@@ -7083,12 +7081,12 @@ begin
   if (PQresultStatus(RES) = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
    begin
     ArgNum := StrToInt(RawToString(PQgetvalue(RES,0,0)));
-    If ProcOID = 0 then
+    if ProcOID = 0 then
       ProcOID := StrToInt(RawToString(PQgetvalue(RES,0,1)));
    end;
   PQclear(Res);
 
-  If ProcOID * ArgNum = 0 then Exit;
+  if ProcOID * ArgNum = 0 then Exit;
 
 
   if GetserverVersionAsInt >= 080100 then
@@ -7104,7 +7102,7 @@ begin
           New(PDesc);
           ZeroMemory(PDesc,SizeOf(PDesc^));
 
-          If (PQgetisnull(RES,I,0) = 1) then
+          if (PQgetisnull(RES,I,0) = 1) then
             N := 'arg' + IntToStr(I)
           else
             N := RawToString(PQgetvalue(RES,I,0));
@@ -7158,12 +7156,12 @@ begin
     aParams := TPSQLParams(hParams);
     QAlloc(hDb,qryLangSQL,hStmt);
     SQLText := 'SELECT * FROM '+pszProc+'(%s)';
-    If (aParams.Count > 0) and (aParams[0].ParamType in [ptInput,ptInputOutput]) then
+    if (aParams.Count > 0) and (aParams[0].ParamType in [ptInput,ptInputOutput]) then
       ParStr := ':' + aParams[0].Name
     else
       ParStr := '';
     for i := 1 to aParams.Count - 1 do
-      If aParams[i].ParamType in [ptInput,ptInputOutput] then
+      if aParams[i].ParamType in [ptInput,ptInputOutput] then
         ParStr := ParStr + ', :' + aParams[i].Name;
     TNativeDataSet(hStmt).SQLQuery := Format(SQLText,[ParStr]);
     TNativeDataSet(hStmt).isQuery := True; // PaGo 24.07.2007
@@ -7221,7 +7219,7 @@ var
 begin
   InternalConnect;
   List.Clear;
-  If Self.GetserverVersionAsInt >= 080000 then
+  if Self.GetserverVersionAsInt >= 080000 then
    S := Format('generate_series(0,%d)',[MAX_ENCODING_ID])
   else
    S := Format(sqlGenerateSeries,[0,MAX_ENCODING_ID]);
@@ -7306,7 +7304,7 @@ begin
   Result := -1;
   S := FFieldDescs.Field[KeyNumber+1].FieldDefault;
   i := Pos('nextval(',lowercase(S));
-  If i>0 then
+  if i>0 then
    S := StringReplace(S, 'next', 'curr', [rfReplaceAll])
   else
    Exit;
@@ -7315,7 +7313,7 @@ begin
   if Assigned(RES) then
    try
     FConnect.CheckResult;
-    If PQntuples(RES)>0 then
+    if PQntuples(RES)>0 then
       Result := StrToIntDef(FConnect.RawToString(PQgetvalue(RES,0,0)),-1);
    finally
     PQclear(RES);
@@ -7410,7 +7408,7 @@ begin
       DBOid := StrToInt64(string(PQgetvalue(RES,0,0)));
       IsTemplate := PQgetvalue(RES,0,1) = 't';
       Owner := RawToString(PQgetvalue(RES,0,2));
-      If SV >= 080000 then
+      if SV >= 080000 then
         Tablespace := RawToString(PQgetvalue(RES,0,3));
       Comment := RawToString(PQgetvalue(RES,0,4));
      end;
@@ -7451,7 +7449,7 @@ begin
 
   Tbl := StringReplace(TableName,'"','',[rfReplaceAll]);
   I := Pos('.',Tbl);
-  If I > 0 then
+  if I > 0 then
    begin
     Schema := Copy(Tbl, 1, I-1);
     Tbl := Copy(Tbl, I+1, MaxInt);
@@ -7459,7 +7457,7 @@ begin
   else
    Schema := '%';
 
-  If SV >= 080000 then
+  if SV >= 080000 then
    Sql := Format(Sql,[', COALESCE(pg_tablespace.spcname,''<DEFAULT>'')'
                 ,'LEFT JOIN pg_tablespace ON (pg_class.reltablespace = pg_tablespace.oid)',
                 Tbl,Schema])
@@ -7475,7 +7473,7 @@ begin
       TableOid := StrToInt64(RawToString(PQgetvalue(RES,0,0)));
       HasOIDs := PQgetvalue(RES,0,1) = 't';
       Owner := RawToString(PQgetvalue(RES,0,2));
-      If SV >= 800000 then
+      if SV >= 800000 then
         Tablespace := RawToString(PQgetvalue(RES,0,4));
       Comment := RawToString(PQgetvalue(RES,0,3));
      end;
@@ -7503,7 +7501,7 @@ end;
 
 function TNativeConnect.GetServerVersionAsInt: integer;
 begin
-  If FIntServerVersion <= 0 then
+  if FIntServerVersion <= 0 then
     FIntServerVersion := PQserverVersion(Handle);
   Result := FIntServerVersion
 end;
@@ -7572,7 +7570,7 @@ begin
   begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
-    If CompareText(Fld.FieldName, AFieldName)<>0 then Continue;
+    if CompareText(Fld.FieldName, AFieldName)<>0 then Continue;
     //AParam.DataType := DataTypeMap[Fld.FieldType];
     Src := Fld.FieldValue;
     Inc(PAnsiChar(Src));
@@ -7582,7 +7580,7 @@ begin
       FieldOldValue(AFieldName, AParam);
       Exit;
      end;
-    If Fld.FieldNull then
+    if Fld.FieldNull then
      AParam.Value := Null
     else
      begin
@@ -7635,7 +7633,7 @@ var
    RES : PPGresult;
 begin
   Result := 0;
-  If GetserverVersionAsInt <= 070302 then
+  if GetserverVersionAsInt <= 070302 then
    Exit;
   InternalConnect;
   RES := PQexec(Handle, 'SELECT current_setting(''statement_timeout'')');
@@ -7655,7 +7653,7 @@ var
    RES : PPGresult;
 begin
   Result := 0;
-  If GetserverVersionAsInt <= 070302 then
+  if GetserverVersionAsInt <= 070302 then
    Exit;
   InternalConnect;
   S := Format('SELECT set_config(''statement_timeout'', ''%d'', false)',[Timeout]);
@@ -7694,7 +7692,7 @@ end;
 
 function TNativeDataSet.FieldTable(FieldNum: integer): cardinal;
 begin
- If FStatement <> nil then
+ if FStatement <> nil then
    Result := PQftable(FStatement,FieldNum)
  else
    Result := InvalidOid;
@@ -7702,10 +7700,10 @@ end;
 
 function TNativeDataSet.FieldPosInTable(FieldNum: integer): Integer;
 begin
- If FStatement <> nil then
+ if FStatement <> nil then
   begin
    Result := PQftablecol(FStatement,FieldNum);
-   If Result = 0 then
+   if Result = 0 then
      Result := -1;
   end
  else
@@ -7882,7 +7880,7 @@ var aRecNum: integer;
               FIELD_TYPE_BOOL: Result :=  ord(FVal(Index1)[1]) -
                                           ord(FVal(Index2)[1]);
 
-              FIELD_TYPE_OID: If FOIDAsInt then
+              FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                                 Result := StrToIntDef(FVal(Index1),InvalidOid) -
                                           StrToIntDef(FVal(Index2),InvalidOid)
                               else
@@ -7896,9 +7894,9 @@ var aRecNum: integer;
                Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
             end;
           end;
-          If IsReverseOrder[i] then
+          if IsReverseOrder[i] then
             Result := -Result;
-          If Result <> 0 then Break;
+          if Result <> 0 then Break;
         end;
       finally
         DecimalSeparator := OldDecimalSeparator;
@@ -7984,7 +7982,7 @@ begin
  if FConnect = nil then
    exit;
 
- If not IsQuery then //assume tables are editable by default
+ if not IsQuery then //assume tables are editable by default
   begin
    Result := True;
    Exit;
@@ -7993,7 +7991,7 @@ begin
  TabOID := FieldTable(0);
  if TabOID = InvalidOid then Exit;
  for i:=1 to FieldCount-1 do
-   If (TabOID = InvalidOid) or (TabOID <> FieldTable(i)) then
+   if (TabOID = InvalidOid) or (TabOID <> FieldTable(i)) then
     Exit
    else
     TabOID := FieldTable(i);
@@ -8124,9 +8122,9 @@ begin
       ZeroMemory(Buffer,SZ+1);
       TBlobItem(P^).Blob.Seek(0,0);
       TBlobItem(P^).Blob.Read(Buffer^, SZ);
-      If Fld.NativeBLOBType = nbtBytea then
+      if Fld.NativeBLOBType = nbtBytea then
         begin
-          If NeedEscape then
+          if NeedEscape then
            begin
              PEsc := PQEscapeByteaConn(FConnect.Handle, Buffer, SZ, BlSZ);
              try
@@ -8153,7 +8151,7 @@ begin
           repeat
             BlSZ := Min(MAX_BLOB_SIZE,SZ - off);
             Res  := lo_write(FConnect.Handle,FLocalBHandle, Buffer+off, BLSZ);
-            If Res < 0 then
+            if Res < 0 then
               Raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
             else
               Inc(Off, Res);
@@ -8188,11 +8186,11 @@ end;
 procedure TNativeDataSet.StoredProcGetParams(Params: TParams);
 var i,j: integer;
 begin
-  If not Assigned(FStatement) then Exit;
+  if not Assigned(FStatement) then Exit;
   for i:=0 to Params.Count-1 do
    if Params[i].ParamType in [ptOutput, ptInputOutput] then
      for j := 0 to FieldCount - 1 do
-      If Params[i].Name = FieldName(j) then
+      if Params[i].Name = FieldName(j) then
         Params[i].AsString := Field(j);
 end;
 
