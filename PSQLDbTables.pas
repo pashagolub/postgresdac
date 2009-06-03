@@ -2317,7 +2317,7 @@ begin
   FieldDefs.Updated := FALSE;
   FieldDefs.Update;
   GetIndexInfo;
-  if DefaultFields then CreateFields;
+  if DefaultFields or (dsoForceCreateFields in FOptions) then CreateFields;
   BindFields(TRUE);
   if ObjectView then GetObjectTypeNames(Fields);
   InitBufferPointers(FALSE);

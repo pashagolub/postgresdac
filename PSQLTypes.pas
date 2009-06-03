@@ -1697,7 +1697,7 @@ Type
 
   TSSLMode = (sslDisable , sslAllow, sslPrefer, sslRequire);
 
-  TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt);
+  TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields);
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
 const
