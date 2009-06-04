@@ -42,12 +42,12 @@ type
     TDumpOption = (doDataOnly, doIncludeBLOBs, doClean, doCreate, doInserts,
                   doColumnInserts, doIgnoreVersion, doOIDs, doNoOwner,
                   doSchemaOnly, doVerbose, doNoPrivileges, doDisableDollarQuoting,
-                  doDisableTriggers, doUseSetSessionAuthorization);
+                  doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces);
 
     TDumpOptions = set of TDumpOption;
 
     TDumpStrOption = (dsoSchema, dsoSuperuser, dsoTable, dsoExcludeSchema,
-                      dsoExcludeTable, dsoEncoding);
+                      dsoExcludeTable, dsoEncoding, dsoRole);
 
     TDumpFormat = (dfPlain, dfTarArchive, dfCompressedArchive);
 
@@ -71,6 +71,7 @@ type
         FExcludeTables: TStrings;
         FExcludeSchemas: TStrings;
         FOnLog: TLogEvent;
+        FLockWaitTimeout: cardinal;
         procedure SetDatabase(const Value : TPSQLDatabase);
         procedure SetCompressLevel(const Value: TCompressLevel);
         function GetStrOptions(const Index: Integer): string;
@@ -85,6 +86,7 @@ type
         function GetVersionAsStr: string;
         procedure ReadTableName(Reader: TReader); //deal with old missing properties
         procedure ReadSchemaName(Reader: TReader); //deal with old missing properties
+        procedure SetLockWaitTimeout(const Value: cardinal);
       protected
         procedure CheckDependencies;
         procedure DefineProperties(Filer: TFiler); override;
@@ -102,19 +104,21 @@ type
         property VersionAsStr: string read GetVersionAsStr;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
-        property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;
-        property ExcludeSchemas: TStrings read FExcludeSchemas write SetExcludeSchemas;
-        property TableNames: TStrings read FTableNames write SetTableNames;
-        property ExcludeTables: TStrings read FExcludeTables write SetExcludeTables;
-        property SuperUserName: string  index dsoSuperUser read GetStrOptions write SetStrOptions;
         property CompressLevel: TCompressLevel read FCompressLevel write SetCompressLevel default 0;
-        property Encoding: string index dsoEncoding read GetStrOptions write SetStrOptions;
         property Database   : TPSQLDatabase read FDatabase write SetDatabase;
-        property Options : TDumpOptions read FDumpOptions write FDumpOptions default [];
         property DumpFormat : TDumpFormat read FDumpFormat write FDumpFormat default dfPlain;
+        property Encoding: string index dsoEncoding read GetStrOptions write SetStrOptions;
+        property ExcludeSchemas: TStrings read FExcludeSchemas write SetExcludeSchemas;
+        property ExcludeTables: TStrings read FExcludeTables write SetExcludeTables;
+        property LockWaitTimeout: cardinal read FLockWaitTimeout write SetLockWaitTimeout default 0;
+        property Options : TDumpOptions read FDumpOptions write FDumpOptions default [];
         property RewriteFile: boolean read FRewriteFile write FRewriteFile default True;
-        property BeforeDump  : TNotifyEvent read FBeforeDump write FBeforeDump;
+        property Role: string index dsoRole read GetStrOptions write SetStrOptions;
+        property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;
+        property SuperUserName: string  index dsoSuperUser read GetStrOptions write SetStrOptions;
+        property TableNames: TStrings read FTableNames write SetTableNames;
         property AfterDump : TNotifyEvent read FAfterDump write FAfterDump;
+        property BeforeDump  : TNotifyEvent read FBeforeDump write FBeforeDump;
         property OnLog: TLogEvent read FOnLog write FOnLog;
       end;
 
@@ -130,13 +134,14 @@ type
               roIgnoreVersion, roList, roNoOwner,
               roSchemaOnly, roVerbose, roNoPrivileges,
               roDisableTriggers, roUseSetSessionAuthorization,
-              roSingleTransaction, roNoDataForFailedTables);
+              roSingleTransaction, roNoDataForFailedTables,
+              roNoTablespaces);
 
     TRestoreOptions = set of TRestoreOption;
 
     TRestoreStrOption = (rsoTable, rsoSuperUser, rsoDBName,
                     rsoFileName, rsoIndex, rsoListFile, rsoFunction,
-                    rsoTrigger);
+                    rsoTrigger, rsoRole);
 
     TPSQLRestore = class(TComponent)
      private
@@ -149,12 +154,14 @@ type
         FAfterRestore  : TNotifyEvent;
         FmiParams: TpdmvmParams;
         FOnLog: TLogEvent;
+        FJobs: cardinal;
         procedure SetDatabase(const Value : TPSQLDatabase);
         function GetStrOptions(const Index: Integer): string;
         procedure SetStrOptions(const Index: Integer; const Value: string);
         procedure Restore(const SourceFile, OutFile, LogFile: string);
         procedure DoLog(const Value: string);
         function GetVersionAsInt: integer;
+        procedure SetJobs(const Value: cardinal);
       protected
         procedure CheckDependencies;
         function GetParameters: PAnsiChar;
@@ -167,40 +174,42 @@ type
         property VersionAsInt: integer read GetVersionAsInt;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
-        property TableName: string  index rsoTable read GetStrOptions write SetStrOptions;
-        property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
-        property DBName: string  index rsoDBName read GetStrOptions write SetStrOptions;
-        property OutputFileName: string  index rsoFileName read GetStrOptions write SetStrOptions;
-        property Index: string  index rsoIndex read GetStrOptions write SetStrOptions;
-        property ListFile: string  index rsoListFile read GetStrOptions write SetStrOptions;
-        property FunctionDecl: string  index rsoFunction read GetStrOptions write SetStrOptions;
-        property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
         property Database   : TPSQLDatabase read FDatabase write SetDatabase;
+        property DBName: string  index rsoDBName read GetStrOptions write SetStrOptions;
+        property FunctionDecl: string  index rsoFunction read GetStrOptions write SetStrOptions;
+        property Index: string  index rsoIndex read GetStrOptions write SetStrOptions;
+        property Jobs: cardinal read FJobs write SetJobs;
+        property ListFile: string  index rsoListFile read GetStrOptions write SetStrOptions;
         property Options : TRestoreOptions read FRestoreOptions write FRestoreOptions;
+        property OutputFileName: string  index rsoFileName read GetStrOptions write SetStrOptions;
         property RestoreFormat : TRestoreFormat read FRestoreFormat write FRestoreFormat;
-
-        property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
+        property Role: string index dsoRole read GetStrOptions write SetStrOptions;        
+        property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
+        property TableName: string  index rsoTable read GetStrOptions write SetStrOptions;
+        property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
         property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
-        property OnLog: TLogEvent read FOnLog write FOnLog;        
+        property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
+        property OnLog: TLogEvent read FOnLog write FOnLog;
       end;
 
 const
     DumpCommandLineBoolParameters: array[TDumpOption] of string = (
-     '--data-only',                //doDataOnly
-     '--blobs',                    //doIncludeBLOBs
-     '--clean',                    //doClean
-     '--create',                   //doCreate
-     '--inserts',                  //doInserts
-     '--column-inserts',           //doColumnInserts
-     '--ignore-version',           //doIgnoreVersion
-     '--oids',                     //doOIDs
-     '--no-owner',                 //doNoOwner
-     '--schema-only',              //doSchemaOnly
-     '--verbose',                  //doVerbose,
-     '--no-privileges',            //doNoPrivileges,
-     '--disable-dollar-quoting',   //doDisableDollarQuoting,
-     '--disable-triggers',         //doDisableTriggers,
-     '--use-set-session-authorization' //doUseSetSessionAuthorization
+     '--data-only',                      //doDataOnly
+     '--blobs',                          //doIncludeBLOBs
+     '--clean',                          //doClean
+     '--create',                         //doCreate
+     '--inserts',                        //doInserts
+     '--column-inserts',                 //doColumnInserts
+     '--ignore-version',                 //doIgnoreVersion
+     '--oids',                           //doOIDs
+     '--no-owner',                       //doNoOwner
+     '--schema-only',                    //doSchemaOnly
+     '--verbose',                        //doVerbose,
+     '--no-privileges',                  //doNoPrivileges,
+     '--disable-dollar-quoting',         //doDisableDollarQuoting,
+     '--disable-triggers',               //doDisableTriggers,
+     '--use-set-session-authorization',  //doUseSetSessionAuthorization,
+     '--no-tablespaces'                  //doNoTablespaces
     );
 
     RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -215,18 +224,20 @@ const
      '--verbose',                  //roVerbose,
      '--no-privileges',            //roNoPrivileges,
      '--disable-triggers',         //roDisableTriggers,
-     '--use-set-session-authorization', //roUseSetSessionAuthorization
-     '--single-transaction',        //roSingleTransaction
-     '--no-data-for-failed-tables'  //roNoDataForFailedTables
+     '--use-set-session-authorization',  //roUseSetSessionAuthorization
+     '--single-transaction',             //roSingleTransaction
+     '--no-data-for-failed-tables',      //roNoDataForFailedTables
+     '--no-tablespaces'
      );
 
     DumpCommandLineStrParameters: array[TDumpStrOption] of string =(
-     '--schema=',        //dsoSchema
-     '--superuser=',     //dsoSuperuser
+     '--schema=',         //dsoSchema
+     '--superuser=',      //dsoSuperuser
      '--table=',          //dsoTable
-     '--exclude-schema', //dsoExcludeSchema
+     '--exclude-schema',  //dsoExcludeSchema
      '--exclude-table=',  //dsoExcludeTable
-     '--encoding=' //dsoEncoding
+     '--encoding=',       //dsoEncoding
+     '--role='            //dsoRole
     );
 
     RestoreCommandLineStrParameters: array[TRestoreStrOption] of string =(
@@ -237,7 +248,8 @@ const
      '--index=',      //rsoIndex,
      '--use-list=',   //rsoListFile,
      '--function=',   //rsoFunction,
-     '--trigger='     //rsoTrigger
+     '--trigger=',    //rsoTrigger
+     '--role='        //dsoRole
     );
 
 
@@ -470,9 +482,12 @@ begin
  FmiParams.Add(DumpCommandLineFormatValues[FDumpFormat]);
 
  if FDumpFormat in [dfCompressedArchive, dfPlain] then
-   FmiParams.Add(Format('--compress=%d',[FCompressLevel]));
+   FmiParams.Add(Format('--compress=%d', [FCompressLevel]));
 
- With FDatabase do
+ if FLockWaitTimeout > 0 then
+   FmiParams.Add(Format('--lock-wait-timeout=%u', [FLockWaitTimeout]));
+
+ with FDatabase do
   begin
    FmiParams.Add(Format('--username=%s',[UserName]));
    FmiParams.Add(Format('--port=%d',[Port]));
@@ -719,6 +734,11 @@ begin
   if S > '' then  FTableNames.Append(S);
 end;
 
+procedure TPSQLDump.SetLockWaitTimeout(const Value: cardinal);
+begin
+  FLockWaitTimeout := Value;
+end;
+
 {TPSQLRestore}
 
 constructor TPSQLRestore.Create(Owner: TComponent);
@@ -812,6 +832,9 @@ begin
    if FRestoreFormat <> rfAuto then
      FmiParams.Add(RestoreCommandLineFormatValues[FRestoreFormat]);
 
+   if FJobs > 1 then
+     FmiParams.Add(Format('--jobs=%u', [FJobs]));
+
    With FDatabase do
     begin
      FmiParams.Add(Format('--username=%s',[UserName]));
@@ -849,15 +872,22 @@ end;
 procedure TPSQLRestore.CheckDependencies;
 var CheckDB: TPSQLDatabase;
 begin
- If (FRestoreStrOptions[rsoFileName] > '')
+ if (FRestoreStrOptions[rsoFileName] > '')
     and (FRestoreStrOptions[rsoDBName] > '')
   then
    Raise EPSQLRestoreException.Create('Cannot specify both database and file output');
 
- If (FRestoreStrOptions[rsoFileName] = '')
+
+ if (roSingleTransaction in FRestoreOptions) and (FJobs > 1)
+  then
+   Raise EPSQLRestoreException.Create('Multiple jobs cannot be used within the single transaction');
+
+
+ if (FRestoreStrOptions[rsoFileName] = '')
     and (FRestoreStrOptions[rsoDBName] = '')
   then
    Raise EPSQLRestoreException.Create('At least database or file output must be specified');
+
  if FRestoreStrOptions[rsoDBName] > '' then
    begin
     CheckDB := TPSQLDatabase.Create(nil);
@@ -970,6 +1000,11 @@ begin
    FreeLibrary(H);
   end;
 end;
+procedure TPSQLRestore.SetJobs(const Value: cardinal);
+begin
+  FJobs := Value;
+end;
+
 end.
 
 
