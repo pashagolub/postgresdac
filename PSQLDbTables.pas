@@ -135,6 +135,10 @@ type
 
   TTransIsolation = (tiDirtyRead, tiReadCommitted, tiRepeatableRead);
 
+
+  TPSQLDBDesignOption = (ddoStoreConnected, ddoStorePassword);
+  TPSQLDBDesignOptions = set of TPSQLDBDesignOption;
+
   TPSQLDatabase =  Class(TCustomConnection)
     Private
       FAbout   : TPSQLDACAbout;
@@ -161,14 +165,13 @@ type
       FHandle: HDBIDB;
       FParams: TStrings;
       FStmtList: TList;
-      //addon info for DB
       FOwner: string;
       FIsTemplate: boolean;
       FTablespace: string;
       FDatabaseID: cardinal;
       FComment: string;
       FServerVersion: string;
-      //->>addon
+      FDesignOptions: TPSQLDBDesignOptions;//design time info for DB
       FOnAdd: TNotifyEvent;
       FOnLogin: TBaseDatabaseLoginEvent;
       FOnNotice: TDatabaseNoticeEvent;
@@ -211,15 +214,17 @@ type
       function GetIsTemplate: boolean;
       function GetDBOwner: string;
       function GetTablespace: string;
-    function GetIsUnicodeUsed: Boolean;
-    function GetDatabaseComment: string;
-    function GetIsSSLUsed: Boolean;
+      function GetIsUnicodeUsed: Boolean;
+      function GetDatabaseComment: string;
+      function GetIsSSLUsed: Boolean;
     Protected
       procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
       procedure DoConnect; override;
       procedure DoDisconnect; override;
       function GetConnected: Boolean; override;
+      function GetStoreConnected: boolean;
+      function GetStorePassword: boolean;
       function GetDataSet(Index: Integer): TPSQLDataSet; reintroduce;
       procedure Loaded; Override;
       procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
@@ -227,6 +232,7 @@ type
       procedure AddDatabase(Value : TPSQLDatabase);
       procedure RemoveDatabase(Value : TPSQLDatabase);
       property CheckIfActiveOnParamChange: boolean read FCheckIfActiveOnParamChange write FCheckIfActiveOnParamChange;
+      procedure WriteState(Writer: TWriter); override;
     Public
       constructor Create(AOwner: TComponent); Override;
       destructor Destroy; Override;
@@ -270,7 +276,7 @@ type
       property ServerVersionAsInt: integer read GetServerVersionAsInt;
       property Temporary: Boolean read FTemporary write FTemporary;
       property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
-    Published
+    published
       property About : TPSQLDACAbout read FAbout write FAbout;
       property AfterConnect;
       property AfterDisconnect;
@@ -279,10 +285,11 @@ type
       property CharSet: string read FCharSet write SetCharSet;
       property CommandTimeout: cardinal read FCommandTimeout write SetCommandTimeout default 0;
       property Comment: string read GetDatabaseComment write SetDummyStr stored False;
-      property Connected;
+      property Connected stored GetStoreConnected;
       property ConnectionTimeout: cardinal read FConnectionTimeout write SetConnectionTimeout default 15;
       property DatabaseID: cardinal read GetDatabaseID write SetDummyInt stored False;
       property DatabaseName: String read FDatabaseName write SetDatabaseName;
+      property DesignOptions: TPSQLDBDesignOptions read FDesignOptions write FDesignOptions default [ddoStoreConnected, ddoStorePassword];
       property Exclusive: Boolean read FExclusive write SetExclusive default FALSE;
       property HandleShared: Boolean read FHandleShared write FHandleShared default FALSE;
       property Host : String read FHost write SetHost;
@@ -302,7 +309,7 @@ type
       property Tablespace: string read GetTablespace write SetDummyStr stored False;
       property TransIsolation: TTransIsolation read FTransIsolation write FTransIsolation default tiReadCommitted;
       property UserName : String read FUserName write SetUserName;
-      property UserPassword : String read FUserPassword write SetUserPassword;
+      property UserPassword : String read FUserPassword write SetUserPassword stored GetStorePassword;
       property UseSSL : Boolean read FUseSSL write SetUseSSL default True;
   end;
 
@@ -428,6 +435,7 @@ type
     function GetSortFieldNames: string;
     procedure ReadByteaOpt(Reader: TReader); //deal with old missing properties
     procedure ReadOIDOpt(Reader: TReader); //deal with old missing properties
+    function GetStoreActive: boolean;
   protected
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
     procedure DefineProperties(Filer: TFiler); Override;    
@@ -608,7 +616,7 @@ type
     property Filtered;
     property FilterOptions;
     property OnFilterRecord;
-    property Active;
+    property Active stored GetStoreActive;
     property AutoCalcFields;
     property ObjectView default FALSE;
     property BeforeOpen;
@@ -969,6 +977,7 @@ type
     FBackupList: TStringList;
     FFirstConnect: Boolean;
     FNotifyFired: TPSQLNotifyEvent;
+    function GetStoreActive: boolean;
   protected
     procedure SetActive(Value: Boolean);
     function GetInterval: Cardinal;
@@ -995,7 +1004,7 @@ type
     procedure UnlistenTo(Event: string);
   published
     property Database: TPSQLDatabase read FDatabase write SetDatabase;
-    property Active: Boolean read FActive write SetActive;
+    property Active: Boolean read FActive write SetActive stored GetStoreActive;
     property ListenList: TStrings read FListenList write SetListenList;
     property Interval: Cardinal read GetInterval write SetInterval default 250;
     property OnNotify: TPSQLNotifyEvent read FNotifyFired write FNotifyFired;
@@ -1210,7 +1219,14 @@ begin
    DBList.Remove(Value);
 
   while FDirectQueryList.Count > 0 do
-    TPSQLDirectQuery(FDirectQueryList[FDirectQueryList.Count - 1]).Database := nil;   
+    TPSQLDirectQuery(FDirectQueryList[FDirectQueryList.Count - 1]).Database := nil;
+end;
+
+procedure TPSQLDatabase.WriteState(Writer: TWriter);
+begin
+  if not (ddoStorePassword in FDesignOptions) then
+   FParams.Values['PWD'] := '';
+  inherited;
 end;
 
 constructor TPSQLDatabase.Create(AOwner : TComponent);
@@ -1229,7 +1245,8 @@ begin
   FDirectQueryList := TList.Create;
   FCheckIfActiveOnParamChange := True; //SSH Tunneling stuff
   FConnectionTimeout := 15;
-  FDatabaseID := 0;
+  FDatabaseID := InvalidOid;
+  FDesignOptions := [ddoStoreConnected, ddoStorePassword];
 end;
 
 destructor TPSQLDatabase.Destroy;
@@ -1490,6 +1507,17 @@ end;
 function TPSQLDatabase.GetConnected: Boolean;
 begin
   Result := FHandle <> nil;
+end;
+
+function TPSQLDatabase.GetStoreConnected: Boolean;
+begin
+  Result := Connected and
+   (ddoStoreConnected in FDesignOptions);
+end;
+
+function TPSQLDatabase.GetStorePassword: boolean;
+begin
+  Result := ddoStorePassword in FDesignOptions;
 end;
 
 function TPSQLDatabase.GetDataSet(Index : Integer) : TPSQLDataSet;
@@ -4920,6 +4948,16 @@ begin
  Result := FSortFieldNames;
 end;
 
+function TPSQLDataSet.GetStoreActive: boolean;
+begin
+ Result := Active
+            and Assigned(FDatabase)
+            and (
+              (ddoStoreConnected in FDatabase.DesignOptions)
+               or not (csDesigning in ComponentState)
+                );
+end;
+
 function TPSQLDataSet.GetFieldTypeOID(const FieldNum: integer): cardinal;
 begin
  CheckActive;
@@ -6518,6 +6556,16 @@ begin
   FListenList.Assign(Value);
   for I := 0 to FListenList.Count -1 do
     FListenList[I] := Trim(FListenList[I]);
+end;
+
+function TPSQLNotify.GetStoreActive: boolean;
+begin
+ Result := Active
+            and Assigned(FDatabase)
+            and (
+              (ddoStoreConnected in FDatabase.DesignOptions)
+               or not (csDesigning in ComponentState)
+                );
 end;
 
 procedure TPSQLNotify.SetActive(Value: Boolean);

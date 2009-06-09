@@ -32,6 +32,7 @@ type
     function GetFieldsCount : integer;
     function GetFieldName(aIndex: integer): string;
     procedure SetParamsList(const Value: TPSQLParams);
+    function GetStoreActive: Boolean;
   protected
     procedure SetDatabase(Value : TPSQLDatabase);
     function GetDatabase : TPSQLDatabase;
@@ -55,7 +56,7 @@ type
     function FieldIsNull(aFieldName : string) : boolean;overload;
 
     property Database : TPSQLDatabase read GetDatabase write SetDatabase;
-    property Active : boolean read GetActive write SetActive;
+    property Active : boolean read GetActive write SetActive stored GetStoreActive;
     property SQL : TStrings read FSQL write SetSQL;
     property RecNo : integer read GetRecNo write SetRecNo;//current cursor position
     property RecordCount : integer read GetRecordCount;
@@ -227,6 +228,16 @@ begin
   Result := PQntuples(FStatement);
 end;
  
+function TPSQLCustomDirectQuery.GetStoreActive: Boolean;
+begin
+ Result := Active
+            and Assigned(FDatabase)
+            and (
+              (ddoStoreConnected in FDatabase.DesignOptions)
+               or not (csDesigning in ComponentState)
+                );
+end;
+
 procedure TPSQLCustomDirectQuery.Last();
 begin
   CheckOpen();
