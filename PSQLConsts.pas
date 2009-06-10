@@ -2,6 +2,8 @@ unit PSQLConsts;
 
 interface
 
+{SVN revision: $Id$}
+
 const
 
   sqlNoSysObjects  = ' AND n.nspname NOT IN (''pg_catalog'', ''pg_toast'','+

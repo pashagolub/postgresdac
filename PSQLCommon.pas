@@ -10,6 +10,8 @@
 
 unit PSQLCommon;
 
+{SVN revision: $Id$}
+
 {$T-,H+,X+,R-}
 
 interface

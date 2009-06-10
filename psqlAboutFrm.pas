@@ -1,6 +1,8 @@
 {$I psqldac.inc}
 unit psqlAboutFrm;
 
+{SVN revision: $Id$}
+
 interface
 
 uses

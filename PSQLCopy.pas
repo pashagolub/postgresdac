@@ -2,6 +2,8 @@
 
 unit PSQLCopy;
 
+{SVN revision: $Id$}
+
 interface
 
 Uses Windows, Messages, SysUtils, Classes, Dialogs, PSQLTypes,

@@ -1,5 +1,6 @@
 unit PSQLTools;
 
+{SVN revision: $Id$}
 
 interface
 

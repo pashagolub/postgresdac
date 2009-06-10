@@ -2,6 +2,8 @@ unit psqlBatch;
 
 interface
 
+{SVN revision: $Id$}
+
 Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       {$IFDEF DELPHI_6}Variants,{$ENDIF}StdVCL, PSQLDbTables,SMIntf;
 

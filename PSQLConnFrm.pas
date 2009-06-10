@@ -2,6 +2,8 @@ unit PSQLConnFrm;
 
 interface
 
+{SVN revision: $Id$}
+
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls,PSQLDbTables,PSQLTypes;

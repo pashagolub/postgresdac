@@ -1,6 +1,8 @@
 {$I Psqldac.inc}
 unit PSQLMigrator;
 
+{SVN revision: $Id$}
+
 interface
 uses Classes, DB, PSQLDBTables, Forms, SysUtils, DBTables;
 

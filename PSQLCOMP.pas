@@ -1,6 +1,8 @@
 {$I PSQLdac.inc}
 unit PSQLCOMP;
 
+{SVN revision: $Id$}
+
 interface            
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,

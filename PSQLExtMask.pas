@@ -1,5 +1,7 @@
 unit PSQLExtMask;
 
+{SVN revision: $Id$}
+
 interface
 
 uses SysUtils;
