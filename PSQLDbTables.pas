@@ -567,7 +567,6 @@ type
     property DBFlags: TDBFlags read FDBFlags;
     property UpdateMode: TUpdateMode read FUpdateMode write SetUpdateMode default upWhereAll;
     property StmtHandle: HDBIStmt read GetStmtHandle;
-    property Options: TPSQLDatasetOptions read FOptions write SetOptions;
   Public
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
@@ -620,6 +619,7 @@ type
     property Active stored GetStoreActive;
     property AutoCalcFields;
     property ObjectView default FALSE;
+    property Options: TPSQLDatasetOptions read FOptions write SetOptions;
     property BeforeOpen;
     property AfterOpen;
     property BeforeClose;
