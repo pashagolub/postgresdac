@@ -12,6 +12,9 @@ object PSQLStoredProcProp: TPSQLStoredProcProp
   Font.Style = []
   OldCreateOrder = False
   Position = poDesktopCenter
+  DesignSize = (
+    517
+    261)
   PixelsPerInch = 96
   TextHeight = 13
   object Panel1: TPanel

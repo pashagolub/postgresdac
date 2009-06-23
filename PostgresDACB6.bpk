@@ -7,7 +7,7 @@
     <OBJFILES value="PostgresDACB6.obj psqlAboutFrm.obj PSQLAccess.obj PSQLDbTables.obj 
       PSQLTypes.obj psqlBatch.obj PSQLMacroQuery.obj PSQLMonitor.obj 
       PSQLTools.obj PSQLDump.obj PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj 
-      PSQLDirectQuery.obj"/>
+      PSQLDirectQuery.obj PSQLFields.obj"/>
     <RESFILES value="PostgresDACB6.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -77,6 +77,7 @@
       <FILE FILENAME="PSQLCommon.pas" FORMNAME="" UNITNAME="PSQLCommon" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLExtMask.pas" FORMNAME="" UNITNAME="PSQLExtMask" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLDirectQuery.pas" FORMNAME="" UNITNAME="PSQLDirectQuery" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PSQLFields.pas" FORMNAME="" UNITNAME="PSQLFields" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>      
   </FILELIST>
   <BUILDTOOLS>
   </BUILDTOOLS>

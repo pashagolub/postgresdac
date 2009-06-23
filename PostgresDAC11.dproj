@@ -60,6 +60,7 @@
     <DCCReference Include="PSQLMonitor.pas" />
     <DCCReference Include="PSQLTools.pas" />
     <DCCReference Include="PSQLTypes.pas" />
+    <DCCReference Include="PSQLFields.pas" />
     <DCCReference Include="rtl.dcp" />
     <DCCReference Include="vcl.dcp" />
     <DCCReference Include="vcldb.dcp" />

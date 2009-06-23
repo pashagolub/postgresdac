@@ -25,17 +25,6 @@ package PostgresDAC9;
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
-{%File 'PSQLMacroQuery.txvpck'}
-{%File 'PSQLTypes.txvpck'}
-{%File 'PSQLAccess.txvpck'}
-{%File 'PSQLDump.txvpck'}
-{%File 'PSQLTools.txvpck'}
-{%File 'psqlBatch.txvpck'}
-{%File 'PSQLDbTables.txvpck'}
-{%File 'psqlAboutFrm.txvpck'}
-{%File 'PSQLMonitor.txvpck'}
-{%File 'default.txvpck'}
-{%File 'ModelSupport\default.txvpck'}
 
 requires
   vcl,
@@ -59,6 +48,7 @@ contains
   PSQLCommon in 'PSQLCommon.pas',
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
-  PSQLExtMask in 'PSQLExtMask.pas';
+  PSQLExtMask in 'PSQLExtMask.pas',
+  PSQLFields in 'PSQLFields.pas';
 
 end.

@@ -10,6 +10,7 @@ USEFORMNS("psqlAboutFrm.pas", Psqlaboutfrm, AboutComp);
 USEUNIT("PSQLAccess.pas");
 USEUNIT("PSQLDbTables.pas");
 USEUNIT("PSQLTypes.pas");
+USEUNIT("PSQLFields.pas");
 USEUNIT("psqlBatch.pas");
 USEUNIT("PSQLMacroQuery.pas");
 USEUNIT("PSQLMonitor.pas");

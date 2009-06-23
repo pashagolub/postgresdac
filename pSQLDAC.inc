@@ -16,7 +16,7 @@
 //---------------------------
 // Delphi/Builder versions
 //---------------------------
-//DELPHI 14 (Weaver)
+//DELPHI 14 (Delphi Weaver)
 {$IFDEF VER210}
   {$DEFINE DELPHI_14}
   {$DEFINE DELPHI_12}

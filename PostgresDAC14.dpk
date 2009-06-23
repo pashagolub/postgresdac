@@ -50,6 +50,7 @@ contains
   PSQLCommon in 'PSQLCommon.pas',
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
-  PSQLExtMask in 'PSQLExtMask.pas';
+  PSQLExtMask in 'PSQLExtMask.pas',
+  PSQLFields in 'PSQLFields.pas';
 
 end.

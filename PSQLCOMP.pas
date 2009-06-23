@@ -3,13 +3,13 @@ unit PSQLCOMP;
 
 {SVN revision: $Id$}
 
-interface            
+interface
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
      {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF},
      Db,PSQLFldLinks,PSQLDbTables,PSQLupdsqled,PSQLBatch,PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
-     PSQLDirectQuery;
+     PSQLDirectQuery, PSQLFields;
 
 type
     TAboutProperty = class(TPropertyEditor)
@@ -426,6 +426,7 @@ begin
   RegisterComponentEditor(TPSQLDatabase, TPSQLDatabaseEditor);
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
+  RegisterFields([TPSQLGuidField]);
   RegisterPropertyEditors;
 end;
 

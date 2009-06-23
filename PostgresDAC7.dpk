@@ -48,6 +48,7 @@ contains
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',
-  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp};
+  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},
+  PSQLFields in 'PSQLFields.pas';
 
 end.

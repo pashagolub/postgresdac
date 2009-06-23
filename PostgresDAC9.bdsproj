@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <BorlandProject>
 	<PersonalityInfo>
 		<Option>
@@ -164,7 +164,6 @@
     
     
     <Excluded_Packages>
-      <Excluded_Packages Name="C:\Documents and Settings\Victor\My Documents\Borland Studio Projects\Bpl\mySQLDAC9.bpl">Direct Access Components for MySQL</Excluded_Packages>
       <Excluded_Packages Name="C:\Program Files\MicroOLAP PostgresDAC\Packages\Delphi 2005\PostgresDAC9.bpl">MicroOLAP PostgresDAC</Excluded_Packages>
     </Excluded_Packages>
   </Delphi.Personality>

@@ -606,7 +606,7 @@ type
     property UpdateRecordTypes: TUpdateRecordTypes read GetUpdateRecordSet write SetUpdateRecordSet;
  	  procedure SortBy(FieldNames : string);
 	  property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;    
-  Published
+  published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property AutoRefresh: Boolean read FAutoRefresh write SetAutoRefresh default FALSE;
     property Database: TPSQLDatabase read GetDatabase write SetDatabase;
@@ -807,7 +807,6 @@ type
     property TableID: cardinal read FTableID write SetDummyInt stored False;
     property Comment: string read FComment write SetDummyStr stored False;
     property SortFieldNames;
-    property Options;    
   end;
 
 
@@ -890,7 +889,6 @@ type
       property SQL: TStrings read GetQuery write SetQuery;
       property Params: TPSQLParams read FParams write SetParamsList;
       property UniDirectional: Boolean read FUniDirectional write FUniDirectional default FALSE;
-      property Options;
       property UpdateMode;
       property UpdateObject;
       property SortFieldNames;
@@ -1073,7 +1071,7 @@ uses  ActiveX, Forms, DBPWDlg, DBLogDlg, DBConsts
 {$IFDEF DELPHI_10}, DBClient{$ENDIF},
 BDEConst
 {$IFDEF TRIAL}, PSQLAboutFrm{$ENDIF},
-PSQLDirectQuery, Math;
+PSQLDirectQuery, Math, PSQLFields;
 
 {$R DB.DCR}
 
@@ -2174,6 +2172,8 @@ begin
   FCacheBlobs := False;
   FAutoRefresh := FALSE;
   FAllowSequenced := False; //Added by Nicolas Ring
+
+  FOptions := [dsoUseGUIDField];
 
   if (csDesigning in ComponentState) and Assigned(AOwner) and (DBList.Count > 0) then
    begin
@@ -4909,7 +4909,10 @@ end;
 
 function TPSQLDataSet.GetFieldClass(FieldType: TFieldType): TFieldClass;
 begin
-  Result := inherited GetFieldClass(FieldType)
+  if (FieldType = ftGuid) and (dsoUseGUIDField in FOptions) then
+   Result := TPSQLGuidField
+  else
+   Result := inherited GetFieldClass(FieldType)
 end;
 
 procedure TPSQLDataSet.SortBy(FieldNames: string);

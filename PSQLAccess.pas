@@ -859,7 +859,7 @@ procedure LogDebugMessage(const MsgType, Msg: string);
 Implementation
 
 Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
-     DbConsts, PSQLExtMask;
+     DbConsts, PSQLExtMask, PSQLFields;
 
 {**************************************************************************}
 {                     Utility Objects                                      }
@@ -3947,7 +3947,7 @@ begin
                                          TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
                FIELD_TYPE_FLOAT4,
                FIELD_TYPE_FLOAT8,
-               FIELD_TYPE_NUMERIC:   Double(Data^) :=StrToSQLFloat(FldValue);
+               FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
                FIELD_TYPE_OID,
                FIELD_TYPE_TEXT,
                FIELD_TYPE_BYTEA:     begin
@@ -3958,6 +3958,9 @@ begin
                                         continue;
                                     end;
              else
+               if (T.NativeType = FIELD_TYPE_UUID) then
+                 FldValue := BadGuidToGuid(AnsiString(FldValue));
+
                if FConnect.IsUnicodeUsed then
                {$IFDEF DELPHI_12}
                  StrCopy(PWideChar(Data), PWideChar(FldValue))

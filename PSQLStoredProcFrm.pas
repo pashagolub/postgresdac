@@ -37,6 +37,8 @@ function EditStoredProc(AStoredProc: TPSQLStoredProc): Boolean;
 
 implementation
 
+uses PSQLTypes;
+
 {$R *.dfm}
 
 function GetSQLForParams(const anIntVer: integer): string;
@@ -225,7 +227,7 @@ begin
       Q.Database := FStoredProc.Database;
       Q.RequestLive := False;
       Q.ParamCheck := False;
-      Q.OIDAsInt := True;
+      Q.Options := [dsoOIDAsInt];
       ListView1.Items.BeginUpdate;
       ListView1.Items.Clear;
       PB.Min := 0;

@@ -6,7 +6,7 @@
     <PROJECT value="PostgresDACB5.bpl"/>
     <OBJFILES value="psqlAboutFrm.obj PSQLAccess.obj PSQLDbTables.obj PSQLTypes.obj 
       psqlBatch.obj PSQLMacroQuery.obj PSQLMonitor.obj PSQLDump.obj 
-      PSQLTools.obj PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj 
+      PSQLTools.obj PSQLCopy.obj PSQLCommon.obj PSQLExtMask.obj PSQLFields.obj
       PSQLDirectQuery.obj PostgresDACB5.obj"/>
     <RESFILES value="PostgresDACB5.res"/>
     <IDLFILES value=""/>
