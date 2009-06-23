@@ -35,6 +35,14 @@ type
     F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, FA, FB, FC, FD, FE, FF: Byte;
   end;
 
+{$IFDEF DELPHI_5}
+  PWord         = ^Word;
+  PSmallInt     = ^SmallInt;
+  PByte         = ^Byte;
+  IntegerArray  = array[0..$effffff] of Integer;
+  PIntegerArray = ^IntegerArray;
+{$ENDIF}
+
 const
   GUID_NULL: TGUID = '{00000000-0000-0000-0000-000000000000}';
 
@@ -177,7 +185,7 @@ begin
   Result[34] := HexUpperCase[C^]; Inc(C);
   Result[35] := HexUpperCase[C^]; Inc(C);
   Result[36] := HexUpperCase[C^]; Inc(C);
-  Result[37] := HexUpperCase[C^]; Inc(C);
+  Result[37] := HexUpperCase[C^];
 end;
 
 function GUIDToBadGUID(const AStr: AnsiString): String;
@@ -225,7 +233,7 @@ begin
   Result[33] := HexLowerCase[C^]; Inc(C);
   Result[34] := HexLowerCase[C^]; Inc(C);
   Result[35] := HexLowerCase[C^]; Inc(C);
-  Result[36] := HexLowerCase[C^]; Inc(C);
+  Result[36] := HexLowerCase[C^];
 end;
 
 function GUIDToString(const AGUID: TGUID): AnsiString;
