@@ -3961,6 +3961,9 @@ begin
                if (T.NativeType = FIELD_TYPE_UUID) then
                  FldValue := BadGuidToGuid(AnsiString(FldValue));
 
+               if dsoTrimCharFields in FOptions then
+                 FldValue := TrimRight(FldValue);
+
                if FConnect.IsUnicodeUsed then
                {$IFDEF DELPHI_12}
                  StrCopy(PWideChar(Data), PWideChar(FldValue))
