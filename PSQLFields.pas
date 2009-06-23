@@ -188,7 +188,7 @@ begin
   Result[37] := HexUpperCase[C^];
 end;
 
-function GUIDToBadGUID(const AStr: AnsiString): String;
+function GUIDToBadGUID(const AStr: AnsiString): AnsiString;
 var
   C: PAnsiChar;
 begin
@@ -308,14 +308,14 @@ var
   S: String;
 begin
   S := GetAsString();
-  Result := StringToGUID(S);
+  Result := StringToGUID(AnsiString(S));
 end;
 
 procedure TPSQLGuidField.SetAsGuid(const Value: TGUID);
 begin
   if IsEqualGUID(Value, GUID_NULL)
     then Clear()
-    else SetAsString(GUIDToString(Value))
+    else SetAsString(string(GUIDToString(Value)))
 end;
 
 class procedure TPSQLGuidField.CheckTypeSize(Value: Integer);
