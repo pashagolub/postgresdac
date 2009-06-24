@@ -235,6 +235,8 @@ type
       procedure RemoveDatabase(Value : TPSQLDatabase);
       property CheckIfActiveOnParamChange: boolean read FCheckIfActiveOnParamChange write FCheckIfActiveOnParamChange;
       procedure WriteState(Writer: TWriter); override;
+      function GetSSLOption(Index: integer): string;
+      procedure SetSSLOption(Index: integer; Value: string);
     public
       constructor Create(AOwner: TComponent); Override;
       destructor Destroy; Override;
@@ -308,6 +310,10 @@ type
       property ReadOnly: Boolean read FReadOnly write SetReadOnly default FALSE;
       property ServerVersion: string read FServerVersion write SetDummyStr stored False;
       property SSLMode: TSSLMode read FSSLMode write SetSSLMode default sslPrefer;
+      property SSLCert: string  index 0 read GetSSLOption write SetSSLOption;
+      property SSLKey: string index 1 read GetSSLOption write SetSSLOption;
+      property SSLRootCert: string index 2 read GetSSLOption write SetSSLOption;
+      property SSLCRL: string index 3 read GetSSLOption write SetSSLOption;
       property Tablespace: string read GetTablespace write SetDummyStr stored False;
       property TransIsolation: TTransIsolation read FTransIsolation write FTransIsolation default tiReadCommitted;
       property UserName : String read FUserName write SetUserName;
@@ -1457,6 +1463,16 @@ begin
   Filer.DefineProperty('UseSSL', SetUseSSL, nil, False); //missing
 end;
 
+function TPSQLDatabase.GetSSLOption(Index: integer): string;
+begin
+  Result := FParams.Values[SSLOpts[Index]];
+end;
+
+procedure TPSQLDatabase.SetSSLOption(Index: integer; Value: string);
+begin
+  FParams.Values[SSLOpts[Index]] := Value;
+end;
+
 procedure TPSQLDatabase.DoDisconnect;
 begin
   if FHandle <> nil then
@@ -1622,34 +1638,22 @@ const
   ShareModes: array[Boolean] of DbiShareMode = (dbiOpenShared, dbiOpenExcl);
 var
   DBPassword: String;
-  ParamList : TStrings;
-
-procedure CheckDB;
-begin
-  ParamList.Assign(FParams);
-end;
 
 begin
   if FHandle = nil then
   begin
     InitEngine;
+    {$IFDEF TRIAL}
+    Dac4PSQLShowAbout(Self.ClassName);
+    {$ENDIF}
     CheckDatabase(DBPassword);
-    ParamList := TStringList.Create;
-    Try
-      CheckDB;
-      OEMConv := FOEMConvert;
-      {$IFDEF TRIAL}
-      Dac4PSQLShowAbout(Self.ClassName);
-      {$ENDIF}
-      Check(Engine, Engine.OpenDatabase(ParamList, FHandle));
-      Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
-      Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
-      Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
-      IF Assigned(FHandle) then
-        PQSetNoticeProcessor(TNativeConnect(FHandle).Handle, NoticeProcessor, Self);
-    Finally
-       ParamList.Free
-    end;
+    OEMConv := FOEMConvert;
+    Check(Engine, Engine.OpenDatabase(FParams, FHandle));
+    Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
+    Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
+    Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
+    if Assigned(FHandle) then
+      PQSetNoticeProcessor(TNativeConnect(FHandle).Handle, NoticeProcessor, Self);
     SetBoolProp(Engine, FHandle, dbUSESCHEMAFILE,        TRUE);
     SetBoolProp(Engine, FHandle, dbPARAMFMTQMARK,        TRUE);
     SetBoolProp(Engine, FHandle, dbCOMPRESSARRAYFLDDESC, TRUE);

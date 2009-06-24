@@ -1698,14 +1698,17 @@ Type
   TRecordState = (tsNoPos, tsPos, tsFirst, tsLast, tsEmpty, tsClosed);
   TDir = (tdUndefined, tdNext, tdPrev);
 
-  TSSLMode = (sslDisable , sslAllow, sslPrefer, sslRequire);
+  TSSLMode = (sslDisable , sslAllow, sslPrefer, sslRequire, sslVerifyCA, sslVerifyFull);
 
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields);
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
 const
-  SSLConsts: array[TSSLMode] of string = ('disable' , 'allow', 'prefer', 'require');
+  SSLConsts: array[TSSLMode] of string = ('disable' , 'allow', 'prefer',
+                                          'require', 'verify-ca', 'verify-full');
+
+  SSLOpts: array[0..3] of string = ('sslcert', 'sslkey', 'sslrootcert', 'sslcrl');                                          
 
 type
   TDBOptions = Record
