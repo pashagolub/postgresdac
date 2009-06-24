@@ -1406,6 +1406,13 @@ begin
      raise EPSQLException.CreateMsg(self,ErrStr);
 end;
 
+{$IFDEF DELPHI_5}
+function ifThen(aCondition: boolean; IfTrue, IfFalse: string): string;
+begin
+ if aCondition then Result := IfTrue else Result := IfFalse;
+end;
+{$ENDIF}
+
 procedure TNativeConnect.ProcessDBParams(Params : TStrings);
 
   function GetAddr(Value: String): Boolean;
