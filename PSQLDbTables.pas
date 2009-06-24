@@ -141,7 +141,7 @@ type
   TPSQLDBDesignOptions = set of TPSQLDBDesignOption;
 
   TPSQLDatabase =  Class(TCustomConnection)
-    Private
+    private
       FAbout   : TPSQLDACAbout;
       FTransIsolation: TTransIsolation;
       FKeepConnection: Boolean; //AutoStop
@@ -201,7 +201,6 @@ type
       procedure SetConnectionTimeout(const Value: cardinal);
       procedure SetCommandTimeout(const Value: cardinal);
       procedure SetHost(const Value : String);
-      procedure SetUseSSL(const Value : Boolean);
       procedure SetKeepConnection(Value: Boolean);
       procedure SetExclusive(Value: Boolean);
       procedure SetHandle(Value: HDBIDB);
@@ -218,7 +217,9 @@ type
       function GetIsUnicodeUsed: Boolean;
       function GetDatabaseComment: string;
       function GetIsSSLUsed: Boolean;
-    Protected
+      procedure SetUseSSL(Reader: TReader); //deal with old missing properties
+    protected
+      procedure DefineProperties(Filer: TFiler); override; //deal with old missing properties
       procedure CloseDatabaseHandle;
       procedure CloseDatabase(Database: TPSQLDatabase);
       procedure DoConnect; override;
@@ -234,7 +235,7 @@ type
       procedure RemoveDatabase(Value : TPSQLDatabase);
       property CheckIfActiveOnParamChange: boolean read FCheckIfActiveOnParamChange write FCheckIfActiveOnParamChange;
       procedure WriteState(Writer: TWriter); override;
-    Public
+    public
       constructor Create(AOwner: TComponent); Override;
       destructor Destroy; Override;
 
@@ -311,7 +312,6 @@ type
       property TransIsolation: TTransIsolation read FTransIsolation write FTransIsolation default tiReadCommitted;
       property UserName : String read FUserName write SetUserName;
       property UserPassword : String read FUserPassword write SetUserPassword stored GetStorePassword;
-      property UseSSL : Boolean read FUseSSL write SetUseSSL default True;
   end;
 
   { TPSQLBDECallBack }
@@ -452,7 +452,7 @@ type
     procedure PSStartTransaction; override;
     procedure PSReset; override;
     function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
-  Protected
+  protected
     function  Engine : TPSQLEngine; Virtual; Abstract;
     procedure SetBlockReadSize(Value: Integer); override;
     procedure BlockReadNext; override;
@@ -567,7 +567,7 @@ type
     property DBFlags: TDBFlags read FDBFlags;
     property UpdateMode: TUpdateMode read FUpdateMode write SetUpdateMode default upWhereAll;
     property StmtHandle: HDBIStmt read GetStmtHandle;
-  Public
+  public
     constructor Create(AOwner: TComponent); Override;
     destructor Destroy; Override;
     function GetLastInsertID(const FieldNum: integer): integer;
@@ -1451,6 +1451,11 @@ begin
   end;
 end;
 
+procedure TPSQLDatabase.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  Filer.DefineProperty('UseSSL', SetUseSSL, nil, False); //missing
+end;
 
 procedure TPSQLDatabase.DoDisconnect;
 begin
@@ -1729,13 +1734,9 @@ begin
     end;
 end;
 
-procedure TPSQLDatabase.SetUseSSL(const Value : Boolean);
+procedure TPSQLDatabase.SetUseSSL(Reader: TReader);
 begin
-    if FUseSSL <> Value then
-      if Value then
-       SSLMode := sslPrefer
-      else
-       SSLMode := sslDisable;
+ Reader.ReadBoolean(); //just ignore old property
 end;
 
 procedure TPSQLDatabase.SetUserName(const Value : String);

@@ -22,7 +22,6 @@ type
     Label5: TLabel;
     DBPort: TEdit;
     DBLogin: TCheckBox;
-    DBSSL: TCheckBox;
     OkBtn: TButton;
     CancelBtn: TButton;
     Panel1: TPanel;
@@ -75,7 +74,6 @@ begin
   DBHost.Text := Db.Host;
   DBPort.Text := IntToStr(Db.Port);
   DBLogin.Checked := db.LoginPrompt;
-  DBSSL.Checked := Db.UseSSL;
 end;
 
 procedure TPSQLConnForm.SetDatabaseProperty(Db: TPSQLDatabase);
@@ -86,7 +84,6 @@ begin
   Db.Host := DBHost.Text;
   Db.Port := StrToInt(DBPort.Text);
   db.LoginPrompt := DBLogin.Checked;
-  Db.UseSSL := DBSSL.Checked;
 end;
 
 end.
