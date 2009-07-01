@@ -7,7 +7,7 @@ interface
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
      {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF},
-     Db, DsDesign, PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
+     Db, {$IFNDEF BCB}DsDesign{$ENDIF}, PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
      PSQLDirectQuery, PSQLFields;
 
@@ -100,6 +100,7 @@ type
     function GetVerbCount: Integer; override;
   end;
 
+{$IFNDEF BCB}
   TPSQLDSDesigner = class(TDSDesigner)
   public
     procedure EndCreateFields; override;
@@ -118,6 +119,7 @@ type
     function GetVerb(Index: Integer): string; override;
     function GetVerbCount: Integer; override;
   end;
+{$ENDIF}
 
   TPSQLStoredProcEditor = class(TComponentEditor)
   public
@@ -597,7 +599,7 @@ begin
 end;
 
 { TPSQLDataSetEditor }
-
+{$IFNDEF BCB}
 procedure TPSQLQueryEditor.ExecuteVerb(Index: Integer);
 var
   SQL: string;
@@ -685,5 +687,8 @@ begin
     TPSQLQuery(DataSet).Active := OldState;
   end;
 end;
+{$ENDIF}
 
 end.
+
+
