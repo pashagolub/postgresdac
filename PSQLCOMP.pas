@@ -7,7 +7,7 @@ interface
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
      {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF},
-     Db, {$IFNDEF BCB}DsDesign{$ENDIF}, PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
+     Db, {$IFNDEF BCB}DsDesign,{$ENDIF} PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
      PSQLDirectQuery, PSQLFields;
 
@@ -445,7 +445,7 @@ begin
       TPSQLBatchExecute, TPSQLMacroQuery, TPSQLMonitor, TPSQLDirectQuery,
       TPSQLTools, TPSQLCopy, TPSQLDump, TPSQLRestore, TPSQLUser, TBDE2PSQLDAC] );
   RegisterComponentEditor(TPSQLDatabase, TPSQLDatabaseEditor);
-  RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);
+  {$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
   RegisterFields([TPSQLGuidField]);
