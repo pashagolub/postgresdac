@@ -45,7 +45,7 @@ contains
   PSQLCOMP in 'PSQLCOMP.pas',
   PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
-  PSQLMigrator in 'PSQLMigrator.pas,
-  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm}';
+  PSQLMigrator in 'PSQLMigrator.pas',
+  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm};
 
 end.
