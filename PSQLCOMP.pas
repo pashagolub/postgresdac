@@ -104,7 +104,6 @@ type
   TPSQLDSDesigner = class(TDSDesigner)
   public
     procedure EndCreateFields; override;
-    function DoCreateField(const FieldName: string; Origin: string): TField; override;
   end;
 
   TPSQLQueryEditor = class(TComponentEditor)
@@ -665,12 +664,6 @@ begin
 end;
 
 { TPSQLDSDesigner }
-
-function TPSQLDSDesigner.DoCreateField(const FieldName: string;
-  Origin: string): TField;
-begin
-  Result := inherited DoCreateField(FieldName, Origin);
-end;
 
 procedure TPSQLDSDesigner.EndCreateFields;
 var OldState: boolean;
