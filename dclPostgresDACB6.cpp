@@ -6,6 +6,7 @@ USEFORMNS("PSQLupdsqled.pas", Psqlupdsqled, PSQLUpdateSQLEditForm);
 USEFORMNS("PSQLConnFrm.pas", Psqlconnfrm, PSQLConnForm);
 USEFORMNS("PSQLfldlinks.pas", Psqlfldlinks, PSQLLinkFields);
 USEFORMNS("PSQLStoredProcFrm.pas", Psqlstoredprocfrm, PSQLStoredProcProp);
+USEFORMNS("PSQLEdit.pas", PSQLEdit, SQLEditForm);
 //---------------------------------------------------------------------------
 #pragma package(smart_init)
 //---------------------------------------------------------------------------
