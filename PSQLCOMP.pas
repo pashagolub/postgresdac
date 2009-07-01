@@ -7,7 +7,7 @@ interface
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
      {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF},
-     Db,PSQLFldLinks,PSQLDbTables,PSQLupdsqled,PSQLBatch,PSQLMacroQuery,
+     Db, DsDesign, PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
      PSQLDirectQuery, PSQLFields;
 
@@ -100,6 +100,24 @@ type
     function GetVerbCount: Integer; override;
   end;
 
+  TPSQLDSDesigner = class(TDSDesigner)
+  public
+    procedure EndCreateFields; override;
+    function DoCreateField(const FieldName: string; Origin: string): TField; override;
+  end;
+
+  TPSQLQueryEditor = class(TComponentEditor)
+  private
+    FConnection: TPSQLDatabase;
+  protected
+    function GetDSDesignerClass: TDSDesignerClass; virtual;
+  public
+    procedure GetTables(List: TStrings; SystemTables: Boolean);
+    procedure GetFields(const TableName: string; List: TStrings; SystemFields: Boolean);
+    procedure ExecuteVerb(Index: Integer); override;
+    function GetVerb(Index: Integer): string; override;
+    function GetVerbCount: Integer; override;
+  end;
 
   TPSQLStoredProcEditor = class(TComponentEditor)
   public
@@ -128,8 +146,9 @@ Procedure RegisterPropertyEditors;
 
 implementation
 
-Uses {$IFNDEF DELPHI_4}BDEConst{$ELSE}DsnDBCst, PSQLDump{$ENDIF},TypInfo,PSQLAboutFrm,
-PSQLConnFrm, PSQLStoredProcFrm;
+Uses {BDEConst,}TypInfo,PSQLAboutFrm,
+PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes, DBCommon;
+
 {$R DBPRO.DCR}
 
 function GetPropertyValue(Instance: TPersistent; const PropName: string): TPersistent;
@@ -420,10 +439,11 @@ end;
 procedure Register;
 begin
   RegisterComponents('PostgresDAC',
-      [TPSQLDatabase,TPSQLTable,TPSQLQuery,TPSQLStoredProc,TPSQLUpdateSQL,TPSQLNotify,
+      [TPSQLDatabase, TPSQLTable, TPSQLQuery, TPSQLStoredProc, TPSQLUpdateSQL, TPSQLNotify,
       TPSQLBatchExecute, TPSQLMacroQuery, TPSQLMonitor, TPSQLDirectQuery,
       TPSQLTools, TPSQLCopy, TPSQLDump, TPSQLRestore, TPSQLUser, TBDE2PSQLDAC] );
   RegisterComponentEditor(TPSQLDatabase, TPSQLDatabaseEditor);
+  RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
   RegisterFields([TPSQLGuidField]);
@@ -573,6 +593,96 @@ begin
     for I := 0 to Values.Count - 1 do  Proc(Values[I]);
   Finally
     Values.Free;
+  end;
+end;
+
+{ TPSQLDataSetEditor }
+
+procedure TPSQLQueryEditor.ExecuteVerb(Index: Integer);
+var
+  SQL: string;
+  TableName: string;
+begin
+  case Index of
+   0: ShowFieldsEditor(Designer, TDataSet(Component), GetDSDesignerClass);
+   1:
+    begin
+      FConnection := TPSQLQuery(Component).Database;
+      try
+        SQL := TPSQLQuery(Component).SQL.Text;
+        if SQL <> '' then
+          TableName := GetTableNameFromSQL(SQL);
+        if EditSQL(SQL, GetTables, GetFields,
+           TableName) then
+          TPSQLQuery(Component).SQL.Text := SQL;
+      finally
+        FConnection := nil;
+      end;
+   end;
+ end;
+ Designer.Modified;
+end;
+
+function TPSQLQueryEditor.GetDSDesignerClass: TDSDesignerClass;
+begin
+  Result := TPSQLDSDesigner;
+end;
+
+procedure TPSQLQueryEditor.GetFields(const TableName: string;
+  List: TStrings; SystemFields: Boolean);
+var S: string;
+begin
+  List.Clear;
+  S := Format('SELECT quote_ident(attname) FROM pg_attribute WHERE attrelid = %s::regclass',
+                              [QuotedStr(Tablename)]);
+  if not SystemFields then
+   S := S + ' AND attnum > 0';
+  if Assigned(FConnection) then
+   FConnection.SelectStrings(S, List);
+end;
+
+procedure TPSQLQueryEditor.GetTables(List: TStrings;
+  SystemTables: Boolean);
+begin
+  List.Clear;
+  if Assigned(FConnection) then
+    FConnection.GetTableNames('', SystemTables, List);
+end;
+
+function TPSQLQueryEditor.GetVerb(Index: Integer): string;
+begin
+  case Index of
+   0: Result := 'Fields Editor...';
+   1: Result := 'SQL Editor...';
+  end;
+end;
+
+function TPSQLQueryEditor.GetVerbCount: Integer;
+begin
+ Result := 2;
+end;
+
+{ TPSQLDSDesigner }
+
+function TPSQLDSDesigner.DoCreateField(const FieldName: string;
+  Origin: string): TField;
+begin
+  Result := inherited DoCreateField(FieldName, Origin);
+end;
+
+procedure TPSQLDSDesigner.EndCreateFields;
+var OldState: boolean;
+begin
+  inherited;
+  if not (DataSet is TPSQLQuery) then Exit;
+  if not (dsoPopulateFieldsOrigin in TPSQLQuery(DataSet).Options) then Exit;
+
+  OldState := TPSQLQuery(DataSet).Active;
+  try
+    TPSQLQuery(DataSet).Active := True;
+    TPSQLQuery(DataSet).PopulateFieldsOrigin();
+  finally
+    TPSQLQuery(DataSet).Active := OldState;
   end;
 end;
 

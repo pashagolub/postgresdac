@@ -244,10 +244,14 @@ type
       function  Engine : TPSQLEngine;
       function Execute(const SQL: string; Params: TParams = nil; Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
       function GetBackendPID: Integer;
+
       function SelectString(aSQL: string; var IsOk: boolean; aFieldName: string): string; overload;
       function SelectString(aSQL: string; var IsOk: boolean; aFieldNumber: integer = 0): string; overload;
       function SelectStringDef(aSQL: string; aDefaultValue: string; aFieldName: string): string; overload;
       function SelectStringDef(aSQL: string; aDefaultValue: string; aFieldNumber: integer = 0): string; overload;
+
+      procedure SelectStrings(aSQL: string; aList: TStrings; aFieldName: string); overload;
+      procedure SelectStrings(aSQL: string; aList: TStrings; aFieldNumber: integer = 0); overload;
 
       procedure AddNotify(AItem: TObject);
       procedure ApplyUpdates(const DataSets: array of TPSQLDataSet);
@@ -610,8 +614,9 @@ type
     property UpdateObject: TPSQLSQLUpdateObject read FUpdateObject write SetUpdateObject;
     property UpdatesPending: Boolean read GetUpdatesPending;
     property UpdateRecordTypes: TUpdateRecordTypes read GetUpdateRecordSet write SetUpdateRecordSet;
+    procedure PopulateFieldsOrigin();
  	  procedure SortBy(FieldNames : string);
-	  property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;    
+	  property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;
   published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property AutoRefresh: Boolean read FAutoRefresh write SetAutoRefresh default FALSE;
@@ -2079,6 +2084,18 @@ begin
   Check(Engine, Engine.SelectStringDirect(FHandle, PChar(aSQL), IsOk, Result, aFieldName));
 end;
 
+procedure TPSQLDatabase.SelectStrings(aSQL: string; aList: TStrings; aFieldName: string);
+begin
+  DoConnect;
+  Check(Engine, Engine.SelectStringsDirect(FHandle, PChar(aSQL), aList, aFieldName));
+end;
+
+procedure TPSQLDatabase.SelectStrings(aSQL: string; aList: TStrings; aFieldNumber: integer = 0);
+begin
+  DoConnect;
+  Check(Engine, Engine.SelectStringsDirect(FHandle, PChar(aSQL), aList, aFieldNumber));
+end;
+
 function TPSQLDatabase.SelectStringDef(aSQL, aDefaultValue: string;
   aFieldNumber: integer): string;
 var
@@ -2300,7 +2317,10 @@ begin
     I := FieldID - 1;
     FieldDefs.Clear;
     while I < FldDescCount do
+     begin
+      FieldID := FieldDescs[I].iFldNum + 1;
       AddFieldDesc(FieldDescs, I, FieldID, RequiredFields, FieldDefs);
+     end;
     if FieldDefs.HiddenFields then
     begin
       SetBoolProp(Engine, Handle, curGETHIDDENCOLUMNS, False);
@@ -2351,9 +2371,11 @@ begin
   FieldDefs.Updated := FALSE;
   FieldDefs.Update;
   GetIndexInfo;
-  if DefaultFields or (dsoForceCreateFields in FOptions) then CreateFields;
+  if DefaultFields or (dsoForceCreateFields in FOptions) then
+    CreateFields;
   BindFields(TRUE);
   if ObjectView then GetObjectTypeNames(Fields);
+  if (dsoPopulateFieldsOrigin in FOptions) then PopulateFieldsOrigin();
   InitBufferPointers(FALSE);
   AllocKeyBuffers;
   Engine.SetToBegin(FHandle);
@@ -3390,6 +3412,13 @@ begin
   DataEvent(deDataSetChange, 0);
 end;
 
+procedure TPSQLDataSet.PopulateFieldsOrigin();
+var I: integer;
+begin
+ for I := 0 to Fields.Count -1 do
+   Fields[I].Origin := Engine.GetFieldOrigin(FHandle, Fields[I].FieldNo)
+end;
+
 procedure TPSQLDataSet.PostKeyBuffer(Commit: Boolean);
 begin
   DataEvent(deCheckBrowseMode, 0);
@@ -3544,7 +3573,6 @@ function TPSQLDataSet.CreateFuncFilter(FilterFunc: Pointer;Priority: Integer): H
 begin
   Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, NIL, PFGENFilter(FilterFunc), Result));
 end;
-
 
 function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
   Options: TLocateOptions; Priority: Integer): HDBIFilter;

@@ -188,7 +188,7 @@ begin
   Result[37] := HexUpperCase[C^];
 end;
 
-function GUIDToBadGUID(const AStr: AnsiString): AnsiString;
+{function GUIDToBadGUID(const AStr: AnsiString): AnsiString;
 var
   C: PAnsiChar;
 begin
@@ -234,7 +234,7 @@ begin
   Result[34] := HexLowerCase[C^]; Inc(C);
   Result[35] := HexLowerCase[C^]; Inc(C);
   Result[36] := HexLowerCase[C^];
-end;
+end;}
 
 function GUIDToString(const AGUID: TGUID): AnsiString;
 var

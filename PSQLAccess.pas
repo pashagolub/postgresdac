@@ -181,6 +181,9 @@ Type
 
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; aFieldNumber : integer):string; overload;
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
+    function SelectStringsDirect(pszQuery : string; aList : TStrings; aFieldNumber : integer):string; overload;
+    function SelectStringsDirect(pszQuery : string; aList : TStrings; pszFieldName : string):string; overload;
+
 
     function IsUnicodeUsed: boolean;
     function IsSSLUsed: boolean;
@@ -344,6 +347,7 @@ Type
       function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
       function GetLastInsertId(hCursor: hDBICur; const FieldNum: integer; var ID: integer): DBIResult;
       function GetFieldTypeOID(hCursor: hDBICur; const FieldNum: integer): cardinal;
+      function GetFieldOrigin(hCursor: hDBICur; const FieldNum: integer): string;
 
       function CheckBuffer(hCursor: hDBICur; PRecord: Pointer): DBIResult;
       function Reset(hDb: hDBIDb): DBIResult;
@@ -357,6 +361,14 @@ Type
                                   pszQuery : PChar;
                                   var IsOk : boolean;
                                   var aResult : string;
+                                  aFieldName : string):DBIResult;overload;
+      function SelectStringsDirect(hDb: hDBIDb;
+                                  pszQuery : PChar;
+                                  aList : TStrings;
+                                  aFieldNumber : integer):DBIResult;overload;
+      function SelectStringsDirect(hDb: hDBIDb;
+                                  pszQuery : PChar;
+                                  aList : TStrings;
                                   aFieldName : string):DBIResult;overload;
 
      end;
@@ -663,6 +675,7 @@ Type
       function FieldMinSize(FieldNum: Integer): Integer;
       function FieldType(FieldNum: Integer): cardinal;
       function FieldTable(FieldNum: integer): cardinal;
+      function FieldOrigin(FieldNum: integer): string;
       function FieldPosInTable(FieldNum: integer): Integer;
       function FieldIsNull(FieldNum: Integer): Boolean;
       function Field(FieldNum: Integer): string;
@@ -1576,7 +1589,7 @@ begin
   InternalConnect;
   List.Clear;
 
-  Sql := 'SELECT c.relname, ns.nspname FROM pg_class as c, pg_namespace as ns'+
+  Sql := 'SELECT c.oid :: regclass FROM pg_class as c, pg_namespace as ns'+
          ' WHERE (c.relkind = ''r'' OR c.relkind = ''v'')'+
          ' AND (ns.oid = c.relnamespace)';
 
@@ -1586,14 +1599,14 @@ begin
 
   if pszWild <> '' then
     Sql := Sql + ' AND relname LIKE '''+ pszWild+ '''';
-  Sql := Sql + ' ORDER BY 2,1';
+  Sql := Sql + ' ORDER BY 1';
   RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
   begin
      CheckResult;
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := '"'+RawToString(PQgetvalue(RES,I,1))+'"."'+RawToString(PQgetvalue(RES,I,0))+'"';
+        CREC := RawToString(PQgetvalue(RES,I,0)); //'"'+RawToString(PQgetvalue(RES,I,1))+'"."'+RawToString(PQgetvalue(RES,I,0))+'"';
         List.Add(CREC);
      end;
   end;
@@ -7706,6 +7719,24 @@ begin
    Result := InvalidOid;
 end;
 
+function TNativeDataSet.FieldOrigin(FieldNum: integer): string;
+var TabOid: cardinal;
+    ColNum: integer;
+    s: string;
+    IsOK: boolean;
+begin
+ if FStatement <> nil then
+   begin
+    TabOid := FieldTable(FieldNum - 1); //pg_attribute uses 1 as first field index, but low level rotines not
+    if TabOid <= InvalidOid then Exit;
+    ColNum := FieldPosInTable(FieldNum - 1);
+    s := Format('SELECT %u::regclass || ''.'' || quote_ident(attname) '+
+                'FROM pg_attribute WHERE attrelid = %u AND attnum = %d',
+                    [TabOid, TabOid, ColNum]);
+    Result := FConnect.SelectStringDirect(PChar(s), IsOK, 0);
+   end;
+end;
+
 function TNativeDataSet.FieldPosInTable(FieldNum: integer): Integer;
 begin
  if FStatement <> nil then
@@ -8381,6 +8412,99 @@ end;
 procedure TPSQLIndex.SetIndexName(const Value: string);
 begin
  Move(Value[1], FDesc.szName, (Max(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
+end;
+
+function TPSQLEngine.GetFieldOrigin(hCursor: hDBICur;
+  const FieldNum: integer): string;
+begin
+  Result := TNativeDataset(hCursor).FieldOrigin(FieldNum);
+end;
+
+function TPSQLEngine.SelectStringsDirect(hDb: hDBIDb; pszQuery: PChar;
+  aList: TStrings; aFieldNumber: integer): DBIResult;
+begin
+  try
+    TNativeConnect(hDB).SelectStringsDirect(pszQuery, aList, aFieldNumber);
+    Result := DBIERR_NONE;
+  except
+    Result := CheckError;
+  end;
+end;
+
+function TPSQLEngine.SelectStringsDirect(hDb: hDBIDb; pszQuery: PChar;
+  aList: TStrings; aFieldName: string): DBIResult;
+begin
+  try
+    TNativeConnect(hDB).SelectStringsDirect(pszQuery, aList, aFieldName);
+    Result := DBIERR_NONE;
+  except
+    Result := CheckError;
+  end;
+end;
+
+function TNativeConnect.SelectStringsDirect(pszQuery: string;
+  aList: TStrings; aFieldNumber: integer): string;
+var
+	Stmt : PPGresult;
+  i: integer;
+  IsOK: boolean;
+begin
+  Result := '';
+	InternalConnect;
+
+	Stmt := _PQExecute(Self, pszQuery);
+  try
+    IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
+            (PQnfields(Stmt) > aFieldNumber) and
+            (PQntuples(Stmt) > 0);
+    if IsOK then
+      try
+       aList.BeginUpdate;
+       for i := 0 to PQntuples(Stmt) - 1 do
+         aList.Append(RawToString(PQgetvalue(Stmt, i, aFieldNumber)));
+      finally
+       aList.EndUpdate;
+      end
+    else
+      CheckResult;
+  finally
+   PQClear(Stmt);
+  end;
+end;
+
+
+function TNativeConnect.SelectStringsDirect(pszQuery: string;
+  aList: TStrings; pszFieldName: string): string;
+var
+	Stmt : PPGresult;
+  P: PAnsiChar;
+  i, ColNum: integer;
+  IsOK: boolean;
+begin
+  Result := '';
+	InternalConnect;
+
+	Stmt := _PQExecute(Self, pszQuery);
+  try
+    P := StringToRaw(pszFieldName);
+    ColNum := PQfnumber(Stmt, P);
+    IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
+            (ColNum > -1) and
+            (PQntuples(Stmt) > 0);
+    if IsOK then
+      try
+       aList.BeginUpdate;
+       for i := 0 to PQntuples(Stmt) - 1 do
+         aList.Append(RawToString(PQgetvalue(Stmt, i, ColNum)));
+      finally
+       aList.EndUpdate;
+      end
+    else
+      CheckResult;
+    StrDispose(P);
+  finally
+   PQClear(Stmt);
+  end;
 end;
 
 initialization
