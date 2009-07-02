@@ -98,8 +98,8 @@ type
         Constructor Create(Owner : TComponent); override;
         destructor Destroy; override;
         procedure DumpToStream(Stream: TStream); overload;
-	      procedure DumpToStream(Stream: TStream; Log: TStrings); overload;
-	      procedure DumpToStream(Stream: TStream; LogFileName: string); overload;
+        procedure DumpToStream(Stream: TStream; Log: TStrings); overload;
+	procedure DumpToStream(Stream: TStream; LogFileName: string); overload;
         procedure DumpToFile(const FileName: string; Log: TStrings); overload;
       	procedure DumpToFile(const FileName, LogFileName: string); overload;
         property VersionAsInt: integer read GetVersionAsInt;

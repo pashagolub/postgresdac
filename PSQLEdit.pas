@@ -101,6 +101,8 @@ implementation
 
 {$R *.dfm}
 
+uses PSQLTypes;
+
 const
   SSelect = 'select'; { Do not localize }
   SFrom = 'from'; { Do not localize }
@@ -239,7 +241,7 @@ var
 begin
   S := SQLMemo.Text;
   StartSave := SQLMemo.SelStart;
-  if (S <> '') and (StartSave > 0) and not (S[StartSave] in [' ','(']) and
+  if (S <> '') and (StartSave > 0) and not CharInSet(S[StartSave], [' ','(']) and
     not (Text[1] = ' ') then
   begin
     if AddComma and (S[StartSave] <> ',') then
@@ -365,8 +367,8 @@ var
 begin
   p := PChar(Name);
   Result := False;
-  repeat 
-    if not (p^ in ['A'..'Z', '0'..'9', '_']) then
+  repeat
+    if not CharInSet(p^, ['a'..'z', '0'..'9', '_']) then
     begin
       Result := True;
       break;
