@@ -966,7 +966,7 @@ begin
 
     case Result of
       0: ;// - OK
-      1: If roExitOnError in Options then S := 'Common pg_restore error';
+      1: if roExitOnError in Options then S := 'Common pg_restore error';
       3: S := 'File IO error'; //any file operation
       1000: S := Format('Could not open input file %s',[SourceFile]);
       1001: S := Format('Could not read input file %s',[SourceFile]);
@@ -977,7 +977,7 @@ begin
       S := 'Unknown restore error';
     end;
 
-    If S > '' then
+    if S > '' then
       raise EPSQLRestoreException.Create(S);
 
   finally
