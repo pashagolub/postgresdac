@@ -89,6 +89,7 @@ type
         procedure ReadTableName(Reader: TReader); //deal with old missing properties
         procedure ReadSchemaName(Reader: TReader); //deal with old missing properties
         procedure SetLockWaitTimeout(const Value: cardinal);
+    procedure SetDumpOptions(const Value: TDumpOptions);
       protected
         procedure CheckDependencies;
         procedure DefineProperties(Filer: TFiler); override;
@@ -99,7 +100,7 @@ type
         destructor Destroy; override;
         procedure DumpToStream(Stream: TStream); overload;
         procedure DumpToStream(Stream: TStream; Log: TStrings); overload;
-	procedure DumpToStream(Stream: TStream; LogFileName: string); overload;
+        procedure DumpToStream(Stream: TStream; LogFileName: string); overload;
         procedure DumpToFile(const FileName: string; Log: TStrings); overload;
       	procedure DumpToFile(const FileName, LogFileName: string); overload;
         property VersionAsInt: integer read GetVersionAsInt;
@@ -113,7 +114,7 @@ type
         property ExcludeSchemas: TStrings read FExcludeSchemas write SetExcludeSchemas;
         property ExcludeTables: TStrings read FExcludeTables write SetExcludeTables;
         property LockWaitTimeout: cardinal read FLockWaitTimeout write SetLockWaitTimeout default 0;
-        property Options : TDumpOptions read FDumpOptions write FDumpOptions default [];
+        property Options : TDumpOptions read FDumpOptions write SetDumpOptions default [];
         property RewriteFile: boolean read FRewriteFile write FRewriteFile default True;
         property Role: string index dsoRole read GetStrOptions write SetStrOptions;
         property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;
@@ -164,6 +165,7 @@ type
         procedure DoLog(const Value: string);
         function GetVersionAsInt: integer;
         procedure SetJobs(const Value: cardinal);
+        procedure SetRestoreOptions(const Value: TRestoreOptions);
       protected
         procedure CheckDependencies;
         function GetParameters: PAnsiChar;
@@ -182,7 +184,7 @@ type
         property Index: string  index rsoIndex read GetStrOptions write SetStrOptions;
         property Jobs: cardinal read FJobs write SetJobs;
         property ListFile: string  index rsoListFile read GetStrOptions write SetStrOptions;
-        property Options : TRestoreOptions read FRestoreOptions write FRestoreOptions;
+        property Options : TRestoreOptions read FRestoreOptions write SetRestoreOptions;
         property OutputFileName: string  index rsoFileName read GetStrOptions write SetStrOptions;
         property RestoreFormat : TRestoreFormat read FRestoreFormat write FRestoreFormat;
         property Role: string index dsoRole read GetStrOptions write SetStrOptions;        
@@ -618,8 +620,6 @@ begin
     {$IFDEF M_DEBUG}
     LogDebugMessage('DUMPVER', IntToStr(pdmbvm_GetVersionAsInt()));
     {$ENDIF}
-    if not (doIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
-      raise EPSQLDumpException.Create('Use "Ignore Version" option');
 
     @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
     @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
@@ -628,7 +628,7 @@ begin
 
 
     pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);//mi:2007-01-15
-    If Assigned(FOnLog) then
+    if Assigned(FOnLog) then
      begin
       ProccessOwner := Self;
       pdmbvm_SetLogCallBackProc(@LogCallBackProc);//pg:2007-03-13
@@ -646,7 +646,7 @@ begin
                          PWideChar(WideString(TargetFile)),
                          PLog,
                          GetParameters());
-    Case Result of
+    case Result of
         0: S := '';
         1: S := 'Common dump error';
         2: S := 'Connection error (wrong username, password, host etc.)';
@@ -654,7 +654,7 @@ begin
      else
         S := 'Uknown dump error';
     end;
-    If S > '' then
+    if S > '' then
       raise EPSQLDumpException.Create(S + #13#10 + Utf8ToString(ErrBuff));
 
   finally
@@ -739,6 +739,12 @@ end;
 procedure TPSQLDump.SetLockWaitTimeout(const Value: cardinal);
 begin
   FLockWaitTimeout := Value;
+end;
+
+procedure TPSQLDump.SetDumpOptions(const Value: TDumpOptions);
+begin
+  FDumpOptions := Value;
+  Exclude(FDumpOptions, doIgnoreVersion); //deprecated and to be removed
 end;
 
 {TPSQLRestore}
@@ -936,8 +942,6 @@ begin
     {$IFDEF M_DEBUG}
     LogDebugMessage('RESTVER', IntToStr(pdmbvm_GetVersionAsInt()));
     {$ENDIF}
-    if not (roIgnoreVersion in Options) and (Database.ServerVersionAsInt > pdmbvm_GetVersionAsInt()) then
-      raise EPSQLRestoreException.Create('Database and pg_restore version missmatch. Use "Ignore Version" option');
 
     @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
     @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
@@ -1005,6 +1009,12 @@ end;
 procedure TPSQLRestore.SetJobs(const Value: cardinal);
 begin
   FJobs := Value;
+end;
+
+procedure TPSQLRestore.SetRestoreOptions(const Value: TRestoreOptions);
+begin
+  FRestoreOptions := Value;
+  Exclude(FRestoreOptions, roIgnoreVersion); //deprecated and to be removed
 end;
 
 end.
