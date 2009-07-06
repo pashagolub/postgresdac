@@ -59,6 +59,9 @@ type
     TPSQLDump = class(TComponent)
      private
         FAbout      : TPSQLDACAbout;
+        {$IFDEF M_DEBUG}
+        FParamStr   : string;
+        {$ENDIF}
         FDatabase   : TPSQLDatabase;
         FCompressLevel: TCompressLevel;
         FDumpFormat : TDumpFormat;
@@ -89,7 +92,7 @@ type
         procedure ReadTableName(Reader: TReader); //deal with old missing properties
         procedure ReadSchemaName(Reader: TReader); //deal with old missing properties
         procedure SetLockWaitTimeout(const Value: cardinal);
-    procedure SetDumpOptions(const Value: TDumpOptions);
+        procedure SetDumpOptions(const Value: TDumpOptions);
       protected
         procedure CheckDependencies;
         procedure DefineProperties(Filer: TFiler); override;
@@ -238,7 +241,7 @@ const
      '--schema=',         //dsoSchema
      '--superuser=',      //dsoSuperuser
      '--table=',          //dsoTable
-     '--exclude-schema',  //dsoExcludeSchema
+     '--exclude-schema=',  //dsoExcludeSchema
      '--exclude-table=',  //dsoExcludeTable
      '--encoding=',       //dsoEncoding
      '--role='            //dsoRole
@@ -498,6 +501,9 @@ begin
    FmiParams.Add(Format('--host=%s',[Host]));
   end;
  Result := FmiParams.GetPCharArray();
+ {$IFDEF M_DEBUG}
+ FParamStr := FmiParams.FParams.Commatext;
+ {$ENDIF}
 end;
 
 function TPSQLDump.GetStrOptions(const Index: Integer): string;
@@ -646,6 +652,9 @@ begin
                          PWideChar(WideString(TargetFile)),
                          PLog,
                          GetParameters());
+    {$IFDEF M_DEBUG}
+    LogDebugMessage('PARAMSTR', FParamStr);
+    {$ENDIF}
     case Result of
         0: S := '';
         1: S := 'Common dump error';
