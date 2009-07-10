@@ -372,11 +372,22 @@ type
 
   PPQConninfoOption = ^PQconninfoOption;
 
-
+  PostgresPollingStatusType = (
+  	PGRES_POLLING_FAILED = 0,
+    PGRES_POLLING_READING,		//* These two indicate that one may	  */
+    PGRES_POLLING_WRITING,		//* use select before polling again.   */
+    PGRES_POLLING_OK,
+    PGRES_POLLING_ACTIVE		//* unused; keep for awhile for backwards compatibility */
+  );
+  
 //////////////////////////////////////////////////////////////////
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
-  TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl;
+  TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //blocking manner
+
+  TPQconnectStart  = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //non-blocking manner
+
+  TPQconnectPoll   = function (Handle : PPGconn): PostgresPollingStatusType; cdecl;
 
   TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PAnsiChar): PPGconn; cdecl;
 
