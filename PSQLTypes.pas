@@ -271,10 +271,29 @@ type
   POid = ^Oid;
   TDynOidArray = array of Oid;
 
-// Application-visible enum types
-  ConnStatusType = (CONNECTION_OK, CONNECTION_BAD);
+  ConnStatusType = (
+  CONNECTION_OK,
+  CONNECTION_BAD,
+  //Non-blocking mode only below here
+	CONNECTION_STARTED,			// Waiting for connection to be made
+	CONNECTION_MADE,			// Connection OK; waiting to send
+	CONNECTION_AWAITING_RESPONSE,		// Waiting for a response from the postmaster
+	CONNECTION_AUTH_OK,			// Received authentication; waiting for backend startup
+	CONNECTION_SETENV,			// Negotiating environment
+	CONNECTION_SSL_STARTUP,		// Negotiating SSL
+	CONNECTION_NEEDED			// Internal state: connect() needed
+  );
+
+  PollingStatusType = (
+	PGRES_POLLING_FAILED = 0,
+	PGRES_POLLING_READING,		// These two indicate that one may
+	PGRES_POLLING_WRITING,		// use select before polling again
+	PGRES_POLLING_OK,
+	PGRES_POLLING_ACTIVE		// unused; keep for awhile for backwards compatibility
+	);
+
   ExecStatusType = (
-    PGRES_EMPTY_QUERY,
+    PGRES_EMPTY_QUERY = 0,
     PGRES_COMMAND_OK,		// a query command that doesn't return anything was executed properly by the backend
     PGRES_TUPLES_OK,		// a query command that returns tuples was executed properly by the backend, PGresult contains the result tuples
     PGRES_COPY_OUT,		// Copy Out data transfer in progress
@@ -285,6 +304,8 @@ type
 
 // String descriptions of the ExecStatusTypes
   pgresStatus = array[$00..$ff] of PAnsiChar;
+
+  TErrorVerbosity = (evTERSE, evDEFAULT, VERBOSE);
 
   //
   TTransactionStatusType = (
