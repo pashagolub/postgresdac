@@ -285,7 +285,7 @@ type
   );
 
   PollingStatusType = (
-	PGRES_POLLING_FAILED = 0,
+	PGRES_POLLING_FAILED,
 	PGRES_POLLING_READING,		// These two indicate that one may
 	PGRES_POLLING_WRITING,		// use select before polling again
 	PGRES_POLLING_OK,
@@ -293,7 +293,7 @@ type
 	);
 
   ExecStatusType = (
-    PGRES_EMPTY_QUERY = 0,
+    PGRES_EMPTY_QUERY,
     PGRES_COMMAND_OK,		// a query command that doesn't return anything was executed properly by the backend
     PGRES_TUPLES_OK,		// a query command that returns tuples was executed properly by the backend, PGresult contains the result tuples
     PGRES_COPY_OUT,		// Copy Out data transfer in progress
