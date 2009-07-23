@@ -1650,8 +1650,14 @@ begin
   if pszWild <> '' then
     Sql := Sql + ' AND nspname LIKE ''' + pszWild + '''';
   if not SystemSchemas then
-    Sql := Sql + ' AND nspname NOT IN (''pg_catalog'', ''pg_toast'','+
-                    '''pg_sysviews'', ''information_schema'')';
+   begin
+    Sql := Sql + ' AND nspname NOT IN (''pg_catalog'', ''pg_toast'', '+
+                    '''pg_sysviews'', ''information_schema'') ';
+    if GetserverVersionAsInt > 080200 then
+      Sql := Sql + 'AND nspname NOT LIKE E''pg\\_temp\\_%'' AND nspname NOT LIKE E''pg\\_toast_temp\\_%'''
+    else
+      Sql := Sql + 'AND nspname NOT LIKE ''pg\\_temp\\_%'' AND nspname NOT LIKE ''pg\\_toast_temp\\_%'''
+   end;
   Sql := Sql + ' ORDER BY 1';
   RES := _PQExecute(Self, Sql);
  try
