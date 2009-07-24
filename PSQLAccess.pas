@@ -705,9 +705,10 @@ Type
       Property InternalBuffer : Pointer Read  GetInternalBuffer Write SetInternalBuffer;
       Property IndexCount : Integer Read  GetIndexCount;
       //insert, update, delete stuff
-      function StrValue(P : Pointer; NeedQuote: boolean = True):String;
-      function MemoValue(P : Pointer; NeedQuote: boolean = True):String;
-      function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
+      function StrValue(P : Pointer; NeedQuote: boolean = True): string;
+      function MemoValue(P : Pointer; NeedQuote: boolean = True): string;
+      function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True): string; overload;
+      function BlobValue(MS: TStream; isBytea: boolean; NeedEscape: Boolean = True): string; overload;
       procedure ReadBlock(var iRecords: Integer; pBuf: Pointer);
     Public
       SQLQuery : String;
@@ -4759,7 +4760,8 @@ var
           begin
            repeat
             if Len > MAX_BLOB_SIZE then
-               N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, MAX_BLOB_SIZE) else
+               N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, MAX_BLOB_SIZE)
+            else
                N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, Len);
             Dec(Len, MAX_BLOB_SIZE);
             Inc(L, N);
@@ -4850,6 +4852,7 @@ var
   i: integer;
   byName: boolean;
   P: pointer;
+  MS: TMemoryStream;
 
   function GetDateTime: string;
   var ts: string;
@@ -4916,15 +4919,12 @@ begin
         case Param.DataType of
           ftADT: Value := 'DEFAULT';
           ftBLOB: begin
-                    BlSZ := Param.GetDataSize;
-                    GetMem(P, BlSZ);
-                    Param.GetData(P);
-                    PEsc := PQEscapeByteaConn(FConnect.Handle, PAnsiChar(P), BlSZ, BlSZ);
+                    MS := TMemoryStream.Create;
                     try
-                     Value := '''' + FConnect.RawToString(PEsc) + '''';
-                    //we don't use AnsiQuotedStr cause PQEscape will never miss quote inside
+                     MS.SetSize(Param.GetDataSize);
+                     Param.GetData(MS.Memory);
+                     Value := BlobValue(MS, True, True);
                     finally
-                     PQFreeMem(PEsc);
                     end;
                   end;
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
@@ -7643,7 +7643,6 @@ begin
                           else
                             if Fld.FieldSubType = fldstMemo then
                               AParam.AsString := MemoValue(Src, False)
-                              //  AParam.LoadFromStream(TBlobItem(Src^).Blob, ftMemo)
                             else
                               AParam.LoadFromStream(TBlobItem(Src^).Blob, ftBlob);
            fldDate:    AParam.AsDate := TDateTime(Src^);
@@ -8115,6 +8114,12 @@ begin
       {$ENDIF}
        AVal := PAnsiChar(P);
 
+      if not NeedQuote then
+       begin
+        Result := FConnect.RawToString(AVal);
+        Exit;
+       end;
+
       SZ := StrLen(AVal);
       GetMem(Buffer, 2*SZ+1);
       try
@@ -8122,9 +8127,7 @@ begin
       PQEscapeStringConn(FConnect.Handle, Buffer, AVal, SZ, Err);
       if Err > 0 then
        FConnect.CheckResult;
-      Result := FConnect.RawToString(Buffer);
-      if NeedQuote then
-       Result := '''' + Result + '''';
+       Result := '''' + FConnect.RawToString(Buffer) + '''';
       finally
        FreeMem(Buffer);
       end;
@@ -8150,70 +8153,71 @@ begin
     end;
 end;
 
-function TNativeDataSet.BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True):String;
+function TNativeDataSet.BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True): string;
+begin
+  Result := BlobValue(TBlobItem(P^).Blob, Fld.NativeBLOBType = nbtBytea, NeedEscape);
+end;
+
+function TNativeDataset.BlobValue(MS: TStream; isBytea: boolean; NeedEscape: Boolean = True): string;
 var
    Buffer, PEsc : PAnsiChar;
    SZ : Integer;
    Res : LongInt;
    Off, BlSZ: Integer;
-
 begin
-    Result := '0';
-    if TBlobItem(P^).Blob <> nil then
+  Result := '0';
+  if not Assigned(MS) or (MS.Size = 0) then Exit;
+  SZ := MS.Size;
+  GetMem(Buffer, SZ + 1);
+  ZeroMemory(Buffer, SZ + 1);
+  MS.Seek(0,0);
+  MS.Read(Buffer^, SZ);
+  if isBytea then
     begin
-      if TBlobItem(P^).Blob.Size = 0 then exit;
-      SZ := TBlobItem(P^).Blob.Size;
-      GetMem(Buffer, SZ+1);
-      ZeroMemory(Buffer,SZ+1);
-      TBlobItem(P^).Blob.Seek(0,0);
-      TBlobItem(P^).Blob.Read(Buffer^, SZ);
-      if Fld.NativeBLOBType = nbtBytea then
-        begin
-          if NeedEscape then
-           begin
-             PEsc := PQEscapeByteaConn(FConnect.Handle, Buffer, SZ, BlSZ);
-             try
-              Result := FConnect.RawToString(PEsc);
-             finally
-              PQFreeMem(PEsc);
-             end;
-           end
-          else
-           Result := string(Buffer);
-        end
-      else    //nbtOID in other case
-        begin
-          FConnect.BeginBLOBTran;  //BLOB Trans
-          FBlobHandle := lo_creat(FConnect.Handle,INV_WRITE or INV_READ);
-          if FBlobHandle = 0 then
-            begin
-             FConnect.RollbackBLOBTran;
-             Raise EPSQLException.CreateMsg(FConnect,'Can''t create BLOB! lo_creat operation failed!')
-            end;
-          FLocalBHandle := lo_open(FConnect.Handle,FBlobHandle, INV_WRITE);
-          try
-          Off := 0;
-          repeat
-            BlSZ := Min(MAX_BLOB_SIZE,SZ - off);
-            Res  := lo_write(FConnect.Handle,FLocalBHandle, Buffer+off, BLSZ);
-            if Res < 0 then
-              Raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
-            else
-              Inc(Off, Res);
-          until (off >= SZ);
-          FreeMem(Buffer, SZ+1);
-         except
-          lo_close(FConnect.Handle,FlocalBHandle);
-          //BLOB Trans
-          FConnect.RollbackBLOBTran;
-          raise;
+      if NeedEscape then
+       begin
+         PEsc := PQEscapeByteaConn(FConnect.Handle, Buffer, SZ, BlSZ);
+         try
+          Result := FConnect.RawToString(PEsc);
+         finally
+          PQFreeMem(PEsc);
          end;
-          lo_close(FConnect.Handle,FlocalBHandle);
-          //BLOB Trans
-          FConnect.CommitBLOBTran;
-          Result := UIntToStr(FBlobHandle);
+       end
+      else
+       Result := string(Buffer);
+    end
+  else    //nbtOID in other case
+    begin
+      FConnect.BeginBLOBTran;  //BLOB Trans
+      FBlobHandle := lo_creat(FConnect.Handle,INV_WRITE or INV_READ);
+      if FBlobHandle = 0 then
+        begin
+         FConnect.RollbackBLOBTran;
+         raise EPSQLException.CreateMsg(FConnect,'Can''t create BLOB! lo_creat operation failed!')
         end;
-      end;
+      FLocalBHandle := lo_open(FConnect.Handle, FBlobHandle, INV_WRITE);
+      try
+      Off := 0;
+      repeat
+        BlSZ := Min(MAX_BLOB_SIZE, SZ - off);
+        Res  := lo_write(FConnect.Handle, FLocalBHandle, Buffer + off, BLSZ);
+        if Res < 0 then
+          Raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
+        else
+          Inc(Off, Res);
+      until (off >= SZ);
+      FreeMem(Buffer, SZ+1);
+     except
+      lo_close(FConnect.Handle,FlocalBHandle);
+      //BLOB Trans
+      FConnect.RollbackBLOBTran;
+      raise;
+     end;
+      lo_close(FConnect.Handle,FlocalBHandle);
+      //BLOB Trans
+      FConnect.CommitBLOBTran;
+      Result := UIntToStr(FBlobHandle);
+    end;
 end;
 
 function TPSQLEngine.QGetProcParams(hStmt: hDBIStmt;
