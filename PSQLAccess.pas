@@ -4847,11 +4847,8 @@ procedure TNativeDataSet.QuerySetParams(Params : TParams; SQLText : String);
 var
   Token, Temp, Value: string;
   Param: TParam;
-  PEsc: PAnsiChar;
-  BlSZ: integer;
   i: integer;
   byName: boolean;
-  P: pointer;
   MS: TMemoryStream;
 
   function GetDateTime: string;
