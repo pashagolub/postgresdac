@@ -630,6 +630,8 @@ type
 
 var
   PQconnectdb:     TPQconnectdb;
+  PQconnectStart:  TPQconnectStart;
+  PQconnectPoll:   TPQconnectPoll;
   PQsetdbLogin:    TPQsetdbLogin;
   PQconndefaults:  TPQconndefaults;
   PQfinish:        TPQfinish;
@@ -1530,7 +1532,7 @@ type
       ulClientData  : Longint;
       pRecBuf       : Pointer;
       iPhyRecNum    : Longint
-   ): SmallInt stdcall;
+   ): SmallInt; stdcall;
 
 //----------------------------------------------------------------------------//
 //   DBI Query related types                                                  //
@@ -1645,7 +1647,7 @@ type
       ecbType       : CBType;           { Callback type }
       iClientData   : Longint;          { Client callback data }
       CbInfo        : Pointer           { Call back info/Client Input }
-   ): CBRType stdcall;
+   ): CBRType; stdcall;
 
   DelayUpdErrOpType = (                 { type of delayed update object (delayed updates callback) }
     delayupdNONE,
@@ -2708,6 +2710,8 @@ begin
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
+         @PQconnectPoll  := GetPSQLProc('PQconnectPoll');
+         @PQconnectStart := GetPSQLProc('PQconnectStart');
          @PQsetdbLogin   := GetPSQLProc('PQsetdbLogin');
          @PQconndefaults := GetPSQLProc('PQconndefaults');
          @PQfinish       := GetPSQLProc('PQfinish');
