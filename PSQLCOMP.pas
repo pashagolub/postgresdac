@@ -62,6 +62,14 @@ type
       Procedure GetValues(Proc: TGetStrProc); Override;
   end;
 
+  TPSQLParamOidPropertyEditor =  Class(TIntegerProperty)
+    Public
+      function  GetAttributes: TPropertyAttributes; Override;
+      procedure GetValueList(List: TStrings);
+      procedure GetValues(Proc: TGetStrProc); Override;
+      procedure SetValue(const Value: string); override;
+    end;
+
   { TPSQLTableFieldLinkProperty }
   TPSQLTableFieldLinkProperty = class(TPSQLFieldLinkProperty)
   private
@@ -426,6 +434,7 @@ begin
     RegisterPropertyEditor(TypeInfo(string), TPSQLDatabase, 'CharSet', TPSQLDatabaseCharsetPropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLDump, 'Encoding', TPSQLDatabaseCharsetPropertyEditor);
     RegisterPropertyEditor(TypeInfo(TFileName), TPSQLTable, 'TableName', TPSQLTableNamePropertyEditor);
+    RegisterPropertyEditor(TypeInfo(cardinal), TPSQLParam, 'DataTypeOID', TPSQLParamOidPropertyEditor);
     RegisterPropertyEditor(TypeInfo(TFileName), TPSQLCopy, 'TableName', TPSQLTableNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLTable, 'IndexName', TPSQLIndexNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLStoredProc, 'StoredProcName', TPSQLStoredProcNamePropertyEditor);
@@ -681,6 +690,51 @@ begin
   end;
 end;
 {$ENDIF}
+
+{ TPSQLParamOidPropertyEditor }
+
+function TPSQLParamOidPropertyEditor.GetAttributes: TPropertyAttributes;
+begin
+  Result := [paValueList, paMultiSelect];
+end;
+
+procedure TPSQLParamOidPropertyEditor.GetValueList(List: TStrings);
+begin
+  List.Text :=
+    '"char"=18'#13'abstime=702'#13'aclitem=1033'#13'bit varying=1562'#13'bit=1560'#13'bool=16'#13'box=603'#13'bytea=17'#13'char=1042'#13''+
+    'cid=29'#13'cidr=650'#13'circle=718'#13'date=1082'#13'float4=700'#13'float8=701'#13'inet=869'#13'int2=21'#13'int2vector=22'#13'int4=23'#13'int8=20'#13''+
+    'interval=1186'#13'line=628'#13'lseg=601'#13'macaddr=829'#13'money=790'#13'name=19'#13'numeric=1700'#13'oid=26'#13'oidvector=30'#13'path=602'#13''+
+    'point=600'#13'polygon=604'#13'refcursor=1790'#13'regclass=2205'#13'regoper=2203'#13'regoperator=2204'#13'regproc=24'#13'regprocedure=2202'#13''+
+    'regtype=2206'#13'reltime=703'#13'smgr=210'#13'text=25'#13'tid=27'#13'time with time zone=1266'#13'time=1083'#13'timestamp with time zone=1184'#13''+
+    'timestamp=1114'#13'tinterval=704'#13'tsquery=3615'#13'tsvector=3614'#13'uuid=2950'#13'varchar=1043'#13'xid=28'#13'xml=142'#13''+
+    //arrays bellow
+    'abstime[]=1023'#13'aclitem[]=1034'#13'bit varying[]=1563'#13'bit[]=1561'#13'bool[]=1000'#13'box[]=1020'#13'bpchar[]=1014'#13'bytea[]=1001'#13''+
+    'char[]=1002'#13'cid[]=1012'#13'cidr[]=651'#13'circle[]=719'#13'date[]=1182'#13'float4[]=1021'#13'float8[]=1022'#13'inet[]=1041'#13'int2[]=1005'#13''+
+    'int2vector[]=1006'#13'int4[]=1007'#13'int8[]=1016'#13'interval[]=1187'#13'line[]=629'#13'lseg[]=1018'#13'macaddr[]=1040'#13'money[]=791'#13''+
+    'name[]=1003'#13'numeric[]=1231'#13'oid[]=1028'#13'oidvector[]=1013'#13'path[]=1019'#13'point[]=1017'#13'polygon[]=1027'#13'refcursor[]=2201'#13''+
+    'regclass[]=2210'#13'regoper[]=2208'#13'regoperator[]=2209'#13'regproc[]=1008'#13'regprocedure[]=2207'#13'regtype[]=2211'#13'reltime[]=1024'#13''+
+    'text[]=1009'#13'tid[]=1010'#13'time with time zone[]=1270'#13'time[]=1183'#13'timestamp with time zone[]=1185'#13'timestamp[]=1115'#13''+
+    'tinterval[]=1025'#13'varchar[]=1015'#13'xid[]=1011';
+end;
+
+procedure TPSQLParamOidPropertyEditor.GetValues(Proc: TGetStrProc);
+var
+  I      : Integer;
+  Values : TStringList;
+begin
+  Values := TStringList.Create;
+  Try
+    GetValueList(Values);
+    for I := 0 to Values.Count-1 do Proc(Values[I]);
+  Finally
+    Values.Free;
+  end;
+end;
+
+procedure TPSQLParamOidPropertyEditor.SetValue(const Value: string);
+begin
+  inherited SetValue(Copy(Value, Pos('=', Value) + 1, MaxInt));
+end;
 
 end.
 

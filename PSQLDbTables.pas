@@ -13,7 +13,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       ExtCtrls;
 
 const
-    VERSION : string = '2.5.2';
+    VERSION : string = '2.5.3-DEV';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -77,7 +77,6 @@ type
 
   { Forward declarations }
   TPSQLDatabase      = Class;
-  TPSQLParam         = TParam;
   TPSQLDatabaseClass = Class of TPSQLDatabase;
   TPSQLDataSet       = Class;
   TPSQLTable         = Class;
@@ -123,10 +122,36 @@ type
 
   ENoResultSet = class(EDatabaseError);
 
+  TParamClass = class of TParam;
+
+  TPSQLParam = class(TParam)
+  private
+    FDataTypeOID: cardinal;
+    FBinary: boolean;
+    procedure SetDataTypeOID(const Value: cardinal);
+  protected
+    function IsEqual(Value: TParam): Boolean;
+  published
+    property DataTypeOID: cardinal read FDataTypeOID write SetDataTypeOID default 0;
+    property Binary: boolean read FBinary write FBinary default False;
+  end;
 
   TPSQLParams = class(TParams)
-   public
+  private
+    FOwner: TPersistent;
+    function GetItem(Index: Integer): TPSQLParam;
+    procedure SetItem(Index: Integer; const Value: TPSQLParam);
+  protected
+    function GetOwner: TPersistent; override;
+  public
+    constructor Create(Owner: TPersistent); overload;
+    procedure AssignValues(Value: TParams);
+    constructor Create; overload;
+    function CreateParam(FldType: TFieldType; const ParamName: string;
+      ParamType: TParamType; const DataTypeOID: cardinal = 0; Binary: boolean = False): TPSQLParam;
+    function ParamByName(const Value: string): TPSQLParam;
     function ParseSQL(SQL: string; DoCreate: Boolean): string; reintroduce;
+    property Items[Index: Integer]: TPSQLParam read GetItem write SetItem; default;
   end;
 
   TDatabaseNoticeEvent = procedure (Sender: TPSQLDatabase; Message: string) of object;
@@ -7117,7 +7142,47 @@ begin
    Open;
   end;
 end;
+
 { TPSQLParams }
+constructor TPSQLParams.Create(Owner: TPersistent);
+begin
+  FOwner := Owner;
+  inherited Create(TPSQLParam);
+end;
+
+procedure TPSQLParams.AssignValues(Value: TParams);
+begin
+ inherited;
+end;
+
+function TPSQLParams.GetOwner: TPersistent;
+begin
+ Result := FOwner;
+end;
+
+constructor TPSQLParams.Create;
+begin
+  FOwner := nil;
+  inherited Create(TPSQLParam);
+end;
+
+function TPSQLParams.CreateParam(FldType: TFieldType; const ParamName: string;
+  ParamType: TParamType; const DataTypeOID: cardinal = 0; Binary: boolean = False): TPSQLParam;
+begin
+  Result := inherited CreateParam(FldType, ParamName, ParamType) as TPSQLParam;
+  Result.DataTypeOID := DataTypeOID;
+  Result.Binary := Binary;
+end;
+
+function TPSQLParams.GetItem(Index: Integer): TPSQLParam;
+begin
+ Result := inherited GetItem(index) as TPSQLParam;
+end;
+
+function TPSQLParams.ParamByName(const Value: string): TPSQLParam;
+begin
+  Result := inherited ParamByName(Value) as TPSQLParam;
+end;
 
 function TPSQLParams.ParseSQL(SQL: string; DoCreate: Boolean): string;
 const
@@ -7208,6 +7273,27 @@ begin
     else if IsLiteral then Literal := Literal xor True;
     Inc(CurPos);
   until CurChar = #0;
+end;
+
+procedure TPSQLParams.SetItem(Index: Integer; const Value: TPSQLParam);
+begin
+  inherited SetItem(Index, TCollectionItem(Value));
+end;
+
+{ TPSQLParam }
+
+function TPSQLParam.IsEqual(Value: TParam): Boolean;
+begin
+  Result := inherited IsEqual(Value);
+  if Value is TPSQLParam then
+    Result := Result
+              and (FDataTypeOid = TPSQLParam(Value).DataTypeOid)
+              and (FBinary = TPSQLParam(Value).Binary);
+end;
+
+procedure TPSQLParam.SetDataTypeOID(const Value: cardinal);
+begin
+  FDataTypeOID := Value;
 end;
 
 initialization

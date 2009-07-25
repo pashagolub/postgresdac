@@ -343,8 +343,8 @@ Type
       function GetTableProps(hDB: hDBIDB; const TableName: string; var Owner,
                         Comment, Tablespace: string; var HasOIDs: boolean;
                         var TableOid: cardinal):DBIResult;
-      function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; var AParam: TParam): DBIResult;
-      function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
+      function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; AParam: TParam): DBIResult;
+      function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
       function GetLastInsertId(hCursor: hDBICur; const FieldNum: integer; var ID: integer): DBIResult;
       function GetFieldTypeOID(hCursor: hDBICur; const FieldNum: integer): cardinal;
       function GetFieldOrigin(hCursor: hDBICur; const FieldNum: integer): string;
@@ -4920,8 +4920,9 @@ begin
                     try
                      MS.SetSize(Param.GetDataSize);
                      Param.GetData(MS.Memory);
-                     Value := BlobValue(MS, True, True);
+                     Value := BlobValue(MS, TPSQLParam(Param).DataTypeOID <> FIELD_TYPE_OID, True);
                     finally
+                     MS.Free;
                     end;
                   end;
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
@@ -7531,7 +7532,7 @@ begin
 end;
 
 
-function TPSQLEngine.GetFieldOldValue(hCursor: hDBICur; AFieldName: string; var AParam: TParam): DBIResult;
+function TPSQLEngine.GetFieldOldValue(hCursor: hDBICur; AFieldName: string; AParam: TParam): DBIResult;
 begin
   Try
     TNativeDataSet(hCursor).FieldOldValue(AFieldName, AParam);
@@ -7542,7 +7543,7 @@ begin
 end;
 
 function TPSQLEngine.GetFieldValueFromBuffer(hCursor: hDBICur;
-  PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
+  PRecord: Pointer; AFieldName: string; AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
 begin
   Try
     TNativeDataSet(hCursor).FieldValueFromBuffer(PRecord, AFieldName, AParam, UnchangedAsNull);
@@ -7570,6 +7571,7 @@ begin
                      FVal := PQUnescapeBytea(FieldBuffer(AFNum),Len);
                      try
                       AParam.SetBlobData(FVal, Len);
+                      TPSQLParam(AParam).DataTypeOID := FIELD_TYPE_BYTEA;
                      finally
                       PQFreeMem(FVal);
                      end;
@@ -7578,6 +7580,7 @@ begin
  else
    AParam.Value := Field(AFNum);
  end;
+ if FieldType(AFNum) = FIELD_TYPE_OID then TPSQLParam(AParam).DataTypeOID := FIELD_TYPE_OID;
 end;
 
 
@@ -7633,7 +7636,10 @@ begin
                              AParam.AsString := 'B' + AParam.AsString;
                        end;
            fldBLOB:    if Fld.NativeBLOBType = nbtOID then
-                            AParam.AsInteger := StrToUInt(BlobValue(Src, Fld))
+                          begin
+                            AParam.AsInteger := StrToUInt(BlobValue(Src, Fld));
+                            TPSQLParam(AParam).DataTypeOID := FIELD_TYPE_OID;
+                          end
                        else
                           if not Assigned(TBlobItem(Src^).Blob) or (TBlobItem(Src^).Blob.Size = 0) then
                             AParam.Value := Null
