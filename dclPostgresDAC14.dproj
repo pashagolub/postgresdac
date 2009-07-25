@@ -50,7 +50,6 @@
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
 			<DCCReference Include="rtl.dcp"/>
-			<DCCReference Include="PostgresDAC12.dcp"/>
 			<DCCReference Include="vcl.dcp"/>
 			<DCCReference Include="designide.dcp"/>
 			<DCCReference Include="xmlrtl.dcp"/>
@@ -63,6 +62,7 @@
 			<DCCReference Include="vclimg.dcp"/>
 			<DCCReference Include="vcldb.dcp"/>
 			<DCCReference Include="bdertl.dcp"/>
+			<DCCReference Include="PostgresDAC14.dcp"/>
 			<DCCReference Include="PSQLupdsqled.pas">
 				<Form>PSQLUpdateSQLEditForm</Form>
 			</DCCReference>
@@ -76,6 +76,9 @@
 			<DCCReference Include="PSQLMigrator.pas"/>
 			<DCCReference Include="PSQLStoredProcFrm.pas">
 				<Form>PSQLStoredProcProp</Form>
+			</DCCReference>
+			<DCCReference Include="PSQLEdit.pas">
+				<Form>SQLEditForm</Form>
 			</DCCReference>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
@@ -130,6 +133,9 @@
 						<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 						<VersionInfoKeys Name="Comments"/>
 					</VersionInfoKeys>
+					<VersionControl>
+						<VersionControl Name="VersionControlID"/>
+					</VersionControl>
 				</Delphi.Personality>
 			</BorlandProject>
 			<ProjectFileVersion>12</ProjectFileVersion>

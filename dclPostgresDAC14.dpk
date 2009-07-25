@@ -28,7 +28,6 @@ package dclPostgresDAC14;
 
 requires
   rtl,
-  PostgresDAC12,
   vcl,
   designide,
   xmlrtl,
@@ -40,7 +39,8 @@ requires
   dclstd,
   vclimg,
   vcldb,
-  bdertl;
+  bdertl,
+  PostgresDAC14;
 
 contains
   PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
