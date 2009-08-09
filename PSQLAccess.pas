@@ -1,4 +1,4 @@
-{$I PSQLdac.inc}
+{$I PSQLDAC.inc}
                                       
 unit PSQLAccess;
 
@@ -1774,26 +1774,18 @@ procedure TNativeConnect.QExecDirect(pszQuery : String; phCur: phDBICur; var Aff
 var
   hStmt : hDBIStmt;
 begin
-  hStmt := NIL;
+  hStmt := nil;
   QueryAlloc(hStmt);
   QueryPrepare(hStmt, pszQuery);
   if hStmt <> nil then
-  begin
-    Try
+    try
       FLastOperationTime := GetTickCount;
-      try
-        TNativeDataSet(hStmt).Execute;
-        MonitorHook.SQLExecute(TNativeDataSet(hStmt), True);
-      except
-        MonitorHook.SQLExecute(TNativeDataSet(hStmt), False);
-        raise;
-      end;
+      TNativeDataSet(hStmt).Execute;
+    finally
       FLastOperationTime := GetTickCount - FLastOperationTime;
-    Finally
       AffectedRows := TNativeDataSet(hStmt).FAffectedRows;
       TNativeDataSet(hStmt).Free;
     end;
-  end;
 end;
 
 procedure TNativeConnect.OpenFieldList(pszTableName : string;
@@ -3458,9 +3450,6 @@ begin
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
   FLastOperationTime := GetTickCount;
 
-
-  //FStatement := PQexec(FConnect.Handle, FConnect.StringToRaw(SQLQuery));
-
   FStatement := _PQExecute(FConnect, SQLQuery);
 
   if FStatement <> nil  then
@@ -4226,13 +4215,12 @@ end;
 
 function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer): String;
 var
-  I          : Integer;
-  Fld        : TPSQLField;
-  Src        : Pointer;
-  Where      : string;
-  Values     : string;
-  FldName      : string;
-
+  I: Integer;
+  Fld: TPSQLField;
+  Src: Pointer;
+  Where: string;
+  Values: string;
+  FldName: string;
 
 function GetWHERE(P : Pointer) : String;
 var
@@ -4242,6 +4230,7 @@ var
   Fld        : TPSQLField;
   Src        : Pointer;
   Where      : String;
+  FldName: string;
 begin
   Result := '';
   GetKeys(False, FieldList, FieldCount);
@@ -4252,38 +4241,52 @@ begin
     Fld.Buffer:= P;
     Src := Fld.FieldValue;
     Inc(PAnsiChar(Src));
+    FldName := AnsiQuotedStr(Fld.FieldName, '"');
     if Where <> '' then  Where := Where + ' AND ';
-    if Fld.FieldNull then Where := Where + AnsiQuotedStr(Fld.FieldName, '"') + ' IS NULL'
+    if Fld.FieldNull then Where := Where + FldName + ' IS NULL'
     else
        case Fld.FieldType of
-         fldBOOL:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(IntToStr(SmallInt(Src^)));
-         fldINT16:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(SmallInt(Src^));
-         fldINT32:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(LongInt(Src^));
-         fldINT64:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + IntToStr(Int64(Src^));
-         fldFloat:    Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + SQLFloatToStr(Double(Src^));
+         fldBOOL:     Where := Where + FldName + '=' + QuotedStr(IntToStr(SmallInt(Src^)));
+         fldINT16:    Where := Where + FldName + '=' + IntToStr(SmallInt(Src^));
+         fldINT32:    Where := Where + FldName + '=' + IntToStr(LongInt(Src^));
+         fldINT64:    Where := Where + FldName + '=' + IntToStr(Int64(Src^));
+         fldFloat:    Where := Where + FldName + '=' + SQLFloatToStr(Double(Src^));
          fldBLOB:     if Fld.FieldSubType = fldstMemo then
-                          Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + MemoValue(Src)
+                          Where := Where + FldName + '=' + MemoValue(Src)
                       else
-                          Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + BlobValue(Src, Fld);
+                          Where := Where + FldName + '=' + BlobValue(Src, Fld);
          fldZSTRING,
-         fldUUID:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + StrValue(Src);
-         fldDate:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
-         fldTime:     Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),2));
-         fldTIMESTAMP:Where := Where + AnsiQuotedStr(Fld.FieldName,'"') + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),0));
+         fldUUID:     Where := Where + FldName + '=' + StrValue(Src);
+         fldDate:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
+         fldTime:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),2));
+         fldTIMESTAMP:Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),0));
        end;
   end;
   Result := ' WHERE ' + Where;
 end;
 
+const
+  _LoMng = #13#10'SELECT CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_largeobject WHERE loid = %) THEN lo_unlink(%) END;';
+
+var
+  ManageSQL: string;
+  _s: string;
+
 begin
-  Result :='';
+  Result := '';
+  ManageSQL := '';
   Where := GetWhere(OldRecord);
   for I := 1 to FFieldDescs.Count do
   begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
-    if not Fld.FieldChanged then continue;
+    if not Fld.FieldChanged then Continue;
     Src := Fld.FieldValue;
+    if (dsoManageLOFields in FOptions) and (Fld.NativeBLOBType = nbtOID) and not FieldIsNull(I-1) then
+     begin
+      _s := Field(I-1);
+      ManageSQL := ManageSQL + AnsiReplaceStr(_LoMng, '%', _s);
+     end;
     Inc(PAnsiChar(Src));
     FldName := AnsiQuotedStr(Fld.FieldName, '"');
     if Fld.FieldNull then
@@ -4298,7 +4301,7 @@ begin
          fldBLOB:   if Fld.FieldSubType = fldstMemo then
                        Values := Values + FldName + '=' + MemoValue(Src)+ ', '
                     else
-                       Values := Values + FldName + '=' + '''' + BlobValue(Src,Fld) + '''' + ', ';
+                       Values := Values + FldName + '= ''' + BlobValue(Src,Fld) + ''', ';
          fldZSTRING, fldUUID: if Fld.NativeType = FIELD_TYPE_BIT then
                                  Values := Values + FldName + '= B' + StrValue(Src) + ', '
                               else
@@ -4309,12 +4312,12 @@ begin
       end;
   end;
   Delete(VALUES,Length(Values)-1,2);
-  if VALUES <> '' then
-   begin
+  if VALUES > '' then
     Result := 'UPDATE ' + Table + ' SET '+ VALUES + Where
-   end
   else
-   Result := '';
+    Exit;
+  if (dsoManageLOFields in FOptions) and (ManageSQL > '') then
+    Result := 'BEGIN; /*Manage LO*/'#13#10 + Result + ManageSQL + #13#10'COMMIT;';
 end;
 
 procedure TNativeDataSet.AppendRecord (PRecord : Pointer);

@@ -1,4 +1,4 @@
-{$I PSQLdac.inc}
+{$I PSQLDAC.inc}
 unit PSQLTypes;
 
 {SVN revision: $Id$}
@@ -1727,7 +1727,8 @@ Type
   TSSLMode = (sslDisable , sslAllow, sslPrefer, sslRequire, sslVerifyCA, sslVerifyFull);
 
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
-                        dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin);
+                        dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
+                        dsoManageLOFields);
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
 const

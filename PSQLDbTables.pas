@@ -1,4 +1,4 @@
-{$I psqldac.inc}
+{$I PSQLDAC.inc}
 unit PSQLDbTables;
 
 {SVN revision: $Id$}
