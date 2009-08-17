@@ -4285,7 +4285,7 @@ begin
     if (dsoManageLOFields in FOptions) and (Fld.NativeBLOBType = nbtOID) and not FieldIsNull(I-1) then
      begin
       _s := Field(I-1);
-      ManageSQL := ManageSQL + AnsiReplaceStr(_LoMng, '%', _s);
+      ManageSQL := ManageSQL + StringReplace(_LoMng, '%', _s, [rfReplaceAll]);
      end;
     Inc(PAnsiChar(Src));
     FldName := AnsiQuotedStr(Fld.FieldName, '"');
