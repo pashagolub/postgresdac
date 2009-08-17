@@ -6404,7 +6404,8 @@ begin
   if FOpened then
   begin
     if FModified then FField.Modified := TRUE;
-    if not FField.Modified and not FCached then  Engine.FreeBlob(FDataSet.Handle, FBuffer, FFieldNo);
+    if not FField.Modified and not FCached then Engine.FreeBlob(FDataSet.Handle, FBuffer, FFieldNo);
+    Engine.CloseBlob(FDataset.Handle, FFieldNo); //17.08.2009
   end;
   if FModified then
   try

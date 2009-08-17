@@ -256,6 +256,7 @@ Type
       function PutBlob(hCursor : hDBICur; PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pSrc : Pointer): DBIResult;
       function TruncateBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iLen: Longint): DBIResult;
       function FreeBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word): DBIResult;
+      function CloseBlob(hCursor: hDBICur; FieldNo: Word): DBIResult;
       function BeginTran(hDb: hDBIDb; eXIL: eXILType; var hXact: hDBIXact): DBIResult;
       function EndTran(hDb: hDBIDb; hXact: hDBIXact; eEnd : eXEnd): DBIResult;
       function GetTranInfo(hDb: hDBIDb;hXact: hDBIXact; pxInfo: pXInfo): DBIResult;
@@ -659,6 +660,8 @@ Type
       procedure SetTableName(Name : string);
       function CheckUniqueKey(var KeyNumber : integer): Boolean;
       procedure GetKeys(Unique: Boolean;var FieldList: TFieldArray; var FieldCount: Integer);
+      function GetLOUnlinkSQL(ObjOID: cardinal): string; overload;
+      function GetLOUnlinkSQL(ObjOID: string): string; overload;
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
       function GetInsertSQL(Table: string; PRecord: Pointer): string;
       function GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer): String;
@@ -750,6 +753,7 @@ Type
       //-->blob stuff
       procedure OpenBlob(PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode);
       procedure FreeBlob(PRecord: Pointer;FieldNo: Word);
+      procedure CloseBlob(FieldNo: Word);
       procedure GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
       procedure GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
       procedure PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
@@ -886,7 +890,7 @@ var F: TextFile;
 procedure LogDebugMessage(const MsgType, Msg: string);
 begin
  if DebugFileOpened and (Msg > EmptyStr) then
-  WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD>',Msg,'</TD><TR>');
+  WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD><PRE>',Msg,'</PRE></TD><TR>');
 end;
 
 function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
@@ -4113,6 +4117,18 @@ begin
   end;
 end;
 
+function TNativeDataSet.GetLOUnlinkSQL(ObjOID: cardinal): string;
+begin
+  Result := GetLOUnlinkSQL(UIntToStr(ObjOID));
+end;
+
+function TNativeDataSet.GetLOUnlinkSQL(ObjOID: string): string;
+const
+  _LoMng: string = #13#10'SELECT CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_largeobject WHERE loid = %) THEN lo_unlink(%) END;';
+begin
+  Result := StringReplace(_LoMng, '%', ObjOID, [rfReplaceAll]);
+end;
+
 function TNativeDataSet.GetDeleteSQL(Table: string; PRecord: Pointer): string;
 var
   I          : Integer;
@@ -4148,8 +4164,16 @@ begin
          fldTIMESTAMP:Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),0)+ '''';
        end;
   end;
-  if Result <> '' then
-    Result := 'DELETE FROM ' + Table + ' WHERE ' + Result;
+  if Result = '' then Exit;
+  Result := 'DELETE FROM ' + Table + ' WHERE ' + Result;
+
+  if not (dsoManageLOFields in FOptions) then Exit;
+  for I := 1 to FFieldDescs.Count do
+   begin
+    Fld := FFieldDescs.Field[I];
+    if (Fld.NativeBLOBType = nbtOID) and not FieldIsNull(I-1) then
+      Result := GetLOUnlinkSQL(Field(I-1)) + #13#10 + Result;
+   end;
 end;
 
 procedure TNativeDataSet.FreeBlobStreams(PRecord: Pointer);
@@ -4265,12 +4289,8 @@ begin
   Result := ' WHERE ' + Where;
 end;
 
-const
-  _LoMng = #13#10'SELECT CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_largeobject WHERE loid = %) THEN lo_unlink(%) END;';
-
 var
   ManageSQL: string;
-  _s: string;
 
 begin
   Result := '';
@@ -4282,11 +4302,10 @@ begin
     Fld.Buffer:= PRecord;
     if not Fld.FieldChanged then Continue;
     Src := Fld.FieldValue;
+
     if (dsoManageLOFields in FOptions) and (Fld.NativeBLOBType = nbtOID) and not FieldIsNull(I-1) then
-     begin
-      _s := Field(I-1);
-      ManageSQL := ManageSQL + StringReplace(_LoMng, '%', _s, [rfReplaceAll]);
-     end;
+      Result := Result + GetLOUnlinkSQL(Field(I-1));
+
     Inc(PAnsiChar(Src));
     FldName := AnsiQuotedStr(Fld.FieldName, '"');
     if Fld.FieldNull then
@@ -4313,11 +4332,7 @@ begin
   end;
   Delete(VALUES,Length(Values)-1,2);
   if VALUES > '' then
-    Result := 'UPDATE ' + Table + ' SET '+ VALUES + Where
-  else
-    Exit;
-  if (dsoManageLOFields in FOptions) and (ManageSQL > '') then
-    Result := 'BEGIN; /*Manage LO*/'#13#10 + Result + ManageSQL + #13#10'COMMIT;';
+    Result := 'UPDATE ' + Table + ' SET '+ VALUES + Where + ';' + Result;
 end;
 
 procedure TNativeDataSet.AppendRecord (PRecord : Pointer);
@@ -4409,7 +4424,7 @@ begin
   if FOMode = dbiREADONLY then
      Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   InternalBuffer := PRecord;
-  SQL := GetDeleteSQL(TableName,PRecord);
+  SQL := GetDeleteSQL(TableName, PRecord);
   if Sql <> '' then
    begin
     FConnect.QExecDirect(SQL, nil, FAffectedRows);
@@ -4555,26 +4570,39 @@ begin
   if eOpenMode = dbiREADONLY then Mode := INV_READ else Mode := INV_WRITE;
   Field := Fields[FieldNo];
   CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
-  if (Field.FieldSubType <> fldstMemo) AND
-     (Field.NativeBLOBType = nbtOID) then //make sure we have deal with lo_xxx
-  begin
-     if FieldBuffer(FieldNo-1) <> nil then
-     begin
-        FBlobHandle := StrToUInt(Self.Field(FieldNo-1)); //17.01.2008
-        if FBlobHandle <> 0 then
-        begin
-           //BLOB Trans
-           FConnect.BeginBLOBTran;
-           FLocalBHandle := lo_open(Fconnect.Handle, FBlobHandle, Mode);
-           if FLocalBHandle >= 0 then
-             FBlobOpen := True;
-        end;
-     end;
-  end;
+  if Field.NativeBLOBType = nbtOID then //make sure we have deal with lo_xxx
+   if FieldBuffer(FieldNo-1) <> nil then
+   begin
+    FBlobHandle := StrToUInt(Self.Field(FieldNo-1));
+    if FBlobHandle <> InvalidOID then
+    begin
+     FConnect.BeginBLOBTran;
+     FLocalBHandle := lo_open(Fconnect.Handle, FBlobHandle, Mode);
+     if FLocalBHandle >= 0 then
+       FBlobOpen := True
+     else
+       FConnect.RollbackBLOBTran; //17.08.2009
+    end;
+   end;
 end;
 
-procedure TNativeDataSet.FreeBlob(PRecord: Pointer;FieldNo: Word);
-Var
+procedure TNativeDataSet.CloseBlob(FieldNo: Word);
+var
+  Field : TPSQLField;
+begin
+  Field := Fields[FieldNo];
+  CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
+  if FBlobOpen and (Field.NativeBLOBType = nbtOID) and (FLocalBHandle >= 0) then
+   begin
+    lo_close(FConnect.Handle, FLocalBHandle);
+    FConnect.CommitBLOBTran;
+    FBlobHandle := InvalidOid;
+    FBlobOpen := False;
+   end;
+end;
+
+procedure TNativeDataSet.FreeBlob(PRecord: Pointer; FieldNo: Word);
+var
   Field : TPSQLField;
   Buff : Pointer;
 begin
@@ -4582,26 +4610,16 @@ begin
   CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
   Field.Buffer := PRecord;
   if not Field.FieldNull then
-  begin
+   begin
     Buff := Field.FieldValue;
-    if PAnsiChar(Buff)^=#1 then
+    if PAnsiChar(Buff)^ = #1 then
      begin
-       PAnsiChar(Buff)^ := #0; //pasha_golub 16.02.07
+       PAnsiChar(Buff)^ := #0;
        Inc(PAnsichar(Buff));
        FreeAndNil(TBlobItem(Buff^).Blob);
-     end
-    else
-     begin
-       if FBlobOpen and (Field.NativeBLOBType = nbtOID) and (FLocalBHandle >= 0) then
-       begin
-        lo_close(FConnect.Handle, FLocalBHandle);
-        //BLOB Trans
-        FConnect.CommitBLOBTran;
-        FBlobHandle := InvalidOid;
-       end;
-       FBlobOpen := False;
      end;
-  end;
+   end;
+  CloseBlob(FieldNo);
 end;
 
 procedure TNativeDataSet.GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
@@ -5716,7 +5734,17 @@ end;
 function TPSQLEngine.FreeBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word): DBIResult;
 begin
   Try
-    TNativeDataSet(hCursor).FreeBlob(PRecord,FieldNo);
+    TNativeDataSet(hCursor).FreeBlob(PRecord, FieldNo);
+    Result := DBIERR_NONE;
+  Except
+    Result := CheckError;
+  end;
+end;
+
+function TPSQLEngine.CloseBlob(hCursor: hDBICur; FieldNo: Word): DBIResult;
+begin
+  Try
+    TNativeDataSet(hCursor).CloseBlob(FieldNo);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
@@ -8208,7 +8236,7 @@ begin
         BlSZ := Min(MAX_BLOB_SIZE, SZ - off);
         Res  := lo_write(FConnect.Handle, FLocalBHandle, Buffer + off, BLSZ);
         if Res < 0 then
-          Raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
+          raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
         else
           Inc(Off, Res);
       until (off >= SZ);
