@@ -927,6 +927,7 @@ var
   h : Cardinal;
   Result: longint;
   S: string;
+  Err: PAnsiChar;
   pdmvm_restore: Tpdmvm_restore;
   pdmvm_GetLastError: Tpdmbvm_GetLastError;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
@@ -973,21 +974,27 @@ begin
                           PLog,//out file
                           GetParameters());
 
+
     case Result of
       0: ;// - OK
       1: if roExitOnError in Options then S := 'Common pg_restore error';
-      3: S := 'File IO error'; //any file operation
-      1000: S := Format('Could not open input file %s',[SourceFile]);
-      1001: S := Format('Could not read input file %s',[SourceFile]);
-      1002: S := Format('Input file %s is too short',[SourceFile]);
+      3: S := 'Output file error.'; //stdout operation
+      4: S := 'Error output file error.'; //stderr
+      1000: S := Format('Could not open input file %s.',[SourceFile]);
+      1001: S := Format('Could not read input file %s.',[SourceFile]);
+      1002: S := Format('Input file %s is too short.',[SourceFile]);
       1003: S := Format('Input file %s does not appear to be a valid archive (too short?)',[SourceFile]);
-      1004: S := Format('Input file %s does not appear to be a valid archive',[SourceFile]);
+      1004: S := Format('Input file %s does not appear to be a valid archive.',[SourceFile]);
     else
       S := 'Unknown restore error';
     end;
 
     if S > '' then
-      raise EPSQLRestoreException.Create(S);
+     begin
+      Err := '';
+      pdmvm_GetLastError(Err);
+      raise EPSQLRestoreException.Create(S + Err);
+     end;
 
   finally
     FreeLibrary(h);

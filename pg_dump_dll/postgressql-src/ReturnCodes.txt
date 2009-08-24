@@ -9,6 +9,7 @@ pdmvm_restore:
   0 - OK
   1 - common error (in pg_restore.c or deeper)
   3 - stdout reassigning error
+  4 - stderr reassigning error
  >= 1000 - errors from internal routines
   1000 - could not open input file
   1001 - could not read input file
