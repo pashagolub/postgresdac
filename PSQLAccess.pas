@@ -8106,7 +8106,7 @@ end;
 
 procedure TNativeConnect.TablespaceList(pszWild: string; List: TStrings);
 var
-   CRec : PChar;
+   CRec : string;
    I : LongInt;
    sql : String;
    RES : PPGresult;
@@ -8124,8 +8124,8 @@ begin
      CheckResult;
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := PChar(PQgetvalue(RES,I,0));
-        List.Add(StrPas(CREC));
+        CRec := RawToString(PQgetvalue(RES,I,0));
+        List.Add(CRec);
      end;
   end;
  finally
