@@ -152,6 +152,9 @@ type
     TPSQLRestore = class(TComponent)
      private
         FAbout      : TPSQLDACAbout;
+        {$IFDEF M_DEBUG}
+        FParamStr   : string;
+        {$ENDIF}
         FDatabase   : TPSQLDatabase;
         FRestoreFormat : TRestoreFormat;
         FRestoreOptions : TRestoreOptions;
@@ -169,6 +172,7 @@ type
         function GetVersionAsInt: integer;
         procedure SetJobs(const Value: cardinal);
         procedure SetRestoreOptions(const Value: TRestoreOptions);
+        function GetVersionAsStr: string;
       protected
         procedure CheckDependencies;
         function GetParameters: PAnsiChar;
@@ -179,6 +183,7 @@ type
         procedure RestoreFromFile(const FileName: string; Log: TStrings); overload;
       	procedure RestoreFromFile(const FileName, LogFileName: string); overload;
         property VersionAsInt: integer read GetVersionAsInt;
+        property VersionAsStr: string read GetVersionAsStr;
       published
         property About : TPSQLDACAbout read FAbout write FAbout;
         property Database   : TPSQLDatabase read FDatabase write SetDatabase;
@@ -277,6 +282,15 @@ implementation
 uses PSQLAccess;
 
 var ProccessOwner: TComponent = nil;
+
+function IntVerToStr(VerInt: integer): string;
+var Major, Minor, Revision: integer;
+begin
+  Major := VerInt div 10000;
+  Minor := VerInt mod 10000 div 100;
+  Revision := VerInt mod 100;
+  Result := Format('%d.%d.%d', [Major, Minor, Revision]);
+end;
 
 { TpdmvmParams }
 procedure TpdmvmParams.Add(aStr: string);
@@ -715,13 +729,8 @@ begin
 end;
 
 function TPSQLDump.GetVersionAsStr: string;
-var VerInt, Major, Minor, Revision: integer;
 begin
-  VerInt := GetVersionAsInt;
-  Major := VerInt div 10000;
-  Minor := VerInt mod 10000 div 100;
-  Revision := VerInt mod 100;
-  Result := Format('%d.%d.%d', [Major, Minor, Revision]);
+  Result := IntVerToStr(GetVersionAsInt());
 end;
 
 procedure TPSQLDump.DefineProperties(Filer: TFiler);
@@ -1022,6 +1031,11 @@ begin
    FreeLibrary(H);
   end;
 end;
+function TPSQLRestore.GetVersionAsStr: string;
+begin
+  Result := IntVerToStr(GetVersionAsInt());
+end;
+
 procedure TPSQLRestore.SetJobs(const Value: cardinal);
 begin
   FJobs := Value;
