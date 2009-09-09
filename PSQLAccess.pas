@@ -7271,6 +7271,7 @@ var
    sql, s : String;
    RES : PPGresult;
    i: integer;
+   CREC: string;
 begin
   InternalConnect;
   List.Clear;
@@ -7285,17 +7286,17 @@ begin
     CheckResult;
     List.BeginUpdate;
      try
-    for i:=0 to PQntuples(RES)-1 do
-      if Trim(RawToString(PQgetvalue(RES,i,0))) > '' then
-        List.Append(RawToString(PQgetvalue(RES,i,0)));
+      for i:=0 to PQntuples(RES)-1 do
+       begin
+          CREC := Trim(RawToString(PQgetvalue(RES,i,0)));
+          if CREC > '' then List.Append(CREC);
+       end;
      finally
-    List.EndUpdate;
+      List.EndUpdate;
      end;
-   except
+   finally
     PQclear(RES);
-    raise;
    end;
-  PQclear(RES);
 end;
 
 function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; var CharSet: string): DBIResult;
