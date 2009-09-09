@@ -7023,19 +7023,18 @@ var
 begin
   InternalConnect;
   List.Clear;
-   Sql := 'SELECT p.oid, n.nspname, p.proname' +
-          ' FROM	pg_namespace n, pg_proc p' +
-          ' WHERE n.oid = p.pronamespace';
+   Sql := 'SELECT p.oid, p.oid::regproc' +
+          ' FROM	pg_proc p';
    if pszWild <> '' then
-    Sql := Sql + ', p.proname LIKE ' + QuotedStr(pszWild);
-  Sql := Sql + ' ORDER BY 2,3';
+    Sql := Sql + ' WHERE p.proname LIKE ' + QuotedStr(pszWild);
+  Sql := Sql + ' ORDER BY 2';
   RES := _PQexecute(Self, Sql);
   if Assigned(RES) then
   try
     begin
      for I := 0 to PQntuples(RES)-1 do
      begin
-        CREC := '"'+RawToString(PQgetvalue(RES,I,1))+'"."'+RawToString(PQgetvalue(RES,I,2))+'"';
+        CREC := RawToString(PQgetvalue(RES,I,1));
         List.AddObject(CREC,TOBject(strtoint(RawToString(PQGetValue(Res,I,0)))));
      end;
     end;
