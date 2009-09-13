@@ -1002,7 +1002,7 @@ begin
      begin
       Err := '';
       pdmvm_GetLastError(Err);
-      raise EPSQLRestoreException.Create(S + Err);
+      raise EPSQLRestoreException.Create(S + String(AnsiString(Err)));
      end;
 
   finally
