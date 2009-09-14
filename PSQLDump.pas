@@ -13,10 +13,10 @@ type
   Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
   Tpdmvm_restore = function ( app_exe : PAnsiChar; filename : PWideChar; pwd : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
 
-  Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar);cdecl;//mi:2006-10-12
-  Tpdmbvm_GetVersionAsInt = function ():integer;cdecl;//mi:2007-01-15
-  Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer);cdecl;//mi:2007-01-15
-  Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer);cdecl;//pg:2007-03-13
+  Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar);cdecl;
+  Tpdmbvm_GetVersionAsInt = function ():integer;cdecl;
+  Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer);cdecl;
+  Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer);cdecl;
 
   TpdmvmParams = class
   private
@@ -36,6 +36,8 @@ type
 
 
     TLogEvent = procedure (Sender: TObject; const LogMessage: string) of object;
+
+    TLibraryLoadEvent = procedure (Sender: TObject; var FileName: string) of object;
 
     EPSQLDumpException = class(Exception);
 
@@ -77,6 +79,7 @@ type
         FExcludeSchemas: TStrings;
         FOnLog: TLogEvent;
         FLockWaitTimeout: cardinal;
+        FOnLibraryLoad: TLibraryLoadEvent;
         procedure SetDatabase(const Value : TPSQLDatabase);
         procedure SetCompressLevel(const Value: TCompressLevel);
         function GetStrOptions(const Index: Integer): string;
@@ -126,6 +129,7 @@ type
         property AfterDump : TNotifyEvent read FAfterDump write FAfterDump;
         property BeforeDump  : TNotifyEvent read FBeforeDump write FBeforeDump;
         property OnLog: TLogEvent read FOnLog write FOnLog;
+        property OnLibraryLoad: TLibraryLoadEvent read FOnLibraryLoad write FOnLibraryLoad;
       end;
 
 
@@ -164,6 +168,7 @@ type
         FmiParams: TpdmvmParams;
         FOnLog: TLogEvent;
         FJobs: cardinal;
+        FOnLibraryLoad: TLibraryLoadEvent;
         procedure SetDatabase(const Value : TPSQLDatabase);
         function GetStrOptions(const Index: Integer): string;
         procedure SetStrOptions(const Index: Integer; const Value: string);
@@ -202,6 +207,7 @@ type
         property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
         property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
         property OnLog: TLogEvent read FOnLog write FOnLog;
+        property OnLibraryLoad: TLibraryLoadEvent read FOnLibraryLoad write FOnLibraryLoad;
       end;
 
 const
@@ -621,11 +627,14 @@ var
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
+  LibName: string;
 begin
   if FileExists(TargetFile) and not FRewriteFile then
     raise EPSQLDumpException.Create('Cannot rewrite existing file '+ TargetFile);
 
-  h := LoadLibrary('pg_dump.dll');
+  LibName := 'pg_dump.dll';
+  if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
+  h := LoadLibrary(PChar(LibName));
   {$IFDEF M_DEBUG}
    LogDebugMessage('DUMPLIB', GetModuleName(h));
   {$ENDIF}
@@ -715,10 +724,13 @@ end;
 function TPSQLDump.GetVersionAsInt: integer;
 var
   h : Cardinal;
+  LibName: string;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
 begin
   Result := 0;
-  h := LoadLibrary('pg_dump.dll');
+  LibName := 'pg_dump.dll';
+  if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
+  h := LoadLibrary(PChar(LibName));
   try
    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));
    if Assigned(pdmbvm_GetVersionAsInt) then
@@ -762,7 +774,8 @@ end;
 procedure TPSQLDump.SetDumpOptions(const Value: TDumpOptions);
 begin
   FDumpOptions := Value;
-  Exclude(FDumpOptions, doIgnoreVersion); //deprecated and to be removed
+  //  since we allow use of custom lib this is not correct anymore
+  //  Exclude(FDumpOptions, doIgnoreVersion); //deprecated and to be removed
 end;
 
 {TPSQLRestore}
@@ -837,7 +850,7 @@ function TPSQLRestore.GetParameters: PAnsiChar;
 var I: TRestoreOption;
     J: TRestoreStrOption;
 begin
-   If not Assigned(FDatabase) then
+   if not Assigned(FDatabase) then
      raise EPSQLRestoreException.Create('Database property not assigned!');
 
    FmiParams.Clear;
@@ -861,13 +874,16 @@ begin
    if FJobs > 1 then
      FmiParams.Add(Format('--jobs=%u', [FJobs]));
 
-   With FDatabase do
+   with FDatabase do
     begin
      FmiParams.Add(Format('--username=%s',[UserName]));
      FmiParams.Add(Format('--port=%d',[Port]));
      FmiParams.Add(Format('--host=%s',[Host]));
     end;
    Result := FmiParams.GetPCharArray();
+  {$IFDEF M_DEBUG}
+   FParamStr := FmiParams.FParams.Commatext;
+  {$ENDIF}
 end;
 
 function TPSQLRestore.GetStrOptions(const Index: Integer): string;
@@ -944,9 +960,12 @@ var
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
   PLog: PWideChar;
+  LibName: string;
 begin
   S := '';
-  h := LoadLibrary('pg_restore.dll');
+  LibName := 'pg_restore.dll';
+  if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
+  h := LoadLibrary(PChar(LibName));
   {$IFDEF M_DEBUG}
   LogDebugMessage('RESTLIB', GetModuleName(h));
   {$ENDIF}
@@ -976,6 +995,7 @@ begin
      PLog := PWideChar(WideString(LogFile))
     else
      PLog := nil;
+
     Result := pdmvm_restore(PAnsiChar(UTF8Encode(ParamStr(0))),
                           PWideChar(WideString(SourceFile)),//in file
                           PAnsiChar(UTF8Encode(FDatabase.UserPassword)),
@@ -983,6 +1003,9 @@ begin
                           PLog,//out file
                           GetParameters());
 
+    {$IFDEF M_DEBUG}
+    LogDebugMessage('PARAMSTR', FParamStr);
+    {$ENDIF}
 
     case Result of
       0: ;// - OK
@@ -1044,7 +1067,8 @@ end;
 procedure TPSQLRestore.SetRestoreOptions(const Value: TRestoreOptions);
 begin
   FRestoreOptions := Value;
-  Exclude(FRestoreOptions, roIgnoreVersion); //deprecated and to be removed
+  //since we allow use of custom lib this is not correct anymore
+  //Exclude(FRestoreOptions, roIgnoreVersion);
 end;
 
 end.
