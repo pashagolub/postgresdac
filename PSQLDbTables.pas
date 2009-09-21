@@ -145,8 +145,8 @@ type
     function GetOwner: TPersistent; override;
   public
     constructor Create(Owner: TPersistent); overload;
-    procedure AssignValues(Value: TParams);
     constructor Create; overload;
+    procedure AssignValues(Value: TParams);
     function CreateParam(FldType: TFieldType; const ParamName: string;
       ParamType: TParamType; const DataTypeOID: cardinal = 0; Binary: boolean = False): TPSQLParam;
     function ParamByName(const Value: string): TPSQLParam;
@@ -923,7 +923,7 @@ type
       property ParamCheck: Boolean read FParamCheck write FParamCheck default TRUE;
       property RequestLive: Boolean read GetRequestLive write SetRequestLive default FALSE;
       property SQL: TStrings read GetQuery write SetQuery;
-      property Params: TPSQLParams read FParams write SetParamsList;
+      property Params: TPSQLParams read FParams write SetParamsList stored FALSE;
       property UniDirectional: Boolean read FUniDirectional write FUniDirectional default FALSE;
       property UpdateMode;
       property UpdateObject;
@@ -4704,12 +4704,11 @@ begin
     begin
       DataSet.FieldDefs.Update;
       for I := 0 to FParams.Count - 1 do
-        with FParams[I] do
-          if not Bound then
-          begin
-            AssignField(DataSet.FieldByName(Name));
-            Bound := FALSE;
-          end;
+        if not FParams[I].Bound then
+        begin
+          FParams[I].AssignField(DataSet.FieldByName(FParams[I].Name));
+          FParams[I].Bound := FALSE;
+        end;
     end;
   end;
 end;
@@ -7163,8 +7162,8 @@ end;
 
 constructor TPSQLParams.Create;
 begin
-  FOwner := nil;
   inherited Create(TPSQLParam);
+  FOwner := nil;
 end;
 
 function TPSQLParams.CreateParam(FldType: TFieldType; const ParamName: string;
