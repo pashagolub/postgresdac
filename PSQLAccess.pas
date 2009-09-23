@@ -4941,7 +4941,7 @@ begin
                     try
                      MS.SetSize(Param.GetDataSize);
                      Param.GetData(MS.Memory);
-                     Value := BlobValue(MS, TPSQLParam(Param).DataTypeOID <> FIELD_TYPE_OID, True);
+                     Value := '''' + BlobValue(MS, TPSQLParam(Param).DataTypeOID <> FIELD_TYPE_OID, True) + '''';
                     finally
                      MS.Free;
                     end;
