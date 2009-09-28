@@ -8455,7 +8455,7 @@ end;
 
 procedure TPSQLIndex.SetIndexName(const Value: string);
 begin
- Move(Value[1], FDesc.szName, (Max(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
+ Move(Value[1], FDesc.szName, (Min(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
 end;
 
 function TPSQLEngine.GetFieldOrigin(hCursor: hDBICur;

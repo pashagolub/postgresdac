@@ -687,7 +687,7 @@ begin
         S := 'Uknown dump error';
     end;
     if S > '' then
-      raise EPSQLDumpException.Create(S + #13#10 + Utf8ToString(ErrBuff));
+      raise EPSQLDumpException.Create(S + #13#10 + Format('Error Code: %d', [Result]));
 
   finally
    ProccessOwner := nil;
