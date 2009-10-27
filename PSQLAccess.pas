@@ -7721,7 +7721,7 @@ begin
   if Assigned(RES) then
    try
     CheckResult;
-    Result := StrToInt(string(PQgetvalue(Res, 0, 0)));
+    Result := StrToIntDef(string(PQgetvalue(Res, 0, 0)), Timeout);
    finally
     PQclear(RES);
    end;
