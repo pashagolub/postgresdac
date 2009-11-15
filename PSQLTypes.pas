@@ -249,7 +249,7 @@ const
     PSEUDO_OPAQUE                 = 2282;
     PSEUDO_ANY_ENUM               = 3500;
     
-    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_REGDICTIONARYOID; //15.11.2009 need to be changed if new built-in type appears
+    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_REGDICTIONARY; //15.11.2009 need to be changed if new built-in type appears
 
 
     MAXARRFLDTYPES = 38;
