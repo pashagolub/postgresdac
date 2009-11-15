@@ -3578,6 +3578,7 @@ end;
 
 function TNativeDataSet.FieldMaxSize(FieldNum: Integer): Integer;
 Var fMod: integer;
+    fTypeOid: oid;
 begin
   Result := 0;
   if FStatement <> nil then
@@ -3590,6 +3591,9 @@ begin
       FIELD_TYPE_VARBIT: Result := fMod;
 
       FIELD_TYPE_NUMERIC: Result := fMod shr 16 and 65535 + 1; //frac delimiter
+     else
+      if True then
+      
      end;
      if Result <= 0 then
        Result := FieldMinSize(FieldNum);
@@ -4279,7 +4283,7 @@ begin
          fldBLOB:     if Fld.FieldSubType = fldstMemo then
                           Where := Where + FldName + '=' + MemoValue(Src)
                       else
-                          Where := Where + FldName + '=''' + BlobValue(Src, Fld) '''';
+                          Where := Where + FldName + '=''' + BlobValue(Src, Fld) + '''';
          fldZSTRING,
          fldUUID:     Where := Where + FldName + '=' + StrValue(Src);
          fldDate:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
