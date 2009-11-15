@@ -228,6 +228,12 @@ const
     FIELD_TYPE_NUMERIC            = 1700;
     FIELD_TYPE_UUID               = 2950; //09.10.2007
     FIELD_TYPE_XML                = 142;  //09.10.2007
+    FIELD_TYPE_TSVECTOR		  = 3614; //15.11.2009
+    FIELD_TYPE_GTSVECTOR          = 3642; //15.11.2009
+    FIELD_TYPE_TSQUERY            = 3615; //15.11.2009
+    FIELD_TYPE_REGCONFIG          = 3734; //15.11.2009
+    FIELD_TYPE_REGDICTIONARY      = 3769; //15.11.2009
+
 
     PSEUDO_TYPE_VOID              = 2278;
     PSEUDO_TYPE_TRIGGER           = 2279;
@@ -236,12 +242,14 @@ const
     PSEUDO_TYPE_CSTRING           = 2275;
     PSEUDO_TYPE_A_CSTRING         = 1263; //10.01.2008
     PSEUDO_TYPE_INTERNAL          = 2281;
-    PSEUDO_TYPE_ANYENUM		        = 3500; //09.10.2007
+    PSEUDO_TYPE_ANYENUM           = 3500; //09.10.2007
     PSEUDO_ANY_ARRAY              = 2277;
     PSEUDO_ANY_NONARRAY           = 2276;
     PSEUDO_ANY_ELEMENT            = 2283;
     PSEUDO_OPAQUE                 = 2282;
     PSEUDO_ANY_ENUM               = 3500;
+    
+    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_REGDICTIONARYOID; //15.11.2009 need to be changed if new built-in type appears
 
 
     MAXARRFLDTYPES = 38;
