@@ -2365,7 +2365,7 @@ begin
   if ( Count >= Index ) and ( Index > 0 ) then Result := TPSQLNative(Items[Index-1]);
 end;
 
-procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer; aDefault : String);
+procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType, aSize, aMaxSize : Integer; aDefault : String);
 var
   Item : TPSQLNative;
 begin
@@ -3607,14 +3607,14 @@ begin
     then
      begin
       if Assigned(FFieldMinSizes) then
-       H := High(FFieldMinSizes)+1
+       H := High(FFieldMinSizes) + 1
       else
        H := 0;
-      SetLength(FFieldMinSizes,FieldNum+1);
-      For i := H to High(FFieldMinSizes)-1 do
+      SetLength(FFieldMinSizes, FieldNum + 1);
+      For i := H to High(FFieldMinSizes) - 1 do
         FFieldMinSizes[i] := -1;
-      if FStatement <>nil then
-        for I := 0 to PQntuples(FStatement)-1 do
+      if FStatement <> nil then
+        for I := 0 to PQntuples(FStatement) - 1 do
            if PQgetlength(FStatement, I, FieldNum) > Result then
               Result := PQgetlength(FStatement, I, FieldNum);
       FFieldMinSizes[FieldNum] := Result;
@@ -3688,21 +3688,22 @@ var
         Break;
        end;
    end;
+
 begin
   if FNativeDescs.Count = 0 then
   begin
      DefSL := TStringList.Create;
     try
-      FillDefs(DefSL);
+     FillDefs(DefSL);
      for I := 0 to FieldCount -1 do
-         FNativeDescs.SetNative(I,FieldName(I),FieldType(I),FieldMaxSizeInBytes(I),FieldMaxSize(I),GetDefault(I));
+       FNativeDescs.SetNative(I, FieldName(I), FieldType(I), FieldMaxSizeInBytes(I), FieldMaxSize(I), GetDefault(I));
     finally
      DefSL.Free;
     end;
   end;
   Item := TPSQLNative(FNativeDescs.Items[Index]);
   if Item <> nil then
-     Result :=Item.FDesc;
+     Result := Item.FDesc;
 end;
 
 procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1 : VCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
@@ -4278,7 +4279,7 @@ begin
          fldBLOB:     if Fld.FieldSubType = fldstMemo then
                           Where := Where + FldName + '=' + MemoValue(Src)
                       else
-                          Where := Where + FldName + '=' + BlobValue(Src, Fld);
+                          Where := Where + FldName + '=''' + BlobValue(Src, Fld) '''';
          fldZSTRING,
          fldUUID:     Where := Where + FldName + '=' + StrValue(Src);
          fldDate:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
