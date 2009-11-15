@@ -573,6 +573,8 @@ Type
   //Description : Base class for All Objects
   //////////////////////////////////////////////////////////
     TNativeDataSet = Class(TObject)
+  private
+    function GetFieldTypType(Index: integer): AnsiChar;
     Protected
       RecNo         : LongInt; {Record Nomber}
       FOMode        : DBIOpenMode;  {Open mode}
@@ -619,6 +621,7 @@ Type
       Ferror_pos      : integer;
       Ferror_line     : integer;
       FFieldMinSizes  : array of integer; //to decrease FieldMinSize routine access
+      FFieldTypType   : AnsiString; //to store pg_type.typtype
       FSortingIndex   : array of integer; //filled with SortBy method
       FSortingFields  : string; //"fieldname" ASC|DESC, ...
       FOptions        : TPSQLDatasetOptions;
@@ -782,11 +785,13 @@ Type
       procedure Clone(bReadOnly: Bool;bUniDirectional: Bool;var hCurNew: hDBICur);
       procedure SetToCursor(hDest : hDBICur);
 
-      Property RecordNumber : LongInt Read GetRecordNumber Write SetRecordNumber;
-      Property RecordState: TRecordState  Read  FRecordState Write FRecordState;
-      Property TableName : string Read  GetTableName Write SetTableName;
+      property RecordNumber : LongInt Read GetRecordNumber Write SetRecordNumber;
+      property RecordState: TRecordState  Read  FRecordState Write FRecordState;
+      property TableName : string Read  GetTableName Write SetTableName;
 
       property Options: TPSQLDatasetOptions read FOptions write FOptions;
+
+      property FieldTypTypes[Index: integer]: AnsiChar read GetFieldTypType;
 
       procedure FieldOldValue(AFieldName: string; var AParam: TParam);
       procedure FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean);
@@ -3355,8 +3360,9 @@ begin
          else
            GetIndexDesc(1, FKeyDesc);
     end;
-  Finally
+  finally
    SetLength(FFieldMinSizes,0);
+   FFieldTypType := '';
    if FSortingFields > '' then
       SortBy(FSortingFields);
   end;
@@ -3394,6 +3400,7 @@ begin
   FStatement := nil;
   FOpen := False;
   SetLength(FFieldMinSizes,0);
+  FFieldTypType := '';
 end;
 
 procedure TNativeDataSet.GetBookMark( P : Pointer );
@@ -3576,6 +3583,32 @@ begin
    end;
 end;
 
+function TNativeDataSet.GetFieldTypType(Index: integer): AnsiChar;
+var fCount: integer;
+    fTypType: string;
+    fTypeOid: oid;
+    IsOK: boolean;
+begin
+  fCount := FieldCount();
+  if (Length(FFieldTypType) < fCount) then
+    FFieldTypType := StringOfChar(AnsiChar('u'), fCount); //unknown
+  if FFieldTypType[Index + 1] = 'u' then
+   begin
+    fTypeOid := FieldType(Index);
+    if fTypeOid < MAX_BUILTIN_TYPE_OID then
+      FFieldTypType[Index + 1] := 'b' //base
+    else
+      begin
+       fTypType := FConnect.SelectStringDirect('SELECT typtype FROM pg_catalog.pg_type WHERE oid = ' + UIntToStr(fTypeOid), IsOK, 0);
+       if fTypType > '' then
+         FFieldTypType[Index + 1] := AnsiChar(fTypType[1])
+       else
+         FFieldTypType[Index + 1] := 'X'; //failed to obtain
+      end;
+   end;
+  Result := FFieldTypType[Index + 1];
+end;
+
 function TNativeDataSet.FieldMaxSize(FieldNum: Integer): Integer;
 Var fMod: integer;
     fTypeOid: oid;
@@ -3584,7 +3617,8 @@ begin
   if FStatement <> nil then
    begin
      fMod := Max(PQfmod(FStatement, FieldNum), 0);
-     case FieldType(FieldNum) of
+     fTypeOid := FieldType(FieldNum);
+     case fTypeOid of
       FIELD_TYPE_BPCHAR,
       FIELD_TYPE_VARCHAR: Result := (fMod - 4);
       FIELD_TYPE_BIT,
@@ -3592,8 +3626,11 @@ begin
 
       FIELD_TYPE_NUMERIC: Result := fMod shr 16 and 65535 + 1; //frac delimiter
      else
-      if True then
-      
+      if fTypeOid > MAX_BUILTIN_TYPE_OID then  //suppose it's UDT or enum
+          case FieldTypTypes[FieldNum] of //we're interested in composites & enums only
+           'c': ;//composite TODO
+           'e': Result := NAMEDATALEN; //enum
+          end;
      end;
      if Result <= 0 then
        Result := FieldMinSize(FieldNum);
