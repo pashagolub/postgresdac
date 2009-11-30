@@ -314,7 +314,7 @@ type
 // String descriptions of the ExecStatusTypes
   pgresStatus = array[$00..$ff] of PAnsiChar;
 
-  TErrorVerbosity = (evTERSE, evDEFAULT, VERBOSE);
+  TErrorVerbosity = (evTERSE, evDEFAULT, evVERBOSE);
 
   //
   TTransactionStatusType = (
@@ -586,13 +586,16 @@ type
   TPQFreeMem       = procedure(Ptr: Pointer); cdecl;
 
   TPQsetClientEncoding = function(Handle: PPGconn;
-                                  encoding: PAnsiChar): integer;
+                                  encoding: PAnsiChar): integer; cdecl;
 
-  TPQclientEncoding = function(Handle: PPGconn): integer;
+  TPQsetErrorVerbosity = function(Handle: PPGconn;
+                                  verbosity: TErrorVerbosity): TErrorVerbosity; cdecl;
 
-  TPQgetssl = function(Handle: PPGconn): pointer;
+  TPQclientEncoding = function(Handle: PPGconn): integer; cdecl;
 
-  Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar;
+  TPQgetssl = function(Handle: PPGconn): pointer; cdecl;
+
+  Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar; cdecl;
 
   Tlo_open         = function(Handle: PPGconn;
                               lobjId: Oid;
@@ -705,6 +708,7 @@ var
   PQEscapeStringConn: TPQEscapeStringConn;
   PQFreeMem:       TPQFreeMem;
   PQsetClientEncoding: TPQsetClientEncoding;
+  PQsetErrorVerbosity: TPQsetErrorVerbosity;
   PQclientEncoding: TPQclientEncoding;
   PQgetssl:        TPQgetssl;
   pg_encoding_to_char: Tpg_encoding_to_char;
@@ -2776,6 +2780,7 @@ begin
          @PQEscapeStringConn:=GetPSQLProc('PQescapeStringConn');
          @PQFreeMem      := GetPSQLProc('PQfreemem');
          @PQsetClientEncoding := GetPSQLProc('PQsetClientEncoding');
+         @PQsetErrorVerbosity := GetPSQLProc('PQsetErrorVerbosity');
          @PQclientEncoding := GetPSQLProc('PQclientEncoding');
          @PQgetssl := GetPSQLProc('PQgetssl');
          @pg_encoding_to_char := GetPSQLProc('pg_encoding_to_char');

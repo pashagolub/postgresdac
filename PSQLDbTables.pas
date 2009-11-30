@@ -205,6 +205,7 @@ type
       FDirectQueryList : TList;
       FCheckIfActiveOnParamChange: boolean;
       FSSLMode: TSSLMode;
+      FErrorVerbosity: TErrorVerbosity;
       function GetNotifyItem(Index: Integer): TObject;
       function GetNotifyCount: Integer;
       procedure FillAddonInfo;
@@ -235,6 +236,7 @@ type
       procedure SetDummyBool(Value: boolean);
       procedure SetDummyInt(Value: cardinal);
       procedure SetSSLMode(const Value: TSSLMode);
+      procedure SetErrorVerbosity(const Value: TErrorVerbosity);
       function GetDatabaseID: cardinal;
       function GetIsTemplate: boolean;
       function GetDBOwner: string;
@@ -323,6 +325,7 @@ type
       property DatabaseID: cardinal read GetDatabaseID write SetDummyInt stored False;
       property DatabaseName: String read FDatabaseName write SetDatabaseName;
       property DesignOptions: TPSQLDBDesignOptions read FDesignOptions write FDesignOptions default [ddoStoreConnected, ddoStorePassword];
+      property ErrorVerbosity: TErrorVerbosity read FErrorVerbosity write SetErrorVerbosity default evDEFAULT;
       property Exclusive: Boolean read FExclusive write SetExclusive default FALSE;
       property HandleShared: Boolean read FHandleShared write FHandleShared default FALSE;
       property Host : String read FHost write SetHost;
@@ -1282,6 +1285,7 @@ begin
   FConnectionTimeout := 15;
   FDatabaseID := InvalidOid;
   FDesignOptions := [ddoStoreConnected, ddoStorePassword];
+  FErrorVerbosity := evDEFAULT;
 end;
 
 destructor TPSQLDatabase.Destroy;
@@ -1682,6 +1686,7 @@ begin
     Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
     Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
     Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
+    if FErrorVerbosity <> evDEFAULT then Check(Engine, Engine.SetErrorVerbosity(FHandle, FErrorVerbosity));
     if Assigned(FHandle) then
       PQSetNoticeProcessor(TNativeConnect(FHandle).Handle, NoticeProcessor, Self);
     SetBoolProp(Engine, FHandle, dbUSESCHEMAFILE,        TRUE);
@@ -2056,6 +2061,16 @@ begin
   finally
     List.EndUpdate;
   end;
+end;
+
+procedure TPSQLDatabase.SetErrorVerbosity(const Value: TErrorVerbosity);
+begin
+  if FErrorVerbosity <> Value then
+   begin
+     FErrorVerbosity := Value;
+     if Connected then
+       Engine.SetErrorVerbosity(Handle, Value)
+   end;
 end;
 
 procedure TPSQLDatabase.SetSSLMode(const Value: TSSLMode);

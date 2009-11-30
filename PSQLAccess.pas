@@ -149,9 +149,10 @@ Type
     procedure OpenIndexList(pszTableName: string; pszDriverType: string; var hCur: hDBICur);
     function GetCharSet: string;
     procedure GetCharSetList(var List: TStrings);
-    procedure SetCharSet(var ACharSet: string);
+    procedure SetCharSet(var ACharSet: ansistring);
     function GetTimeout: cardinal;
     function SetTimeout(const Timeout: cardinal): cardinal;
+    procedure SetErrorVerbosity(const ErrorVerbosity: TErrorVerbosity);
     function GetServerVersion: string;
     function GetserverVersionAsInt: integer;
     procedure GetUserProps(const UserName: string; var SuperUser, CanCreateDB,
@@ -303,9 +304,10 @@ Type
       function GetDatabases(hDb: hDBIdb; pszWild: string; List : TStrings):DBIResult;
       function GetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
       function GetCharacterSets(hDb : hDBIDb; List: TStrings):DBIResult;
-      function SetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
-      function GetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
-      function SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
+      function SetCharacterSet(hDb : hDBIDb; var CharSet : string): DBIResult;
+      function SetErrorVerbosity(hDb : hDBIDb; const ErrorVerbosity: TErrorVerbosity): DBIResult;
+      function GetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal): DBIResult;
+      function SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal): DBIResult;
       function OpenFieldList(hDb: hDBIDb; pszTableName: string; pszDriverType: string; bPhyTypes: Bool; var hCur: hDBICur): DBIResult;
       function OpenIndexList(hDb: hDBIDb; pszTableName: string; pszDriverType: string; var hCur: hDBICur): DBIResult;
       function EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : string; pszDriverType : string): DBIResult;
@@ -876,6 +878,8 @@ function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: 
 {$IFDEF M_DEBUG}
 function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
 procedure LogDebugMessage(const MsgType, Msg: string);
+
+var SessionStart: cardinal;
 {$ENDIF}
 
 Implementation
@@ -895,7 +899,7 @@ var F: TextFile;
 procedure LogDebugMessage(const MsgType, Msg: string);
 begin
  if DebugFileOpened and (Msg > EmptyStr) then
-  WriteLn(F,'<TR><TD>',DateTimeToStr(Now),'</TD><TD>',MsgType,'</TD><TD><PRE>',Msg,'</PRE></TD><TR>');
+  WriteLn(F,'<TR><TD>',GetTickCount() - SessionStart,'&nbsp;ms</TD><TD><b>',MsgType,'</b></TD><TD><PRE>',Msg,'</PRE></TD><TR>');
 end;
 
 function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
@@ -935,9 +939,11 @@ begin
 end;
 
 procedure OpenDebugFile;
-var Name: string;
+var Name, Time: string;
 begin
- DateTimeToString(Name, '_dd.mm.yy_hh.nn.ss', Now());
+ SessionStart := GetTickCount();
+ DateTimeToString(Time, 'dd.mm.yy_hh.nn.ss', Now());
+ Name := '_' + Time;
  Name := ChangeFileExt(GetModuleName(HInstance), Name + '_log.html');
  AssignFile(F, Name);
  {$I-}
@@ -949,7 +955,7 @@ begin
  DebugFileOpened := IOResult = 0;
  if not DebugFileOpened then Exit;
  WriteLn(F,'<HR>','<TABLE BORDER="1">');
- LogDebugMessage('INFO','----- Session started -----');
+ LogDebugMessage('INFO',Format('<b>----- Session started at %s -----</b>', [Time]));
 end;
 
 procedure CloseDebugFile;
@@ -2560,7 +2566,7 @@ Var
 begin
   Result := Null;
   Field := FDataset.Fields[ANode.iFieldNum];
-  FDataSet.NativeToDelphi(Field,FrecBuff,@Dest,blank);
+  FDataSet.NativeToDelphi(Field, FrecBuff, @Dest, blank);
   if blank then Exit;
   case Field.FieldType of
     fldINT16: Result := PSmallInt(@Dest)^;
@@ -7284,28 +7290,20 @@ begin
 end;
 
 
-procedure TNativeConnect.SetCharSet(var ACharSet: string);
-var
-   sql : String;
-   RES : PPGresult;
+procedure TNativeConnect.SetCharSet(var ACharSet: ansistring);
 begin
-  if ACharSet = '' then
+  if (ACharSet = '') or not FLoggin then
    begin
     ACharSet := GetCharSet();
     Exit;
    end;
-  InternalConnect;
-  Sql := Format('SELECT set_config(''client_encoding'', ''%s'', false)', [ACharSet]);
-  RES := _PQExecute(Self, Sql);
-  if Assigned(RES) then
-   try
-    CheckResult;
-    ACharSet := UpperCase(RawToString(PQgetvalue(RES, 0, 0)));
-   finally
-    PQclear(RES);
-   end
+  if PQsetClientEncoding(Handle, PAnsiChar(ACharSet)) = 0 then
+   ACharset := UpperCase(ACharset)
   else
    ACharSet :=  GetCharSet();
+  {$IFDEF M_DEBUG}
+  LogDebugMessage('INFO', 'Encoding changed to ' + ACharset);
+  {$ENDIF}
 end;
 
 procedure TNativeConnect.GetCharSetList(var List: TStrings);
@@ -7346,6 +7344,17 @@ begin
    try
      Database := hDb;
      TNativeConnect(hDb).SetCharSet(CharSet);
+     Result := DBIERR_NONE;
+   except
+     Result := CheckError;
+   end;
+end;
+
+function TPSQLEngine.SetErrorVerbosity(hDb : hDBIDb; const ErrorVerbosity: TErrorVerbosity): DBIResult;
+begin
+   try
+     Database := hDb;
+     TNativeConnect(hDb).SetErrorVerbosity(ErrorVerbosity);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
@@ -7746,6 +7755,21 @@ begin
       Result := StrToIntDef(RawToString(PQgetvalue(RES,0,0)),0);
    finally
     PQclear(RES);
+   end;
+end;
+
+procedure TNativeConnect.SetErrorVerbosity(const ErrorVerbosity: TErrorVerbosity);
+var OldEV: TErrorVerbosity;
+{$IFDEF M_DEBUG}
+const EVNames: array[TErrorVerbosity] of ansistring = ('TERSE', 'DEFAULT', 'VERBOSE');
+{$ENDIF}
+begin
+  if FLoggin then
+   begin
+    OldEV := PQsetErrorVerbosity(Handle, ErrorVerbosity);
+    {$IFDEF M_DEBUG}
+     LogDebugMessage('INFO', Format('Error verbosity changed from %s to %s', [EVNames[OldEV], EVNames[ErrorVerbosity]]));
+    {$ENDIF}
    end;
 end;
 
