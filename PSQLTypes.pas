@@ -112,6 +112,7 @@ var
   PSQL_DLL             : string = 'libpq.dll';
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
   OEMConv              : Boolean; //Global OEM->ANSI Variable
+  PSQL_FS              : TFormatSettings;
 
 type
   _NAME = string[NAMEDATALEN+1];
@@ -2477,30 +2478,20 @@ begin
 end;
 
 function StrToSQLFloat(Value: string): Double;
-var
-  Temp: Char;
 begin
-  Temp := DecimalSeparator;
-  DecimalSeparator := '.';
   if Value <> '' then
     try
-      Result := StrToFloat(Value);
+      Result := StrToFloat(Value, PSQL_FS);
     except
       Result := 0;
     end
   else
     Result := 0;
-  DecimalSeparator := Temp;
 end;
 
 function SQLFloatToStr(Value: Double): string;
-var
-  Temp: Char;
 begin
-  Temp := DecimalSeparator;
-  DecimalSeparator := '.';
-  Result := FloatToStr(Value);
-  DecimalSeparator := Temp;
+  Result := FloatToStr(Value, PSQL_FS);
 end;
 
 procedure GetToken(var Buffer, Token: string);
@@ -3028,6 +3019,8 @@ end;
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;
+  GetLocaleFormatSettings(LOCALE_SYSTEM_DEFAULT, PSQL_FS);
+  PSQL_FS.DecimalSeparator := '.'; //for use inside StrToFloat
 
 finalization
   UnloadPSQLLibrary;

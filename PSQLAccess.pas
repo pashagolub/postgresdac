@@ -7941,7 +7941,6 @@ procedure TNativeDataSet.InternalSortBy(const Fields: array of Integer;
 
 var aRecNum: integer;
     i: integer;
-    OldDecimalSeparator: char;
 
     function CmpRecords(Index1, Index2: integer): integer;
     var i, Idx1IsNull, Idx2IsNull: integer;
@@ -7966,60 +7965,54 @@ var aRecNum: integer;
 
     begin
      Result := 0;
-     OldDecimalSeparator := DecimalSeparator;
-     DecimalSeparator := '.';
-     try
-       for i:= Low(Fields) to High(Fields) do
-        begin
-          Idx1IsNull := PQGetIsNull(FStatement,FSortingIndex[Index1],Fields[I]);
-          Idx2IsNull := PQGetIsNull(FStatement,FSortingIndex[Index2],Fields[I]);
-          case Idx1IsNull + Idx2IsNull of
-           2: Result := 0;
-           1: Result := Idx1IsNull - Idx2IsNull;
+     for i:= Low(Fields) to High(Fields) do
+      begin
+        Idx1IsNull := PQGetIsNull(FStatement,FSortingIndex[Index1],Fields[I]);
+        Idx2IsNull := PQGetIsNull(FStatement,FSortingIndex[Index2],Fields[I]);
+        case Idx1IsNull + Idx2IsNull of
+         2: Result := 0;
+         1: Result := Idx1IsNull - Idx2IsNull;
+        else
+         case PQFType(FStatement,Fields[I]) of
+            FIELD_TYPE_INT2,
+            FIELD_TYPE_INT4,
+            FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
+                                       StrToInt64Def(FVal(Index2),0);
+
+            FIELD_TYPE_FLOAT4,
+            FIELD_TYPE_FLOAT8,
+            FIELD_TYPE_NUMERIC:
+                             try
+                              s1 := FVal(Index1);
+                              s2 := FVal(Index2);
+                              Result := Sign(StrToFloat(s1, PSQL_FS) -
+                                       StrToFloat(s2, PSQL_FS));
+                             except
+                              //D5 have no StrToFloatDef
+                              on E: EConvertError do
+                               Result := 0;
+                             end;
+
+            FIELD_TYPE_BOOL: Result :=  ord(FVal(Index1)[1]) -
+                                        ord(FVal(Index2)[1]);
+
+            FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
+                              Result := StrToIntDef(FVal(Index1),InvalidOid) -
+                                        StrToIntDef(FVal(Index2),InvalidOid)
+                            else
+                              Result := 0;
+            FIELD_TYPE_TEXT,
+            FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
+
           else
-           case PQFType(FStatement,Fields[I]) of
-              FIELD_TYPE_INT2,
-              FIELD_TYPE_INT4,
-              FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
-                                         StrToInt64Def(FVal(Index2),0);
-
-              FIELD_TYPE_FLOAT4,
-              FIELD_TYPE_FLOAT8,
-              FIELD_TYPE_NUMERIC:
-                               try
-                                s1 := FVal(Index1);
-                                s2 := FVal(Index2);
-                                Result := Sign(StrToFloat(s1) -
-                                         StrToFloat(s2));
-                               except
-                                //D5 have no StrToFloatDef
-                                on E: EConvertError do
-                                 Result := 0;
-                               end;
-
-              FIELD_TYPE_BOOL: Result :=  ord(FVal(Index1)[1]) -
-                                          ord(FVal(Index2)[1]);
-
-              FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
-                                Result := StrToIntDef(FVal(Index1),InvalidOid) -
-                                          StrToIntDef(FVal(Index2),InvalidOid)
-                              else
-                                Result := 0;
-              FIELD_TYPE_TEXT,
-              FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
-
-            else
-               //datetime fields will be compared here also
-               //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
-               Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
-            end;
+             //datetime fields will be compared here also
+             //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
+             Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
           end;
-          if IsReverseOrder[i] then
-            Result := -Result;
-          if Result <> 0 then Break;
         end;
-      finally
-        DecimalSeparator := OldDecimalSeparator;
+        if IsReverseOrder[i] then
+          Result := -Result;
+        if Result <> 0 then Break;
       end;
     end;
 
