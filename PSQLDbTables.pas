@@ -2962,9 +2962,21 @@ begin
 end;
 
 function TPSQLDataSet.GetStateFieldValue(State: TDataSetState; Field: TField): Variant;
+var Param: TPSQLParam;
 begin
   CheckCachedUpdateMode;
-  Result := Inherited GetStateFieldValue(State, Field);
+  if  State = dsOldValue then
+   begin
+    Param := TPSQLParam.Create(nil);
+    try
+      Engine.GetFieldOldValue(Handle, Field.FieldName, Param);
+      Result := Param.Value;
+    finally
+     Param.Free;
+    end;
+   end
+  else
+    Result := Inherited GetStateFieldValue(State, Field);
 end;
 
 procedure TPSQLDataSet.SetStateFieldValue(State: TDataSetState; Field: TField; Const Value: Variant);
