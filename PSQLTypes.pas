@@ -94,6 +94,35 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
+{$IFDEF DELPHI_5}
+   type
+    PBoolean      = ^Boolean;
+    PWordBool     = ^WordBool;
+
+    TFormatSettings = record
+      CurrencyFormat: Byte;
+      NegCurrFormat: Byte;
+      ThousandSeparator: Char;
+      DecimalSeparator: Char;
+      CurrencyDecimals: Byte;
+      DateSeparator: Char;
+      TimeSeparator: Char;
+      ListSeparator: Char;
+      CurrencyString: string;
+      ShortDateFormat: string;
+      LongDateFormat: string;
+      TimeAMString: string;
+      TimePMString: string;
+      ShortTimeFormat: string;
+      LongTimeFormat: string;
+      ShortMonthNames: array[1..12] of string;
+      LongMonthNames: array[1..12] of string;
+      ShortDayNames: array[1..7] of string;
+      LongDayNames: array[1..7] of string;
+      TwoDigitYearCenturyWindow: Word;
+    end;
+{$ENDIF}
+
 const
   NAMEDATALEN      = 64;
   TIMESTAMPTZLEN   = length('2006-02-28 09:08:08.677444+02');
@@ -723,11 +752,7 @@ var
   lo_import:       Tlo_import;
   lo_export:       Tlo_export;
 
-{$IFDEF DELPHI_5}
-   type
-    PBoolean      = ^Boolean;
-    PWordBool     = ^WordBool;
-{$ENDIF}
+
 
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -2485,7 +2510,7 @@ function StrToSQLFloat(Value: string): Double;
 begin
   if Value <> '' then
     try
-      Result := StrToFloat(Value, PSQL_FS);
+      Result := {$IFDEF DELPHI_5}PSQLAccess.{$ENDIF}StrToFloat(Value, PSQL_FS);
     except
       Result := 0;
     end
@@ -2495,7 +2520,7 @@ end;
 
 function SQLFloatToStr(Value: Double): string;
 begin
-  Result := FloatToStr(Value, PSQL_FS);
+  Result := {$IFDEF DELPHI_5}PSQLAccess.{$ENDIF}FloatToStr(Value, PSQL_FS);
 end;
 
 procedure GetToken(var Buffer, Token: string);
@@ -3024,8 +3049,6 @@ end;
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;
-  GetLocaleFormatSettings(LOCALE_SYSTEM_DEFAULT, PSQL_FS);
-  PSQL_FS.DecimalSeparator := '.'; //for use inside StrToFloat
 
 finalization
   UnloadPSQLLibrary;

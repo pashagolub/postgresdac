@@ -149,7 +149,7 @@ Type
     procedure OpenIndexList(pszTableName: string; pszDriverType: string; var hCur: hDBICur);
     function GetCharSet: string;
     procedure GetCharSetList(var List: TStrings);
-    procedure SetCharSet(var ACharSet: ansistring);
+    procedure SetCharSet(var ACharSet: string);
     function GetTimeout: cardinal;
     function SetTimeout(const Timeout: cardinal): cardinal;
     procedure SetErrorVerbosity(const ErrorVerbosity: TErrorVerbosity);
@@ -882,6 +882,13 @@ procedure LogDebugMessage(const MsgType, Msg: string);
 var SessionStart: cardinal;
 {$ENDIF}
 
+{$IFDEF DELPHI_5}
+function StrToFloat(const S: string;
+  const FormatSettings: TFormatSettings): Extended;
+function FloatToStr(Value: Extended;
+  const FormatSettings: TFormatSettings): string;
+{$ENDIF}
+
 Implementation
 
 Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
@@ -964,6 +971,623 @@ begin
  LogDebugMessage('INFO','----- Session closed -----');
  WriteLn(F,'</TABLE>'); 
  CloseFile(F);
+end;
+{$ENDIF}
+
+{$IFDEF DELPHI_5}
+const
+// 8087 status word masks
+  mIE = $0001;
+  mDE = $0002;
+  mZE = $0004;
+  mOE = $0008;
+  mUE = $0010;
+  mPE = $0020;
+  mC0 = $0100;
+  mC1 = $0200;
+  mC2 = $0400;
+  mC3 = $4000;
+const
+  // 1E18 as a 64-bit integer
+  Const1E18Lo = $0A7640000;
+  Const1E18Hi = $00DE0B6B3;
+  DCon10: Integer = 10;
+
+procedure GetLocaleFormatSettings(LCID: Integer;
+  var FormatSettings: TFormatSettings);
+begin
+  with FormatSettings do
+    DecimalSeparator := '.';
+end;
+
+function TextToFloat(Buffer: PChar; var Value;
+  ValueType: TFloatValue; const FormatSettings: TFormatSettings): Boolean;
+
+const
+// 8087 control word
+// Infinity control  = 1 Affine
+// Rounding Control  = 0 Round to nearest or even
+// Precision Control = 3 64 bits
+// All interrupts masked
+  CWNear: Word = $133F;
+
+var
+  Temp: Integer;
+  CtrlWord: Word;
+  DecimalSep: Char;
+  SaveGOT: Integer;
+asm
+        PUSH    EDI
+        PUSH    ESI
+        PUSH    EBX
+        MOV     ESI,EAX
+        MOV     EDI,EDX
+{$IFDEF PIC}
+        PUSH    ECX
+        CALL    GetGOT
+        POP     EBX
+        MOV     SaveGOT,EAX
+{$ELSE}
+        MOV     SaveGOT,0
+        MOV     EBX,ECX
+{$ENDIF}
+        MOV     EAX,FormatSettings
+        MOV     AL,[EAX].TFormatSettings.DecimalSeparator
+        MOV     DecimalSep,AL
+        FSTCW   CtrlWord
+        FCLEX
+{$IFDEF PIC}
+        FLDCW   [EAX].CWNear
+{$ELSE}
+        FLDCW   CWNear
+{$ENDIF}
+        FLDZ
+        CALL    @@SkipBlanks
+        MOV     BH, byte ptr [ESI]
+        CMP     BH,'+'
+        JE      @@1
+        CMP     BH,'-'
+        JNE     @@2
+@@1:    INC     ESI
+@@2:    MOV     ECX,ESI
+        CALL    @@GetDigitStr
+        XOR     EDX,EDX
+        MOV     AL,[ESI]
+        CMP     AL,DecimalSep
+        JNE     @@3
+        INC     ESI
+        CALL    @@GetDigitStr
+        NEG     EDX
+@@3:    CMP     ECX,ESI
+        JE      @@9
+        MOV     AL, byte ptr [ESI]
+        AND     AL,0DFH
+        CMP     AL,'E'
+        JNE     @@4
+        INC     ESI
+        PUSH    EDX
+        CALL    @@GetExponent
+        POP     EAX
+        ADD     EDX,EAX
+@@4:    CALL    @@SkipBlanks
+        CMP     BYTE PTR [ESI],0
+        JNE     @@9
+        MOV     EAX,EDX
+        CMP     BL,fvCurrency
+        JNE     @@5
+        ADD     EAX,4
+@@5:    PUSH    EBX
+        MOV     EBX,SaveGOT
+        CALL    FPower10
+        POP     EBX
+        CMP     BH,'-'
+        JNE     @@6
+        FCHS
+@@6:    CMP     BL,fvExtended
+        JE      @@7
+        FISTP   QWORD PTR [EDI]
+        JMP     @@8
+@@7:    FSTP    TBYTE PTR [EDI]
+@@8:    FSTSW   AX
+        TEST    AX,mIE+mOE
+        JNE     @@10
+        MOV     AL,1
+        JMP     @@11
+@@9:    FSTP    ST(0)
+@@10:   XOR     EAX,EAX
+@@11:   FCLEX
+        FLDCW   CtrlWord
+        FWAIT
+        JMP     @@Exit
+
+@@SkipBlanks:
+
+@@21:   LODSB
+        OR      AL,AL
+        JE      @@22
+        CMP     AL,' '
+        JE      @@21
+@@22:   DEC     ESI
+        RET
+
+// Process string of digits
+// Out EDX = Digit count
+
+@@GetDigitStr:
+
+        XOR     EAX,EAX
+        XOR     EDX,EDX
+@@31:   LODSB
+        SUB     AL,'0'+10
+        ADD     AL,10
+        JNC     @@32
+{$IFDEF PIC}
+        XCHG    SaveGOT,EBX
+        FIMUL   [EBX].DCon10
+        XCHG    SaveGOT,EBX
+{$ELSE}
+        FIMUL   DCon10
+{$ENDIF}
+        MOV     Temp,EAX
+        FIADD   Temp
+        INC     EDX
+        JMP     @@31
+@@32:   DEC     ESI
+        RET
+
+// Get exponent
+// Out EDX = Exponent (-4999..4999)
+
+@@GetExponent:
+
+        XOR     EAX,EAX
+        XOR     EDX,EDX
+        MOV     CL, byte ptr [ESI]
+        CMP     CL,'+'
+        JE      @@41
+        CMP     CL,'-'
+        JNE     @@42
+@@41:   INC     ESI
+@@42:   MOV     AL, byte ptr [ESI]
+        SUB     AL,'0'+10
+        ADD     AL,10
+        JNC     @@43
+        INC     ESI
+        IMUL    EDX,10
+        ADD     EDX,EAX
+        CMP     EDX,500
+        JB      @@42
+@@43:   CMP     CL,'-'
+        JNE     @@44
+        NEG     EDX
+@@44:   RET
+
+@@Exit:
+        POP     EBX
+        POP     ESI
+        POP     EDI
+end;
+
+procedure PutExponent;
+// Store exponent
+// In   AL  = Exponent character ('E' or 'e')
+//      AH  = Positive sign character ('+' or 0)
+//      BL  = Zero indicator
+//      ECX = Minimum number of digits (0..4)
+//      EDX = Exponent
+//      EDI = Destination buffer
+asm
+        PUSH    ESI
+{$IFDEF PIC}
+        PUSH    EAX
+        PUSH    ECX
+        CALL    GetGOT
+        MOV     ESI,EAX
+        POP     ECX
+        POP     EAX
+{$ELSE}
+        XOR     ESI,ESI
+{$ENDIF}
+        STOSB
+        OR      BL,BL
+        JNE     @@0
+        XOR     EDX,EDX
+        JMP     @@1
+@@0:    OR      EDX,EDX
+        JGE     @@1
+        MOV     AL,'-'
+        NEG     EDX
+        JMP     @@2
+@@1:    OR      AH,AH
+        JE      @@3
+        MOV     AL,AH
+@@2:    STOSB
+@@3:    XCHG    EAX,EDX
+        PUSH    EAX
+        MOV     EBX,ESP
+@@4:    XOR     EDX,EDX
+        DIV     [ESI].DCon10
+        ADD     DL,'0'
+        MOV     [EBX],DL
+        INC     EBX
+        DEC     ECX
+        OR      EAX,EAX
+        JNE     @@4
+        OR      ECX,ECX
+        JG      @@4
+@@5:    DEC     EBX
+        MOV     AL,[EBX]
+        STOSB
+        CMP     EBX,ESP
+        JNE     @@5
+        POP     EAX
+        POP     ESI
+end;
+
+
+function FloatToText(BufferArg: PChar; const Value; ValueType: TFloatValue;
+  Format: TFloatFormat; Precision, Digits: Integer;
+  const FormatSettings: TFormatSettings): Integer;
+var
+  Buffer: Cardinal;
+  FloatRec: TFloatRec;
+  SaveGOT: Integer;
+  DecimalSep: Char;
+  ThousandSep: Char;
+  CurrencyStr: Pointer;
+  CurrFmt: Byte;
+  NegCurrFmt: Byte;
+asm
+        PUSH    EDI
+        PUSH    ESI
+        PUSH    EBX
+        MOV     Buffer,EAX
+{$IFDEF PIC}
+        PUSH    ECX
+        CALL    GetGOT
+        MOV     SaveGOT,EAX
+        POP     ECX
+{$ENDIF}
+        MOV     EAX,FormatSettings
+        MOV     AL,[EAX].TFormatSettings.DecimalSeparator
+        MOV     DecimalSep,AL
+        MOV     EAX,FormatSettings
+        MOV     AL,[EAX].TFormatSettings.ThousandSeparator
+        MOV     ThousandSep,AL
+        MOV     EAX,FormatSettings
+        MOV     EAX,[EAX].TFormatSettings.CurrencyString
+        MOV     CurrencyStr,EAX
+        MOV     EAX,FormatSettings
+        MOV     AL,[EAX].TFormatSettings.CurrencyFormat
+        MOV     CurrFmt,AL
+        MOV     EAX,FormatSettings
+        MOV     AL,[EAX].TFormatSettings.NegCurrFormat
+        MOV     NegCurrFmt,AL
+        MOV     SaveGOT,0
+        MOV     EAX,19
+        CMP     CL,fvExtended
+        JNE     @@2
+        MOV     EAX,Precision
+        CMP     EAX,2
+        JGE     @@1
+        MOV     EAX,2
+@@1:    CMP     EAX,18
+        JLE     @@2
+        MOV     EAX,18
+@@2:    MOV     Precision,EAX
+        PUSH    EAX
+        MOV     EAX,9999
+        CMP     Format,ffFixed
+        JB      @@3
+        MOV     EAX,Digits
+@@3:    PUSH    EAX
+        LEA     EAX,FloatRec
+        CALL    FloatToDecimal
+        MOV     EDI,Buffer
+        MOVZX   EAX,FloatRec.Exponent
+        SUB     EAX,7FFFH
+        CMP     EAX,2
+        JAE     @@4
+        MOV     ECX, EAX
+        CALL    @@PutSign
+        LEA     ESI,@@INFNAN[ECX+ECX*2]
+        ADD     ESI,SaveGOT
+        MOV     ECX,3
+        REP     MOVSB
+        JMP     @@7
+@@4:    LEA     ESI,FloatRec.Digits
+        MOVZX   EBX,Format
+        CMP     BL,ffExponent
+        JE      @@6
+        CMP     BL,ffCurrency
+        JA      @@5
+        MOVSX   EAX,FloatRec.Exponent
+        CMP     EAX,Precision
+        JLE     @@6
+@@5:    MOV     BL,ffGeneral
+@@6:    LEA     EBX,@@FormatVector[EBX*4]
+        ADD     EBX,SaveGOT
+        MOV     EBX,[EBX]
+        ADD     EBX,SaveGOT
+        CALL    EBX
+@@7:    MOV     EAX,EDI
+        SUB     EAX,Buffer
+        POP     EBX
+        POP     ESI
+        POP     EDI
+        JMP     @@Exit
+
+@@FormatVector:
+        DD      @@PutFGeneral
+        DD      @@PutFExponent
+        DD      @@PutFFixed
+        DD      @@PutFNumber
+        DD      @@PutFCurrency
+
+@@INFNAN: DB 'INFNAN'
+
+// Get digit or '0' if at end of digit string
+
+@@GetDigit:
+
+        LODSB
+        OR      AL,AL
+        JNE     @@a1
+        MOV     AL,'0'
+        DEC     ESI
+@@a1:   RET
+
+// Store '-' if number is negative
+
+@@PutSign:
+
+        CMP     FloatRec.Negative,0
+        JE      @@b1
+        MOV     AL,'-'
+        STOSB
+@@b1:   RET
+
+// Convert number using ffGeneral format
+
+@@PutFGeneral:
+
+        CALL    @@PutSign
+        MOVSX   ECX,FloatRec.Exponent
+        XOR     EDX,EDX
+        CMP     ECX,Precision
+        JG      @@c1
+        CMP     ECX,-3
+        JL      @@c1
+        OR      ECX,ECX
+        JG      @@c2
+        MOV     AL,'0'
+        STOSB
+        CMP     BYTE PTR [ESI],0
+        JE      @@c6
+        MOV     AL,DecimalSep
+        STOSB
+        NEG     ECX
+        MOV     AL,'0'
+        REP     STOSB
+        JMP     @@c3
+@@c1:   MOV     ECX,1
+        INC     EDX
+@@c2:   LODSB
+        OR      AL,AL
+        JE      @@c4
+        STOSB
+        LOOP    @@c2
+        LODSB
+        OR      AL,AL
+        JE      @@c5
+        MOV     AH,AL
+        MOV     AL,DecimalSep
+        STOSW
+@@c3:   LODSB
+        OR      AL,AL
+        JE      @@c5
+        STOSB
+        JMP     @@c3
+@@c4:   MOV     AL,'0'
+        REP     STOSB
+@@c5:   OR      EDX,EDX
+        JE      @@c6
+        XOR     EAX,EAX
+        JMP     @@PutFloatExpWithDigits
+@@c6:   RET
+
+// Convert number using ffExponent format
+
+@@PutFExponent:
+
+        CALL    @@PutSign
+        CALL    @@GetDigit
+        MOV     AH,DecimalSep
+        STOSW
+        MOV     ECX,Precision
+        DEC     ECX
+@@d1:   CALL    @@GetDigit
+        STOSB
+        LOOP    @@d1
+        MOV     AH,'+'
+
+@@PutFloatExpWithDigits:
+
+        MOV     ECX,Digits
+        CMP     ECX,4
+        JBE     @@PutFloatExp
+        XOR     ECX,ECX
+
+// Store exponent
+// In   AH  = Positive sign character ('+' or 0)
+//      ECX = Minimum number of digits (0..4)
+
+@@PutFloatExp:
+
+        MOV     AL,'E'
+        MOV     BL, FloatRec.Digits.Byte
+        MOVSX   EDX,FloatRec.Exponent
+        DEC     EDX
+        CALL    PutExponent
+        RET
+
+// Convert number using ffFixed or ffNumber format
+
+@@PutFFixed:
+@@PutFNumber:
+
+        CALL    @@PutSign
+
+// Store number in fixed point format
+
+@@PutNumber:
+
+        MOV     EDX,Digits
+        CMP     EDX,18
+        JB      @@f1
+        MOV     EDX,18
+@@f1:   MOVSX   ECX,FloatRec.Exponent
+        OR      ECX,ECX
+        JG      @@f2
+        MOV     AL,'0'
+        STOSB
+        JMP     @@f4
+@@f2:   XOR     EBX,EBX
+        CMP     Format,ffFixed
+        JE      @@f3
+        MOV     EAX,ECX
+        DEC     EAX
+        MOV     BL,3
+        DIV     BL
+        MOV     BL,AH
+        INC     EBX
+@@f3:   CALL    @@GetDigit
+        STOSB
+        DEC     ECX
+        JE      @@f4
+        DEC     EBX
+        JNE     @@f3
+        MOV     AL,ThousandSep
+        TEST    AL,AL
+        JZ      @@f3
+        STOSB
+        MOV     BL,3
+        JMP     @@f3
+@@f4:   OR      EDX,EDX
+        JE      @@f7
+        MOV     AL,DecimalSep
+        TEST    AL,AL
+        JZ      @@f4b
+        STOSB
+@@f4b:  JECXZ   @@f6
+        MOV     AL,'0'
+@@f5:   STOSB
+        DEC     EDX
+        JE      @@f7
+        INC     ECX
+        JNE     @@f5
+@@f6:   CALL    @@GetDigit
+        STOSB
+        DEC     EDX
+        JNE     @@f6
+@@f7:   RET
+
+// Convert number using ffCurrency format
+
+@@PutFCurrency:
+
+        XOR     EBX,EBX
+        MOV     BL,CurrFmt.Byte
+        MOV     ECX,0003H
+        CMP     FloatRec.Negative,0
+        JE      @@g1
+        MOV     BL,NegCurrFmt.Byte
+        MOV     ECX,040FH
+@@g1:   CMP     BL,CL
+        JBE     @@g2
+        MOV     BL,CL
+@@g2:   ADD     BL,CH
+        LEA     EBX,@@MoneyFormats[EBX+EBX*4]
+        ADD     EBX,SaveGOT
+        MOV     ECX,5
+@@g10:  MOV     AL,[EBX]
+        CMP     AL,'@'
+        JE      @@g14
+        PUSH    ECX
+        PUSH    EBX
+        CMP     AL,'$'
+        JE      @@g11
+        CMP     AL,'*'
+        JE      @@g12
+        STOSB
+        JMP     @@g13
+@@g11:  CALL    @@PutCurSym
+        JMP     @@g13
+@@g12:  CALL    @@PutNumber
+@@g13:  POP     EBX
+        POP     ECX
+        INC     EBX
+        LOOP    @@g10
+@@g14:  RET
+
+// Store currency symbol string
+
+@@PutCurSym:
+
+        PUSH    ESI
+        MOV     ESI,CurrencyStr
+        TEST    ESI,ESI
+        JE      @@h1
+        MOV     ECX,[ESI-4]
+        REP     MOVSB
+@@h1:   POP     ESI
+        RET
+
+// Currency formatting templates
+
+@@MoneyFormats:
+        DB      '$*@@@'
+        DB      '*$@@@'
+        DB      '$ *@@'
+        DB      '* $@@'
+        DB      '($*)@'
+        DB      '-$*@@'
+        DB      '$-*@@'
+        DB      '$*-@@'
+        DB      '(*$)@'
+        DB      '-*$@@'
+        DB      '*-$@@'
+        DB      '*$-@@'
+        DB      '-* $@'
+        DB      '-$ *@'
+        DB      '* $-@'
+        DB      '$ *-@'
+        DB      '$ -*@'
+        DB      '*- $@'
+        DB      '($ *)'
+        DB      '(* $)'
+
+@@Exit:
+end;
+
+
+resourcestring
+  SInvalidFloat = '''%s'' is not a valid floating point value';
+
+function StrToFloat(const S: string;
+  const FormatSettings: TFormatSettings): Extended;
+begin
+  if not TextToFloat(PChar(S), Result, fvExtended, FormatSettings) then
+    raise EConvertError.CreateResFmt(@SInvalidFloat, [S]);
+end;
+
+function FloatToStr(Value: Extended;
+  const FormatSettings: TFormatSettings): string;
+var
+  Buffer: array[0..63] of Char;
+begin
+  SetString(Result, Buffer, FloatToText(Buffer, Value, fvExtended,
+    ffGeneral, 15, 0, FormatSettings));
 end;
 {$ENDIF}
 
@@ -6686,7 +7310,7 @@ begin
     fldUINT16: Result := IntToStr(PWord(@Buff)^);
     fldINT32: Result := IntToStr(PLongInt(@Buff)^);
     fldINT64: Result := IntToStr(PInt64(@Buff)^);
-    fldFLOAT: Result := FloatToStr(PDouble(@Buff)^);
+    fldFLOAT: Result := SysUtils.FloatToStr(PDouble(@Buff)^);
     fldZSTRING:
               {$IFDEF DELPHI_12}
               if FConnect.IsUnicodeUsed then
@@ -7290,14 +7914,14 @@ begin
 end;
 
 
-procedure TNativeConnect.SetCharSet(var ACharSet: ansistring);
+procedure TNativeConnect.SetCharSet(var ACharSet: string);
 begin
   if (ACharSet = '') or not FLoggin then
    begin
     ACharSet := GetCharSet();
     Exit;
    end;
-  if PQsetClientEncoding(Handle, PAnsiChar(ACharSet)) = 0 then
+  if PQsetClientEncoding(Handle, PAnsiChar(AnsiString(ACharSet))) = 0 then
    ACharset := UpperCase(ACharset)
   else
    ACharSet :=  GetCharSet();
@@ -7758,6 +8382,7 @@ begin
    end;
 end;
 
+{$HINTS OFF}
 procedure TNativeConnect.SetErrorVerbosity(const ErrorVerbosity: TErrorVerbosity);
 var OldEV: TErrorVerbosity;
 {$IFDEF M_DEBUG}
@@ -7772,6 +8397,7 @@ begin
     {$ENDIF}
    end;
 end;
+{$HINTS ON}
 
 function TNativeConnect.SetTimeout(const Timeout: cardinal): cardinal;
 var
@@ -8612,14 +9238,16 @@ end;
 
 initialization
 
-{$IFDEF M_DEBUG}
-OpenDebugFile;
-{$ENDIF}
+  {$IFDEF M_DEBUG}
+  OpenDebugFile;
+  {$ENDIF}
+  GetLocaleFormatSettings(LOCALE_SYSTEM_DEFAULT, PSQL_FS);
+  PSQL_FS.DecimalSeparator := '.'; //for use inside StrToFloat
 
 finalization
 
-{$IFDEF M_DEBUG}
-CloseDebugFile;
-{$ENDIF}
+  {$IFDEF M_DEBUG}
+  CloseDebugFile;
+  {$ENDIF}
 
 end.
