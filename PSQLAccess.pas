@@ -882,7 +882,7 @@ procedure LogDebugMessage(const MsgType, Msg: string);
 var SessionStart: cardinal;
 {$ENDIF}
 
-{$IFDEF DELPHI_5}
+{$IFDEF UNDER_DELPHI_6}
 function StrToFloat(const S: string;
   const FormatSettings: TFormatSettings): Extended;
 function FloatToStr(Value: Extended;
@@ -974,7 +974,7 @@ begin
 end;
 {$ENDIF}
 
-{$IFDEF DELPHI_5}
+{$IFDEF UNDER_DELPHI_6}
 const
 // 8087 status word masks
   mIE = $0001;

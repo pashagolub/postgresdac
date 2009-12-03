@@ -94,7 +94,7 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
-{$IFDEF DELPHI_5}
+{$IFDEF UNDER_DELPHI_6}
    type
     PBoolean      = ^Boolean;
     PWordBool     = ^WordBool;
@@ -2510,7 +2510,7 @@ function StrToSQLFloat(Value: string): Double;
 begin
   if Value <> '' then
     try
-      Result := {$IFDEF DELPHI_5}PSQLAccess.{$ENDIF}StrToFloat(Value, PSQL_FS);
+      Result := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}StrToFloat(Value, PSQL_FS);
     except
       Result := 0;
     end
@@ -2520,7 +2520,7 @@ end;
 
 function SQLFloatToStr(Value: Double): string;
 begin
-  Result := {$IFDEF DELPHI_5}PSQLAccess.{$ENDIF}FloatToStr(Value, PSQL_FS);
+  Result := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}FloatToStr(Value, PSQL_FS);
 end;
 
 procedure GetToken(var Buffer, Token: string);
