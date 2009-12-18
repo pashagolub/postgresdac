@@ -9052,6 +9052,7 @@ begin
   try
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (PQnfields(Stmt) > aFieldNumber) and
+            (aFieldNumber >= 0) and
             (PQntuples(Stmt) > 0);
     if IsOK then
       Result := RawToString(PQgetvalue(Stmt,0,aFieldNumber))
