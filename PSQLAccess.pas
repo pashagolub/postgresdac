@@ -8964,11 +8964,14 @@ end;
 
 function TNativeConnect.RawToString(S: PAnsiChar): string;
 begin
-{$IFDEF DELPHI_12}
+
  if IsUnicodeUsed then
+{$IFDEF DELPHI_12}
   Result := UTF8ToUnicodeString(S)
- else
+{$ELSE}
+  Result := UTF8ToString(S)
 {$ENDIF}
+ else
   Result := string(S);
 end;
 
