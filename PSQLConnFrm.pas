@@ -6,20 +6,20 @@ interface
 
 uses
   Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
-  StdCtrls, ExtCtrls,PSQLDbTables,PSQLTypes;
+  StdCtrls, ExtCtrls, PSQLDbTables, PSQLTypes;
 
 type
   TPSQLConnForm = class(TForm)
     Bevel1: TBevel;
-    Label1: TLabel;
-    Label2: TLabel;
+    laUser: TLabel;
+    laPass: TLabel;
     DBUserID: TEdit;
     DBPasswd: TEdit;
-    Label3: TLabel;
-    DBName: TEdit;          
-    Label4: TLabel;
+    laDbName: TLabel;
+    DBName: TEdit;
+    laHost: TLabel;
     DBHost: TEdit;
-    Label5: TLabel;
+    laPort: TLabel;
     DBPort: TEdit;
     DBLogin: TCheckBox;
     OkBtn: TButton;
@@ -82,7 +82,7 @@ begin
   db.UserName := DBUserId.Text;
   db.UserPassword := DBPasswd.Text;
   Db.Host := DBHost.Text;
-  Db.Port := StrToInt(DBPort.Text);
+  Db.Port := StrToIntDef(DBPort.Text, PSQLTypes.PSQL_PORT);
   db.LoginPrompt := DBLogin.Checked;
 end;
 
