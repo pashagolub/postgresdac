@@ -132,10 +132,11 @@ var
   IsOk: Boolean;
   aSQL: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
+  aSQL := 'SELECT 12345 as column1';
+  aFieldName := 'column1';
   ReturnValue := FPSQLDatabase.SelectString(aSQL, IsOk, aFieldName);
-  // TODO: Validate method results
+  Check(IsOk);
+  CheckEquals('12345', ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectString1;
@@ -145,10 +146,11 @@ var
   IsOk: Boolean;
   aSQL: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
+  aSQL := 'SELECT 12345 as column1';
+  aFieldNumber := 0;
   ReturnValue := FPSQLDatabase.SelectString(aSQL, IsOk, aFieldNumber);
-  // TODO: Validate method results
+  Check(IsOk);
+  CheckEquals('12345', ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef;
@@ -158,10 +160,15 @@ var
   aDefaultValue: string;
   aSQL: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
+  aSQL := 'SELECT 12345 as column1';
+  aFieldName := 'column1';
   ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  // TODO: Validate method results
+  CheckEquals('12345', ReturnValue);
+  aSQL := 'SELECT 12345 as column1';
+  aFieldName := 'WRONG_COL_NAME';
+  aDefaultValue := 'MyDefaultValue';
+  ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldName);
+  CheckEquals(aDefaultValue, ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef1;
@@ -171,10 +178,15 @@ var
   aDefaultValue: string;
   aSQL: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
+  aSQL := 'SELECT 12345 as column1';
+  aFieldNumber := 0;
   ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  // TODO: Validate method results
+  CheckEquals('12345', ReturnValue);
+  aSQL := 'SELECT 12345 as column1';
+  aFieldNumber := -1234214;
+  aDefaultValue := 'MyDefaultValue';
+  ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
+  CheckEquals(aDefaultValue, ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStrings;
