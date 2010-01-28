@@ -2716,8 +2716,22 @@ begin
 end;
 
 function TPSQLField.GetNull : Boolean;
+var AVal: PChar;
 begin
-  if FStatus <> nil then Result := TFieldStatus(FStatus^).isNULL = -1 else  Result := FALSE;
+  Result := True;
+  case NativeType of
+   FIELD_TYPE_BPCHAR,
+   FIELD_TYPE_VARCHAR: if (dsoEmptyCharAsNull in GetNativeDataset.Options) then
+       begin
+         AVal := FieldValue;
+         Inc(PAnsiChar(AVal));
+         if AVal = '' then Exit; //we have empty string and it's treated as NULL due options
+       end;
+  end;
+  if FStatus <> nil then
+    Result := TFieldStatus(FStatus^).isNULL = -1
+  else
+    Result := FALSE;
 end;
 
 procedure TPSQLField.SetNull( Flag : Boolean );
@@ -4006,7 +4020,9 @@ begin
   T := FFieldDescs[FieldNo];
   T.Buffer := PRecord;
   if Assigned(pDest) then
-     NativeToDelphi(T, PRecord, pDest, bBlank) else  bBlank := T.FieldNull;
+    NativeToDelphi(T, PRecord, pDest, bBlank)
+  else
+    bBlank := T.FieldNull;
 end;
 
 procedure TNativeDataSet.PutField(FieldNo: Word;PRecord: Pointer;pSrc: Pointer);
@@ -4539,6 +4555,7 @@ end;
 procedure TNativeDataSet.InternalReadBuffer;
 var
   i, size: Integer;
+  null: boolean; //temp var used for work with dsoEmptyCharAsNull
   MaxSize, tMS : Integer;
   aFType: integer;
   T: TPSQLField;
@@ -4602,10 +4619,11 @@ begin
              T := Fields[i+1];
              T.Buffer  := origBuffer;
              T.FieldChanged := FALSE;
-             T.FieldNull    := FieldIsNull(I);
+             null := FieldIsNull(I);
+             T.FieldNull    := null
           end;
           size := T.NativeSize; //FieldLength
-          if T.FieldNull  then
+          if null then
               ZeroMemory(FCurrentBuffer,size)
           else
             begin

@@ -1766,7 +1766,7 @@ Type
 
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
-                        dsoManageLOFields);
+                        dsoManageLOFields, dsoEmptyCharAsNull);
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
 const
