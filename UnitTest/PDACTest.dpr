@@ -19,8 +19,10 @@ uses
   TestFramework,
   GUITestRunner,
   TextTestRunner,
+  TestExtensions,
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
-  TestExtensions;
+  PSQLQueryTest in 'PSQLQueryTest.pas',
+  TestHelper in 'TestHelper.pas';
 
 {$R *.RES}
 

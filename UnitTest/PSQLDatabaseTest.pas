@@ -55,49 +55,7 @@ var
 
 implementation
 
-procedure ComponentToFile(Component: TComponent; Name: string);
-
-var
-  BinStream: TMemoryStream;
-  StrStream: TFileStream;
-  s: string;
-begin
-  BinStream := TMemoryStream.Create;
-  try
-    StrStream := TFileStream.Create(Name, fmCreate);
-    try
-      BinStream.WriteComponent(Component);
-      BinStream.Seek(0, soFromBeginning);
-      ObjectBinaryToText(BinStream, StrStream);
-    finally
-      StrStream.Free;
-    end;
-  finally
-    BinStream.Free
-  end;
-end;
-
-procedure FileToComponent(Name: string; Component: TComponent);
-var
-  StrStream:TFileStream;
-  BinStream: TMemoryStream;
-begin
-  StrStream := TFileStream.Create(Name, fmOpenRead);
-  try
-    BinStream := TMemoryStream.Create;
-    try
-      ObjectTextToBinary(StrStream, BinStream);
-      BinStream.Seek(0, soFromBeginning);
-      BinStream.ReadComponent(Component);
-
-    finally
-      BinStream.Free;
-    end;
-  finally
-    StrStream.Free;
-  end;
-end;
-
+uses TestHelper;
 
 procedure TestTPSQLDatabase.HookUp;
 begin
@@ -321,31 +279,9 @@ end;
 { MainFormSetup }
 
 procedure TDbSetup.SetUp;
-var Frm: TPSQLConnForm;
-    F: TextFile;
-    S: string;
 begin
   inherited;
-  FPSQLDatabase := TPSQLDatabase.Create(nil);
-  if FileExists('PSQLDatabaseTest.conf') then
-    FileToComponent('PSQLDatabaseTest.conf', FPSQLDatabase);
-  Application.CreateForm(TPSQLConnForm, Frm);
-  try
-    with Frm do
-     begin
-      GetDatabaseProperty(FPSQLDatabase);
-      if ShowModal = mrOk then
-        SetDatabaseProperty(FPSQLDatabase)
-      else
-        begin
-         FreeAndNil(FPSQLDatabase);
-         raise EInvalidOperation.Create('Test cancelled by operator!');
-        end;
-     end;
-  finally
-   Frm.Free;
-  end;
-  FPSQLDatabase.Open;
+  SetUpTestDatabase(FPSQLDatabase, 'PSQLDatabaseTest.conf');
 end;
 
 procedure TDbSetup.TearDown;
