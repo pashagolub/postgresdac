@@ -1766,7 +1766,7 @@ Type
 
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
-                        dsoManageLOFields, dsoEmptyCharAsNull);
+                        dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsString);
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
 const
@@ -1891,7 +1891,11 @@ function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
 procedure GetToken(var Buffer, Token: string);
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; var RecBuff : FLDDesc; var ValChk : VCHKDesc; var LocArray : Boolean);
+procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word;
+                                        var RecBuff : FLDDesc;
+                                        var ValChk : VCHKDesc;
+                                        var LocArray : Boolean;
+                                        const DSOptions: TPSQLDatasetOptions);
 
 procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
@@ -1908,9 +1912,10 @@ function MaskSearch(const Str, Mask: string;
 
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 function GetBDEErrorMessage(ErrorCode : Word):String;
-Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
-                        Var BdeSubType : Word; Var LogSize : Integer;
-                        var LocArray : Boolean);
+procedure FieldMapping(FieldType : Word; phSize : Integer; var BdeType : Word;
+                        var BdeSubType : Word; var LogSize : Integer;
+                        var LocArray : Boolean;
+                        const DSOptions: TPSQLDatasetOptions);
 
 function UIntToStr(C: cardinal): string;
 function StrToUInt(S: string): cardinal;
@@ -2464,21 +2469,21 @@ begin
   Result := '';
   case Mode of
      0: begin
-           if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value);
+           if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
            if Frac(Value) <> 0 then
            begin
               if Result <> '' then Result := Result + ' ';
-              Result := Result + FormatDateTime('hh:nn:ss.z', Value);
+              Result := Result + FormatDateTime('hh:nn:ss.z', Value, PSQL_FS);
            end;
         end;
      1: begin
-           if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value);
+           if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
         end;
      2: begin
            if Frac(Value) <> 0 then
            begin
               if Result <> '' then Result := Result + ' ';
-              Result := Result + FormatDateTime('hh:nn:ss.z', Value);
+              Result := Result + FormatDateTime('hh:nn:ss.z', Value, PSQL_FS);
            end;
         end;
   end;
@@ -2594,9 +2599,10 @@ begin
   if E <> 0 then raise EConvertError.Create(S + ' is not valid cardinal value');
 end;
 
-Procedure FieldMapping(FieldType : Word; phSize : Integer; Var BdeType : Word;
-                Var BdeSubType : Word; Var LogSize : Integer;
-                var LocArray : Boolean);
+Procedure FieldMapping(FieldType : Word; phSize : Integer; var BdeType : Word;
+                var BdeSubType : Word; var LogSize : Integer;
+                var LocArray : Boolean;
+                const DSOptions: TPSQLDatasetOptions);
 begin
   BdeType    := fldUNKNOWN;
   BdeSubType := 0;
@@ -2681,7 +2687,12 @@ begin
   end;
 end;
 
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word; var RecBuff : FLDDesc; var ValChk : VCHKDesc; var LocArray : Boolean);
+Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO;
+      Count, Offset : Word;
+      var RecBuff : FLDDesc;
+      var ValChk : VCHKDesc;
+      var LocArray : Boolean;
+      const DSOptions: TPSQLDatasetOptions);
 var
   LogSize : Integer;
   dataLen : Integer;
@@ -2694,7 +2705,7 @@ begin
     iFldNum  := Count;
     ValChk.iFldNum := Count;
     DataLen := Info.FieldMaxSize;
-    FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
+    FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray, DSOptions);
     if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
        (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
     begin

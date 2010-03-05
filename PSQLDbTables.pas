@@ -13,7 +13,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       ExtCtrls;
 
 const
-    VERSION : string = '2.5.4';
+    VERSION : string = '2.5.5-DEV';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -300,6 +300,10 @@ type
       procedure SetCharSet(CharSet: string);
       procedure StartTransaction;
       procedure UnregisterDirectQuery(aDirectQuery : TObject);
+
+      procedure Savepoint(const Name: string);
+      procedure ReleaseSavepoint(const Name: string);
+      procedure RollbackToSavepoint(const Name: string);
 
       property DataSets[Index: Integer]: TPSQLDataSet read GetDataSet;
       property Handle: HDBIDB read FHandle write SetHandle;
@@ -1451,7 +1455,7 @@ begin
     begin
       StmtHandle := GetStatementHandle;
       try
-        Check(Engine, Engine.QuerySetParams(StmtHandle, Params, SQL)); //SetQueryParams(Engine, Self, StmtHandle, Params);
+        Check(Engine, Engine.QuerySetParams(StmtHandle, Params, SQL));
         Check(Engine, Engine.QExec(StmtHandle, Cursor, Result));
       finally
         if not Cache then  Engine.QFree(StmtHandle);
@@ -1556,6 +1560,24 @@ end;
 procedure TPSQLDatabase.EndTransaction(TransEnd : EXEnd);
 begin
   Check(Engine, Engine.EndTran(FHandle, nil, TransEnd));
+end;
+
+procedure TPSQLDatabase.Savepoint(const Name: string);
+begin
+  CheckActive();
+  Execute('SAVEPOINT ' + Name);
+end;
+
+procedure TPSQLDatabase.ReleaseSavepoint(const Name: string);
+begin
+  CheckActive();
+  Execute('RELEASE SAVEPOINT ' + Name);
+end;
+
+procedure TPSQLDatabase.RollbackToSavepoint(const Name: string);
+begin
+  CheckActive();
+  Execute('ROLLBACK TO SAVEPOINT ' + Name);
 end;
 
 function TPSQLDatabase.GetConnected: Boolean;

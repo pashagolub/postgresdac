@@ -4399,7 +4399,7 @@ var
 begin
   CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
   FLD := FieldInfo[FieldNo-1];
-  ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray);
+  ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray, FOptions);
   LocType := FieldType(FieldNo-1);
   case Loctype of
     FIELD_TYPE_BYTEA,
@@ -4570,7 +4570,7 @@ const
 {$ENDIF}
 
 begin
-   T := nil;
+//   T := nil;
    if assigned(FCurrentBuffer) then
    begin
        MaxSize := 0;
@@ -4614,14 +4614,14 @@ begin
        origBuffer := FCurrentBuffer;
        for i:=0 to FieldCount-1 do
        begin
-          if Fields.Count>=i then
-          begin
+      //    if Fields.Count>=i then
+      //    begin
              T := Fields[i+1];
              T.Buffer  := origBuffer;
              T.FieldChanged := FALSE;
              null := FieldIsNull(I);
-             T.FieldNull    := null
-          end;
+             T.FieldNull    := null;
+      //    end;
           size := T.NativeSize; //FieldLength
           if null then
               ZeroMemory(FCurrentBuffer,size)
@@ -7853,7 +7853,7 @@ begin
             N := RawToString(PQgetvalue(RES,I,0));
           PDesc^.szName := N;
           PDesc^.uParamNum := I;
-          FieldMapping(StrToInt(RawToString(PQgetvalue(RES,I,1))),0,BdeType,BdeSubType,LogSize,LocArray);
+          FieldMapping(StrToInt(RawToString(PQgetvalue(RES,I,1))), 0, BdeType, BdeSubType, LogSize, LocArray, []);
           PDesc^.uFldType := BdeType;
           PDesc^.uSubType := BdeSubType;
           N := RawToString(PQgetvalue(RES,I,2));
@@ -9265,6 +9265,7 @@ initialization
   {$ENDIF}
   GetLocaleFormatSettings(LOCALE_SYSTEM_DEFAULT, PSQL_FS);
   PSQL_FS.DecimalSeparator := '.'; //for use inside StrToFloat
+  PSQL_FS.TimeSeparator := ':'; //for use inside FormatDateTime
 
 finalization
 
