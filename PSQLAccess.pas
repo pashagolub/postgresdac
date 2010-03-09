@@ -4671,7 +4671,7 @@ begin
                {$IFDEF DELPHI_12}
                  StrCopy(PWideChar(Data), PWideChar(FldValue))
                {$ELSE}
-                 StrCopy(PAnsiChar(Data), PAnsiChar(UTF8ToString(FldValue)))
+                 StrCopy(PAnsiChar(Data), PAnsiChar(FldValue))
                {$ENDIF}
                else
                 StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
