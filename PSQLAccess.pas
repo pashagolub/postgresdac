@@ -5571,7 +5571,7 @@ var
       ftTime: ts := 'hh:nn:ss';
      end;
      if VarType(Param.Value) = VarDate then
-       Result := AnsiQuotedStr(FormatDateTime(ts, Param.Value),'''')
+       Result := AnsiQuotedStr(FormatDateTime(ts, Param.Value, PSQL_FS),'''')
      else
        Result := AnsiQuotedStr(VarAsType(Param.Value, varString),'''');
   end;
@@ -7339,17 +7339,17 @@ begin
     fldDATE : begin
                  DWORD(TimeStamp.Date) := PDWORD(@Buff)^;
                  TimeStamp.Time := 0;
-                 Result := FormatDateTime('mm-dd-yyyy',SysUtils.Time+Trunc(TimeStampToDateTime(TimeStamp) + 1E-11));
+                 Result := FormatDateTime('mm-dd-yyyy',SysUtils.Time+Trunc(TimeStampToDateTime(TimeStamp) + 1E-11), PSQL_FS);
               end;
     fldTIME : begin
                  DWORD(TimeStamp.Time) := PDWORD(@Buff)^;
                  TimeStamp.Date := DateDelta;
-                 Result := FormatDateTime('hh:nn:ss',SysUtils.Date+TimeOf(TimeStampToDateTime(TimeStamp)));
+                 Result := FormatDateTime('hh:nn:ss',SysUtils.Date+TimeOf(TimeStampToDateTime(TimeStamp)), PSQL_FS);
               end;
     fldTIMESTAMP :
               begin
                  DateD := PDouble(@Buff)^;
-                 Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp(DateD)));
+                 Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp(DateD)), PSQL_FS);
               end;
    else
       Result := string(StrPas(PAnsiChar(@Buff)));
