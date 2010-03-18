@@ -5027,7 +5027,8 @@ begin
 	begin
    try
 		TNativeDataSet(FHandle).SortBy(FieldNames);
-		First;
+    TNativeDataset(Fhandle).SetRowPosition(-1, -1, ActiveBuffer);
+    Resync([]);
    except
     FSortFieldNames := '';
     raise;
