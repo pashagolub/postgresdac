@@ -4330,6 +4330,7 @@ begin
         for I := 0 to PQntuples(FStatement) - 1 do
            if PQgetlength(FStatement, I, FieldNum) > Result then
               Result := PQgetlength(FStatement, I, FieldNum);
+      if Result = 0 then Result := MAX_CHAR_LEN; //there is no field of length 0
       FFieldMinSizes[FieldNum] := Result;
      end
   else
