@@ -5296,7 +5296,7 @@ begin
     DBH := DBHandle;
     RetCode := Engine.OpenTable(DBH, FTableName, '',
       IndexName, IndexTag, IndexID, OpenMode, ShareModes[FExclusive],
-      xltField, FALSE, NIL, Result, FLimit, FOffset);
+      xltField, FALSE, NIL, Result, FOptions, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
       OpenMode := dbiReadOnly    else
     FillAddonProps;

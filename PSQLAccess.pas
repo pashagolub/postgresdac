@@ -135,6 +135,7 @@ Type
     procedure DatabaseList(pszWild : string; List : TStrings);
     procedure OpenTable(pszTableName: string; pszIndexName: string; iIndexId: Word;
                         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;var hCursor: hDBICur;
+                        AnOptions: TPSQLDatasetOptions;
                         Limit, Offset : Integer);
     procedure QueryAlloc(var hStmt: hDBIStmt);
     procedure QueryPrepare(var hStmt: hDBIStmt;Query : String);
@@ -239,7 +240,7 @@ Type
       function CloseDatabase(var hDb : hDBIDb) : DBIResult;
       function OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string;
                iIndexId: Word; eOpenMode: DBIOpenMode; eShareMode: DBIShareMode; exltMode: XLTMode; bUniDirectional : Bool;
-               pOptParams: Pointer; var hCursor: hDBICur; Limit, Offset : Integer): DBIResult;
+               pOptParams: Pointer; var hCursor: hDBICur; AnOptions: TPSQLDatasetOptions; Limit, Offset : Integer): DBIResult;
       function OpenStoredProcParams(hDb: hDBIDb;pszPName: string; ProcOID:cardinal; List : TList): DBIResult;
       function OpenStoredProcList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
       function OpenTableList(hDb: hDBIDb; pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
@@ -722,7 +723,13 @@ Type
       SQLQuery : String;
       ROWID    : OID;
       isQuery  : boolean;
-      Constructor Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : string; Index : Word;Limit, Offset : Integer; ASystem :Boolean = False);
+      Constructor Create(PSQL : TNativeConnect;
+                         Container : TContainer;
+                         AnOptions: TPSQLDatasetOptions;
+                         AName, IndexName : string;
+                         Index : Word;
+                         Limit, Offset : Integer;
+                         ASystem: Boolean = False);
       Destructor Destroy; Override;
       procedure CompareBookMarks(pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt);
       procedure GetBookMark(P : Pointer);
@@ -2339,22 +2346,28 @@ begin
   PQclear(RES);
 end;
 
-procedure TNativeConnect.OpenTable(pszTableName: string; pszIndexName: string; iIndexId: Word;
-                                   eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;var hCursor: hDBICur; Limit, Offset : integer);
+procedure TNativeConnect.OpenTable(pszTableName: string;
+                                   pszIndexName: string;
+                                   iIndexId: Word;
+                                   eOpenMode: DBIOpenMode;
+                                   eShareMode: DBIShareMode;
+                                   var hCursor: hDBICur;
+                                   AnOptions: TPSQLDatasetOptions;
+                                   Limit, Offset : integer);
 begin
   InternalConnect;
   if FSystem then
   begin
-     hCursor := hDBICur(TNativeDataSet.Create(Self, Tables, pszTableName, pszIndexName, iIndexId,1,0,True));
+     hCursor := hDBICur(TNativeDataSet.Create(Self, Tables, AnOptions, pszTableName, pszIndexName, iIndexId,1,0,True));
      FSystem := False;
   end else
-     hCursor := hDBICur(TNativeDataSet.Create(Self, Tables,pszTableName, pszIndexName, iIndexId,Limit,Offset));
+     hCursor := hDBICur(TNativeDataSet.Create(Self, Tables, AnOptions, pszTableName, pszIndexName, iIndexId,Limit,Offset));
   TNativeDataSet(hCursor).OpenTable;
 end;
 
 procedure TNativeConnect.QueryAlloc(var hStmt: hDBIStmt);
 begin
-    hStmt := hDBIStmt(TNativeDataSet.Create(Self, nil, '' , '', 0, 0, 0));
+    hStmt := hDBIStmt(TNativeDataSet.Create(Self, nil, [], '' , '', 0, 0, 0));
 end;
 
 procedure TNativeConnect.QueryPrepare(var hStmt: hDBIStmt;Query : String);
@@ -2455,7 +2468,7 @@ end;
 
 begin
    FSystem := True;
-   OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED,hDBICur(P),0,0);
+   OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED, hDBICur(P), [], 0, 0);
    ProcessTable;
    P.CloseTable;
    P.Free;
@@ -2493,7 +2506,7 @@ var
   procedure OpenAndProcessTable;
   begin
     FSystem := True;
-    OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED, P,0,0);
+    OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED, P, [], 0, 0);
     Try
       ProcessTable;
       TNativeDataSet(P).CloseTable;
@@ -2525,7 +2538,7 @@ var
 begin
   isNotOpen := not Assigned(hCursor);
   if isNotOpen then
-    OpenTable(pszTableName, '', 0, dbiREADWRITE, dbiOPENEXCL, hCursor, 0, 0);
+    OpenTable(pszTableName, '', 0, dbiREADWRITE, dbiOPENEXCL, hCursor, [], 0, 0);
   Try
     TNativeDataSet(hCursor).EmptyTable;
   Finally
@@ -2627,7 +2640,7 @@ var
 begin
   if Assigned(hCursor) then
     NDS := TNativeDataSet(hCursor) else
-    OpenTable(pszTableName, '', IdxDesc.iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), 0, 0);
+    OpenTable(pszTableName, '', IdxDesc.iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), [], 0, 0);
   Try
     NDS.AddIndex(idxDesc,pszKeyViolName);
   Finally
@@ -2641,7 +2654,7 @@ var
 begin
   if Assigned(hCursor) then
     NDS := TNativeDataSet(hCursor) else
-    OpenTable(pszTableName, pszIndexName, iIndexId,dbiREADWRITE,dbiOPENEXCL,hDBICur(NDS),0,0);
+    OpenTable(pszTableName, pszIndexName, iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), [], 0, 0);
   Try
     NDS.DeleteIndex(pszIndexName, pszIndexTagName, iIndexID);
   Finally
@@ -3380,7 +3393,13 @@ begin
 end;
 
 {$O-}
-Constructor TNativeDataSet.Create(PSQL : TNativeConnect; Container : TContainer; AName, IndexName : string; Index : Word;Limit, Offset : Integer; ASystem : Boolean = False);
+Constructor TNativeDataSet.Create(PSQL : TNativeConnect;
+                                  Container : TContainer;
+                                  AnOptions: TPSQLDatasetOptions;
+                                  AName, IndexName : string;
+                                  Index : Word;
+                                  Limit, Offset : Integer;
+                                  ASystem : Boolean = False);
 begin
   Inherited Create;
   FStatement := nil;
@@ -3393,6 +3412,7 @@ begin
   FPrimaryKeyNumber        := 0;
   AutoReExec     := True;
   FConnect := PSQL;
+  FOptions := AnOptions;
   FOpen := False;
   FRecSize:=-1;
   FLimit := Limit;
@@ -4287,7 +4307,13 @@ function TNativeDataSet.FieldMinSize(FieldNum: Integer): Integer;
 var
   I, H: Integer;
 begin
-  Result := 0;
+  if dsoUDTAsMaxString in FOptions then
+   begin
+    Result := MAX_CHAR_LEN;
+    Exit;
+   end
+  else
+   Result := 0;
   if not Assigned(FFieldMinSizes) or
      (High(FFieldMinSizes) < FieldNum) or
      (FFieldMinSizes[FieldNum] = -1)
@@ -4298,7 +4324,7 @@ begin
       else
        H := 0;
       SetLength(FFieldMinSizes, FieldNum + 1);
-      For i := H to High(FFieldMinSizes) - 1 do
+      for i := H to High(FFieldMinSizes) - 1 do
         FFieldMinSizes[i] := -1;
       if FStatement <> nil then
         for I := 0 to PQntuples(FStatement) - 1 do
@@ -4324,7 +4350,7 @@ begin
    FIELD_TYPE_TID: Result := FIELD_TYPE_INT4;
   else
    if (Result = FIELD_TYPE_VARCHAR) AND
-      ((PQfmod(FStatement,FieldNum)<0) or (PQfmod(FStatement,FieldNum)>8192) ) then
+      ((PQfmod(FStatement,FieldNum)<0) or (PQfmod(FStatement,FieldNum) > MAX_CHAR_LEN) ) then
          Result := FIELD_TYPE_TEXT; //added to deal with varchar without length specifier
   end;       
 end;
@@ -6014,7 +6040,7 @@ end;
 procedure TNativeDataSet.Clone(bReadOnly : Bool; bUniDirectional : Bool; var hCurNew : hDBICur);
 begin
   if FConnect = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
-  TNativeConnect(FConnect).OpenTable(TableName, FIndexName, 0, FOMode, dbiOPENSHARED, hCurNew, 0, 0);
+  TNativeConnect(FConnect).OpenTable(TableName, FIndexName, 0, FOMode, dbiOPENSHARED, hCurNew, [], 0, 0);
   TNativeDataSet(hCurNew).MasterCursor := Self;
 end;
 
@@ -6042,7 +6068,7 @@ end;
 //////////////////////////////////////////////////////////////////////
 Constructor TIndexList.Create(PSQL: TNativeConnect; D : TIDXDescList; TotalCount : Word );
 begin
-  Inherited Create(PSQL, nil, '', '', 0, 0, 0);
+  Inherited Create(PSQL, nil, [], '', '', 0, 0, 0);
   Items   := TotalCount;
   if D <> nil then
   begin
@@ -6102,7 +6128,7 @@ end;
 constructor TFieldList.Create(PSQL: TNativeConnect; D: TFLDDescList;
   TotalCount: Word);
 begin
-  Inherited Create(PSQL, nil, '', '', 0, 0, 0);
+  Inherited Create(PSQL, nil, [], '', '', 0, 0, 0);
   Items   := TotalCount;
   if D <> nil then
   begin
@@ -6194,11 +6220,12 @@ begin
 end;
 
 function TPSQLEngine.OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName : string; iIndexId: Word;
-         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;exltMode: XLTMode;bUniDirectional : Bool;pOptParams: Pointer;var hCursor: hDBICur;Limit, Offset : Integer): DBIResult;
+         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;exltMode: XLTMode;bUniDirectional : Bool;pOptParams: Pointer;var hCursor: hDBICur;
+         AnOptions: TPSQLDatasetOptions; Limit, Offset : Integer): DBIResult;
 begin
   Try
     Database := hDb;
-    TNativeConnect(hDb).OpenTable(pszTableName,pszIndexName,iIndexId,eOpenMode,eShareMode,hCursor,Limit,Offset);
+    TNativeConnect(hDb).OpenTable(pszTableName, pszIndexName, iIndexId, eOpenMode, eShareMode, hCursor, AnOptions, Limit, Offset);
     Result := DBIERR_NONE;
   Except
     Result := CheckError;
@@ -7315,7 +7342,7 @@ function TNativeDataSet.FieldVal(FieldNo: Integer; FieldPtr : Pointer):String;
 var
   Field : TPSQLField;
   Blank : Bool;
-  Buff  : array[0..8192] of Char;
+  Buff  : array[0..MAX_BLOB_SIZE] of Char;
   TimeStamp : TTimeStamp;
   DateD : Double;
 begin

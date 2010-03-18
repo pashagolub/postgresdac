@@ -135,6 +135,7 @@ const
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
   MAX_BLOB_SIZE    = 8192; //Max Blob size for read and write operation
+  MAX_CHAR_LEN     = 8192; //Max character length allowed in TField descendants
   MAX_ENCODING_ID  = 42; //Max encoding id for pg_encoding_to_char
   InvalidOid       : cardinal = 0;
 var
@@ -1766,7 +1767,8 @@ Type
 
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
-                        dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsString);
+                        dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsMaxString);
+
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
 const
