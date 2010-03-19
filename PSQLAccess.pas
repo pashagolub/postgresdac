@@ -6,7 +6,7 @@ unit PSQLAccess;
 
 Interface
 
-Uses Classes, SysUtils, Windows, Db, PSQLTypes,Math,
+Uses Classes, Windows, Db, PSQLTypes, Math, SysUtils,
      {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF}
      {$IFDEF DELPHI_6},Variants{$ENDIF},
      ActiveX;
@@ -894,11 +894,15 @@ function StrToFloat(const S: string;
   const FormatSettings: TFormatSettings): Extended;
 function FloatToStr(Value: Extended;
   const FormatSettings: TFormatSettings): string;
+function FormatDateTime(const Format: string; DateTime: TDateTime;
+  const FormatSettings: TFormatSettings): string;
+procedure DateTimeToString(var Result: string; const Format: string;
+  DateTime: TDateTime; const FormatSettings: TFormatSettings);
 {$ENDIF}
 
-Implementation
+implementation
 
-Uses Dialogs,Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
+Uses Dialogs, Forms, PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
      DbConsts, PSQLExtMask, PSQLFields;
 
 {**************************************************************************}
@@ -976,7 +980,7 @@ procedure CloseDebugFile;
 begin
  if not DebugFileOpened then Exit;
  LogDebugMessage('INFO','----- Session closed -----');
- WriteLn(F,'</TABLE>'); 
+ WriteLn(F,'</TABLE>');
  CloseFile(F);
 end;
 {$ENDIF}
@@ -1595,6 +1599,379 @@ var
 begin
   SetString(Result, Buffer, FloatToText(Buffer, Value, fvExtended,
     ffGeneral, 15, 0, FormatSettings));
+end;
+
+function FormatDateTime(const Format: string; DateTime: TDateTime;
+  const FormatSettings: TFormatSettings): string;
+begin
+  DateTimeToString(Result, Format, DateTime, FormatSettings);
+end;
+
+procedure DateTimeToString(var Result: string; const Format: string;
+  DateTime: TDateTime; const FormatSettings: TFormatSettings);
+var
+  BufPos, AppendLevel: Integer;
+  Buffer: array[0..255] of Char;
+
+  procedure AppendChars(P: PChar; Count: Integer);
+  var
+    N: Integer;
+  begin
+    N := SizeOf(Buffer) - BufPos;
+    if N > Count then N := Count;
+    if N <> 0 then Move(P[0], Buffer[BufPos], N);
+    Inc(BufPos, N);
+  end;
+
+  procedure AppendString(const S: string);
+  begin
+    AppendChars(Pointer(S), Length(S));
+  end;
+
+  procedure AppendNumber(Number, Digits: Integer);
+  const
+    Format: array[0..3] of Char = '%.*d';
+  var
+    NumBuf: array[0..15] of Char;
+  begin
+    AppendChars(NumBuf, FormatBuf(NumBuf, SizeOf(NumBuf), Format,
+      SizeOf(Format), [Digits, Number]));
+  end;
+
+  procedure AppendFormat(Format: PChar);
+  var
+    Starter, Token, LastToken: Char;
+    DateDecoded, TimeDecoded, Use12HourClock,
+    BetweenQuotes: Boolean;
+    P: PChar;
+    Count: Integer;
+    Year, Month, Day, Hour, Min, Sec, MSec, H: Word;
+
+    procedure GetCount;
+    var
+      P: PChar;
+    begin
+      P := Format;
+      while Format^ = Starter do Inc(Format);
+      Count := Format - P + 1;
+    end;
+
+    procedure GetDate;
+    begin
+      if not DateDecoded then
+      begin
+        DecodeDate(DateTime, Year, Month, Day);
+        DateDecoded := True;
+      end;
+    end;
+
+    procedure GetTime;
+    begin
+      if not TimeDecoded then
+      begin
+        DecodeTime(DateTime, Hour, Min, Sec, MSec);
+        TimeDecoded := True;
+      end;
+    end;
+
+    function ConvertEraString(const Count: Integer) : string;
+    var
+      FormatStr: string;
+      SystemTime: TSystemTime;
+      Buffer: array[Byte] of Char;
+      P: PChar;
+    begin
+      Result := '';
+      with SystemTime do
+      begin
+        wYear  := Year;
+        wMonth := Month;
+        wDay   := Day;
+      end;
+
+      FormatStr := 'gg';
+      if GetDateFormat(GetThreadLocale, DATE_USE_ALT_CALENDAR, @SystemTime,
+        PChar(FormatStr), Buffer, SizeOf(Buffer)) <> 0 then
+      begin
+        Result := Buffer;
+        if Count = 1 then
+        begin
+          case SysLocale.PriLangID of
+            LANG_JAPANESE:
+              Result := Copy(Result, 1, CharToBytelen(Result, 1));
+            LANG_CHINESE:
+              if (SysLocale.SubLangID = SUBLANG_CHINESE_TRADITIONAL)
+                and (ByteToCharLen(Result, Length(Result)) = 4) then
+              begin
+                P := Buffer + CharToByteIndex(Result, 3) - 1;
+                SetString(Result, P, CharToByteLen(P, 2));
+              end;
+          end;
+        end;
+      end;
+    end;
+
+    function ConvertYearString(const Count: Integer): string;
+    var
+      FormatStr: string;
+      SystemTime: TSystemTime;
+      Buffer: array[Byte] of Char;
+    begin
+      Result := '';
+      with SystemTime do
+      begin
+        wYear  := Year;
+        wMonth := Month;
+        wDay   := Day;
+      end;
+
+      if Count <= 2 then
+        FormatStr := 'yy' // avoid Win95 bug.
+      else
+        FormatStr := 'yyyy';
+
+      if GetDateFormat(GetThreadLocale, DATE_USE_ALT_CALENDAR, @SystemTime,
+        PChar(FormatStr), Buffer, SizeOf(Buffer)) <> 0 then
+      begin
+        Result := Buffer;
+        if (Count = 1) and (Result[1] = '0') then
+          Result := Copy(Result, 2, Length(Result)-1);
+      end;
+    end;
+
+    function StrCharLength(const Str: PChar): Integer;
+    begin
+      if SysLocale.FarEast then
+        Result := Integer(CharNext(Str)) - Integer(Str)
+      else
+        Result := 1;
+    end;
+
+    function StrNextChar(const Str: PChar): PChar;
+    begin
+      Result := CharNext(Str);
+    end;
+
+  begin
+    if (Format <> nil) and (AppendLevel < 2) then
+    begin
+      Inc(AppendLevel);
+      LastToken := ' ';
+      DateDecoded := False;
+      TimeDecoded := False;
+      Use12HourClock := False;
+      while Format^ <> #0 do
+      begin
+        Starter := Format^;
+        if Starter in LeadBytes then
+        begin
+          AppendChars(Format, StrCharLength(Format));
+          Format := StrNextChar(Format);
+          LastToken := ' ';
+          Continue;
+        end;
+        Format := StrNextChar(Format);
+        Token := Starter;
+        if Token in ['a'..'z'] then Dec(Token, 32);
+        if Token in ['A'..'Z'] then
+        begin
+          if (Token = 'M') and (LastToken = 'H') then Token := 'N';
+          LastToken := Token;
+        end;
+        case Token of
+          'Y':
+            begin
+              GetCount;
+              GetDate;
+              if Count <= 2 then
+                AppendNumber(Year mod 100, 2) else
+                AppendNumber(Year, 4);
+            end;
+          'G':
+            begin
+              GetCount;
+              GetDate;
+              AppendString(ConvertEraString(Count));
+            end;
+          'E':
+            begin
+              GetCount;
+              GetDate;
+              AppendString(ConvertYearString(Count));
+            end;
+          'M':
+            begin
+              GetCount;
+              GetDate;
+              case Count of
+                1, 2: AppendNumber(Month, Count);
+                3: AppendString(FormatSettings.ShortMonthNames[Month]);
+              else
+                AppendString(FormatSettings.LongMonthNames[Month]);
+              end;
+            end;
+          'D':
+            begin
+              GetCount;
+              case Count of
+                1, 2:
+                  begin
+                    GetDate;
+                    AppendNumber(Day, Count);
+                  end;
+                3: AppendString(FormatSettings.ShortDayNames[DayOfWeek(DateTime)]);
+                4: AppendString(FormatSettings.LongDayNames[DayOfWeek(DateTime)]);
+                5: AppendFormat(Pointer(FormatSettings.ShortDateFormat));
+              else
+                AppendFormat(Pointer(FormatSettings.LongDateFormat));
+              end;
+            end;
+          'H':
+            begin
+              GetCount;
+              GetTime;
+              BetweenQuotes := False;
+              P := Format;
+              while P^ <> #0 do
+              begin
+                if P^ in LeadBytes then
+                begin
+                  P := StrNextChar(P);
+                  Continue;
+                end;
+                case P^ of
+                  'A', 'a':
+                    if not BetweenQuotes then
+                    begin
+                      if ( (StrLIComp(P, 'AM/PM', 5) = 0)
+                        or (StrLIComp(P, 'A/P',   3) = 0)
+                        or (StrLIComp(P, 'AMPM',  4) = 0) ) then
+                        Use12HourClock := True;
+                      Break;
+                    end;
+                  'H', 'h':
+                    Break;
+                  '''', '"': BetweenQuotes := not BetweenQuotes;
+                end;
+                Inc(P);
+              end;
+              H := Hour;
+              if Use12HourClock then
+                if H = 0 then H := 12 else if H > 12 then Dec(H, 12);
+              if Count > 2 then Count := 2;
+              AppendNumber(H, Count);
+            end;
+          'N':
+            begin
+              GetCount;
+              GetTime;
+              if Count > 2 then Count := 2;
+              AppendNumber(Min, Count);
+            end;
+          'S':
+            begin
+              GetCount;
+              GetTime;
+              if Count > 2 then Count := 2;
+              AppendNumber(Sec, Count);
+            end;
+          'T':
+            begin
+              GetCount;
+              if Count = 1 then
+                AppendFormat(Pointer(FormatSettings.ShortTimeFormat)) else
+                AppendFormat(Pointer(FormatSettings.LongTimeFormat));
+            end;
+          'Z':
+            begin
+              GetCount;
+              GetTime;
+              if Count > 3 then Count := 3;
+              AppendNumber(MSec, Count);
+            end;
+          'A':
+            begin
+              GetTime;
+              P := Format - 1;
+              if StrLIComp(P, 'AM/PM', 5) = 0 then
+              begin
+                if Hour >= 12 then Inc(P, 3);
+                AppendChars(P, 2);
+                Inc(Format, 4);
+                Use12HourClock := TRUE;
+              end else
+              if StrLIComp(P, 'A/P', 3) = 0 then
+              begin
+                if Hour >= 12 then Inc(P, 2);
+                AppendChars(P, 1);
+                Inc(Format, 2);
+                Use12HourClock := TRUE;
+              end else
+              if StrLIComp(P, 'AMPM', 4) = 0 then
+              begin
+                if Hour < 12 then
+                  AppendString(FormatSettings.TimeAMString) else
+                  AppendString(FormatSettings.TimePMString);
+                Inc(Format, 3);
+                Use12HourClock := TRUE;
+              end else
+              if StrLIComp(P, 'AAAA', 4) = 0 then
+              begin
+                GetDate;
+                AppendString(FormatSettings.LongDayNames[DayOfWeek(DateTime)]);
+                Inc(Format, 3);
+              end else
+              if StrLIComp(P, 'AAA', 3) = 0 then
+              begin
+                GetDate;
+                AppendString(FormatSettings.ShortDayNames[DayOfWeek(DateTime)]);
+                Inc(Format, 2);
+              end else
+              AppendChars(@Starter, 1);
+            end;
+          'C':
+            begin
+              GetCount;
+              AppendFormat(Pointer(FormatSettings.ShortDateFormat));
+              GetTime;
+              if (Hour <> 0) or (Min <> 0) or (Sec <> 0) then
+              begin
+                AppendChars(' ', 1);
+                AppendFormat(Pointer(FormatSettings.LongTimeFormat));
+              end;
+            end;
+          '/':
+            if DateSeparator <> #0 then
+              AppendChars(@FormatSettings.DateSeparator, 1);
+          ':':
+            if TimeSeparator <> #0 then
+              AppendChars(@FormatSettings.TimeSeparator, 1);
+          '''', '"':
+            begin
+              P := Format;
+              while (Format^ <> #0) and (Format^ <> Starter) do
+              begin
+                if Format^ in LeadBytes then
+                  Format := StrNextChar(Format)
+                else
+                  Inc(Format);
+              end;
+              AppendChars(P, Format - P);
+              if Format^ <> #0 then Inc(Format);
+            end;
+        else
+          AppendChars(@Starter, 1);
+        end;
+      end;
+      Dec(AppendLevel);
+    end;
+  end;
+
+begin
+  BufPos := 0;
+  AppendLevel := 0;
+  if Format <> '' then AppendFormat(Pointer(Format)) else AppendFormat('C');
+  SetString(Result, Buffer, BufPos);
 end;
 {$ENDIF}
 
