@@ -1896,8 +1896,7 @@ procedure GetToken(var Buffer, Token: string);
 procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word;
                                         var RecBuff : FLDDesc;
                                         var ValChk : VCHKDesc;
-                                        var LocArray : Boolean;
-                                        const DSOptions: TPSQLDatasetOptions);
+                                        var LocArray : Boolean);
 
 procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
@@ -1916,8 +1915,7 @@ function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boo
 function GetBDEErrorMessage(ErrorCode : Word):String;
 procedure FieldMapping(FieldType : Word; phSize : Integer; var BdeType : Word;
                         var BdeSubType : Word; var LogSize : Integer;
-                        var LocArray : Boolean;
-                        const DSOptions: TPSQLDatasetOptions);
+                        var LocArray : Boolean);
 
 function UIntToStr(C: cardinal): string;
 function StrToUInt(S: string): cardinal;
@@ -2603,8 +2601,7 @@ end;
 
 Procedure FieldMapping(FieldType : Word; phSize : Integer; var BdeType : Word;
                 var BdeSubType : Word; var LogSize : Integer;
-                var LocArray : Boolean;
-                const DSOptions: TPSQLDatasetOptions);
+                var LocArray : Boolean);
 begin
   BdeType    := fldUNKNOWN;
   BdeSubType := 0;
@@ -2693,8 +2690,7 @@ Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO;
       Count, Offset : Word;
       var RecBuff : FLDDesc;
       var ValChk : VCHKDesc;
-      var LocArray : Boolean;
-      const DSOptions: TPSQLDatasetOptions);
+      var LocArray : Boolean);
 var
   LogSize : Integer;
   dataLen : Integer;
@@ -2707,7 +2703,7 @@ begin
     iFldNum  := Count;
     ValChk.iFldNum := Count;
     DataLen := Info.FieldMaxSize;
-    FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray, DSOptions);
+    FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
     if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
        (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
     begin

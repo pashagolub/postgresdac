@@ -4803,7 +4803,7 @@ var
 begin
   CheckParam(not (FieldNo <= FieldCount), DBIERR_INVALIDRECSTRUCT);
   FLD := FieldInfo[FieldNo-1];
-  ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray, FOptions);
+  ConverPSQLtoDelphiFieldInfo(FLD, FieldNo, FieldOffset(FieldNo), P, P1, LocArray);
   LocType := FieldType(FieldNo-1);
   case Loctype of
     FIELD_TYPE_BYTEA,
@@ -8258,7 +8258,7 @@ begin
             N := RawToString(PQgetvalue(RES,I,0));
           PDesc^.szName := N;
           PDesc^.uParamNum := I;
-          FieldMapping(StrToInt(RawToString(PQgetvalue(RES,I,1))), 0, BdeType, BdeSubType, LogSize, LocArray, []);
+          FieldMapping(StrToInt(RawToString(PQgetvalue(RES,I,1))), 0, BdeType, BdeSubType, LogSize, LocArray);
           PDesc^.uFldType := BdeType;
           PDesc^.uSubType := BdeSubType;
           N := RawToString(PQgetvalue(RES,I,2));
