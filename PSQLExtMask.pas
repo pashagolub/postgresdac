@@ -1,3 +1,5 @@
+{$I PSQLDAC.inc}
+
 unit PSQLExtMask;
 
 {SVN revision: $Id$}

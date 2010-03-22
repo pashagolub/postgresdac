@@ -1,3 +1,5 @@
+{$I PSQLDAC.inc}
+
 unit PSQLDirectQuery;
 
 {SVN revision: $Id$}
