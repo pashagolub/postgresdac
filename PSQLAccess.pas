@@ -551,7 +551,7 @@ Type
     Published
       Property NativeNumber  : Integer Read FDesc.FieldIndex Write FDesc.FieldIndex;
       Property NativeName    : String Read FDesc.FieldName Write FDesc.FieldName;
-      Property NativeType    : Integer Read FDesc.FieldType Write FDesc.FieldType;
+      Property NativeType    : cardinal Read FDesc.FieldType Write FDesc.FieldType;
       Property NativeSize    : Integer Read FDesc.FieldSize Write FDesc.FieldSize;
       Property NativeMaxSize : Integer Read FDesc.FieldMaxSize Write FDesc.FieldMaxSize;
       Property NativeDefault : String Read FDesc.FieldDefault Write  FDesc.FieldDefault;
@@ -3065,7 +3065,7 @@ begin
   else
    NativeBLOBType := nbtNotBlob;
   end;
-  NativeSize   := Max(LSize, FDesc.iLen);
+  NativeSize   := LSize; //Max(LSize, FDesc.iLen);
 
   FieldArray := isArray;
 end;
@@ -3194,7 +3194,7 @@ begin
   else
    Result.NativeBLOBType := nbtNotBlob;
  end;
- Result.NativeSize   := Max(LSize, Result.FieldLength);
+ Result.NativeSize   := LSize; //Max(LSize, Result.FieldLength);
  Result.FieldArray := isArray;
 end;
 
@@ -4707,7 +4707,8 @@ begin
         for I := 0 to PQntuples(FStatement) - 1 do
            if PQgetlength(FStatement, I, FieldNum) > Result then
               Result := PQgetlength(FStatement, I, FieldNum);
-      if Result = 0 then Result := MAX_CHAR_LEN; //there is no field of length 0
+      if Result = 0 then
+        Result := MAX_CHAR_LEN; //there is no field of length 0
       FFieldMinSizes[FieldNum] := Result;
      end
   else

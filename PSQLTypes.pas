@@ -1793,7 +1793,7 @@ type
   TPGField_Info = record
      FieldIndex   : Integer;
      FieldName    : String;
-     FieldType    : Integer;
+     FieldType    : cardinal;
      FieldSize    : Integer;
      FieldMaxSize : Integer;
      FieldDefault : String;
@@ -1913,7 +1913,7 @@ function MaskSearch(const Str, Mask: string;
 
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 function GetBDEErrorMessage(ErrorCode : Word):String;
-procedure FieldMapping(FieldType : Word; phSize : Integer; var BdeType : Word;
+procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : Word;
                         var BdeSubType : Word; var LogSize : Integer;
                         var LocArray : Boolean);
 
@@ -2599,7 +2599,7 @@ begin
   if E <> 0 then raise EConvertError.Create(S + ' is not valid cardinal value');
 end;
 
-Procedure FieldMapping(FieldType : Word; phSize : Integer; var BdeType : Word;
+Procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : Word;
                 var BdeSubType : Word; var LogSize : Integer;
                 var LocArray : Boolean);
 begin
@@ -2669,6 +2669,18 @@ begin
                          BdeType := fldZSTRING;
                          //BdeSubType := fldstMONEY;
                          LogSize := 32; //Sizeof(Single);
+                      end;
+    FIELD_TYPE_NAME: begin
+                         BdeType := fldZSTRING;
+                         LogSize := NAMEDATALEN+1;
+                      end;
+    FIELD_TYPE_TIMETZ: begin
+                         BdeType := fldZSTRING;
+                         LogSize := TIMETZLEN+1;
+                      end;
+    FIELD_TYPE_TIMESTAMPTZ: begin
+                         BdeType := fldZSTRING;
+                         LogSize := TIMESTAMPTZLEN+1;
                       end;
     FIELD_TYPE_BIT:   begin
                          BdeType := fldZSTRING;
