@@ -128,6 +128,8 @@ const
   TIMESTAMPTZLEN   = length('2006-02-28 09:08:08.677444+02');
   TIMETZLEN        = length('13:45:35.4880123457+13:40');
   UUIDLEN          = length('{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}');
+  INETLEN          = length('7628:0d18:11a3:09d7:1f34:8a2e:07a0:765d/128');
+  MACADDRLEN       = length('08:00:2b:01:02:03');
   OIDNAMELEN       = 36;
   INV_WRITE        = $00020000;
   INV_READ         = $00040000;
@@ -1156,6 +1158,8 @@ const
   //POSTGRES SPECIFIC    //pasha_golub 19.03.06
   fldTIMESTAMPTZ     = MAXLOGFLDTYPES + 1; {Timestamp with time zone}
   fldUUID            = MAXLOGFLDTYPES + 2;
+  fldINET            = MAXLOGFLDTYPES + 3;
+  fldMACADDR         = MAXLOGFLDTYPES + 4;
 
 
 { Sub Types (Logical) }
@@ -2672,23 +2676,32 @@ begin
                       end;
     FIELD_TYPE_NAME: begin
                          BdeType := fldZSTRING;
-                         LogSize := NAMEDATALEN+1;
+                         LogSize := NAMEDATALEN + 1;
                       end;
     FIELD_TYPE_TIMETZ: begin
                          BdeType := fldZSTRING;
-                         LogSize := TIMETZLEN+1;
+                         LogSize := TIMETZLEN + 1;
                       end;
     FIELD_TYPE_TIMESTAMPTZ: begin
                          BdeType := fldZSTRING;
-                         LogSize := TIMESTAMPTZLEN+1;
+                         LogSize := TIMESTAMPTZLEN + 1;
                       end;
     FIELD_TYPE_BIT:   begin
                          BdeType := fldZSTRING;
-                         LogSize := phSize+1;
+                         LogSize := phSize + 1;
                       end;
     FIELD_TYPE_UUID:   begin
                          BdeType := fldUUID;
-                         LogSize := UUIDLEN+1;
+                         LogSize := UUIDLEN + 1;
+                      end;
+    FIELD_TYPE_INET,
+    FIELD_TYPE_CIDR:  begin
+                         BdeType := fldZSTRING;
+                         LogSize := INETLEN + 1;
+                      end;
+    FIELD_TYPE_MACADDR: begin
+                         BdeType := fldZSTRING;
+                         LogSize := MACADDRLEN + 1;
                       end;
   else
     begin

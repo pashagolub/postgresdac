@@ -2501,12 +2501,14 @@ end;
 procedure TNativeConnect.InternalConnect;
 var
    Result: PPGresult;
+   Utf8Encoded: PAnsiChar;
 begin
  if not FLoggIn then
   try
    if SQLLibraryHandle <= HINSTANCE_ERROR then LoadPSQLLibrary();
    FLastOperationTime := GetTickCount;
-   FHandle := PQconnectdb(PAnsiChar({$IFDEF DELPHI_6}UTF8Encode{$ENDIF}(FConnectString)));
+   Utf8Encoded := PAnsiChar({$IFDEF DELPHI_12}Utf8Encode{$ENDIF}(FConnectString));
+   FHandle := PQconnectdb(Utf8Encoded);
    FLastOperationTime := GetTickCount - FLastOperationTime;
    if PQstatus(Handle) = CONNECTION_BAD then
      CheckResult();
@@ -2834,7 +2836,7 @@ begin
     if Items > 0 then
     begin
       SetLength(Descs, Items);
-      Try
+      try
         P.GetFieldDescs(Descs);
         hCur := hDBICur(TFieldList.Create(Self, Descs, Items));
       finally
@@ -2866,7 +2868,7 @@ var
     Descs := nil;
     TNativeDataSet(P).GetCursorProps(Props);
     Items := Props.iIndexes;
-    Try
+    try
       if Items > 0 then
       begin
         SetLength(Descs, Items);
@@ -2884,7 +2886,7 @@ var
   begin
     FSystem := True;
     OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED, P, [], 0, 0);
-    Try
+    try
       ProcessTable;
       TNativeDataSet(P).CloseTable;
     Finally
@@ -2895,9 +2897,9 @@ var
 
 begin
   hCur := nil;
-  Try
+  try
     OpenAndProcessTable;
-  Except
+  except
     On E:EPSQLException do OpenAndProcessTable;
   end;
 end;
@@ -2916,7 +2918,7 @@ begin
   isNotOpen := not Assigned(hCursor);
   if isNotOpen then
     OpenTable(pszTableName, '', 0, dbiREADWRITE, dbiOPENEXCL, hCursor, [], 0, 0);
-  Try
+  try
     TNativeDataSet(hCursor).EmptyTable;
   Finally
     if isNotOpen then
@@ -3018,7 +3020,7 @@ begin
   if Assigned(hCursor) then
     NDS := TNativeDataSet(hCursor) else
     OpenTable(pszTableName, '', IdxDesc.iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), [], 0, 0);
-  Try
+  try
     NDS.AddIndex(idxDesc,pszKeyViolName);
   Finally
     if not Assigned(hCursor) then NDS.Free;
@@ -3032,7 +3034,7 @@ begin
   if Assigned(hCursor) then
     NDS := TNativeDataSet(hCursor) else
     OpenTable(pszTableName, pszIndexName, iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), [], 0, 0);
-  Try
+  try
     NDS.DeleteIndex(pszIndexName, pszIndexTagName, iIndexID);
   Finally
     if not Assigned(hCursor) then NDS.Free;
@@ -3464,7 +3466,7 @@ begin
      begin
         if Assigned(FExpression) then
         begin
-           Try
+           try
              Result := CalcExpression(GetNodeByOffset(NodeStart));
              if Result = Null then Result := False;
            except
@@ -3916,9 +3918,9 @@ begin
   begin
      RecNom := RecordCount;
      Dec(RecNom);
-     Try
+     try
        if RecordState <> tsEmpty then CurrentRecord(RecNom);
-     Except
+     except
      end;
    end else
      if RecordState <> tsEmpty then CurrentRecord(RecNom);
@@ -4133,9 +4135,9 @@ begin
     tsPos:
       begin
         GetWorkRecord(eLock,PRecord);
-        Try
+        try
           CheckFilter(PRecord);
-        Except
+        except
           On E:EPSQLException do
           begin
             if FReRead then
@@ -4161,14 +4163,14 @@ begin
     tsLast: Raise EPSQLException.CreateBDE(DBIERR_BOF);
     tsEmpty:
       begin
-        Try
+        try
           GetNextRecord( eLock, PRecord, pRecProps );
-        Except
+        except
           On E:EPSQLException do
           begin
-            Try
+            try
               GetPriorRecord( eLock, PRecord, pRecProps );
-            Except
+            except
               On E:EPSQLException do
               begin
                 RecordState  := tsNoPos;
@@ -4297,9 +4299,9 @@ procedure TNativeDataSet.SetToRecord(RecNo : LongInt);
 begin
   if RecNo < 0 then
   begin
-     Try
+     try
        if RecordState <> tsEmpty then CurrentRecord(RecNo);
-     Except
+     except
      end;
   end
   else
@@ -4361,7 +4363,7 @@ begin
   FOpen := False;
   sql_stmt := '';
 
-  Try
+  try
     if (StandartClause.Count = 0) and (SQLQuery = '') then
     begin
       isQuery := False;
@@ -4610,6 +4612,8 @@ begin
      begin
        case FT of
         FIELD_TYPE_UUID: Result := UUIDLEN;
+        FIELD_TYPE_INET, FIELD_TYPE_CIDR: Result := INETLEN;
+        FIELD_TYPE_MACADDR: Result := MACADDRLEN;
         FIELD_TYPE_TIMESTAMPTZ: Result := TIMESTAMPTZLEN;
         FIELD_TYPE_TIMETZ: Result := TIMETZLEN;
         FIELD_TYPE_NAME: Result := NAMEDATALEN;
@@ -6191,7 +6195,7 @@ var
   WHERE     : String;
   FldVal    : String;
   bBlank    : bool;
-  Buff : Array[0..255] of Char;
+  Buff : Array[0..255] of AnsiChar;
   CurBuffer : PAnsiChar;
   TimeStamp: TTimeStamp;
 begin
@@ -6243,7 +6247,7 @@ begin
 end;
 
 begin
-  Try
+  try
     RangeClause.Clear;
     Ranges := True;
     CreateRangeClause(True,bKeyItself, iFields1, iLen1, pKey1, bKey1Incl);
@@ -6429,7 +6433,7 @@ var
 begin
   if hDest = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
   M := AllocMem(BookMarkSize);
-  Try
+  try
     if MasterCursor = nil then
     begin
        GetBookMark(M);
@@ -6587,13 +6591,13 @@ end;
 
 function TPSQLEngine.CloseDatabase(var hDb : hDBIDb) : DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).Free;
     hDb := nil;
     FDatabase := nil;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -6602,105 +6606,105 @@ function TPSQLEngine.OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType:
          eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;exltMode: XLTMode;bUniDirectional : Bool;pOptParams: Pointer;var hCursor: hDBICur;
          AnOptions: TPSQLDatasetOptions; Limit, Offset : Integer): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).OpenTable(pszTableName, pszIndexName, iIndexId, eOpenMode, eShareMode, hCursor, AnOptions, Limit, Offset);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.OpenStoredProcList(hDb: hDBIDb;pszWild: string; List : TStrings): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).StoredProcList(pszWild, List);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.OpenTableList(hDb: hDBIDb;pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).TableList(pszWild,SystemTables, List);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.OpenSchemaList(hDb: hDBIDb; pszWild: string; SystemSchemas: Boolean; List : TStrings): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).SchemaList(pszWild, SystemSchemas, List);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.OpenUserList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).UserList(pszWild, List);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetNextRecord(hCursor: hDBICur;eLock: DBILockType;pRecBuff : Pointer;pRecProps: pRECProps): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetNextRecord(eLock, pRecBuff, pRecProps);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.SetToBookMark(hCur: hDBICur;pBookMark: Pointer) : DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCur).SetToBookMark(pBookMark);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.CompareBookMarks(hCur : hDBICur;pBookMark1,pBookMark2 : Pointer;Var CmpBkmkResult : CmpBkmkRslt): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCur).CompareBookMarks(pBookMark1, pBookMark2, CmpBkmkResult);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetRecord (hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetRecord(eLock,PRecord,pRecProps);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetPriorRecord(hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetPriorRecord(eLock,PRecord,pRecProps);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
     if Result = DBIERR_EOF then Result := DBIERR_BOF;
   end;
@@ -6708,174 +6712,174 @@ end;
 
 function TPSQLEngine.GetBookMark(hCur: hDBICur;pBookMark : Pointer) : DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCur).GetBookMark(pBookMark);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.ReadBlock(hCursor : hDBICur; var iRecords : Longint; pBuf : Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataset(hCursor).ReadBlock(iRecords, pBuf);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetRecordCount(hCursor : hDBICur;Var iRecCount : Longint) : DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetRecordCount(iRecCount);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.ForceReread(hCursor: hDBICur): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).ForceReread;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Bool): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetField(FieldNo, PRecord, PDest, bBlank);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.CloseCursor(hCursor : hDBICur) : DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).CloseTable;
     TNativeDataSet(hCursor).Free;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.PutField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pSrc: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).PutField(FieldNo,PRecord,PSrc);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.OpenBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).OpenBlob(PRecord, FieldNo, eOpenMode);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: Longint): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetBlobSize(PRecord, FieldNo, iSize);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: Longint): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetBlob(PRecord, FieldNo, iOffset, iLen, pDest, iRead);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.PutBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pSrc: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).PutBlob(PRecord, FieldNo, iOffset, iLen, pSrc);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.TruncateBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iLen: Longint): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).TruncateBlob( PRecord, FieldNo, iLen );
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.FreeBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).FreeBlob(PRecord, FieldNo);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.CloseBlob(hCursor: hDBICur; FieldNo: Word): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).CloseBlob(FieldNo);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.BeginTran(hDb: hDBIDb; eXIL: eXILType; var hXact: hDBIXact): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).BeginTran(eXIL, hXact);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.EndTran(hDb: hDBIDb;hXact : hDBIXact; eEnd : eXEnd): DBIResult;
 begin
-  Try
+  try
    Database := hDb;
    TNativeConnect(hDb).EndTran(hXact,eEnd);
    Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetTranInfo(hDb : hDBIDb; hXact : hDBIXact; pxInfo : pXInfo): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).GetTranInfo(hXact,pxInfo);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -6883,11 +6887,11 @@ end;
 
 function TPSQLEngine.GetTranStatus(hDb: hDBIDb; var TranStatus: TTransactionStatusType): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TranStatus := TNativeConnect(hDb).GetTransactionStatus;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -6905,44 +6909,44 @@ end;
 
 function TPSQLEngine.SetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Longint): DBIResult;
 begin
-  Try
+  try
     if Assigned(hObj) then
     begin
       TNativeDataSet(hObj).SetProp(iProp, PropValue);
       Result := DBIERR_NONE;
     end else
       Result := DBIERR_INVALIDPARAM;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetVchkDesc(hCursor: hDBICur;iValSeqNo: Word; var pvalDesc: VCHKDesc): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetVchkDesc(iValSeqNo, pvalDesc);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetCursorProps(hCursor: hDBICur;var curProps: CURProps): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetCursorProps(curProps);
     Result := DBIERR_NONE;
-  Except
+  except
      Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetFieldDescs(hCursor: hDBICur; var pfldDesc :  TFLDDescList): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetFieldDescs(pFldDesc);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -6961,70 +6965,70 @@ end;
 
 function TPSQLEngine.RelRecordLock(hCursor: hDBICur;bAll: Bool): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).RelRecordLock(bAll);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.InitRecord(hCursor: hDBICur;PRecord: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).InitRecord(PRecord);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.InsertRecord(hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).InsertRecord(eLock, PRecord);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.AppendRecord(hCursor : hDBICur;PRecord : Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).AppendRecord(PRecord);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.ModifyRecord(hCursor: hDBICur;OldRecord,PRecord: Pointer;bFreeLock : Bool; ARecNo : LongInt): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).ModifyRecord(OldRecord,PRecord, bFreeLock,ARecNo);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.DeleteRecord(hCursor: hDBICur;PRecord: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).DeleteRecord(PRecord);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.SetToSeqNo(hCursor: hDBICur;iSeqNo: Longint): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).SettoSeqNo(iSeqNo);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7045,40 +7049,40 @@ end;
 function TPSQLEngine.AddFilter(hCursor: hDBICur;iClientData: Longint;iPriority: Word;bCanAbort: Bool;pcanExpr: pCANExpr;
                                 pfFilter: pfGENFilter;var hFilter: hDBIFilter): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).AddFilter(iClientData,iPriority, bCanAbort,pcanExpr, pfFilter, hFilter );
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.DropFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).DropFilter(hFilter);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).ActivateFilter(hFilter);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).DeactivateFilter(hFilter);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7110,39 +7114,39 @@ end;
 
 function TPSQLEngine.QExecDirect(hDb : hDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).QExecDirect(pszQuery,phCur, AffectedRows);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.QAlloc(hDb: hDBIDb; eQryLang: DBIQryLang;var hStmt: hDBIStmt): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).QueryAlloc(hStmt);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.QPrepare(hStmt: hDBIStmt;pszQuery: String): DBIResult;
 begin
-  Try
+  try
     TNativeConnect(Database).QueryPrepare(hStmt,pszQuery);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.QExec(hStmt: hDBIStmt; phCur : phDBICur; var AffectedRows: integer): DBIResult;
 begin
-   Try
+   try
     if phCur = nil then
     begin
       try
@@ -7162,7 +7166,7 @@ begin
         phCur^ := nil;
       Result := DBIERR_NONE;
     end;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7175,10 +7179,10 @@ function TPSQLEngine.QPrepareExt (                             { Prepare a query
            var hStmt     : hDBIStmt                         { Returned statment handle }
          ): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7191,10 +7195,10 @@ end;
 
 function TPSQLEngine.QuerySetParams(hStmt: hDBIStmt;Params : TParams; SQLText : String): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hStmt).QuerySetParams(Params,SQLText);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7230,11 +7234,11 @@ end;
 
 function TPSQLEngine.GetDatabases(hDb: hDBIdb; pszWild: string; List : TStrings):DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hdb).DatabaseList(pszWild,List);
     Result := DBIERR_NONE;
-   Except
+   except
     Result := CheckError;
    end;
 end;
@@ -7255,33 +7259,33 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 function TPSQLEngine.OpenFieldList(hDb: hDBIDb; pszTableName: string; pszDriverType: string; bPhyTypes: Bool; var hCur: hDBICur): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).OpenFieldList(pszTableName, pszDriverType, bPhyTypes, hCur );
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.OpenIndexList(hDb: hDBIDb;pszTableName: string; pszDriverType: string; var hCur: hDBICur): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).OpenIndexList(pszTableName, pszDriverType, hCur);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : string; pszDriverType : string): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).EmptyTable(hCursor, pszTableName);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7289,92 +7293,95 @@ end;
 function TPSQLEngine.SetRange(hCursor: hDBICur;bKeyItself: Bool;iFields1: Word;iLen1: Word;pKey1: Pointer;bKey1Incl: Bool;
                                iFields2: Word;iLen2: Word;pKey2: Pointer;bKey2Incl: Bool): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).SetRange(bKeyItself, iFields1, iLen1, pKey1, bKey1Incl,iFields2, iLen2, pKey2, bKey2Incl);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.ResetRange(hCursor: hDBICur): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).ResetRange;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.SwitchToIndex(hCursor: hDBICur; pszIndexName, pszTagName: string; iIndexId: Word; bCurrRec: Bool): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).SwitchToIndex(pszIndexName, pszTagName, iIndexId, bCurrRec);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.ExtractKey(hCursor: hDBICur;PRecord: Pointer;pKeyBuf: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).ExtractKey(PRecord, pKeyBuf);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetRecordForKey(hCursor: hDBICur; bDirectKey: Bool; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
 begin
-   Try
+   try
     TNativeDataSet(hCursor).GetRecordForKey(bDirectKey,iFields,iLen, pKey, pRecBuff, AStrictConformity);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;var IdxDesc: IDXDesc;pszKeyviolName : string): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDB).AddIndex(hCursor, pszTableName, pszDriverType, idxDesc, pszKeyViolName);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;pszIndexName: string;pszIndexTagName: string;iIndexId: Word): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDB).DeleteIndex(hCursor, pszTableName, pszDriverType, pszIndexName, pszIndexTagName, iIndexId);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetIndexDesc(hCursor: hDBICur;iIndexSeqNo: Word;var idxDesc: IDXDesc): DBIResult;
 begin
-  Try
-    TNativeDataSet(hCursor).GetIndexDesc(iIndexSeqNo,idxDesc);
+  try
     Result := DBIERR_NONE;
-  Except
+    if TNativeDataSet(hCursor).isQuery then
+      Result := DBIERR_NOASSOCINDEX
+    else
+      TNativeDataSet(hCursor).GetIndexDesc(iIndexSeqNo,idxDesc);
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.GetIndexDescs(hCursor: hDBICur; idxDescs: TIDXDescList): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).GetIndexDescs(idxDescs);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7400,42 +7407,42 @@ end;
 
 function TPSQLEngine.TableExists(hDb: hDBIDb; pszTableName: string): DBIResult;
 begin
-   Try
+   try
      Database := hDb;
      TNativeConnect(hDb).TableExists(pszTableName);
      Result := DBIERR_NONE;
-  Except
+  except
      Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.CreateTable(hDb: hDBIDb; bOverWrite: Bool; var crTblDsc: CRTblDesc): DBIResult;
 begin
-   Try
+   try
      Database := hDb;
      TNativeConnect(hDb).CreateTable(bOverwrite, crTblDsc);
      Result := DBIERR_NONE;
-  Except
+  except
      Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
 begin
-  Try
+  try
     TNativeDataset(hCursor).AcqTableLock(eLockType, bNoWait);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Bool;iFields: Word;iLen: Word;pBuff: Pointer): DBIResult;
 begin
-  Try
+  try
     TNativeDataset(hCursor).SetToKey(eSearchCond, bDirectKey, iFields, iLen, pBuff);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7504,20 +7511,20 @@ end;
 
 function TPSQLEngine.CloneCursor(hCurSrc: hDBICur;bReadOnly: Bool;bUniDirectional: Bool;var hCurNew: hDBICur): DBIResult;
 begin
-  Try
+  try
     TNativeDataset(hCurSrc).Clone(bReadonly, bUniDirectional, hCurNew);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.SetToCursor(hDest, hSrc : hDBICur) : DBIResult;
 begin
-  Try
+  try
     TNativeDataset(hSrc).SetToCursor(hDest);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7541,11 +7548,11 @@ end;
 
 function TPSQLEngine.ClosePGNotify(var hNotify : hDBIObj) : DBIResult;
 begin
- Try
+ try
     TNativePGNotify(hNotify).Free;
     hNotify := nil;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7592,11 +7599,11 @@ end;
 
 function TPSQLEngine.GetBackendPID(hDb: hDBIDb; var PID: Integer): DBIResult;
 begin
-   Try
+   try
     Database := hDb;
     PID := TNativeConnect(hDB).BackendPID;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7663,11 +7670,11 @@ end;
 function TPSQLEngine.GetServerVersion(hDb: hDBIDb;
   var ServerVersion: string): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     ServerVersion := TNativeConnect(hDb).GetServerVersion;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7677,12 +7684,12 @@ function TPSQLEngine.GetUserProps(hDb: hDBIDb; const UserName: string;
                   CanUpdateSysCatalogs: boolean; var UserID: integer;
                 var ValidUntil: string):DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).GetUserProps(UserName, SuperUser, CanCreateDB,
                              CanUpdateSysCatalogs, UserID, ValidUntil);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -7692,12 +7699,12 @@ function TPSQLEngine.GetDBProps(hDB: hDBIDB; const DB: string;
                         var IsTemplate: boolean;
                         var DBOid: cardinal; var Comment: string):DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).GetDBProps(DB, Owner, Tablespace,
                         IsTemplate, DBOid, Comment);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -8142,11 +8149,11 @@ end;
 function TPSQLEngine.OpenStoredProcParams(hDb: hDBIDb; pszPName: string;
   ProcOID: cardinal; List: TList): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).StoredProcParams(pszPName, ProcOID, List);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -8303,7 +8310,7 @@ var SQLText,ParStr: string;
     i: integer;
     aParams: TPSQLParams;
 begin
-  Try
+  try
     aParams := TPSQLParams(hParams);
     QAlloc(hDb,qryLangSQL,hStmt);
     SQLText := 'SELECT * FROM '+pszProc+'(%s)';
@@ -8317,17 +8324,17 @@ begin
     TNativeDataSet(hStmt).SQLQuery := Format(SQLText,[ParStr]);
     TNativeDataSet(hStmt).isQuery := True; // PaGo 24.07.2007
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
 
 function TPSQLEngine.QSetProcParams(hStmt: hDBIStmt; Params: TParams): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hStmt).StoredProcSetParams(Params);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -8644,12 +8651,12 @@ function TPSQLEngine.GetTableProps(hDB: hDBIDB; const TableName: string;
   var Owner, Comment, Tablespace: string; var HasOIDs: boolean;
   var TableOid: cardinal): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).GetTableProps(TableName, Owner, Comment,
                                 Tablespace, HasOIDs, TableOid);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -8664,10 +8671,10 @@ end;
 
 function TPSQLEngine.GetFieldOldValue(hCursor: hDBICur; AFieldName: string; AParam: TParam): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).FieldOldValue(AFieldName, AParam);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -8675,10 +8682,10 @@ end;
 function TPSQLEngine.GetFieldValueFromBuffer(hCursor: hDBICur;
   PRecord: Pointer; AFieldName: string; AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hCursor).FieldValueFromBuffer(PRecord, AFieldName, AParam, UnchangedAsNull);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -8907,10 +8914,10 @@ end;
 function TPSQLEngine.GetLastInsertId(hCursor: hDBICur;
   const FieldNum: integer; var ID: integer): DBIResult;
 begin
-  Try
+  try
     ID := TNativeDataset(hCursor).GetLastInsertID(FieldNum);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -9190,11 +9197,11 @@ end;
 function TPSQLEngine.CheckBuffer(hCursor: hDBICur;
   PRecord: Pointer): DBIResult;
 begin
-  Try
+  try
     if TNativeDataSet(hCursor).FCurrentBuffer = PRecord then
       TNativeDataSet(hCursor).FCurrentBuffer:= nil;
 	 Result := DBIERR_NONE;
-  Except
+  except
 	 Result := CheckError;
   end;
 end;
@@ -9203,11 +9210,11 @@ end;
 function TPSQLEngine.OpenTablespaceList(hDb: hDBIDb; pszWild: string;
   List: TStrings): DBIResult;
 begin
-  Try
+  try
     Database := hDb;
     TNativeConnect(hDb).TablespaceList(pszWild, List);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
@@ -9366,10 +9373,10 @@ end;
 function TPSQLEngine.QGetProcParams(hStmt: hDBIStmt;
   Params: TParams): DBIResult;
 begin
-  Try
+  try
     TNativeDataSet(hStmt).StoredProcGetParams(Params);
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 
@@ -9406,11 +9413,11 @@ end;
 
 function TPSQLEngine.Reset(hDb: hDBIDb): DBIResult;
 begin
-   Try
+   try
     Database := hDb;
     TNativeConnect(hDB).Reset;
     Result := DBIERR_NONE;
-  Except
+  except
     Result := CheckError;
   end;
 end;
