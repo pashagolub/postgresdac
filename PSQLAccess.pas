@@ -6195,7 +6195,7 @@ var
   WHERE     : String;
   FldVal    : String;
   bBlank    : bool;
-  Buff : Array[0..255] of AnsiChar;
+  Buff : PAnsiChar;
   CurBuffer : PAnsiChar;
   TimeStamp: TTimeStamp;
 begin

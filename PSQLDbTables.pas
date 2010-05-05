@@ -3959,7 +3959,6 @@ begin
     try
       CalculateFields(TempBuffer);
       Result := FieldValues[ResultFields];
-      Assert(Result <> Null,Format(#13#10+'KeyFields: %s'+#13#10+'KeyValues: %s',[KeyFields,KeyValues]));
     finally
       RestoreState(dsBrowse);
     end;
