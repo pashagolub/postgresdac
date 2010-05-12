@@ -7289,7 +7289,7 @@ begin
   EmbeddedLiteral := False;
   repeat
     CurChar := CurPos^;
-    if (CurChar = ':') and not Literal and not CharInSet((CurPos + 1)^, [':', '=']) then
+    if (CurChar = ':') and not Literal and not CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
     begin
       StartPos := CurPos;
       while (CurChar <> #0) and (Literal or not NameDelimiter) do
@@ -7317,7 +7317,7 @@ begin
       StrMove(StartPos, CurPos, StrLen(CurPos) + 1);
       CurPos := StartPos;
     end
-    else if (CurChar = ':') and not Literal and CharInSet((CurPos + 1)^, [':','=']) then
+    else if (CurChar = ':') and not Literal and CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
       StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
     else if IsLiteral then Literal := Literal xor True;
     Inc(CurPos);
