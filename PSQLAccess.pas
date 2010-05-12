@@ -4733,7 +4733,9 @@ begin
    FIELD_TYPE_TID: Result := FIELD_TYPE_INT4;
   else
    if (Result = FIELD_TYPE_VARCHAR) AND
-      ((PQfmod(FStatement,FieldNum)<0) or (PQfmod(FStatement,FieldNum) > MAX_CHAR_LEN) ) then
+          ((PQfmod(FStatement, FieldNum) < 0) or (PQfmod(FStatement, FieldNum) > MAX_CHAR_LEN))
+      or
+      (Result = FIELD_TYPE_XML) then
          Result := FIELD_TYPE_TEXT; //added to deal with varchar without length specifier
   end;       
 end;
