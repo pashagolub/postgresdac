@@ -8203,9 +8203,9 @@ begin
   List.Clear;
   ArgNum := 0;
   if GetserverVersionAsInt > 080100 then
-    MinOIDSel :=  'SELECT GREATEST(pronargs, array_upper(proallargtypes,1)), '
+    MinOIDSel :=  'SELECT GREATEST(pronargs, array_upper(proallargtypes,1))'
   else
-    MinOIDSel :=  'SELECT pronargs, ';
+    MinOIDSel :=  'SELECT pronargs';
   if ProcOID = 0 then
    begin
     I := Pos('.',pszPName);
@@ -8222,7 +8222,7 @@ begin
       end;
     ProcName := StringReplace(ProcName, '"', '', [rfReplaceAll]);
 
-    MinOIDSel :=  MinOIDSel + 'pg_proc.oid '+
+    MinOIDSel :=  MinOIDSel + ', pg_proc.oid '+
                   'FROM pg_catalog.pg_proc, pg_catalog.pg_namespace '+
                   Format(' WHERE proname LIKE ''%s'''+
                          ' AND nspname LIKE ''%s''',
@@ -8232,7 +8232,7 @@ begin
    end
   else
     MinOIDSel :=  MinOIDSel +
-                  'FROM pg_catalog.pg_proc '+
+                  ' FROM pg_catalog.pg_proc '+
                   Format(' WHERE oid = %d', [ProcOID]);
 
 

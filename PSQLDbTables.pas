@@ -7141,6 +7141,7 @@ begin
 	if ([csReading, csLoading] * ComponentState = []) then
     SetNeedRefreshParams();
 	FProcName := Value;
+  FOverload := InvalidOID;
   RefreshParams;
 	DataEvent(dePropertyChange, 0);
 end;
