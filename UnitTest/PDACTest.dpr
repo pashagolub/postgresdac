@@ -22,7 +22,8 @@ uses
   TestExtensions,
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
   PSQLQueryTest in 'PSQLQueryTest.pas',
-  TestHelper in 'TestHelper.pas';
+  TestHelper in 'TestHelper.pas',
+  TestPSQLFields in 'TestPSQLFields.pas';
 
 {$R *.RES}
 

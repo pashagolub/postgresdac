@@ -50,6 +50,8 @@
 			<DCCReference Include="PSQLDatabaseTest.pas"/>
 			<DCCReference Include="PSQLQueryTest.pas"/>
 			<DCCReference Include="TestHelper.pas"/>
+			<DCCReference Include="TestPSQLFields.pas"/>
+			<None Include="PDACTest.dpr"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
