@@ -3,9 +3,11 @@ unit PSQLFields;
 
 interface
 
-uses DB;
+uses Types, Classes, DB, PSQLTypes;
 
 type
+
+ { TPSQLPGuidField }
 
   TPSQLGuidField = class(TGuidField)
   protected
@@ -16,20 +18,98 @@ type
     property AsGuid: TGUID read GetAsGuid write SetAsGuid;
   end;
 
+ { TPSQLPointField }
+
+  TPSQLPointField = class(TNumericField)
+  private
+    function GetAsTPoint: TPoint;
+    procedure SetAsTPoint(const Value: TPoint);
+  protected
+    function GetDataSize: Integer; override;
+    function GetDefaultWidth: Integer; override;    
+    function GetValue(var Value: TPSQLPoint): Boolean;
+    function GetAsPoint: TPSQLPoint;
+    function GetAsString: string; override;
+    procedure GetText(var Text: string; DisplayText: Boolean); override;
+    procedure SetAsPoint(const Value: TPSQLPoint);
+    procedure SetAsString(const Value: string); override;
+  public
+    property AsTPoint: TPoint read GetAsTPoint write SetAsTPoint;
+    property Value: TPSQLPoint read GetAsPoint write SetAsPoint;
+  end;
+
+ { TPSQLCircleField }
+
+  TPSQLCircleField = class(TNumericField)
+  protected
+    function GetDataSize: Integer; override;
+    function GetDefaultWidth: Integer; override;    
+    function GetValue(var Value: TPSQLCircle): Boolean;
+    function GetAsCircle: TPSQLCircle;
+    function GetAsString: string; override;
+    procedure GetText(var Text: string; DisplayText: Boolean); override;
+    procedure SetAsCircle(const Value: TPSQLCircle);
+    procedure SetAsString(const Value: string); override;
+  public
+    property Value: TPSQLCircle read GetAsCircle write SetAsCircle;
+  end;
+
+ { TPSQLBoxField }
+
+  TPSQLBoxField = class(TNumericField)
+  private
+    function GetAsTRect: TRect;
+    procedure SetAsTRect(const Value: TRect);
+  protected
+    function GetDataSize: Integer; override;
+    function GetDefaultWidth: Integer; override;
+    function GetValue(var Value: TPSQLBox): Boolean;
+    function GetAsBox: TPSQLBox;
+    function GetAsString: string; override;
+    procedure GetText(var Text: string; DisplayText: Boolean); override;
+    procedure SetAsBox(const Value: TPSQLBox);
+    procedure SetAsString(const Value: string); override;
+  public
+    property AsTRect: TRect read GetAsTRect write SetAsTRect;
+    property Value: TPSQLBox read GetAsBox write SetAsBox;
+  end;
+
+ { TPSQLLSegField }
+
+  TPSQLLSegField = class(TNumericField)
+  protected
+    function GetDataSize: Integer; override;
+    function GetDefaultWidth: Integer; override;
+    function GetValue(var Value: TPSQLLSeg): Boolean;
+    function GetAsLSeg: TPSQLLSeg;
+    function GetAsString: string; override;
+    procedure GetText(var Text: string; DisplayText: Boolean); override;
+    procedure SetAsLSeg(const Value: TPSQLLSeg);
+    procedure SetAsString(const Value: string); override;
+  public
+    property Value: TPSQLLSeg read GetAsLSeg write SetAsLSeg;
+  end;
+
+const
+  OriginPoint: TPSQLPoint = (X: 0.0; Y: 0.0);
+  OriginCircle: TPSQLCircle = (R: 0.0; X: 0.0; Y: 0.0);
+  OriginBox: TPSQLBox = (Right: 0.0; Top: 0.0; Left: 0.0; Bottom: 0.0);
+  OriginLSeg: TPSQLLSeg = (X1: 0.0; Y1: 0.0; X2: 0.0; Y2: 0.0);
+
 procedure Register;
 
 function BadGUIDToGUID(const AStr: AnsiString): AnsiString;
 
 implementation
 
-uses Classes;
+uses DbConsts, SysUtils;
 
 procedure Register;
 begin
-  RegisterClasses([TPSQLGuidField]);
+  RegisterClasses([TPSQLGuidField, TPSQLPointField]);
 end;
 
-//TPSQLGuidField
+{ TPSQLGuidField }
 type
   TFastGUID = record
     F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, FA, FB, FC, FD, FE, FF: Byte;
@@ -322,6 +402,312 @@ class procedure TPSQLGuidField.CheckTypeSize(Value: Integer);
 begin
   if Value < 0 then
     inherited;
+end;
+
+{ TPSQLPointField }
+
+function TPSQLPointField.GetAsPoint: TPSQLPoint;
+begin
+  if not GetValue(Result) then
+    Result := OriginPoint;
+end;
+
+function TPSQLPointField.GetAsString: string;
+var
+  P: TPSQLPoint;
+begin
+  if GetData(@P) then
+    Result := PointToSQLPoint(P, ';', True)
+  else
+    Result := '';
+end;
+
+function TPSQLPointField.GetAsTPoint: TPoint;
+begin
+  with GetAsPoint do
+   begin
+    Result.X := Longint(Round(X));
+    Result.Y := Longint(Round(Y));
+   end;
+end;
+
+function TPSQLPointField.GetDataSize: Integer;
+begin
+  Result := SizeOf(TPSQLPoint);
+end;
+
+function TPSQLPointField.GetDefaultWidth: Integer;
+begin
+  Result := 15;
+end;
+
+procedure TPSQLPointField.GetText(var Text: string; DisplayText: Boolean);
+var
+  FmtStr: string;
+  P: TPSQLPoint;
+begin
+  if GetData(@P) then
+  begin
+    if DisplayText or (EditFormat = '') then
+      FmtStr := DisplayFormat
+    else
+      FmtStr := EditFormat;
+    if FmtStr = '' then
+      Text := GetAsString()
+    else
+      Text := Format(FmtStr, [P.X, P.Y]);
+  end else
+    Text := '';
+end;
+
+function TPSQLPointField.GetValue(var Value: TPSQLPoint): Boolean;
+begin
+  Result := GetData(@Value);
+end;
+
+procedure TPSQLPointField.SetAsPoint(const Value: TPSQLPoint);
+begin
+  SetData(@Value);
+end;
+
+procedure TPSQLPointField.SetAsString(const Value: string);
+var P: TPSQLPoint;
+begin
+  if Value = '' then Clear else
+  begin
+    P := SQLPointToPoint(Value, ';', True);
+    SetAsPoint(P);
+  end;
+end;
+
+procedure TPSQLPointField.SetAsTPoint(const Value: TPoint);
+var P: TPSQLPoint;
+begin
+  P.X := Value.X;
+  P.Y := Value.Y;
+  SetAsPoint(P);
+end;
+
+{ TPSQLCircleField }
+
+function TPSQLCircleField.GetAsCircle: TPSQLCircle;
+begin
+  if not GetValue(Result) then
+    Result := OriginCircle;
+end;
+
+function TPSQLCircleField.GetAsString: string;
+var
+  P: TPSQLCircle;
+begin
+  if GetData(@P) then
+    Result := CircleToSQLCircle(P, ';', True)
+  else
+    Result := '';
+end;
+
+function TPSQLCircleField.GetDataSize: Integer;
+begin
+  Result := SizeOf(TPSQLCircle);
+end;
+
+function TPSQLCircleField.GetDefaultWidth: Integer;
+begin
+  Result := 22;
+end;
+
+procedure TPSQLCircleField.GetText(var Text: string; DisplayText: Boolean);
+var
+  FmtStr: string;
+  P: TPSQLCircle;
+begin
+  if GetData(@P) then
+  begin
+    if DisplayText or (EditFormat = '') then
+      FmtStr := DisplayFormat
+    else
+      FmtStr := EditFormat;
+    if FmtStr = '' then
+      Text := GetAsString()
+    else
+      Text := Format(FmtStr, [P.X, P.Y, P.R]);
+  end else
+    Text := '';
+end;
+
+function TPSQLCircleField.GetValue(var Value: TPSQLCircle): Boolean;
+begin
+  Result := GetData(@Value);
+end;
+
+procedure TPSQLCircleField.SetAsCircle(const Value: TPSQLCircle);
+begin
+  SetData(@Value);
+end;
+
+procedure TPSQLCircleField.SetAsString(const Value: string);
+var C: TPSQLCircle;
+begin
+  if Value = '' then Clear else
+  begin
+    C := SQLCircleToCircle(Value, ';', True);
+    SetAsCircle(C);
+  end;
+end;
+
+{ TPSQLBoxField }
+
+function TPSQLBoxField.GetAsBox: TPSQLBox;
+begin
+  if not GetValue(Result) then
+    Result := OriginBox;
+end;
+
+function TPSQLBoxField.GetAsString: string;
+var
+  B: TPSQLBox;
+begin
+  if GetData(@B) then
+    Result := BoxToSQLBox(B, ';', True)
+  else
+    Result := '';
+end;
+
+function TPSQLBoxField.GetAsTRect: TRect;
+begin
+  with GetAsBox do
+   begin
+    Result.Left := Longint(Round(Left));
+    Result.Top := Longint(Round(Top));
+    Result.Right := Longint(Round(Right));
+    Result.Bottom := Longint(Round(Bottom));
+   end;
+end;
+
+function TPSQLBoxField.GetDataSize: Integer;
+begin
+  Result := SizeOf(TPSQLBox);
+end;
+
+function TPSQLBoxField.GetDefaultWidth: Integer;
+begin
+  Result := 32;
+end;
+
+procedure TPSQLBoxField.GetText(var Text: string; DisplayText: Boolean);
+var
+  FmtStr: string;
+  B: TPSQLBox;
+begin
+  if GetData(@B) then
+  begin
+    if DisplayText or (EditFormat = '') then
+      FmtStr := DisplayFormat
+    else
+      FmtStr := EditFormat;
+    if FmtStr = '' then
+      Text := GetAsString()
+    else
+      Text := Format(FmtStr, [B.Left, B.Top, B.Right, B.Bottom]);
+  end else
+    Text := '';
+end;
+
+function TPSQLBoxField.GetValue(var Value: TPSQLBox): Boolean;
+begin
+  Result := GetData(@Value);
+end;
+
+procedure TPSQLBoxField.SetAsBox(const Value: TPSQLBox);
+begin
+  SetData(@Value);
+end;
+
+procedure TPSQLBoxField.SetAsString(const Value: string);
+var B: TPSQLBox;
+begin
+  if Value = '' then Clear else
+  begin
+    B := SQLBoxToBox(Value, ';', True);
+    SetAsBox(B);
+  end;
+end;
+
+procedure TPSQLBoxField.SetAsTRect(const Value: TRect);
+var B: TPSQLBox;
+begin
+  B.Right := Value.Right;
+  B.Top := Value.Top;
+  B.Left := Value.Left;
+  B.Bottom := Value.Bottom;
+  SetAsBox(B);
+end;
+
+{ TPSQLLSegField }
+
+function TPSQLLSegField.GetAsLSeg: TPSQLLSeg;
+begin
+  if not GetValue(Result) then
+    Result := OriginLSeg;
+end;
+
+function TPSQLLSegField.GetAsString: string;
+var
+  LS: TPSQLLSeg;
+begin
+  if GetData(@LS) then
+    Result := LSegToSQLLSeg(LS, ';', True)
+  else
+    Result := '';
+end;
+
+function TPSQLLSegField.GetDataSize: Integer;
+begin
+  Result := SizeOf(TPSQLLSeg);
+end;
+
+function TPSQLLSegField.GetDefaultWidth: Integer;
+begin
+  Result := 15;
+end;
+
+procedure TPSQLLSegField.GetText(var Text: string; DisplayText: Boolean);
+var
+  FmtStr: string;
+  LS: TPSQLLSeg;
+begin
+  if GetData(@LS) then
+  begin
+    if DisplayText or (EditFormat = '') then
+      FmtStr := DisplayFormat
+    else
+      FmtStr := EditFormat;
+    if FmtStr = '' then
+      Text := GetAsString()
+    else
+      Text := Format(FmtStr, [LS.X1, LS.Y1, LS.X2, LS.Y2]);
+  end else
+    Text := '';
+end;
+
+function TPSQLLSegField.GetValue(var Value: TPSQLLSeg): Boolean;
+begin
+  Result := GetData(@Value);
+end;
+
+procedure TPSQLLSegField.SetAsLSeg(const Value: TPSQLLSeg);
+begin
+  SetData(@Value);
+end;
+
+procedure TPSQLLSegField.SetAsString(const Value: string);
+var LS: TPSQLLSeg;
+begin
+  if Value = '' then Clear else
+  begin
+    LS := SQLLSegToLSeg(Value, ';', True);
+    SetAsLSeg(LS);
+  end;
 end;
 
 initialization

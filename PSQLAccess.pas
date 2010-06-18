@@ -334,7 +334,7 @@ Type
       function ListenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function UnlistenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function DoNotify(hNotify : hDBIObj; pszEvent: string) : DBIResult;
-      function CheckEvents(hNotify : hDBIObj; Var Pid : Integer; Var pszOutPut : String)  : DBIResult;
+      function CheckEvents(hNotify : hDBIObj; var Pid : Integer; var pszOutPut, pszPayload : String)  : DBIResult;
       function GetBackendPID(hDb: hDBIDb; var PID: Integer): DBIResult;
       function GetServerVersion(hDb: hDBIDb; var ServerVersion: string): DBIResult;
       function GetUserProps(hDb: hDBIDb; const UserName: string;
@@ -410,10 +410,14 @@ Type
       procedure SetNull(Flag : Boolean);
       function GetFieldDefault : string;//mi
       procedure SetFieldDefault(aStr : string);
-    function GetNativeDataset: TNativeDataSet;//mi
+      function GetNativeDataset: TNativeDataSet;
+      function GetNativeConnect: TNativeConnect;
     public
       constructor CreateField(Owner : TCollection; P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
-      function FieldValue: PChar;
+
+      function FieldValue: PAnsiChar;
+      function FieldValueAsStr: string; //this will be used in SQLs;
+
       Property Buffer : Pointer Read FBuffer Write SetBuffer;
       Property Data : Pointer Read FData;
       Property DataOffset : Word Read  FDesc.iOffset Write  FDesc.iOffset;
@@ -423,7 +427,6 @@ Type
       Property FieldNull : Boolean Read GetNull Write SetNull;
       Property FieldStatus : PFieldStatus Read FStatus;
       Property NullOffset : Word Read FDesc.iNullOffset Write FDesc.iNullOffset;
-    published
       Property FieldNumber : Word Read FDesc.iFldNum Write FDesc.iFldNum;
       Property FieldName : String Read GetFieldName Write SetFieldName;
       Property FieldType : Word Read   FDesc.iFldType Write  FDesc.iFldType;
@@ -437,8 +440,8 @@ Type
       property FieldArray : Boolean Read  FArray write FArray;
       property NativeBLOBType: TNativeBLOBType read FNativeBLOBType
                 write FNativeBlobType;
-
       property NativeDataset : TNativeDataSet read GetNativeDataset;
+      property NativeConnect : TNativeConnect read GetNativeConnect;
   end;
 
   //////////////////////////////////////////////////////////
@@ -449,6 +452,7 @@ Type
     Private
       FTable : TNativeDataSet;
       function GetField(Index : Integer) : TPSQLField;
+    function GetNativeConnect: TNativeConnect;
     Public
       Constructor Create(Table : TNativeDataSet);
       function AddField(P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean): TPSQLField;
@@ -457,6 +461,7 @@ Type
       function FieldNumberFromName(SearchName : PChar) : Integer;
 
       property NativeDataset : TNativeDataSet read FTable;
+      property NativeConnect : TNativeConnect read GetNativeConnect;
   end;
 
   //////////////////////////////////////////////////////////
@@ -866,7 +871,7 @@ end;
     procedure ListenTo(Event: string);
     procedure UnlistenTo(Event: string);
     procedure DoNotify(Event: string);
-    function CheckEvents(var PID : Integer): string;
+    function CheckEvents(var PID : Integer; var Payload: string): string;
     property Handle: PPGnotify read fHandle;
   end;
 
@@ -2112,6 +2117,11 @@ begin
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+    FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
+    FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
+    FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
+    FIELD_TYPE_LSEG: TPSQLLSeg(Dest^) := TPSQLLSeg(Src^);
+
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
     FIELD_TYPE_TEXT: Result := 1; //29.09.2008
@@ -2165,6 +2175,11 @@ begin
       FIELD_TYPE_FLOAT4,
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+
+      FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
+      FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
+      FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
+      FIELD_TYPE_LSEG: TPSQLLSeg(Dest^) := TPSQLLSeg(Src^);
 
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
@@ -3108,8 +3123,13 @@ begin
   Result := TPSQLFields(Collection).NativeDataset;
 end;
 
+function TPSQLField.GetNativeConnect: TNativeConnect;
+begin
+  Result := TPSQLFields(Collection).NativeConnect;
+end;
+
 function TPSQLField.GetNull : Boolean;
-var AVal: PChar;
+var AVal: PAnsiChar;
 begin
   Result := True;
   case NativeType of
@@ -3117,7 +3137,7 @@ begin
    FIELD_TYPE_VARCHAR: if (dsoEmptyCharAsNull in GetNativeDataset.Options) then
        begin
          AVal := FieldValue;
-         Inc(PAnsiChar(AVal));
+         Inc(AVal);
          if AVal = '' then Exit; //we have empty string and it's treated as NULL due options
        end;
   end;
@@ -3164,9 +3184,48 @@ begin
   FDesc.iUnused[0] := S;
 end;
 
-function TPSQLField.FieldValue: PChar;
+function TPSQLField.FieldValue: PAnsiChar;
 begin
-   Result := PChar(PAnsiChar(FData)+FieldNumber-1);
+   Result := PAnsiChar(PAnsiChar(FData) + FieldNumber - 1);
+end;
+
+function TPSQLField.FieldValueAsStr: string;
+ var Src: pointer;
+
+ function SimpleQuote(const S: string): string;
+ begin
+  Result := '''' + S + '''';
+ end;
+
+begin
+  Src := FieldValue();
+  Inc(PAnsiChar(Src));
+  case FieldType of
+     fldBOOL:    Result := IfThen(SmallInt(Src^) > 0, 'TRUE', 'FALSE');
+     fldINT16:   Result := IntToStr(SmallInt(Src^));
+     fldINT32:   Result := IntToStr(LongInt(Src^));
+     fldINT64:   Result := IntToStr(Int64(Src^));
+     fldFloat:   Result := SQLFloatToStr(Double(Src^));
+     fldZSTRING,
+     fldUUID:
+                 case NativeType of
+                   FIELD_TYPE_BIT,
+                   FIELD_TYPE_VARBIT: Result := 'B' + NativeDataset.StrValue(Src)
+                 else
+                   Result := NativeDataset.StrValue(Src);
+                 end;
+     fldBLOB:    if FieldSubType = fldstMemo then
+                   Result := NativeDataset.MemoValue(Src)
+                 else
+                   Result := NativeDataset.BlobValue(Src, Self);
+     fldDate:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), DATE_MODE));
+     fldTime:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIME_MODE));
+     fldTIMESTAMP: Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIMESTAMP_MODE));
+     fldPOINT:   Result := SimpleQuote(PointToSQLPoint(TPSQLPoint(Src^)));
+     fldCIRCLE:  Result := SimpleQuote(CircleToSQLCircle(TPSQLCircle(Src^)));
+     fldBOX:     Result := SimpleQuote(BoxToSQLBox(TPSQLBox(Src^)));
+     fldLSEG:    Result := SimpleQuote(LSegToSQLLSeg(TPSQLLSeg(Src^)));
+  end;
 end;
 
 function TPSQLField.GetFieldDefault : string;//mi
@@ -3224,6 +3283,12 @@ begin
     Result := TPSQLField.CreateField(Self, Desc, ValCheck, Index, LocType, LocSize,LocArray);
   end;
 end;
+
+function TPSQLFields.GetNativeConnect: TNativeConnect;
+begin
+  Result := FTable.Connect;
+end;
+
 
 procedure TPSQLFields.SetFields(PRecord : Pointer);
 var
@@ -4607,6 +4672,12 @@ begin
       FIELD_TYPE_FLOAT4,
       FIELD_TYPE_NUMERIC,
       FIELD_TYPE_FLOAT8: Result := Sizeof(Double);
+
+      FIELD_TYPE_POINT: Result := SizeOf(TPSQLPoint);
+      FIELD_TYPE_CIRCLE: Result := SizeOf(TPSQLCircle);
+      FIELD_TYPE_BOX: Result := SizeOf(TPSQLBox);
+      FIELD_TYPE_LSEG: Result := SizeOf(TPSQLLSeg);
+
       FIELD_TYPE_TEXT,
       FIELD_TYPE_BYTEA,
       FIELD_TYPE_OID: Result := SizeOf(TBlobItem);
@@ -5017,6 +5088,14 @@ begin
               FIELD_TYPE_FLOAT8,
               FIELD_TYPE_NUMERIC:
                  if SizeOf(Double) > MaxSize then MaxSize := SizeOf(Double);
+              FIELD_TYPE_POINT:
+                 if SizeOf(TPSQLPoint) > MaxSize then MaxSize := SizeOf(TPSQLPoint);
+              FIELD_TYPE_CIRCLE:
+                 if SizeOf(TPSQLCircle) > MaxSize then MaxSize := SizeOf(TPSQLCircle);
+              FIELD_TYPE_BOX:
+                 if SizeOf(TPSQLBox) > MaxSize then MaxSize := SizeOf(TPSQLBox);
+              FIELD_TYPE_LSEG:
+                 if SizeOf(TPSQLLSeg) > MaxSize then MaxSize := SizeOf(TPSQLLSeg);
              else
               tMS := FieldMaxSizeInBytes(I);
              if tMS > MaxSize then MaxSize := tMS;
@@ -5064,6 +5143,10 @@ begin
                FIELD_TYPE_FLOAT4,
                FIELD_TYPE_FLOAT8,
                FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
+               FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
+               FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
+               FIELD_TYPE_BOX:       TPSQLBox(Data^) := SQLBoxToBox(FldValue);
+               FIELD_TYPE_LSEG:      TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
                FIELD_TYPE_OID,
                FIELD_TYPE_TEXT,
                FIELD_TYPE_BYTEA:     begin
@@ -5235,12 +5318,9 @@ end;
 
 function TNativeDataSet.GetDeleteSQL(Table: string; PRecord: Pointer): string;
 var
-  I          : Integer;
+  FieldCount, I: Integer;
   FieldList  : TFieldArray;
-  FieldCount : Integer;
   Fld        : TPSQLField;
-  Src        : Pointer;
-
 begin
   Result := '';
   GetKeys(False, FieldList, FieldCount);
@@ -5248,25 +5328,12 @@ begin
   begin
     Fld := FFieldDescs.Field[FieldList[I]];
     Fld.Buffer:= PRecord;
-    Src := Fld.FieldValue;
-    Inc(PAnsiChar(Src));
     if Result <> '' then  Result := Result + ' AND ';
     Result := Result + AnsiQuotedStr(Fld.FieldName, '"');
     if Fld.FieldNull then
       Result := Result + ' IS NULL'
     else
-      case Fld.FieldType of
-         fldBOOL:     Result := Result + '=' + ''''+IntToStr(SmallInt(Src^))+'''';
-         fldINT16:    Result := Result + '=' + IntToStr(SmallInt(Src^));
-         fldINT32:    Result := Result + '=' + IntToStr(LongInt(Src^));
-         fldINT64:    Result := Result + '=' + IntToStr(Int64(Src^));
-         fldFloat:    Result := Result + '=' + SQLFloatToStr(Double(Src^));
-         fldZSTRING:  Result := Result + '=' + StrValue(Src);
-         fldUUID:     Result := Result + '=' + UuidValue(Src);
-         fldDate:     Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),1)+ '''';
-         fldTime:     Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),2)+ '''';
-         fldTIMESTAMP:Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),0)+ '''';
-       end;
+      Result := Result + '=' + Fld.FieldValueAsStr;
   end;
   if Result = '' then Exit;
   Result := 'DELETE FROM ' + Table + ' WHERE ' + Result;
@@ -5289,15 +5356,12 @@ begin
       FreeBlob(PRecord,i);
 end;
 
-
 function TNativeDataSet.GetInsertSQL(Table: string; PRecord: Pointer): string;
 var
   I    : Integer;
   Fld    : TPSQLField;
-  Src    : Pointer;
   Fields : String;
   Values : String;
-
 begin
   Result := '';
   Fields := '';
@@ -5306,35 +5370,11 @@ begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
     if (Fld.FieldNull) and (not Fld.FValCheck.bHasDefVal) then continue;
-    Src := Fld.FieldValue;
-    Inc(PAnsiChar(Src));
-
     Fields := Fields + AnsiQuotedStr(Fld.FieldName, '"') + ', ';
     if (Fld.FieldNull) and (Fld.FValCheck.bHasDefVal) then
        Values := Values + 'DEFAULT, '
     else
-    begin
-       case Fld.FieldType of
-           fldBOOL:    Values := Values + ''''+IntToStr(SmallInt(Src^))+''''+', ';
-           fldINT16:   Values := Values + IntToStr(SmallInt(Src^))+', ';
-           fldINT32:   Values := Values + IntToStr(LongInt(Src^))+', ';
-           fldINT64:   Values := Values + IntToStr(Int64(Src^))+', ';
-           fldFloat:   Values := Values + SQLFloatToStr(Double(Src^))+', ';
-           fldZSTRING:
-                       begin
-                          if Fld.NativeType = FIELD_TYPE_BIT then
-                             Values := Values + 'B'+StrValue(Src)+', ' else
-                             Values := Values + StrValue(Src)+', ';
-                       end;
-           fldUUID:    Values := Values + UuidValue(Src)+', ';
-           fldBLOB:    if Fld.FieldSubType = fldstMemo then
-                          Values := Values + MemoValue(Src)+ ', ' else
-                          Values := Values + '''' + BlobValue(Src,Fld)+ ''''+', ';
-           fldDate:    Values := Values + ''''+ DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
-           fldTime:    Values := Values + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
-           fldTIMESTAMP: Values := Values + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
-       end;
-    end;
+      Values := Values + Fld.FieldValueAsStr + ', ';
   end;
   Delete(Fields, Length(Fields)-1, 2);
   Delete(Values, Length(Values)-1, 2);
@@ -5346,99 +5386,49 @@ function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer):
 var
   I: Integer;
   Fld: TPSQLField;
-  Src: Pointer;
-  Where: string;
-  Values: string;
-  FldName: string;
+  FldName, Values: string;
 
 function GetWHERE(P : Pointer) : String;
 var
-  I          : Integer;
+    I, FieldCount: Integer;
   FieldList  : TFieldArray;
-  FieldCount : Integer;
   Fld        : TPSQLField;
-  Src        : Pointer;
-  Where      : String;
   FldName: string;
 begin
   Result := '';
   GetKeys(False, FieldList, FieldCount);
-  Where := '';
   for I := 0 to FieldCount-1 do
   begin
     Fld := FFieldDescs.Field[FieldList[I]];
     Fld.Buffer:= P;
-    Src := Fld.FieldValue;
-    Inc(PAnsiChar(Src));
     FldName := AnsiQuotedStr(Fld.FieldName, '"');
-    if Where <> '' then  Where := Where + ' AND ';
-    if Fld.FieldNull then Where := Where + FldName + ' IS NULL'
-    else
-       case Fld.FieldType of
-         fldBOOL:     Where := Where + FldName + '=' + QuotedStr(IntToStr(SmallInt(Src^)));
-         fldINT16:    Where := Where + FldName + '=' + IntToStr(SmallInt(Src^));
-         fldINT32:    Where := Where + FldName + '=' + IntToStr(LongInt(Src^));
-         fldINT64:    Where := Where + FldName + '=' + IntToStr(Int64(Src^));
-         fldFloat:    Where := Where + FldName + '=' + SQLFloatToStr(Double(Src^));
-         fldBLOB:     if Fld.FieldSubType = fldstMemo then
-                          Where := Where + FldName + '=' + MemoValue(Src)
+      if Result <> '' then  Result := Result + ' AND ';
+      if Fld.FieldNull then
+        Result := Result + FldName + ' IS NULL'
                       else
-                          Where := Where + FldName + '=''' + BlobValue(Src, Fld) + '''';
-         fldZSTRING:  Where := Where + FldName + '=' + StrValue(Src);
-         fldUUID:     Where := Where + FldName + '=' + UuidValue(Src);
-         fldDate:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
-         fldTime:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),2));
-         fldTIMESTAMP:Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),0));
-       end;
+        Result := Result + FldName + '=' + Fld.FieldValueAsStr;
   end;
-  Result := ' WHERE ' + Where;
+    Result := ' WHERE ' + Result;
 end;
-
-var
-  ManageSQL: string;
 
 begin
   Result := '';
-  ManageSQL := '';
-  Where := GetWhere(OldRecord);
   for I := 1 to FFieldDescs.Count do
   begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
     if not Fld.FieldChanged then Continue;
-    Src := Fld.FieldValue;
-
     if (dsoManageLOFields in FOptions) and (Fld.NativeBLOBType = nbtOID) and not FieldIsNull(I-1) then
       Result := Result + GetLOUnlinkSQL(Field(I-1));
-
-    Inc(PAnsiChar(Src));
     FldName := AnsiQuotedStr(Fld.FieldName, '"');
     if Fld.FieldNull then
        Values := Values + FldName + '=NULL, '
     else
-      case Fld.FieldType of
-         fldBOOL:   Values := Values + FldName + '='+ '''' + IntToStr(SmallInt(Src^)) + '''' + ', ';
-         fldINT16:  Values := Values + FldName + '=' + IntToStr(SmallInt(Src^))+', ';
-         fldINT32:  Values := Values + FldName + '=' + IntToStr(LongInt(Src^)) + ', ';
-         fldINT64:  Values := Values + FldName + '=' + IntToStr(Int64(Src^)) + ', ';
-         fldFloat:  Values := Values + FldName + '=' + SQLFloatToStr(Double(Src^))+', ';
-         fldBLOB:   if Fld.FieldSubType = fldstMemo then
-                       Values := Values + FldName + '=' + MemoValue(Src)+ ', '
-                    else
-                       Values := Values + FldName + '= ''' + BlobValue(Src,Fld) + ''', ';
-         fldZSTRING: if Fld.NativeType = FIELD_TYPE_BIT then
-                                 Values := Values + FldName + '= B' + StrValue(Src) + ', '
-                              else
-                                 Values := Values + FldName + '=' + StrValue(Src) + ', ';
-         fldUUID:   Values := Values + FldName + '=' + UuidValue(Src) + ', ';
-         fldDate:   Values := Values + FldName + '=' + '''' + DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
-         fldTime:   Values := Values + FldName + '=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
-         fldTIMESTAMP: Values := Values + FldName + '=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
-      end;
+       Values := Values + FldName + '=' + Fld.FieldValueAsStr + ', ';
   end;
   Delete(VALUES,Length(Values)-1,2);
   if VALUES > '' then
-    Result := 'UPDATE ' + Table + ' SET '+ VALUES + Where + ';' + Result;
+    Result := Format('UPDATE %s SET %s', [Table, Values]) + GetWhere(OldRecord) + ';' + Result; //LOUnlinkSql at the end
 end;
 
 procedure TNativeDataSet.AppendRecord (PRecord : Pointer);
@@ -7598,10 +7588,10 @@ begin
    end;
 end;
 
-function TPSQLEngine.CheckEvents(hNotify : hDBIObj; Var Pid : Integer;  Var pszOutPut : String)  : DBIResult;
+function TPSQLEngine.CheckEvents(hNotify : hDBIObj; var Pid : Integer;  var pszOutPut, pszPayload : String)  : DBIResult;
 begin
    try
-     pszOutPut := TNativePGNotify(hNotify).CheckEvents(Pid);
+     pszOutPut := TNativePGNotify(hNotify).CheckEvents(Pid, pszPayload);
      Result := DBIERR_NONE;
    except
      Result := CheckError;
@@ -7664,7 +7654,7 @@ begin
     InternalExecute('NOTIFY ' + Event);
 end;
 
-function TNativePGNotify.CheckEvents(var PID : Integer): string;
+function TNativePGNotify.CheckEvents(var PID : Integer; var Payload: string): string;
 begin
   Result := '';
   if not Assigned(FConnect) or not (FConnect.FLoggin) then Exit;
@@ -7673,6 +7663,7 @@ begin
   if Assigned(FHandle) then
   begin
     Result := FConnect.RawToString(FHandle^.relname);
+    Payload := FConnect.RawToString(FHandle^.extra);
     PID := FHandle^.be_pid;
     PQfreemem(FHandle);
   end;
@@ -8212,9 +8203,9 @@ begin
   List.Clear;
   ArgNum := 0;
   if GetserverVersionAsInt > 080100 then
-    MinOIDSel :=  'SELECT GREATEST(pronargs, array_upper(proallargtypes,1))'
+    MinOIDSel :=  'SELECT GREATEST(pronargs, array_upper(proallargtypes,1)), '
   else
-    MinOIDSel :=  'SELECT pronargs';
+    MinOIDSel :=  'SELECT pronargs, ';
   if ProcOID = 0 then
    begin
     I := Pos('.',pszPName);
@@ -8231,7 +8222,7 @@ begin
       end;
     ProcName := StringReplace(ProcName, '"', '', [rfReplaceAll]);
 
-    MinOIDSel :=  MinOIDSel + ', pg_proc.oid '+
+    MinOIDSel :=  MinOIDSel + 'pg_proc.oid '+
                   'FROM pg_catalog.pg_proc, pg_catalog.pg_namespace '+
                   Format(' WHERE proname LIKE ''%s'''+
                          ' AND nspname LIKE ''%s''',
@@ -8746,11 +8737,9 @@ begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
     if CompareText(Fld.FieldName, AFieldName)<>0 then Continue;
-    //AParam.DataType := DataTypeMap[Fld.FieldType];
     Src := Fld.FieldValue;
     Inc(PAnsiChar(Src));
     if not Fld.FieldChanged and not UnchangedAsNull then //field was not changed, we put there old value
-                                                         //08.01.2008
      begin
       FieldOldValue(AFieldName, AParam);
       Exit;
@@ -9691,6 +9680,7 @@ begin
    PQClear(Stmt);
   end;
 end;
+
 
 initialization
 

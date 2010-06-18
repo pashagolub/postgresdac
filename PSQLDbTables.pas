@@ -510,6 +510,7 @@ type
     procedure CheckSetKeyMode;
     procedure ClearCalcFields(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
     procedure CloseCursor; Override;
+    procedure CreateFields; override;
     procedure CloseBlob(Field: TField); Override;
     function  CreateExprFilter(const Expr: String;
       Options: TFilterOptions; Priority: Integer): HDBIFilter;
@@ -1007,6 +1008,7 @@ type
 //                  Asynchronous notifying                                    //
 //****************************************************************************//
   TPSQLNotifyEvent = procedure (Sender: TObject; Event: string; ProcessID : Integer) of object;
+  TPSQLNotifyEventEx = procedure (Sender: TObject; Channel: string; Payload: string; ProcessID : Integer) of object;
 
   TPSQLNotify = class (TComponent)
   private
@@ -1019,6 +1021,7 @@ type
     FBackupList: TStringList;
     FFirstConnect: Boolean;
     FNotifyFired: TPSQLNotifyEvent;
+    FNotifyFiredEx: TPSQLNotifyEventEx;
     function GetStoreActive: boolean;
   protected
     procedure SetActive(Value: Boolean);
@@ -1050,6 +1053,7 @@ type
     property ListenList: TStrings read FListenList write SetListenList;
     property Interval: Cardinal read GetInterval write SetInterval default 250;
     property OnNotify: TPSQLNotifyEvent read FNotifyFired write FNotifyFired;
+    property OnNotifyEx: TPSQLNotifyEventEx read FNotifyFiredEx write FNotifyFiredEx;
   end;
 
 
@@ -2321,6 +2325,39 @@ begin
   SetDBFlag(dbfOpened, FALSE);
 end;
 
+procedure TPSQLDataset.CreateFields;
+var F: TField;
+    I: integer;
+begin
+ F := nil; //make compiler happy
+ inherited CreateFields;
+ if FieldDefs.Count > Fields.Count then
+   for I := 0 to FieldDefs.Count - 1 do
+      if (FieldDefs[I].DataType = ftUnknown) and
+        not ((faHiddenCol in FieldDefs[I].Attributes) and not FieldDefs.HiddenFields) then
+         begin
+          case GetFieldTypeOID(I) of
+            FIELD_TYPE_POINT: F := TPSQLPointField.Create(Self);
+            FIELD_TYPE_CIRCLE: F := TPSQLCircleField.Create(Self);
+            FIELD_TYPE_BOX: F := TPSQLBoxField.Create(Self);
+            FIELD_TYPE_LSEG: F := TPSQLLSegField.Create(Self);
+          else
+            Continue;
+          end;
+          try
+            F.FieldName := FieldDefs[I].Name;
+            F.SetFieldType(ftADT);
+            F.Required := faRequired in FieldDefs[I].Attributes;
+            F.ReadOnly := faReadonly in FieldDefs[I].Attributes;
+            F.DataSet := FieldDefs.DataSet;
+            F.Index := I;
+          except
+            F.Free;
+            raise;
+          end;
+         end;
+end;
+
 //////////////////////////////////////////////////////////
 //function    : TPSQLDataSet.CreateHandle
 //Description : Virtual method Create Handle will be overwritten
@@ -2802,6 +2839,22 @@ begin
         begin
           FSize := PSQLTypes.UUIDLEN;
           FType := ftGuid;
+        end;
+      fldPOINT:
+        begin
+          FSize := SizeOf(PSQLTypes.TPSQLPoint);
+        end;
+      fldCIRCLE:
+        begin
+          FSize := SizeOf(PSQLTypes.TPSQLCircle);
+        end;
+      fldBOX:
+        begin
+          FSize := SizeOf(PSQLTypes.TPSQLBox);
+        end;
+      fldLSEG:
+        begin
+          FSize := SizeOf(PSQLTypes.TPSQLLSeg);
         end;
     end;
 
@@ -3953,6 +4006,10 @@ function TPSQLDataSet.Lookup(const KeyFields: String; const KeyValues: Variant;
   const ResultFields: String): Variant;
 begin
   Result := Null;
+
+  if VarIsNull(KeyValues) then
+    Exit;
+
   if LocateRecord(KeyFields, KeyValues, [], FALSE) then
   begin
     SetTempState(dsCalcFields);
@@ -5017,7 +5074,7 @@ begin
   if (FieldType = ftGuid) and (dsoUseGUIDField in FOptions) then
    Result := TPSQLGuidField
   else
-   Result := inherited GetFieldClass(FieldType)
+    Result := inherited GetFieldClass(FieldType);
 end;
 
 procedure TPSQLDataSet.SortBy(FieldNames: string);
@@ -5070,7 +5127,6 @@ end;
 
 function TPSQLDataSet.GetFieldTypeOID(const FieldNum: integer): cardinal;
 begin
- CheckActive;
  if Assigned(FHandle) then
     Result := Engine.GetFieldTypeOID(FHandle, FieldNum)
  else
@@ -6850,15 +6906,16 @@ end;
 
 procedure TPSQLNotify.CheckEvents;
 var
-  Notify : string;
+  Notify, Payload : string;
   Pid    : Integer;
 begin
   CheckActive;
   while True do
   begin
-    Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify));
+    Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify, Payload));
     if Notify = '' then Break;
     if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
+    if Assigned(FNotifyFiredEx) then FNotifyFiredEx(Self, Notify, Payload, Pid);
   end;
 end;
 
@@ -7141,7 +7198,6 @@ begin
 	if ([csReading, csLoading] * ComponentState = []) then
     SetNeedRefreshParams();
 	FProcName := Value;
-  FOverload := InvalidOID;
   RefreshParams;
 	DataEvent(dePropertyChange, 0);
 end;

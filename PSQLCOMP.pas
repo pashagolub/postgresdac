@@ -456,7 +456,7 @@ begin
   {$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
-  RegisterFields([TPSQLGuidField]);
+  RegisterFields([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField]);
   RegisterPropertyEditors;
 end;
 

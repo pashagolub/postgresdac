@@ -140,6 +140,13 @@ const
   MAX_CHAR_LEN     = 8192; //Max character length allowed in TField descendants
   MAX_ENCODING_ID  = 42; //Max encoding id for pg_encoding_to_char
   InvalidOid       : cardinal = 0;
+
+
+const //date/time convertion
+  TIMESTAMP_MODE = 0;
+  DATE_MODE = 1;
+  TIME_MODE = 2;
+
 var
   PSQL_DLL             : string = 'libpq.dll';
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
@@ -148,6 +155,30 @@ var
 
 type
   _NAME = string[NAMEDATALEN+1];
+
+  TPSQLPoint = packed record
+    X: Double;
+    Y: Double;
+  end;
+
+  TPSQLCircle = packed record
+   R: Double;
+   case Integer of
+    0: (X, Y: Double);
+    1: (Center: TPSQLPoint);
+  end;
+
+  TPSQLBox = packed record
+    case Integer of
+      0: (Right, Top, Left, Bottom: Double);
+      1: (TopRight, BottomLeft: TPSQLPoint);
+  end;
+
+  TPSQLLSeg = packed record
+    case Integer of
+      0: (X1, Y1, X2, Y2: Double);
+      1: (P1, P2: TPSQLPoint);
+  end;
 
 const
 
@@ -1155,12 +1186,15 @@ const
   fldUNICODE          = $1007;          { Unicode }
   {$ENDIF}
 
-  //POSTGRES SPECIFIC    //pasha_golub 19.03.06
-  fldTIMESTAMPTZ     = MAXLOGFLDTYPES + 1; {Timestamp with time zone}
+  //POSTGRES SPECIFIC
+  fldTIMESTAMPTZ     = MAXLOGFLDTYPES + 1;
   fldUUID            = MAXLOGFLDTYPES + 2;
   fldINET            = MAXLOGFLDTYPES + 3;
   fldMACADDR         = MAXLOGFLDTYPES + 4;
-
+  fldPOINT           = MAXLOGFLDTYPES + 5;
+  fldCIRCLE          = MAXLOGFLDTYPES + 6;
+  fldBOX             = MAXLOGFLDTYPES + 7;
+  fldLSEG            = MAXLOGFLDTYPES + 8;
 
 { Sub Types (Logical) }
 
@@ -1891,11 +1925,22 @@ const
 function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 function GetTable(const SQL: String; var Aliace : String): String;
 function CompareBegin(Str1, Str2: ansistring): Boolean;
+
+
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
+function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
+function PointToSQLPoint(Value: TPSQLPoint; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+function SQLCircleToCircle(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLCircle;
+function CircleToSQLCircle(Value: TPSQLCircle; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+function SQLBoxToBox(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLBox;
+function BoxToSQLBox(Value: TPSQLBox; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLLSeg;
+function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+
 procedure GetToken(var Buffer, Token: string);
 procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word;
                                         var RecBuff : FLDDesc;
@@ -2472,7 +2517,8 @@ function DateTimeToSqlDate(Value: TDateTime; Mode: Integer): string;
 begin
   Result := '';
   case Mode of
-     0: begin
+     TIMESTAMP_MODE:
+        begin
            if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
            if Frac(Value) <> 0 then
            begin
@@ -2480,18 +2526,16 @@ begin
               Result := Result + FormatDateTime('hh:nn:ss.z', Value, PSQL_FS);
            end;
         end;
-     1: begin
-           if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
-        end;
-     2: begin
+
+     DATE_MODE:
+        if Trunc(Value) <> 0 then
+          Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
+
+     TIME_MODE:
            if Frac(Value) <> 0 then
-           begin
-              if Result <> '' then Result := Result + ' ';
               Result := Result + FormatDateTime('hh:nn:ss.z', Value, PSQL_FS);
            end;
         end;
-  end;
-end;
 
 function SQLTimestampToDateTime(Value: string): TDateTime;
 var
@@ -2530,6 +2574,87 @@ end;
 function SQLFloatToStr(Value: Double): string;
 begin
   Result := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}FloatToStr(Value, PSQL_FS);
+end;
+
+function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
+var S, Xs, Ys: string;
+    DelimPos: integer;
+begin
+ S := Copy(Value, 2, Length(Value) - 2); //eliminate brackets
+ DelimPos := Pos(Delimiter, S);
+ Xs := Copy(S, 1, DelimPos - 1);
+ Ys := Copy(S, DelimPos + 1, MaxInt);
+ if not UseSystemSeparator then
+   begin
+    Result.X := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}StrToFloat(Xs, PSQL_FS);
+    Result.Y := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}StrToFloat(Ys, PSQL_FS);
+   end
+ else
+   begin
+    Result.X := StrToFloat(Xs);
+    Result.Y := StrToFloat(Ys);
+   end;
+end;
+
+function PointToSQLPoint(Value: TPSQLPoint; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+begin
+  if UseSystemSeparator then
+    Result := Format('(%g' + Delimiter +'%g)', [Value.X, Value.Y])
+  else
+    Result := '(' + SQLFloatToStr(Value.X) + Delimiter + SQLFloatToStr(Value.Y) + ')';
+end;
+
+function SQLCircleToCircle(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLCircle;
+var S, Rs: string;
+    DelimPos: integer;
+begin
+ S := Copy(Value, 2, Length(Value) - 2); //eliminate <> brackets
+ DelimPos := Pos(')', S);
+ Result.Center := SQLPointToPoint(Copy(S, 1, DelimPos), Delimiter, UseSystemSeparator);
+ Rs := Copy(S, DelimPos + 2, MaxInt); //closing bracket plus delimiter
+ if not UseSystemSeparator then
+    Result.R := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}StrToFloat(Rs, PSQL_FS)
+ else
+    Result.R := StrToFloat(Rs);
+end;
+
+function CircleToSQLCircle(Value: TPSQLCircle; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+begin
+  Result := PointToSQLPoint(Value.Center, Delimiter, UseSystemSeparator);
+  with Value do
+    if UseSystemSeparator then
+      Result := '<' + Result + Delimiter + Format('%g>', [R])
+    else
+      Result := '<' + Result + Delimiter + SQLFloatToStr(R) + '>';
+end;
+
+function SQLBoxToBox(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLBox;
+var DelimPos: integer;
+begin
+  DelimPos := Pos(')', Value) + 1;
+  Result.TopRight := SQLPointToPoint(Copy(Value, 1, DelimPos - 1), Delimiter, UseSystemSeparator);
+  Result.BottomLeft := SQLPointToPoint(Copy(Value, DelimPos + 1, MaxInt), Delimiter, UseSystemSeparator);
+end;
+
+function BoxToSQLBox(Value: TPSQLBox; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+begin
+  Result := PointToSQLPoint(Value.TopRight, Delimiter, UseSystemSeparator) + Delimiter + PointToSQLPoint(Value.BottomLeft, Delimiter, UseSystemSeparator);
+end;
+
+function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLLSeg;
+var
+  DelimPos: integer;
+  S: string;
+begin
+  S := Copy(Value, 2, Length(Value) - 2); //eliminate [] brackets
+  DelimPos := Pos(')', S) + 1;
+  Result.P1 := SQLPointToPoint(Copy(S, 1, DelimPos - 1), Delimiter, UseSystemSeparator);
+  Result.P2 := SQLPointToPoint(Copy(S, DelimPos + 1, MaxInt), Delimiter, UseSystemSeparator);
+end;
+
+function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+begin
+  Result := '[' + PointToSQLPoint(Value.P1, Delimiter, UseSystemSeparator) + Delimiter + PointToSQLPoint(Value.P2, Delimiter, UseSystemSeparator) + ']';
 end;
 
 procedure GetToken(var Buffer, Token: string);
@@ -2702,6 +2827,26 @@ begin
     FIELD_TYPE_MACADDR: begin
                          BdeType := fldZSTRING;
                          LogSize := MACADDRLEN + 1;
+                      end;
+    FIELD_TYPE_POINT:
+                      begin
+                         BdeType := fldPOINT;
+                         LogSize := SizeOf(TPSQLPoint);
+                      end;
+    FIELD_TYPE_CIRCLE:
+                      begin
+                         BdeType := fldCIRCLE;
+                         LogSize := SizeOf(TPSQLCircle);
+                      end;
+    FIELD_TYPE_BOX:
+                      begin
+                         BdeType := fldBOX;
+                         LogSize := SizeOf(TPSQLBox);
+                      end;
+    FIELD_TYPE_LSEG:
+                      begin
+                         BdeType := fldLSEG;
+                         LogSize := SizeOf(TPSQLLSeg);
                       end;
   else
     begin
