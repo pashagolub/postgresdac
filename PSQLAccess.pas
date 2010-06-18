@@ -3206,14 +3206,14 @@ begin
      fldINT32:   Result := IntToStr(LongInt(Src^));
      fldINT64:   Result := IntToStr(Int64(Src^));
      fldFloat:   Result := SQLFloatToStr(Double(Src^));
-     fldZSTRING,
-     fldUUID:
+     fldZSTRING:
                  case NativeType of
                    FIELD_TYPE_BIT,
                    FIELD_TYPE_VARBIT: Result := 'B' + NativeDataset.StrValue(Src)
                  else
                    Result := NativeDataset.StrValue(Src);
                  end;
+     fldUUID:    Result := NativeDataset.UuidValue(Src);
      fldBLOB:    if FieldSubType = fldstMemo then
                    Result := NativeDataset.MemoValue(Src)
                  else
