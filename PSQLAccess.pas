@@ -714,6 +714,7 @@ Type
       Property InternalBuffer : Pointer Read  GetInternalBuffer Write SetInternalBuffer;
       Property IndexCount : Integer Read  GetIndexCount;
       //insert, update, delete stuff
+      function UuidValue(P : Pointer; NeedQuote: boolean = True): string;
       function StrValue(P : Pointer; NeedQuote: boolean = True): string;
       function MemoValue(P : Pointer; NeedQuote: boolean = True): string;
       function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True): string; overload;
@@ -3607,13 +3608,14 @@ begin
     fldINT64: Result := PInt64(@Dest)^;
     {$ENDIF}
     fldFLOAT: Result := PDouble(@Dest)^;
-    fldZSTRING, fldUUID:
+    fldZSTRING:
                 {$IFDEF DELPHI_12}
                 if FDataset.FConnect.IsUnicodeUsed then
                   Result := string(PChar(@Dest))
                 else
                 {$ENDIF}
                   Result := string(PAnsiChar(@Dest));
+    fldUUID:  Result := string(PAnsiChar(@Dest));
     fldBOOL : Result := PWordBool(@Dest)^;
     fldDATE : begin
                  DWORD(TimeStamp.Date) := PDWORD(@Dest)^;
@@ -4608,10 +4610,10 @@ begin
       FIELD_TYPE_TEXT,
       FIELD_TYPE_BYTEA,
       FIELD_TYPE_OID: Result := SizeOf(TBlobItem);
+      FIELD_TYPE_UUID: Result := UUIDLEN + 1;
    else
      begin
        case FT of
-        FIELD_TYPE_UUID: Result := UUIDLEN;
         FIELD_TYPE_INET, FIELD_TYPE_CIDR: Result := INETLEN;
         FIELD_TYPE_MACADDR: Result := MACADDRLEN;
         FIELD_TYPE_TIMESTAMPTZ: Result := TIMESTAMPTZLEN;
@@ -5071,9 +5073,10 @@ begin
                                         Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
                                         continue;
                                     end;
+               FIELD_TYPE_UUID: StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
              else
-               if (T.NativeType = FIELD_TYPE_UUID) then
-                 FldValue := string(BadGuidToGuid(AnsiString(FldValue)));
+              // if (T.NativeType = FIELD_TYPE_UUID) then
+              //   FldValue := string(BadGuidToGuid(AnsiString(FldValue)));
 
                if dsoTrimCharFields in FOptions then
                  FldValue := TrimRight(FldValue);
@@ -5258,8 +5261,8 @@ begin
          fldINT32:    Result := Result + '=' + IntToStr(LongInt(Src^));
          fldINT64:    Result := Result + '=' + IntToStr(Int64(Src^));
          fldFloat:    Result := Result + '=' + SQLFloatToStr(Double(Src^));
-         fldZSTRING, fldUUID:
-                      Result := Result + '=' + StrValue(Src);
+         fldZSTRING:  Result := Result + '=' + StrValue(Src);
+         fldUUID:     Result := Result + '=' + UuidValue(Src);
          fldDate:     Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),1)+ '''';
          fldTime:     Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),2)+ '''';
          fldTIMESTAMP:Result := Result + '='''+ DateTimeToSqlDate(TDateTime(Src^),0)+ '''';
@@ -5317,12 +5320,13 @@ begin
            fldINT32:   Values := Values + IntToStr(LongInt(Src^))+', ';
            fldINT64:   Values := Values + IntToStr(Int64(Src^))+', ';
            fldFloat:   Values := Values + SQLFloatToStr(Double(Src^))+', ';
-           fldZSTRING, fldUUID:
+           fldZSTRING:
                        begin
                           if Fld.NativeType = FIELD_TYPE_BIT then
                              Values := Values + 'B'+StrValue(Src)+', ' else
                              Values := Values + StrValue(Src)+', ';
                        end;
+           fldUUID:    Values := Values + UuidValue(Src)+', ';
            fldBLOB:    if Fld.FieldSubType = fldstMemo then
                           Values := Values + MemoValue(Src)+ ', ' else
                           Values := Values + '''' + BlobValue(Src,Fld)+ ''''+', ';
@@ -5380,8 +5384,8 @@ begin
                           Where := Where + FldName + '=' + MemoValue(Src)
                       else
                           Where := Where + FldName + '=''' + BlobValue(Src, Fld) + '''';
-         fldZSTRING,
-         fldUUID:     Where := Where + FldName + '=' + StrValue(Src);
+         fldZSTRING:  Where := Where + FldName + '=' + StrValue(Src);
+         fldUUID:     Where := Where + FldName + '=' + UuidValue(Src);
          fldDate:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),1));
          fldTime:     Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),2));
          fldTIMESTAMP:Where := Where + FldName + '=' + QuotedStr(DateTimeToSqlDate(TDateTime(Src^),0));
@@ -5422,10 +5426,11 @@ begin
                        Values := Values + FldName + '=' + MemoValue(Src)+ ', '
                     else
                        Values := Values + FldName + '= ''' + BlobValue(Src,Fld) + ''', ';
-         fldZSTRING, fldUUID: if Fld.NativeType = FIELD_TYPE_BIT then
+         fldZSTRING: if Fld.NativeType = FIELD_TYPE_BIT then
                                  Values := Values + FldName + '= B' + StrValue(Src) + ', '
                               else
                                  Values := Values + FldName + '=' + StrValue(Src) + ', ';
+         fldUUID:   Values := Values + FldName + '=' + UuidValue(Src) + ', ';
          fldDate:   Values := Values + FldName + '=' + '''' + DateTimeToSqlDate(TDateTime(Src^),1)+ ''''+', ';
          fldTime:   Values := Values + FldName + '=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),2)+ ''''+', ';
          fldTIMESTAMP: Values := Values + FldName + '=' + ''''+ DateTimeToSqlDate(TDateTime(Src^),0)+ ''''+', ';
@@ -6228,7 +6233,8 @@ begin
         fldINT32: FldVal := IntToStr(PLongInt(@Buff)^);
         fldFLOAT: FldVal := SQLFloatToStr(PDouble(@Buff)^);
         fldBOOL:  if PBoolean(@Buff)^ then FldVal := 'True' else FldVal := 'False';
-        fldZSTRING, fldUUID: FldVal := StrValue(@Buff);
+        fldZSTRING: FldVal := StrValue(@Buff);
+        fldUUID:  FldVal := UuidValue(@Buff);
         fldINT64: FldVal := IntToStr(PInt64(@Buff)^);
         fldDate:
                   begin
@@ -6296,8 +6302,11 @@ begin
 end;
 
 procedure TNativeDataSet.ReOpenTable;
+var OldRowsAffected: integer;
 begin
-   OpenTable;
+  OldRowsAffected := FAffectedRows;
+  OpenTable;
+  FAffectedRows := OldRowsAffected;
 end;
 
 procedure TNativeDataSet.ClearIndexInfo;
@@ -8762,9 +8771,8 @@ begin
                          AParam.Value := Int64(Src^);
                         {$ENDIF}
                        end;
-           fldFloat:   AParam.AsFloat := Double(Src^);
-           fldZSTRING,
-           fldUUID: begin
+           fldFLOAT:   AParam.AsFloat := Double(Src^);
+           fldZSTRING: begin
                            {$IFDEF DELPHI_12}
                             if FConnect.IsUnicodeUsed then
                               AParam.AsString := PWideChar(Src)
@@ -8774,6 +8782,7 @@ begin
                             if (Fld.NativeType = FIELD_TYPE_BIT) or (Fld.NativeType = FIELD_TYPE_VARBIT) then
                              AParam.AsString := 'B' + AParam.AsString;
                        end;
+           fldUUID:    AParam.AsString := String(PAnsiChar(Src));
            fldBLOB:    if Fld.NativeBLOBType = nbtOID then
                           begin
                             AParam.AsInteger := StrToUInt(BlobValue(Src, Fld));
@@ -9251,39 +9260,49 @@ begin
  end;
 end;
 
+function TNativeDataSet.UuidValue(P : Pointer; NeedQuote: boolean = True): string;
+var AVal: PAnsiChar;
+begin
+  Result := '';
+  if not Assigned(P) then Exit;
+  AVal := PAnsiChar(P);
+  Result := FConnect.RawToString(AVal);
+  if NeedQuote then Result := '''' + Result + '''';
+end;
+
 function TNativeDataSet.StrValue(P : Pointer; NeedQuote: boolean = True):String;
 var
    Buffer, AVal : PAnsiChar;
    SZ, Err : Integer;
 begin
-    Result := '';
-    if P <> nil then
+  Result := '';
+  if P <> nil then
+   begin
+    {$IFDEF DELPHI_12}
+    if FConnect.IsUnicodeUsed then
+     AVal := PAnsiChar(FConnect.StringToRawS(PWideChar(P)))
+    else
+    {$ENDIF}
+     AVal := PAnsiChar(P);
+
+    if not NeedQuote then
      begin
-      {$IFDEF DELPHI_12}
-      if FConnect.IsUnicodeUsed then
-       AVal := PAnsiChar(FConnect.StringToRawS(PWideChar(P)))
-      else
-      {$ENDIF}
-       AVal := PAnsiChar(P);
-
-      if not NeedQuote then
-       begin
-        Result := FConnect.RawToString(AVal);
-        Exit;
-       end;
-
-      SZ := StrLen(AVal);
-      GetMem(Buffer, 2*SZ+1);
-      try
-      ZeroMemory(Buffer, 2*SZ+1);
-      PQEscapeStringConn(FConnect.Handle, Buffer, AVal, SZ, Err);
-      if Err > 0 then
-       FConnect.CheckResult;
-       Result := '''' + FConnect.RawToString(Buffer) + '''';
-      finally
-       FreeMem(Buffer);
-      end;
+      Result := FConnect.RawToString(AVal);
+      Exit;
      end;
+
+    SZ := StrLen(AVal);
+    GetMem(Buffer, 2*SZ+1);
+    try
+    ZeroMemory(Buffer, 2*SZ+1);
+    PQEscapeStringConn(FConnect.Handle, Buffer, AVal, SZ, Err);
+    if Err > 0 then
+     FConnect.CheckResult;
+     Result := '''' + FConnect.RawToString(Buffer) + '''';
+    finally
+     FreeMem(Buffer);
+    end;
+   end;
 end;
 
 function TNativeDataSet.MemoValue(P : Pointer; NeedQuote: boolean = True):String;
@@ -9291,18 +9310,18 @@ var
    Buffer : PChar;
    SZ : Integer;
 begin
-    Result := '';
-    if TBlobItem(P^).Blob <> nil then
-    begin
-      if TBlobItem(P^).Blob.Size = 0 then exit;
-      SZ := TBlobItem(P^).Blob.Size;
-      GetMem(Buffer, SZ+1);
-      ZeroMemory(Buffer,SZ+1);
-      TBlobItem(P^).Blob.Seek(0,0);
-      TBlobItem(P^).Blob.Read(Buffer^, SZ);
-      Result := StrValue(Buffer, NeedQuote);
-      FreeMem(Buffer, SZ+1);
-    end;
+  Result := '';
+  if TBlobItem(P^).Blob <> nil then
+  begin
+    if TBlobItem(P^).Blob.Size = 0 then exit;
+    SZ := TBlobItem(P^).Blob.Size;
+    GetMem(Buffer, SZ+1);
+    ZeroMemory(Buffer,SZ+1);
+    TBlobItem(P^).Blob.Seek(0,0);
+    TBlobItem(P^).Blob.Read(Buffer^, SZ);
+    Result := StrValue(Buffer, NeedQuote);
+    FreeMem(Buffer, SZ+1);
+  end;
 end;
 
 function TNativeDataSet.BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True): string;
