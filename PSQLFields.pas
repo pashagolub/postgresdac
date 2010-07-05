@@ -106,7 +106,7 @@ uses DbConsts, SysUtils;
 
 procedure Register;
 begin
-  RegisterClasses([TPSQLGuidField, TPSQLPointField]);
+  RegisterClasses([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField]);
 end;
 
 { TPSQLGuidField }
