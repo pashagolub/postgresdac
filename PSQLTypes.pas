@@ -2591,8 +2591,8 @@ begin
    end
  else
    begin
-    Result.X := StrToFloat(Xs);
-    Result.Y := StrToFloat(Ys);
+    Result.X := {$IFDEF UNDER_DELPHI_6}SysUtils.{$ENDIF}StrToFloat(Xs);
+    Result.Y := {$IFDEF UNDER_DELPHI_6}SysUtils.{$ENDIF}StrToFloat(Ys);
    end;
 end;
 
@@ -2615,7 +2615,7 @@ begin
  if not UseSystemSeparator then
     Result.R := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}StrToFloat(Rs, PSQL_FS)
  else
-    Result.R := StrToFloat(Rs);
+    Result.R := {$IFDEF UNDER_DELPHI_6}SysUtils.{$ENDIF}StrToFloat(Rs);
 end;
 
 function CircleToSQLCircle(Value: TPSQLCircle; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;

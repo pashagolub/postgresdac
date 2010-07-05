@@ -3,7 +3,8 @@ unit PSQLFields;
 
 interface
 
-uses Types, Classes, DB, PSQLTypes;
+uses {$IFDEF UNDER_DELPHI_6}WIndows{$ELSE}Types{$ENDIF},
+     Classes, DB, PSQLTypes;
 
 type
 
