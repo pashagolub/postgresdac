@@ -25,6 +25,7 @@ package dclPostgresDAC15;
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
+{$WARN SYMBOL_PLATFORM OFF}
 
 requires
   rtl,

@@ -26,6 +26,7 @@ package PostgresDAC15;
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
 {$DEFINE RELEASE}
+{$WARN SYMBOL_PLATFORM OFF}
 
 requires
   vcl,
