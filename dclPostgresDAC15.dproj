@@ -66,7 +66,7 @@
 			<DCCReference Include="vclimg.dcp"/>
 			<DCCReference Include="vcldb.dcp"/>
 			<DCCReference Include="bdertl.dcp"/>
-			<DCCReference Include="PostgresDAC14.dcp"/>
+			<DCCReference Include="PostgresDAC15.dcp"/>
 			<DCCReference Include="PSQLupdsqled.pas">
 				<Form>PSQLUpdateSQLEditForm</Form>
 			</DCCReference>

@@ -41,7 +41,7 @@ requires
   vclimg,
   vcldb,
   bdertl,
-  PostgresDAC14;
+  PostgresDAC15;
 
 contains
   PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
