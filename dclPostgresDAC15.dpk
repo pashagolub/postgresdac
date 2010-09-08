@@ -1,0 +1,54 @@
+package dclPostgresDAC15;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESCRIPTION 'PostgreSQL Direct Access Components'}
+{$DESIGNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  vcl,
+  designide,
+  xmlrtl,
+  vclactnband,
+  vclx,
+  dbrtl,
+  dcldb,
+  vcldesigner,
+  dclstd,
+  vclimg,
+  vcldb,
+  bdertl,
+  PostgresDAC14;
+
+contains
+  PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
+  PSQLCOMP in 'PSQLCOMP.pas',
+  PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
+  PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
+  PSQLMigrator in 'PSQLMigrator.pas',
+  PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
+  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm};
+
+end.
