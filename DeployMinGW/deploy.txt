@@ -1,5 +1,5 @@
 
-In order to run applications using PostgresDAC 2.5.2, the PostgreSQL 8.4.0 client
+In order to run applications using PostgresDAC 2.6.x, the PostgreSQL 9.0 client
 library must be available on a computer, it includes the following
 files:
 
@@ -14,5 +14,5 @@ Copy these files to a directory on your PATH environment variable
 client application is installed.
 
 Alternatively, you can make use of the installation package from
-PostgreSQL.org and install only the v8.4.0 client libraries.
+PostgreSQL.org and install only the v9.0 client libraries.
 
