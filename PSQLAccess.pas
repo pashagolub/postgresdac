@@ -6192,8 +6192,8 @@ var
   WHERE     : String;
   FldVal    : String;
   bBlank    : bool;
-  Buff : array[0..MAX_CHAR_LEN] of Char;
-  CurBuffer : PChar;
+  Buff : PAnsiChar; //array[0..MAX_CHAR_LEN] of Char;
+  CurBuffer : PAnsiChar;
   TimeStamp: TTimeStamp;
 begin
     For i := 0 to iFields-1 do
@@ -6204,7 +6204,7 @@ begin
       end;
 
     WHERE := '';
-    CurBuffer := pKey;
+    CurBuffer := PAnsiChar(pKey);
     for i := 0 to iFields-1 do
     begin
       Field := Fields[FKeyDesc.aiKeyFld[i]];
