@@ -570,6 +570,10 @@ type
     function  IsCursorOpen: Boolean; Override;
     function  LocateRecord(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Boolean;
+    function LocateFilteredRecord(const KeyFields: String;
+                                            const KeyValues: Variant;
+                                            Options: TLocateOptions;
+                                            SyncCursor: Boolean): Word;
     function  LocateNearestRecord(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Word;
     function  MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
@@ -3877,7 +3881,7 @@ begin
   Result := Ord(Accept);
 end;
 
-function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
+(*function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
 var
   I, FieldCount, PartialLength: Integer;
   Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
@@ -3950,6 +3954,176 @@ begin
     Fields.Free;
   end;
   Result := Status = DBIERR_NONE;
+end;     *)
+function TPSQLDataSet.LocateRecord(const KeyFields: String;
+                                    const KeyValues: Variant;
+                                    Options: TLocateOptions;
+                                    SyncCursor: Boolean): Boolean;
+var
+  Fields: TList;
+  CaseInsensitive: boolean;
+  Flds  : array of integer;
+  SFlds : array of string;
+  i, FieldCount, R : integer;
+  aPartial : boolean;
+  Status : Word;
+begin
+  if Self.Filtered then
+  begin
+    //mi:2009-07-31 we have to respect filters
+    Status := LocateFilteredRecord(KeyFields, KeyValues, Options, SyncCursor);
+    Result := Status = DBIERR_NONE;
+  end
+  else
+  begin
+    CheckBrowseMode();
+    CursorPosChanged();
+    DoBeforeScroll();
+
+    Result := False;
+
+    Fields := TList.Create;
+    try
+      GetFieldList(Fields, KeyFields);
+      CaseInsensitive := loCaseInsensitive in Options;
+
+      FieldCount := Fields.Count;
+
+      SetLength(Flds, FieldCount);
+      SetLength(SFlds, FieldCount);
+
+      if FieldCount = 1 then
+      begin
+        Flds[0] := TField(Fields.First).FieldNo - 1;
+
+        if VarIsArray(KeyValues) then
+          SFlds[0] := VarToStr(KeyValues[0])  //mi:2009-12-22 #1270 thanks to Matija Vidmar
+        else
+          SFlds[0] := VarToStr(KeyValues);
+      end
+      else
+      begin
+        for i := 0 to FieldCount - 1 do
+        begin
+          Flds[i] := TField(Fields[i]).FieldNo - 1;
+          SFlds[i] := VarToStr(KeyValues[i])
+        end;
+      end;
+
+      aPartial := (loPartialKey in Options)
+                  and ((TField(Fields.Last).DataType = ftString)
+                       or (TField(Fields.Last).DataType = ftWideString));
+
+      R := TNativeDataSet(FHandle).FindRows(Flds, SFlds, not CaseInsensitive, 0, not aPartial);
+
+      if R <> -1 then
+      begin
+        Result := True;
+
+        if SyncCursor then
+        begin
+          TNativeDataSet(FHandle).InitRecord(ActiveBuffer);
+          TNativeDataSet(FHandle).SetToRecord(R);
+          Resync([rmExact, rmCenter]);
+          DoAfterScroll();
+        end;
+      end;
+    finally
+      Fields.Free();
+    end;
+  end;
+end;
+
+function TPSQLDataSet.LocateFilteredRecord(const KeyFields: String;
+                                            const KeyValues: Variant;
+                                            Options: TLocateOptions;
+                                            SyncCursor: Boolean): Word;
+var
+  Fields: TList;
+  Filter: HDBIFilter;
+  Status: DBIResult;
+  I: Integer;
+  Filter1: TFilterExpr;
+  Expr, Node: PExprNode;
+  fo: TFilterOptions;
+  pos : int64;
+begin
+  CheckBrowseMode();
+  CursorPosChanged();
+  DoBeforeScroll();
+
+  pos := TNativeDataSet(FHandle).RecordNumber;
+
+  Fields := TList.Create();
+
+  try
+    GetFieldList(Fields, KeyFields);
+    Check(Engine, Engine.SetToBegin(FHandle));
+
+    fo := [foNoPartialCompare];
+
+    //mi:2010-02-07
+    if loCaseInsensitive in Options then
+      fo := fo + [foCaseInsensitive];
+
+    Filter1 := TFilterExpr.Create(Self, fo, [], '', nil, FldTypeMap);
+
+    try
+      Node := nil;
+      Expr := nil;
+      if Fields.Count = 1 then
+      begin
+        if VarIsArray(KeyValues) then
+          Node := Filter1.NewCompareNode(TField(Fields[0]), coEQ, KeyValues[0])
+        else
+          Node := Filter1.NewCompareNode(TField(Fields[0]), coEQ, KeyValues);
+
+        Expr := Node;
+      end
+      else
+      begin
+        for i := 0 to Fields.Count - 1 do
+        begin
+          Node := Filter1.NewCompareNode(TField(Fields[I]), coGE, KeyValues[I]);
+
+          if I = 0 then
+            Expr := Node
+          else
+            Expr := Filter1.NewNode(enOperator, coAND, Unassigned, Expr, Node);
+        end;
+      end;
+
+      if loPartialKey in Options then
+        Node^.FPartial := TRUE;
+
+      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), nil, Filter));
+    finally
+      Filter1.Free();
+    end;
+
+    Engine.ActivateFilter(FHandle, Filter);
+    Status := Engine.GetNextRecord(FHandle, dbiNoLock, ActiveBuffer, nil);
+    Engine.DropFilter(FHandle, Filter);
+  finally
+    Fields.Free();
+  end;
+
+  Result := Status;
+
+  if SyncCursor then
+  begin
+    if Result = DBIERR_NONE then
+    begin
+      Resync([rmExact, rmCenter]);
+    end
+    else
+    begin
+//      TNativeDataSet(FHandle).InitRecord(ActiveBuffer);
+      TNativeDataSet(FHandle).SetToRecord(pos);
+    end;
+
+    DoAfterScroll();
+  end;
 end;
 
 {$WARNINGS OFF}
@@ -4025,13 +4199,8 @@ end;
 function TPSQLDataSet.Locate(const KeyFields: String;
   const KeyValues: Variant; Options: TLocateOptions): Boolean;
 begin
-  DoBeforeScroll;
-  Result := LocateRecord(KeyFields, KeyValues, Options, TRUE);
-  if Result then
-  begin
-    Resync([rmExact, rmCenter]);
-    DoAfterScroll;
-  end;
+  DoBeforeScroll();
+  Result := LocateRecord(KeyFields, KeyValues, Options, True);
 end;
 
 function TPSQLDataSet.GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur;

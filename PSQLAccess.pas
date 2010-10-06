@@ -6192,8 +6192,8 @@ var
   WHERE     : String;
   FldVal    : String;
   bBlank    : bool;
-  Buff : PAnsiChar;
-  CurBuffer : PAnsiChar;
+  Buff : array[0..MAX_CHAR_LEN] of Char;
+  CurBuffer : PChar;
   TimeStamp: TTimeStamp;
 begin
     For i := 0 to iFields-1 do
@@ -6204,8 +6204,8 @@ begin
       end;
 
     WHERE := '';
-    CurBuffer := PAnsiChar(pKey);
-    For i := 0 to iFields-1 do
+    CurBuffer := pKey;
+    for i := 0 to iFields-1 do
     begin
       Field := Fields[FKeyDesc.aiKeyFld[i]];
       if bKeyItself then
@@ -7980,12 +7980,12 @@ var
           FIELD_TYPE_FLOAT4,
           FIELD_TYPE_FLOAT8,
           FIELD_TYPE_NUMERIC: if AStrictConformity then
-                                  Result := CompWithLen(PChar(StringReplace(S1, DecimalSeparator,
+                                  Result := CompWithLen(PChar(StringReplace(S1, PSQL_FS.DecimalSeparator,
                                                                 '.', [rfReplaceAll])),
                                             PChar(S2))
                               else
                                   Result := CompWithoutLen(
-                                            PChar(StringReplace(S1, DecimalSeparator,
+                                            PChar(StringReplace(S1, PSQL_FS.DecimalSeparator,
                                                                 '.', [rfReplaceAll])),
                                             PChar(S2));
 
@@ -9687,7 +9687,12 @@ initialization
   {$IFDEF M_DEBUG}
   OpenDebugFile;
   {$ENDIF}
+
+  {$IFDEF DELPHI_15}
+  PSQL_FS := TFormatSettings.Create();
+  {$ELSE}
   GetLocaleFormatSettings(LOCALE_SYSTEM_DEFAULT, PSQL_FS);
+  {$ENDIF}
   PSQL_FS.DecimalSeparator := '.'; //for use inside StrToFloat
   PSQL_FS.TimeSeparator := ':'; //for use inside FormatDateTime
 

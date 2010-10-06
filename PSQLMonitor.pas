@@ -1072,7 +1072,11 @@ begin
    st := TPSQLTraceObject.Create('', '', '', '', tfMisc, True);
    FMonitors := TList.Create;
    InterlockedIncrement(FMonitorCount^);
+   {$IFDEF DELPHI_15}
+   Start;
+   {$ELSE}
    Resume;
+   {$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 destructor TMonitorReaderThread.Destroy;
