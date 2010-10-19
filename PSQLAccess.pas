@@ -2077,7 +2077,9 @@ begin
 end;
 
 function AdjustNativeField(iField :TPSQLField; Src,Dest: Pointer; Var Blank : Bool): Word;
+//var l: integer;
 begin
+  ZeroMemory(Dest, iField.NativeSize);
   Result := 0;
   if PAnsiChar(Src)^ = #0 then
   begin
@@ -2126,7 +2128,14 @@ begin
     FIELD_TYPE_OID,
     FIELD_TYPE_TEXT: Result := 1; //29.09.2008
   else
-   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1) //minus null byte
+(*    {$IFDEF DELPHI_12}
+    if iField.NativeDataset.FConnect.IsUnicodeUsed then
+      CopyMemory(Dest, Src, iField.NativeSize)
+    else
+    {$ENDIF}
+      StrLCopy(PAnsiChar(Dest), PAnsiChar(Src), iField.NativeSize); *)
+//   l := StrLen(PChar(Src));
+   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1); //minus null byte
   end;
 
   Blank := Result <> 0;
@@ -3415,7 +3424,7 @@ begin
           Item.Free;
           Exit;
          end;
-       FldLen := FTable.FFieldDescs.GetField(I).FieldLength;
+       FldLen := FTable.FFieldDescs.GetField(I).NativeSize; //utf indices built on varchar need 2 bytes per character
        Item.FldsInKey := Item.FldsInKey+1;
        Item.BlockSize := Item.BlockSize+FldLen;
        Item.KeyLen := Item.BlockSize+Item.FldsInKey;
@@ -6082,21 +6091,23 @@ var
   MKey    : PAnsiChar;
   Field   : TPSQLField;
   bBlank  : bool;
-  Buffer  : Array[0..255] of AnsiChar;
+  Buffer  : array [0..MAX_CHAR_LEN] of Char;
   iFields : Word;
 begin
   if not Assigned(PRecord) then PRecord := CurrentBuffer;
   ZeroMemory(pKeyBuf, FKeyDesc.iKeyLen);
   MKey := pKeyBuf;
   iFields := FKeyDesc.iFldsinKey;
-  For i := 0 to iFields-1 do
-  begin
-    Field := Fields[FKeyDesc.aiKeyFld[i]];
-    NativeToDelphi(Field, PRecord, @Buffer, bBlank);
-   if not bBlank then  AdjustDelphiField(Field, @Buffer, MKey);
-   if bBlank then ZeroMemory(MKey, Field.FieldLength);
-   Inc(MKey, Succ(Field.FieldLength));
-  end;
+  for i := 0 to iFields-1 do
+    begin
+      Field := Fields[FKeyDesc.aiKeyFld[i]];
+      NativeToDelphi(Field, PRecord, @Buffer, bBlank);
+      if not bBlank then
+        AdjustDelphiField(Field, @Buffer, MKey);
+      if bBlank then
+        ZeroMemory(MKey, Field.NativeSize);
+     Inc(MKey, Field.NativeSize + 1);
+    end;
 end;
 
 
@@ -6192,7 +6203,7 @@ var
   WHERE     : String;
   FldVal    : String;
   bBlank    : bool;
-  Buff : PAnsiChar; //array[0..MAX_CHAR_LEN] of Char;
+  Buff : array[0..MAX_CHAR_LEN] of AnsiChar;
   CurBuffer : PAnsiChar;
   TimeStamp: TTimeStamp;
 begin
@@ -6212,7 +6223,7 @@ begin
         AdjustNativeField(Field, CurBuffer, @Buff, bBlank)
       else
         NativeToDelphi(Field, CurBuffer, @Buff, bBlank);
-      Inc(CurBuffer, Field.FieldLength+1);
+      Inc(CurBuffer, Field.NativeSize + 1);
       if bBlank then Continue; //19.05.2008
       if RangeClause.Count > 0  then WHERE := 'and ' else WHERE := 'where ';
       WHERE := WHERE + AnsiQuotedStr(Field.FieldName,'"');
