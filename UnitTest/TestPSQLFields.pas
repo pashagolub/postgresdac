@@ -27,8 +27,6 @@ type
 
   // Test methods for class TPSQLGuidField
   TestTPSQLGuidField = class(TTestCase)
-  strict private
-    FPSQLGuidField: TPSQLGuidField;
   public
     procedure SetUp; override;
     procedure TearDown; override;
