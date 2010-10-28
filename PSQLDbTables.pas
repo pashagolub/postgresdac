@@ -3881,7 +3881,7 @@ begin
   Result := Ord(Accept);
 end;
 
-function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
+(*function TPSQLDataSet.LocateRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
 var
   I, FieldCount, PartialLength: Integer;
   Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
@@ -3954,8 +3954,8 @@ begin
     Fields.Free;
   end;
   Result := Status = DBIERR_NONE;
-end;
-(*function TPSQLDataSet.LocateRecord(const KeyFields: String;
+end;                             *)
+function TPSQLDataSet.LocateRecord(const KeyFields: String;
                                     const KeyValues: Variant;
                                     Options: TLocateOptions;
                                     SyncCursor: Boolean): Boolean;
@@ -4032,7 +4032,7 @@ begin
       Fields.Free();
     end;
   end;
-end;       *)
+end;
 
 function TPSQLDataSet.LocateFilteredRecord(const KeyFields: String;
                                             const KeyValues: Variant;
@@ -4126,7 +4126,6 @@ begin
   end;
 end;
 
-{$WARNINGS OFF}
 function TPSQLDataSet.LocateNearestRecord(const KeyFields: String;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Word;
 var
   Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
@@ -4175,7 +4174,7 @@ begin
   end;
   Result := Status;
 end;
-{$WARNINGS ON}
+
 function TPSQLDataSet.Lookup(const KeyFields: String; const KeyValues: Variant;
   const ResultFields: String): Variant;
 begin
@@ -4183,8 +4182,8 @@ begin
 
   if VarIsNull(KeyValues) then
     Exit;
-
-  if LocateRecord(KeyFields, KeyValues, [], FALSE) then
+  DoBeforeScroll();
+  if LocateRecord(KeyFields, KeyValues, [], True) then
   begin
     SetTempState(dsCalcFields);
     try
