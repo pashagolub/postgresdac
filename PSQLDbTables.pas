@@ -4138,6 +4138,8 @@ var
   FilterOptions: TFilterOptions;
 
 begin
+  Expr := nil; //make compiler happy
+  Node := nil; //make compiler happy
   CheckBrowseMode;
   CursorPosChanged;
   Buffer := TempBuffer;
