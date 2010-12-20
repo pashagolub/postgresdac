@@ -335,6 +335,9 @@ type
   //used to determine what native type used to store BLOBs
   TNativeBLOBType = (nbtNotBLOB, nbtBytea, nbtOID);
 
+  //used to determine what native presentation used for Bytea
+  TNativeByteaFormat = (nbfEscape, nbfHex);
+
 
   MemPtr       = ^MemArray;
   MemArray     = Array[0..$FFFE] of Byte;
@@ -521,6 +524,20 @@ type
   TPQsetNoticeProcessor = function(Handle: PPGconn;
                                    Proc: PQnoticeProcessor;
                                    Arg: Pointer): Pointer; cdecl;
+
+  TPQprepare       = function(Handle: PPGconn;
+                              StmtName: PAnsiChar;
+                              Query: PAnsiChar;
+                              nParams: integer;
+                              paramTypes: POid): PPGresult; cdecl;
+
+  TPQexecPrepared  = function(Handle: PPGconn;
+                              StmtName: PAnsiChar;
+                              nParams: integer;
+                              paramValues: PPAnsiChar;
+                              paramLengths: PInteger;
+                              paramFormats: PInteger;
+                              resultFormat: integer): PPGresult; cdecl;
 
   TPQexec          = function(Handle: PPGconn;
                               Query: PAnsiChar): PPGresult; cdecl;
@@ -729,6 +746,8 @@ var
   PQtrace:         TPQtrace;
   PQuntrace:       TPQuntrace;
   PQsetNoticeProcessor: TPQsetNoticeProcessor;
+  PQprepare:       TPQprepare;           
+  PQexecPrepared:  TPQexecPrepared;
   PQexec:          TPQexec;
   PQexecParams:    TPQexecParams; 
   PQresultErrorField:TPQresultErrorField;
@@ -2941,6 +2960,8 @@ begin
          @PQtrace        := GetPSQLProc('PQtrace');
          @PQuntrace      := GetPSQLProc('PQuntrace');
          @PQsetNoticeProcessor := GetPSQLProc('PQsetNoticeProcessor');
+         @PQexecPrepared := GetPSQLProc('PQexecPrepared');
+         @PQprepare      := GetPSQLProc('PQprepare');
          @PQexec         := GetPSQLProc('PQexec');
          @PQexecParams   := GetPSQLProc('PQexecParams');
          @PQnotifies     := GetPSQLProc('PQnotifies');

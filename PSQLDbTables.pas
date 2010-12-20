@@ -13,7 +13,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       ExtCtrls;
 
 const
-    VERSION : string = '2.6.0';
+    VERSION : string = '2.6.1-Beta';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
@@ -1716,7 +1716,8 @@ begin
     Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
     Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
     Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
-    if FErrorVerbosity <> evDEFAULT then Check(Engine, Engine.SetErrorVerbosity(FHandle, FErrorVerbosity));
+    if FErrorVerbosity <> evDEFAULT then
+      Check(Engine, Engine.SetErrorVerbosity(FHandle, FErrorVerbosity));
     if Assigned(FHandle) then
       PQSetNoticeProcessor(TNativeConnect(FHandle).Handle, NoticeProcessor, Self);
     SetBoolProp(Engine, FHandle, dbUSESCHEMAFILE,        TRUE);

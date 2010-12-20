@@ -51,7 +51,7 @@ Type
       function GetNativeErrorsourceline      : String;
       function GetNativeErrorsourcefunc      : String;
 
-    Public
+    public
       Constructor CreateBDE(ECode : Word);
       constructor CreateBDEMsg(ECode : Word; Const EMessage : String);
       Constructor Create(PSQL : TNativeConnect);
@@ -87,6 +87,7 @@ Type
     FBlobTransactionInProgress: boolean;
     FServerVersion            : string;
     FIntServerVersion         : integer;
+    FNativeByteaFormat        : TNativeByteaFormat;
     FErrorpos                 : string;
     FErrorContext             : string;
     FErrorseverity            : string;
@@ -173,13 +174,15 @@ Type
     procedure AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
     procedure DeleteIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string; iIndexId: Word);
     procedure CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
-    Property IsolationLevel : eXILType Read FTransLevel;
+
+    property IsolationLevel : eXILType Read FTransLevel;
     property Handle : PPGconn read FHandle write FHandle;
     property BackendPID : Integer read GetBackendPID;
     property LastOperationTime: cardinal read FLastOperationTime;
     property InTransaction: boolean read IsTransactionActive;
     property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
     property BlobTransactionInProgress: boolean read FBlobTransactionInProgress;
+    property NativeByteaFormat: TNativeByteaFormat read FNativeByteaFormat;
 
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; aFieldNumber : integer):string; overload;
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
@@ -2539,6 +2542,21 @@ begin
      CheckResult();
    Result := PQexec(Handle, 'SET DateStyle TO ''ISO, MDY''');
    PQclear(Result);
+
+   Result := PQexec(Handle, 'SELECT current_setting(''bytea_output'')');
+   if Assigned(Result) then
+    begin
+     if PQntuples(Result) > 0 then
+     begin
+       Utf8Encoded := PQgetvalue(Result, 0, 0);
+       if Utf8Encoded = 'hex' then
+         FNativeByteaFormat := nbfHex
+       else
+         FNativeByteaFormat := nbfEscape;
+     end;
+     PQclear(Result);
+    end;
+
    FLoggIn := True;
    MonitorHook.DBConnect(Self, True);
   except
@@ -4807,7 +4825,7 @@ begin
   if FStatement <> nil then
      Result := PQftype(FStatement, FieldNum);
   case Result of
-   FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then Result := FIELD_TYPE_INT4;
+   FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then Result := FIELD_TYPE_INT8;
    FIELD_TYPE_BYTEA: if dsoByteaAsEscString in FOptions then Result := FIELD_TYPE_TEXT;
    FIELD_TYPE_OIDVECTOR: Result := FIELD_TYPE_VARCHAR;
    FIELD_TYPE_CID,
@@ -5777,21 +5795,30 @@ Var
       P := FieldBuffer(ColumnNumber-1);
       Len := StrLen(P);
       Result := 0;
-      I := 0;
-      While i <= Len - 1  do
-       begin
-        if P[i] = '\' then
-         begin
-          inc(i);
-          if P[i] = '\' then
-             inc(i)
-            else
-             inc(i,3);
-         end
-        else
-         inc(i);
-        inc(Result);
-       end;
+      case FConnect.NativeByteaFormat of
+        nbfEscape:
+          begin
+            I := 0;
+            while i <= Len - 1  do
+             begin
+              if P[i] = '\' then
+               begin
+                inc(i);
+                if P[i] = '\' then
+                   inc(i)
+                  else
+                   inc(i,3);
+               end
+              else
+               inc(i);
+              inc(Result);
+             end;
+          end;
+        nbfHex: //for >9.0
+          begin
+            Result := (Len - 2) div 2; // '\x' preceding bytea value + 2 hexadecimal digits per byte
+          end;
+      end;
     end;
 
 var
@@ -5909,7 +5936,7 @@ var
      begin
       P := PQUnescapeBytea(FieldBuffer(ColumnNumber-1), Len);
      try
-      Move((P+Offset)^,Dest^,Length);
+      Move((P+Offset)^, Dest^, Length);
       Result := Length;
      finally
       PQFreeMem(P);
@@ -6582,7 +6609,8 @@ Var
 begin
   try
     Db := TNativeConnect.Create;
-    if Db = nil then Raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
+    if Db = nil then
+      raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
     try
       DB.ProcessDBParams(Params);
       Db.InternalConnect;
@@ -6590,7 +6618,7 @@ begin
       on E: EPSQLException do
       begin
          DB.Free;
-         Raise;
+         raise;
       end;
     end;
     hDb := hDBIDb(DB);
