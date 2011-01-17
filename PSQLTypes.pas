@@ -516,6 +516,8 @@ type
 
   TPQtransactionStatus  = function(Handle: PPGconn): TTransactionStatusType; cdecl;
 
+  TPQgetssl = function(Handle: PPGconn): pointer; cdecl; //point to SSL structure, see OpenSSL manual for details
+
   TPQtrace         = procedure(Handle: PPGconn;
                                DebugPort: Pointer); cdecl;
 
@@ -673,8 +675,6 @@ type
 
   TPQclientEncoding = function(Handle: PPGconn): integer; cdecl;
 
-  TPQgetssl = function(Handle: PPGconn): pointer; cdecl;
-
   Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar; cdecl;
 
   Tlo_open         = function(Handle: PPGconn;
@@ -743,6 +743,7 @@ var
   PQserverVersion: TPQserverVersion;
   PQbackendPID:    TPQbackendPID;
   PQtransactionStatus: TPQtransactionStatus;
+  PQgetssl:        TPQgetssl;
   PQtrace:         TPQtrace;
   PQuntrace:       TPQuntrace;
   PQsetNoticeProcessor: TPQsetNoticeProcessor;
@@ -792,7 +793,6 @@ var
   PQsetClientEncoding: TPQsetClientEncoding;
   PQsetErrorVerbosity: TPQsetErrorVerbosity;
   PQclientEncoding: TPQclientEncoding;
-  PQgetssl:        TPQgetssl;
   pg_encoding_to_char: Tpg_encoding_to_char;
   lo_open:         Tlo_open;
   lo_close:        Tlo_close;
