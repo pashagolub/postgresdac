@@ -3683,7 +3683,7 @@ function TPSQLFilter.FieldNode(ANode : pCANField) : Variant;
 Var
   Field     : TPSQLField;
   blank     : bool;
-  Dest      :  Array[0..255] of Char;
+  Dest      :  array[0..MAX_CHAR_LEN] of Char;
   TimeStamp : TTimeStamp;
   DateD     : Double;
 begin
