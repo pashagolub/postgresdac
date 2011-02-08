@@ -13,7 +13,7 @@ Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
       ExtCtrls;
 
 const
-    VERSION : string = '2.6.1-Beta2';
+    VERSION : string = '2.6.1';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;
