@@ -4712,6 +4712,7 @@ begin
    else
      begin
        case FT of
+        FIELD_TYPE_UNKNOWN: Result := NAMEDATALEN;
         FIELD_TYPE_INET, FIELD_TYPE_CIDR: Result := INETLEN;
         FIELD_TYPE_MACADDR: Result := MACADDRLEN;
         FIELD_TYPE_TIMESTAMPTZ: Result := TIMESTAMPTZLEN;

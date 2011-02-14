@@ -4856,7 +4856,7 @@ begin
     Disconnect;
     StrDispose(SQLBinary);
     SQLBinary := nil;
-    if ParamCheck or (csDesigning in ComponentState) then
+    if ParamCheck {or (csDesigning in ComponentState)} then
     begin
       List := TPSQLParams.Create(Self);
       try
