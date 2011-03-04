@@ -832,7 +832,7 @@ type
     property KeyFieldCount: Integer read GetKeyFieldCount write SetKeyFieldCount;
     property TableLevel: Integer read GetTableLevel write FTableLevel;
     property BatchModify : Boolean read GetBatchModify write SetBatchModify default False;
-  Published
+  published
     property DefaultIndex: Boolean read FDefaultIndex write FDefaultIndex default TRUE;
     property Exclusive: Boolean read FExclusive write SetExclusive default FALSE;
     property FieldDefs stored FieldDefsStored;
@@ -6256,100 +6256,33 @@ begin
   Inherited DoOnNewRecord;
 end;
 
-{New 29.05.2001}
+// pg: 01.03.2011
 procedure TPSQLTable.CreateTable;
-var
-  IndexDescs: TIDXDescList;
-  TableDesc: CRTblDesc;
-  FieldDescs: TFLDDescList;
-  ValChecks: TValCheckList;
-  LvlFldDesc: FLDDesc;
-  Level: DBINAME;
 
-  procedure InitTableSettings;
+  function CreateSQLForCreateTable:String;
+  var j : Integer;
   begin
-    FillChar(TableDesc, SizeOf(TableDesc), 0);
-    with TableDesc do
-    begin
-      //TAnsiToNative(Engine,TableName,szTblName, SizeOf(szTblName) - 1);
-      szTblName := TableName;
-      if FTableLevel > 0 then
-      begin
-        iOptParams := 1;
-        StrCopy(@Level, PChar(IntToStr(FTableLevel)));
-        pOptData := @Level;
-        LvlFldDesc.szName := 'LEVEL';
-        //StrCopy(LvlFldDesc.szName, 'LEVEL');
-        LvlFldDesc.iLen := StrLen(Level) + 1;
-        LvlFldDesc.iOffset := 0;
-        pfldOptParams :=  @LvlFldDesc;
-      end;
-    end;
-  end;
-
-  procedure InitFieldDescriptors;
-  var
-    I: Integer;
-    TempFieldDescs: TFLDDescList;
-  begin
-    with TableDesc do
-    begin
-      InitFieldDefsFromFields;
-      iFldCount := FieldDefs.Count;
-      SetLength(TempFieldDescs, iFldCount);
-      for I := 0 to FieldDefs.Count - 1 do
-      with FieldDefs[I] do
-      begin
-        EncodeFieldDesc(TempFieldDescs[I], Name, DataType, Size, Precision);
-        if Required then Inc(iValChkCount);
-      end;
-      SetLength(FieldDescs, iFldCount);
-      pFldDesc := PSQLTypes.PFLDDesc(FieldDescs);
-      Check(Engine,Engine.TranslateRecordStructure(nil,iFldCount,PSQLTypes.PFLDDesc(TempFieldDescs),nil,nil,pFLDDesc,False));
-    end;
-  end;
-
-  procedure InitIndexDescriptors;
-  var
-    I: Integer;
-  begin
-    TableDesc.iIdxCount := IndexDefs.Count;
-    SetLength(IndexDescs, TableDesc.iIdxCount);
-    TableDesc.pIdxDesc := PIDXDesc(IndexDescs);
-    for I := 0 to IndexDefs.Count - 1 do
-    with IndexDefs[I] do
-      EncodeIndexDesc(IndexDescs[I], Name, FieldExpression, Options, DescFields);
-  end;
-
-  procedure InitValChecks;
-  var
-    I, ValCheckNo: Integer;
-  begin
-    with TableDesc do
-    if iValChkCount > 0 then
-    begin
-      SetLength(ValChecks, iValChkCount);
-      ValCheckNo := 0;
-      for I := 0 to FieldDefs.Count - 1 do
-        if FieldDefs[I].Required then
+      Result := Format('CREATE TABLE %s ( ',[TableName]);
+      for j := 0 to FieldDefs.Count - 1 do
         begin
-          ValChecks[ValCheckNo].iFldNum := I + 1;
-          ValChecks[ValCheckNo].bRequired := True;
-          Inc(ValCheckNo);
+            Result := Result + BDETOPSQLStr(FieldDefs[j]);
+            if j < FieldDefs.Count - 1 then
+              Result := Result + ', '
+            else
+              Result := Result + '); ';
         end;
-      pvchkDesc := PSQLTypes.pVCHKDesc(ValChecks);
-    end;
   end;
 
+var
+  i: integer;
 begin
   CheckInactive;
   SetDBFlag(dbfTable, True);
   try
-    InitTableSettings;
-    InitFieldDescriptors;
-    InitIndexDescriptors;
-    InitValChecks;
-    Check(Engine,Engine.CreateTable(DBHandle, True, TableDesc));
+    Check(Engine,Engine.QExecDirect(DBHandle, CreateSQLForCreateTable, nil, I));
+    //indexes
+    for I := 0 to IndexDefs.Count - 1 do
+     AddIndex(IndexDefs[I].Name, IndexDefs[I].Fields, IndexDefs[i].Options);
   finally
     SetDBFlag(dbfTable, False);
   end;

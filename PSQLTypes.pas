@@ -2011,7 +2011,7 @@ function GetModuleName(Module: HMODULE): string;
 
 implementation
 
-uses PSQLDbTables, PSQLAccess;
+uses DB, PSQLDbTables, PSQLAccess;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TCONTAINER OBJECT                       //
 /////////////////////////////////////////////////////////////////////////////

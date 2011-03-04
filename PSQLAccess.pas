@@ -884,7 +884,7 @@ procedure PSQLException(PSQL : TNativeConnect);
 procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
 
 
-function BDETOPSQLStr(Field : TPSQLField): String;
+function BDETOPSQLStr(Field : TFieldDef): String;
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
 function QuoteIdentifier(IdentifierName: string): string;
 
@@ -2222,7 +2222,7 @@ begin
   Raise EPSQLException.CreateMsg(PSQL, ErrorMsg );
 end;
 
-function BDETOPSQLStr(Field : TPSQLField): String;
+function BDETOPSQLStr(Field : TFieldDef): String;
 const
   _IsVarChar: array[boolean] of string = ('CHAR','VARCHAR');
   _IntNames: array[boolean,boolean] of string = (('INT4','SERIAL'),('INT8','BIGSERIAL'));
@@ -2233,44 +2233,49 @@ var
   ColName: string;
 begin
     Result :='';
-    ColName := AnsiQuotedStr(Field.FieldName,'"');
-    case Field.FieldType of
-      fldZString  : begin
-                      Result := Format('%s %s',[ColName,_IsVarChar[Field.FieldSubType <> fldstFIXED]]);
-                      if Field.FieldUnits1 > 0 then
-                      Result := Result + Format('(%s)',[IntToStr(Field.FieldUnits1)]);
+    ColName := AnsiQuotedStr(Field.Name,'"');
+    case Field.DataType of
+      ftString,
+      ftFixedChar : begin
+                      Result := Format('%s %s',[ColName,_IsVarChar[(Field.DataType = ftFixedChar) or (faFixed in Field.Attributes)]]);
+                      if Field.Size > 0 then
+                        Result := Result + Format('(%s)',[IntToStr(Field.Size)]);
                     end;
 
-      fldDATE     : Result := Format('%s DATE',[ColName]);
+      ftDate     : Result := Format('%s DATE',[ColName]);
+      ftBlob,
+      ftBytes,
+      ftVarBytes : Result := Format('%s BYTEA',[ColName]);
+      ftMemo     : Result := Format('%s TEXT',[ColName]);
+      ftBoolean  : Result := Format('%s BOOL',[ColName]);
+      ftSmallint,
+      ftWord
+      {$IFDEF DELPHI_15}
+      ,ftShortInt
+      {$ENDIF}
+       : Result := Format('%s INT2',[ColName]);
 
-      fldBLOB     : begin
-                       if Field.FieldSubType = fldstMEMO then
-                          Result := Format('%s BYTEA',[ColName]) else
-                          Result := Format('%s TEXT',[ColName]);
-                    end;
-      fldBOOL     : Result := Format('%s BOOL',[ColName]);
-
-      fldINT16,
-      fldUINT16    : Result := Format('%s INT2',[ColName]);
-
-      fldINT32,
-      fldUINT32,
-      fldINT64    : begin
-                       isAutoInc := Field.FieldSubType = fldstAUTOINC;
-                       isInt8 := Field.FieldType = fldINT64;
+      ftInteger,
+      {$IFDEF DELPHI_15}
+      ftLongWord,
+      {$ENDIF}
+      ftLargeint,
+      ftAutoInc : begin
+                       isAutoInc := ftAutoInc = Field.DataType;
+                       isInt8 := Field.DataType = ftLargeint;
                        Result := Format('%s %s',[ColName,_IntNames[isInt8,isAutoInc]]);
                     end;
 
-      fldFLOAT,
-      fldBCD      : Result := Format('%s NUMERIC(%s,%s)',[ColName,IntToStr(Field.FieldUnits1),IntToStr(Field.FieldUnits2)]);
+      ftFloat,
+      ftBCD     : Result := Format('%s NUMERIC(%s,%s)',[ColName,IntToStr(Field.Size),IntToStr(Field.Precision)]);
 
-      fldTIME     : Result := Format('%s TIME',[ColName]);
+      ftTime    : Result := Format('%s TIME',[ColName]);
 
-      fldTIMESTAMP: Result := Format('%s DATETIME',[ColName]);
+      ftTimeStamp,
+      ftDateTime: Result := Format('%s DATETIME',[ColName]);
     end;
-    if Field.ValCheck.bRequired then
-       Result := Result+' NOT NULL' else
-       Result := Result+' NULL';
+    if Field.Required then
+       Result := Result + ' NOT NULL';
 end;
 
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
@@ -2993,7 +2998,7 @@ end;
 
 procedure TNativeConnect.CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
 
-      function CreateSQLForCreateTable:String;
+{      function CreateSQLForCreateTable:String;
       var
         Fld : String;
         I : Integer;
@@ -3012,7 +3017,7 @@ procedure TNativeConnect.CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
                    VCHK := crTblDsc.pvchkDesc;
                    if VCHK.iFldNum <> I then VCHK := nil;
                 end else VCHK := nil;
-                TPSQLField.CreateField(PSQLFlds,crTblDsc.pfldDesc^, VCHK^, i, 0, 0,False);
+                TPSQLField.CreateField(PSQLFlds, crTblDsc.pfldDesc^, VCHK^, i, 0, 0,False);
                 Inc(crTblDsc.pfldDesc);
                 if crTblDsc.iValChkCount > 0 then
                    if crTblDsc.iValChkCount > I then
@@ -3045,15 +3050,17 @@ procedure TNativeConnect.CreateTable(bOverWrite: Bool; var crTblDsc: CRTblDesc);
         end;
       end;
 
-var Res: PPGresult;
+var Res: PPGresult;    }
 
 begin
-    Res := PQExec(FHandle,PAnsiChar(ansistring(CreateSQLForCreateTable)));
-    try
-      CheckResult;
-    finally
-      PQclear(RES);
-    end;
+(*
+      Res := PQExec(FHandle,PAnsiChar(ansistring(CreateSQLForCreateTable)));
+      try
+        CheckResult;
+      finally
+        PQclear(RES);
+      end;
+*)
 end;
 
 procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
