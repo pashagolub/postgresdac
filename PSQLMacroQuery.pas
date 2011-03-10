@@ -1,4 +1,4 @@
-{$I PSQLdac.inc}
+{$I pSQLDAC.inc}
 unit PSQLMacroQuery;
 
 {SVN revision: $Id$}
@@ -7,15 +7,16 @@ unit PSQLMacroQuery;
 
 interface
 
-uses Windows, Classes, SysUtils, DB, PSQLDBTables, PSQLTypes, PSQLAccess;
+uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Classes, SysUtils, DB, PSQLDbTables, PSQLTypes, PSQLAccess;
 
 const
   DefaultMacroChar = '%';
   TrueExpr = '0=0';
 
-
 type
+{$IFNDEF FPC}
   TCharSet = TSysCharSet;
+{$ENDIF}
 
 { TPSQLMacroQuery }
   TPSQLMacroQuery = class(TPSQLQuery)
@@ -44,9 +45,11 @@ type
     procedure Disconnect; override;
   protected
     { IProviderSupport }
+    {$IFNDEF FPC}
     procedure PSExecute; override;
     function PSGetDefaultOrder: TIndexDef; override;
     function PSGetTableName: string; override;
+    {$ENDIF}
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -91,7 +94,7 @@ function IsDataSetEmpty(DataSet: TDataSet): Boolean;
 
 implementation
 
-uses {$IFDEF DELPHI_6}RTLConsts, {$ENDIF} Consts, Forms, BDEConst;
+uses {$IFDEF DELPHI_6}RTLConsts, {$ENDIF} {Consts,} Forms {$IFNDEF FPC}, BDEConst{$ENDIF}, PSQLCommon;
 
 { Parse SQL utility routines }
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
@@ -437,6 +440,7 @@ begin
 end;
 
 { TPSQLMacroQuery.IProviderSupport }
+{$IFNDEF FPC}
 function TPSQLMacroQuery.PSGetDefaultOrder: TIndexDef;
 begin
   ExpandMacros;
@@ -453,7 +457,7 @@ procedure TPSQLMacroQuery.PSExecute;
 begin
   ExecSQL;
 end;
-
+{$ENDIF}
 
 { TPSQLMacroQueryThread }
 constructor TPSQLMacroQueryThread.Create(Data: TPSQLDataSet; RunMode: TRunQueryMode;

@@ -1,4 +1,4 @@
-{$I psqldac.inc}
+{$I pSQLDAC.inc}
 unit PSQLFields;
 
 interface
@@ -103,7 +103,7 @@ function BadGUIDToGUID(const AStr: AnsiString): AnsiString;
 
 implementation
 
-uses DbConsts, SysUtils;
+uses {DbConsts,} SysUtils;
 
 procedure Register;
 begin

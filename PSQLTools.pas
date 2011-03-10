@@ -4,7 +4,7 @@ unit PSQLTools;
 
 interface
 
-Uses Windows, Messages, SysUtils, Classes, Graphics, Controls,
+Uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Messages, SysUtils, Classes, Graphics, Controls,
      PSQLDbTables, PSQLAccess, Dialogs;
 
 type
@@ -41,7 +41,7 @@ type
    protected
     procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
    public
-    constructor Create(Owner : TComponent); override;
+    constructor Create(AOwner : TComponent); override;
     destructor Destroy; override;
     function Execute: Boolean;
    published
@@ -93,7 +93,7 @@ begin
  Result := Format('CLUSTER %s',[Target]);
 end;
 
-constructor TPSQLTools.Create(Owner: TComponent);
+constructor TPSQLTools.Create(AOwner: TComponent);
 var I: integer;
 begin
   inherited Create(Owner);

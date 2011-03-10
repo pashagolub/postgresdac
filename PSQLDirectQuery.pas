@@ -1,4 +1,4 @@
-{$I PSQLDAC.inc}
+{$I pSQLDAC.inc}
 
 unit PSQLDirectQuery;
 
@@ -85,7 +85,7 @@ type
 implementation
 
 uses
-  DB, bdeconst, PSQLAccess, DBConsts;
+  DB, {$IFNDEF FPC}bdeconst, DBConsts,{$ENDIF} PSQLCommon, PSQLAccess;
 
 { TPSQLCustomDirectQuery }
 

@@ -1,4 +1,4 @@
-{$I PSQLdac.inc}
+{$I pSQLDAC.inc}
 { *************************************************************************** }
 {                                                                             }
 { Kylix and Delphi Cross-Platform Visual Component Library                    }
@@ -10,13 +10,17 @@
 
 unit PSQLCommon;
 
+
 {SVN revision: $Id$}
 
 {$T-,H+,X+,R-}
 
 interface
 
-uses Windows, Classes, {$IFDEF DELPHI_6}Variants, SqlTimSt,{$ENDIF} DB;
+uses Windows, Classes,
+     {$IFDEF DELPHI_6}Variants, SqlTimSt,{$ENDIF}
+     {$IFDEF FPC}Variants, {$ENDIF}
+      DB;
 
 type
   TCANOperator = (
@@ -85,6 +89,10 @@ type
   TExprData = array of Byte;
   TFieldMap = array[TFieldType] of Byte;
 
+  {$IFDEF FPC}
+    TBlobByteData = array of Byte;
+  {$ENDIF}
+
 { TFilterExpr }
 
 type
@@ -126,7 +134,9 @@ type
     FDependentFields: TBits;
     function FieldFromNode(Node: PExprNode): TField;
     function GetExprData(Pos, Size: Integer): PChar;
+{$IFNDEF FPC}
     function PutConstBCD(const Value: Variant; Decimals: Integer): Integer;
+{$ENDIF}
     function PutConstBool(const Value: Variant): Integer;
     function PutConstDate(const Value: Variant): Integer;
     function PutConstDateTime(const Value: Variant): Integer;
@@ -246,9 +256,200 @@ function GetTableNameFromQuery(const SQL: string): string;
 function AddParamSQLForDetail(Params: TParams; SQL: string; Native: Boolean; QuoteChar: string = ''): string;
 function IsMultiTableQuery(const SQL: string): Boolean;
 
+resourcestring
+  SInvalidFieldSize = 'Invalid field size';
+  SInvalidFieldKind = 'Invalid FieldKind';
+  SInvalidFieldRegistration = 'Invalid field registration';
+  SUnknownFieldType = 'Field ''%s'' is of an unknown type';
+  SFieldNameMissing = 'Field name missing';
+  SDuplicateFieldName = 'Duplicate field name ''%s''';
+  SFieldNotFound = 'Field ''%s'' not found';
+  SFieldAccessError = 'Cannot access field ''%s'' as type %s';
+  SFieldValueError = 'Invalid value for field ''%s''';
+  SFieldRangeError = '%g is not a valid value for field ''%s''. The allowed range is %g to %g';
+  SBcdFieldRangeError = '%s is not a valid value for field ''%s''. The allowed range is %s to %s';
+  SInvalidIntegerValue = '''%s'' is not a valid integer value for field ''%s''';
+  SInvalidBoolValue = '''%s'' is not a valid boolean value for field ''%s''';
+  SInvalidFloatValue = '''%s'' is not a valid floating point value for field ''%s''';
+  SFieldTypeMismatch = 'Type mismatch for field ''%s'', expecting: %s actual: %s';
+  SFieldSizeMismatch = 'Size mismatch for field ''%s'', expecting: %d actual: %d';
+  SInvalidVarByteArray = 'Invalid variant type or size for field ''%s''';
+  SFieldOutOfRange = 'Value of field ''%s'' is out of range';
+//  SBCDOverflow = '(Overflow)';
+  SFieldRequired = 'Field ''%s'' must have a value';
+  SDataSetMissing = 'Field ''%s'' has no dataset';
+  SInvalidCalcType = 'Field ''%s'' cannot be a calculated or lookup field';
+  SFieldReadOnly = 'Field ''%s'' cannot be modified';
+  SFieldIndexError = 'Field index out of range';
+  SNoFieldIndexes = 'No index currently active';
+  SNotIndexField = 'Field ''%s'' is not indexed and cannot be modified';
+  SIndexFieldMissing = 'Cannot access index field ''%s''';
+  SDuplicateIndexName = 'Duplicate index name ''%s''';
+  SNoIndexForFields = 'No index for fields ''%s''';
+  SIndexNotFound = 'Index ''%s'' not found';
+  SDuplicateName = 'Duplicate name ''%s'' in %s';
+  SCircularDataLink = 'Circular datalinks are not allowed';
+  SLookupInfoError = 'Lookup information for field ''%s'' is incomplete';
+  SNewLookupFieldCaption = 'New Lookup Field';
+  SDataSourceChange = 'DataSource cannot be changed';
+  SNoNestedMasterSource = 'Nested datasets cannot have a MasterSource';
+  SDataSetOpen = 'Cannot perform this operation on an open dataset';
+  SNotEditing = 'Dataset not in edit or insert mode';
+  SDataSetClosed = 'Cannot perform this operation on a closed dataset';
+  SDataSetEmpty = 'Cannot perform this operation on an empty dataset';
+  SDataSetReadOnly = 'Cannot modify a read-only dataset';
+  SNestedDataSetClass = 'Nested dataset must inherit from %s';
+  SExprTermination = 'Filter expression incorrectly terminated';
+  SExprNameError = 'Unterminated field name';
+  SExprStringError = 'Unterminated string constant';
+  SExprInvalidChar = 'Invalid filter expression character: ''%s''';
+  SExprNoLParen = '''('' expected but %s found';
+  SExprNoRParen = ''')'' expected but %s found';
+  SExprNoRParenOrComma = ''')'' or '','' expected but %s found';
+  SExprExpected = 'Expression expected but %s found';
+  SExprBadField = 'Field ''%s'' cannot be used in a filter expression';
+  SExprBadNullTest = 'NULL only allowed with ''='' and ''<>''';
+  SExprRangeError = 'Constant out of range';
+  SExprNotBoolean = 'Field ''%s'' is not of type Boolean';
+  SExprIncorrect = 'Incorrectly formed filter expression';
+  SExprNothing = 'nothing';
+  SExprTypeMis = 'Type mismatch in expression';
+  SExprBadScope = 'Operation cannot mix aggregate value with record-varying value';
+  SExprNoArith = 'Arithmetic in filter expressions not supported';
+  SExprNotAgg = 'Expression is not an aggregate expression';
+  SExprBadConst = 'Constant is not correct type %s';
+  SExprNoAggFilter = 'Aggregate expressions not allowed in filters';
+  SExprEmptyInList = 'IN predicate list may not be empty';
+  SInvalidKeywordUse = 'Invalid use of keyword';
+  STextFalse = 'False';
+  STextTrue = 'True';
+  SParameterNotFound = 'Parameter ''%s'' not found';
+  SInvalidVersion = 'Unable to load bind parameters';
+  SParamTooBig = 'Parameter ''%s'', cannot save data larger than %d bytes';
+  SBadFieldType = 'Field ''%s'' is of an unsupported type';
+  SAggActive = 'Property may not be modified while aggregate is active';
+  SProviderSQLNotSupported = 'SQL not supported: %s';
+  SProviderExecuteNotSupported = 'Execute not supported: %s';
+  SExprNoAggOnCalcs = 'Field ''%s'' is not the correct type of calculated field to be used in an aggregate, use an internalcalc';
+  SRecordChanged = 'Record not found or changed by another user';
+  SDataSetUnidirectional = 'Operation not allowed on a unidirectional dataset';
+  SUnassignedVar = 'Unassigned variant value';
+  SRecordNotFound = 'Record not found';
+  SFileNameBlank = 'FileName property cannot be blank';
+  SFieldNameTooLarge = 'Fieldname %s exceeds %d chars';
+
+{ For FMTBcd }
+
+  SBcdOverflow = 'BCD overflow';
+  SInvalidBcdValue = '%s is not a valid BCD value';
+  SInvalidFormatType = 'Invalid format type for BCD';
+
+{ For SqlTimSt }
+
+  SCouldNotParseTimeStamp = 'Could not parse SQL TimeStamp string';
+  SInvalidSqlTimeStamp = 'Invalid SQL date/time values';
+
+  SDeleteRecordQuestion = 'Delete record?';
+  SDeleteMultipleRecordsQuestion = 'Delete all selected records?';
+  STooManyColumns = 'Grid requested to display more than 256 columns';
+
+  { For reconcile error }
+  SSkip = 'Skip';
+  SAbort = 'Abort';
+  SMerge = 'Merge';
+  SCorrect = 'Correct';
+  SCancel  = 'Cancel';
+  SRefresh = 'Refresh';
+  SModified = 'Modified';
+  SInserted = 'Inserted';
+  SDeleted  = 'Deleted';
+  SCaption = 'Update Error - %s';
+  SUnchanged = '<Unchanged>';
+  SBinary = '(Binary)';
+  SAdt = '(ADT)';
+  SArray = '(Array)';
+  SFieldName = 'Field Name';
+  SOriginal = 'Original Value';
+  SConflict = 'Conflicting Value';
+  SValue = ' Value';
+  SNoData = '<No Records>';
+  SNew = 'New';
+
+  {BDEConst}
+  SAutoSessionExclusive = 'Cannot enable AutoSessionName property with more than one session on a form or data-module';
+  SAutoSessionExists = 'Cannot add a session to the form or data-module while session ''%s'' has AutoSessionName enabled';
+  SAutoSessionActive = 'Cannot modify SessionName while AutoSessionName is enabled';
+  SDuplicateDatabaseName = 'Duplicate database name ''%s''';
+  SDuplicateSessionName = 'Duplicate session name ''%s''';
+  SInvalidSessionName = 'Invalid session name %s';
+  SDatabaseNameMissing = 'Database name missing';
+  SSessionNameMissing = 'Session name missing';
+  SDatabaseOpen = 'Cannot perform this operation on an open database';
+  SDatabaseClosed = 'Cannot perform this operation on a closed database';
+  SDatabaseHandleSet = 'Database handle owned by a different session';
+  SSessionActive = 'Cannot perform this operation on an active session';
+  SHandleError = 'Error creating cursor handle';
+  SInvalidFloatField = 'Cannot convert field ''%s'' to a floating point value';
+  SInvalidIntegerField = 'Cannot convert field ''%s'' to an integer value';
+  STableMismatch = 'Source and destination tables are incompatible';
+  SFieldAssignError = 'Fields ''%s'' and ''%s'' are not assignment compatible';
+  SNoReferenceTableName = 'ReferenceTableName not specified for field ''%s''';
+  SCompositeIndexError = 'Cannot use array of Field values with Expression Indices';
+  SInvalidBatchMove = 'Invalid batch move parameters';
+  SEmptySQLStatement = 'No SQL statement available';
+  SNoParameterValue = 'No value for parameter ''%s''';
+  SNoParameterType = 'No parameter type for parameter ''%s''';
+  SLoginError = 'Cannot connect to database ''%s''';
+  SInitError = 'An error occurred while attempting to initialize the Borland Database Engine (error $%.4x)';
+  SDatabaseEditor = 'Da&tabase Editor...';
+  SExplore = 'E&xplore';
+  SLinkDetail = '''%s'' cannot be opened';
+  SLinkMasterSource = 'The MasterSource property of ''%s'' must be linked to a DataSource';
+  SLinkMaster = 'Unable to open the MasterSource Table';
+  SGQEVerb = 'S&QL Builder...';
+  SBindVerb = 'Define &Parameters...';
+  SIDAPILangID = '0009';
+  SDisconnectDatabase = 'Database is currently connected. Disconnect and continue?';
+  SBDEError = 'BDE error $%.4x';
+  SLookupSourceError = 'Unable to use duplicate DataSource and LookupSource';
+  SLookupTableError = 'LookupSource must be connected to TTable component';
+  SLookupIndexError = '%s must be the lookup table''s active index';
+  SParameterTypes = ';Input;Output;Input/Output;Result';
+  SInvalidParamFieldType = 'Must have a valid field type selected';
+  STruncationError = 'Parameter ''%s'' truncated on output';
+  SDataTypes = ';String;SmallInt;Integer;Word;Boolean;Float;Currency;BCD;Date;Time;DateTime;;;;Blob;Memo;Graphic;;;;;Cursor;';
+  SResultName = 'Result';
+  SDBCaption = '%s%s%s Database';
+  SParamEditor = '%s%s%s Parameters';
+  SIndexFilesEditor = '%s%s%s Index Files';
+  SNoIndexFiles = '(None)';
+  SIndexDoesNotExist = 'Index does not exist. Index: %s';
+  SNoTableName = 'Missing TableName property';
+  SNoDataSetField = 'Missing DataSetField property';
+  SBatchExecute = 'E&xecute';
+  SNoCachedUpdates = 'Not in cached update mode';
+  SInvalidAliasName = 'Invalid alias name %s';
+  SNoFieldAccess = 'Cannot access field ''%s'' in a filter';
+  SUpdateSQLEditor = '&UpdateSQL Editor...';
+  SNoDataSet = 'No dataset association';
+  SUntitled = 'Untitled Application';
+  SUpdateWrongDB = 'Cannot update, %s is not owned by %s';
+  SUpdateFailed = 'Update failed';
+  SSQLGenSelect = 'Must select at least one key field and one update field';
+  SSQLNotGenerated = 'Update SQL statements not generated, exit anyway?';
+  SSQLDataSetOpen = 'Unable to determine field names for %s';
+  SLocalTransDirty = 'The transaction isolation level must be dirty read for local databases';
+  SMissingDataSet = 'Missing DataSet property';
+  SNoProvider = 'No provider available';
+  SNotAQuery = 'Dataset is not a query';
+
 implementation
 
-uses SysUtils, DBConsts{$IFDEF DELPHI_6}, FMTBcd{$ENDIF}, PSQLTypes;
+uses SysUtils,
+     {$IFNDEF FPC}
+        {$IFDEF DELPHI_6}FMTBcd,{$ENDIF}
+     {$ENDIF}
+     PSQLTypes;
 
 { SQL Parser }
 
@@ -877,6 +1078,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 function TFilterExpr.PutConstBCD(const Value: Variant;
   Decimals: Integer): Integer;
 var
@@ -889,6 +1091,7 @@ begin
   CurrToBCD(C, BCD, 32, Decimals);
   Result := PutConstNode(ftBCD, @BCD, 18);
 end;
+{$ENDIF}
 
 {$IFDEF DELPHI_6}
 function TFilterExpr.PutConstFMTBCD(const Value: Variant;
@@ -1051,8 +1254,10 @@ begin
     ftLargeint:
       Result := PutConstInt64(Node^.FDataType, Node^.FData);
 {$ENDIF}
+{$IFNDEF FPC}
     ftBCD:
       Result := PutConstBCD(Node^.FData, Node^.FDataSize);
+{$ENDIF}
     else
       DatabaseErrorFmt(SExprBadConst, [Node^.FData]);
   end;
@@ -2014,4 +2219,6 @@ end;
 
 
 end.
+
+
 

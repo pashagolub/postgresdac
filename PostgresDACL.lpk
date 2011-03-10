@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="3">
+    <PathDelim Value="\"/>
+    <Name Value="PostgresDACL"/>
+    <Author Value="MicroOLAP Technologies LTD."/>
+    <CompilerOptions>
+      <Version Value="10"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
+      </SearchPaths>
+      <Parsing>
+        <SyntaxOptions>
+          <UseAnsiStrings Value="False"/>
+        </SyntaxOptions>
+      </Parsing>
+      <Other>
+        <CompilerMessages>
+          <UseMsgFile Value="True"/>
+        </CompilerMessages>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 7.x, 8.x/Pervasive Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL/Pervasive Postgres DB without BDE and ODBC."/>
+    <Version Major="2" Minor="6" Release="1"/>
+    <Files Count="14">
+      <Item1>
+        <Filename Value="PSQLTypes.pas"/>
+        <UnitName Value="PSQLTypes"/>
+      </Item1>
+      <Item2>
+        <Filename Value="PSQLAccess.pas"/>
+        <UnitName Value="PSQLAccess"/>
+      </Item2>
+      <Item3>
+        <Filename Value="PSQLDbTables.pas"/>
+        <UnitName Value="PSQLDbTables"/>
+      </Item3>
+      <Item4>
+        <Filename Value="PSQLBatch.pas"/>
+        <UnitName Value="PSQLBatch"/>
+      </Item4>
+      <Item5>
+        <Filename Value="PSQLMacroQuery.pas"/>
+        <UnitName Value="PSQLMacroQuery"/>
+      </Item5>
+      <Item6>
+        <Filename Value="PSQLMonitor.pas"/>
+        <UnitName Value="PSQLMonitor"/>
+      </Item6>
+      <Item7>
+        <Filename Value="PSQLTools.pas"/>
+        <UnitName Value="PSQLTools"/>
+      </Item7>
+      <Item8>
+        <Filename Value="PSQLConsts.pas"/>
+        <UnitName Value="PSQLConsts"/>
+      </Item8>
+      <Item9>
+        <Filename Value="PSQLCommon.pas"/>
+        <UnitName Value="PSQLCommon"/>
+      </Item9>
+      <Item10>
+        <Filename Value="PSQLCopy.pas"/>
+        <UnitName Value="PSQLCopy"/>
+      </Item10>
+      <Item11>
+        <Filename Value="PSQLDirectQuery.pas"/>
+        <UnitName Value="PSQLDirectQuery"/>
+      </Item11>
+      <Item12>
+        <Filename Value="PSQLExtMask.pas"/>
+        <UnitName Value="PSQLExtMask"/>
+      </Item12>
+      <Item13>
+        <Filename Value="psqlAboutFrm.pas"/>
+        <UnitName Value="psqlAboutFrm"/>
+      </Item13>
+      <Item14>
+        <Filename Value="PSQLFields.pas"/>
+        <UnitName Value="PSQLFields"/>
+      </Item14>
+    </Files>
+    <RequiredPkgs Count="1">
+      <Item1>
+        <PackageName Value="LCL"/>
+        <MinVersion Major="1" Valid="True"/>
+      </Item1>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+      <IgnoreBinaries Value="False"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>

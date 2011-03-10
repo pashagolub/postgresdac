@@ -1,4 +1,4 @@
-{$I PSQLdac.inc}
+{$I pSQLDAC.inc}
 
 unit PSQLCopy;
 
@@ -6,7 +6,7 @@ unit PSQLCopy;
 
 interface
 
-Uses Windows, Messages, SysUtils, Classes, Dialogs, PSQLTypes,
+Uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Messages, SysUtils, Classes, Dialogs, PSQLTypes,
         PSQLAccess, PSQLDbTables;
 
 type

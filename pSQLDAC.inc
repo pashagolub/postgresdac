@@ -14,6 +14,14 @@
 {$DEFINE MICROOLAP_BUSINESS_LICENSE}
 
 //---------------------------
+// FreePascal/Lazarus
+//---------------------------
+//
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
+//---------------------------
 // Delphi/Builder versions
 //---------------------------
 //DELPHI 15 (Delphi XE)

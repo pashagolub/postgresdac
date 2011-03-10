@@ -1,4 +1,4 @@
-{$I PSQLDAC.inc}
+{$I pSQLDAC.inc}
 unit PSQLTypes;
 
 {SVN revision: $Id$}
@@ -6,7 +6,7 @@ unit PSQLTypes;
 {$Z+,T-} //taken from MySQLDAC 
 interface
 
-uses Windows, Classes, SysUtils, Math;
+uses {$IFDEF FPC}LCLIntf, dynlibs, {$ELSE}Windows,{$ENDIF} Classes, SysUtils, Math;
 
 //============================================================================//
 //                            Result Error Field Codes                        //
@@ -146,6 +146,12 @@ const //date/time convertion
   TIMESTAMP_MODE = 0;
   DATE_MODE = 1;
   TIME_MODE = 2;
+
+{$IFDEF FPC}
+const
+  HINSTANCE_ERROR = 32;
+{$ENDIF}
+
 
 var
   PSQL_DLL             : string = 'libpq.dll';
@@ -1187,6 +1193,9 @@ const
   fldARRAY           = 21;              { Array field type }
   fldREF             = 22;              { Reference to ADT }
   fldTABLE           = 23;              { Nested table (reference) }
+  {$IFDEF FPC}
+  fldDATETIME        = 24;              { DateTime structure field }
+  {$ENDIF}
   {$IFDEF DELPHI_6}
   fldDATETIME        = 24;              { DateTime structure field }
      {$IFDEF DELPHI_12}
@@ -1814,7 +1823,7 @@ Type
   PFieldStatus = ^TFieldStatus;
   TFieldStatus =  Record
     isNULL  : SmallInt;
-    Changed : Bool;
+    Changed : LongBool;
   end;
 
   TRecordState = (tsNoPos, tsPos, tsFirst, tsLast, tsEmpty, tsClosed);
@@ -2008,6 +2017,10 @@ type
 function GetModuleName(Module: HMODULE): string;
 {$ENDIF}
 
+{$IFDEF FPC}
+procedure ZeroMemory(Destination: Pointer; Length: integer);
+{$ENDIF}
+
 
 implementation
 
@@ -2015,6 +2028,13 @@ uses DB, PSQLDbTables, PSQLAccess;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TCONTAINER OBJECT                       //
 /////////////////////////////////////////////////////////////////////////////
+
+{$IFDEF FPC}
+procedure ZeroMemory(Destination: Pointer; Length: integer);
+begin
+  FillChar(Destination^, Length, 0);
+end;
+{$ENDIF}
 
 {$IFDEF DELPHI_5}
   function GetModuleName(Module: HMODULE): string;
@@ -2919,7 +2939,7 @@ end;
 
 Procedure LoadPSQLLibrary(LibPQPath: string = '');
 
-  function GetPSQLProc( ProcName : PAnsiChar ) : TFarProc;
+  function GetPSQLProc( ProcName : PAnsiChar ) : pointer;
   begin
     Result := GetProcAddress( SQLLibraryHandle, ProcName );
     {$IFDEF M_DEBUG}
@@ -3204,8 +3224,10 @@ begin
     OemToCharBuff(PAnsiChar(AnsiString(S1)), PWideChar(S1), Length(S1));
     OemToCharBuff(PAnsiChar(AnsiString(S2)), PWideChar(S2), Length(S2));
     {$ELSE}
-    OemToCharBuff(PAnsiChar(S1), PAnsiChar(S1), Length(S1));
-    OemToCharBuff(PAnsiChar(S2), PAnsiChar(S2), Length(S2));
+        {$IFNDEF FPC}
+        OemToCharBuff(PAnsiChar(S1), PAnsiChar(S1), Length(S1));
+        OemToCharBuff(PAnsiChar(S2), PAnsiChar(S2), Length(S2));
+        {$ENDIF}
     {$ENDIF}
   end;
    if CaseSen then //case insensitive

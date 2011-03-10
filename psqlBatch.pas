@@ -4,8 +4,8 @@ interface
 
 {SVN revision: $Id$}
 
-Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
-      {$IFDEF DELPHI_6}Variants,{$ENDIF}StdVCL, PSQLDbTables,SMIntf;
+Uses  {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} SysUtils, Graphics, Classes, Controls, Db,
+      {$IFDEF DELPHI_6}Variants,{$ENDIF}{StdVCL,} PSQLDbTables{,SMIntf};
 
 type
   {TPSQLBatchExecute}
@@ -76,7 +76,7 @@ end;
 
 function TPSQLBatchExecute.BatchExecSql(Sql: WideString): LongInt;
 var
-  Buffer, Token, Text: string;
+  Buffer, Token, Text: {$IFDEF FPC}ansistring{$ELSE}string{$ENDIF};
   StmtNo : Integer;
 begin
   Buffer := Sql;

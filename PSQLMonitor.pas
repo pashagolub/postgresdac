@@ -1,4 +1,4 @@
-{$I PSQLDAC.inc}
+{$I pSQLDAC.inc}
 unit PSQLMonitor;
 
 {SVN revision: $Id$}
@@ -6,10 +6,14 @@ unit PSQLMonitor;
 interface
 
 uses
-  SysUtils, Windows, Messages, Classes, PSQLAccess,
-  Dialogs, Forms, Controls, DB, PSQLDBTables;
+  SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF} Windows, Messages, Classes, PSQLAccess,
+  Forms, Controls, DB, PSQLDbTables;
 
 const
+{$IFDEF FPC}
+  CM_BASE                   = $B000;
+  CM_RELEASE                = CM_BASE + 33;
+{$ENDIF}
   WM_MIN_MONITOR = WM_USER;
   WM_MAX_MONITOR = WM_USER + 512;
   WM_SQL_EVENT = WM_MIN_MONITOR + 1;
@@ -289,6 +293,7 @@ begin
                           st.SQL, st.ErrorMsg, st.DataType, st.ExecutedOK, st.TimeStamp);
                       st.Free;
                    end;
+
      CM_RELEASE :  Free;
    else
      DefWindowProc(FHWnd, Message.Msg, Message.WParam, Message.LParam);

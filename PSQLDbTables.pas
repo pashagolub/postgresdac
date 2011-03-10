@@ -1,4 +1,4 @@
-{$I PSQLDAC.inc}
+{$I pSQLDAC.inc}
 unit PSQLDbTables;
 
 {SVN revision: $Id$}
@@ -7,9 +7,11 @@ unit PSQLDbTables;
 {$C+}
 Interface              
 
-Uses  Windows, SysUtils, Graphics, Classes, Controls, Db,
+Uses  Windows, SysUtils, Classes, Db, Controls,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
-      {$IFDEF DELPHI_6}Variants,{$ENDIF}StdVCL, PSQLAccess, PSQLTypes,
+      {$IFDEF DELPHI_6}Variants,{$ENDIF}
+      {$IFDEF FPC}Variants,{$ENDIF}
+      {$IFNDEF FPC}StdVCL,{$ENDIF} PSQLAccess, PSQLTypes,
       ExtCtrls;
 
 const
@@ -31,13 +33,33 @@ const
 { FieldType Mappings }
 
 const
+  {$IFDEF FPC}
   FldTypeMap: TFieldMap = (
     fldUNKNOWN, fldZSTRING, fldINT16, fldINT32, fldUINT16,  //0..4
     fldBOOL, fldFLOAT, fldFLOAT, fldBCD, fldDATE, fldTIME, fldTIMESTAMP, //5..11
     fldBYTES, fldVARBYTES, fldINT32, fldBLOB, fldBLOB, fldBLOB, fldBLOB, //12..18
     fldBLOB, fldBLOB, fldBLOB, fldCURSOR, fldZSTRING, fldZSTRING, //19..24
     fldINT64, fldADT, fldArray, fldREF, fldTABLE, fldBLOB, fldBLOB, //25..31
-    fldUNKNOWN, fldUNKNOWN, fldUNKNOWN, fldZSTRING{$IFDEF DELPHI_6}, fldDATETIME, fldBCD{$ENDIF} //26..37
+    fldUNKNOWN, fldUNKNOWN, fldUNKNOWN, fldZSTRING, fldDATETIME, fldBCD,
+    fldZSTRING, fldBLOB);
+
+  FldSubTypeMap: array[TFieldType] of Word = (
+    0, 0, 0, 0, 0, 0, 0, fldstMONEY, 0, 0, 0, 0, 0, 0, fldstAUTOINC,
+    fldstBINARY, fldstMEMO, fldstGRAPHIC, fldstFMTMEMO, fldstOLEOBJ,
+    fldstDBSOLEOBJ, fldstTYPEDBINARY, 0, fldstFIXED, fldstUNICODE,
+    0, 0, 0, 0, 0, fldstHBINARY, fldstHMEMO, 0, 0, 0, 0, 0, 0,
+    fldstFIXED, fldstMEMO);
+
+  {$ELSE}
+
+  FldTypeMap: TFieldMap = (
+    fldUNKNOWN, fldZSTRING, fldINT16, fldINT32, fldUINT16,  //0..4
+    fldBOOL, fldFLOAT, fldFLOAT, fldBCD, fldDATE, fldTIME, fldTIMESTAMP, //5..11
+    fldBYTES, fldVARBYTES, fldINT32, fldBLOB, fldBLOB, fldBLOB, fldBLOB, //12..18
+    fldBLOB, fldBLOB, fldBLOB, fldCURSOR, fldZSTRING, fldZSTRING, //19..24
+    fldINT64, fldADT, fldArray, fldREF, fldTABLE, fldBLOB, fldBLOB, //25..31
+    fldUNKNOWN, fldUNKNOWN, fldUNKNOWN, fldZSTRING
+    {$IFDEF DELPHI_6}, fldDATETIME, fldBCD{$ENDIF} //26..37
     {$IFDEF DELPHI_10}, fldZSTRING, fldBLOB, fldDATETIME, fldINT32{$ENDIF} //38..41
     {$IFDEF DELPHI_12}, fldINT32, fldINT16, fldUNKNOWN, fldFLOATIEEE, fldUNKNOWN, fldUNKNOWN, fldUNKNOWN{$ENDIF} //42..48
     {$IFDEF DELPHI_14}, fldUNKNOWN, fldUNKNOWN, fldUNKNOWN{$ENDIF} //49..52
@@ -52,6 +74,8 @@ const
     {$IFDEF DELPHI_12}, 0, 0, 0, 0, 0, 0, 0{$ENDIF} //42..48
     {$IFDEF DELPHI_14}, 0, 0, 0{$ENDIF} //49..52
     );
+  {$ENDIF}
+
 
   DataTypeMap: array[0..MAXLOGFLDTYPES - 1] of TFieldType = (
     ftUnknown, ftString, ftDate, ftBlob, ftBoolean, ftSmallint,
@@ -414,7 +438,7 @@ type
  TBlobDataArray = array of TBlobData;
 
  TPSQLDataSet = Class(TDataSet)
-  Private
+  private
     FAbout : TPSQLDACAbout;
     FRecProps: RecProps; //Record properties
    // FStmtHandle: HDBIStmt; //Statement handle pg 21/02/06
@@ -449,8 +473,10 @@ type
     FOldBuffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
     FParentDataSet: TPSQLDataSet;
     FUpdateObject: TPSQLSQLUpdateObject;
+    {$IFNDEF FPC}
     FOnUpdateError: TUpdateErrorEvent;
     FOnUpdateRecord: TUpdateRecordEvent;
+    {$ENDIF}
     FAutoRefresh: Boolean;
     FDBFlags: TDBFlags;
     FUpdateMode: TUpdateMode;
@@ -470,9 +496,9 @@ type
     procedure SetAutoRefresh(const Value: Boolean);
     procedure SetDatabase(Value : TPSQLDatabase);
     function GetDatabase:TPSQLDatabase;
-    {$IFNDEF DELPHI_4}
+    {$IFNDEF DELPHI_4}{$IFNDEF FPC}
     procedure SetupAutoRefresh;
-    {$ENDIF}
+    {$ENDIF}{$ENDIF}
     function GetStmtHandle: HDBIStmt;
     procedure SetSortFieldNames(const Value: string);
     function GetSortFieldNames: string;
@@ -483,6 +509,7 @@ type
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
     procedure DefineProperties(Filer: TFiler); Override;    
     { IProviderSupport }
+    {$IFNDEF FPC}
     procedure PSEndTransaction(Commit: Boolean); override;
     function PSExecuteStatement(const ASQL: string; AParams: TParams;
       ResultSet: Pointer = NIL): Integer; override;
@@ -494,24 +521,27 @@ type
     procedure PSStartTransaction; override;
     procedure PSReset; override;
     function PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError; override;
+    {$ENDIF}
   protected
     function  Engine : TPSQLEngine; Virtual; Abstract;
+    {$IFNDEF FPC}
     procedure SetBlockReadSize(Value: Integer); override;
     procedure BlockReadNext; override;
+    {$ENDIF}
     procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
     procedure ActivateFilters;
     procedure AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
       var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
     procedure AllocCachedUpdateBuffers(Allocate: Boolean);
     procedure AllocKeyBuffers;
-    function  AllocRecordBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Override;
+    function  AllocRecordBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; override;
     function  CachedUpdateCallBack(CBInfo: Pointer): CBRType;
     procedure CheckCachedUpdateMode;
     procedure CheckSetKeyMode;
-    procedure ClearCalcFields(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
-    procedure CloseCursor; Override;
+    procedure ClearCalcFields(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
+    procedure CloseCursor; override;
     procedure CreateFields; override;
-    procedure CloseBlob(Field: TField); Override;
+    procedure CloseBlob(Field: TField); override;
     function  CreateExprFilter(const Expr: String;
       Options: TFilterOptions; Priority: Integer): HDBIFilter;
     function  CreateFuncFilter(FilterFunc: Pointer;
@@ -519,7 +549,7 @@ type
     function  CreateHandle: HDBICur; Virtual;
     function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
-    procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
+    procedure DataEvent(Event: TDataEvent; Info: LongInt); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; Virtual;
     procedure DestroyLookupCursor; Virtual;
@@ -535,7 +565,9 @@ type
     procedure InternalInitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
     procedure InternalSetToRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
     function  GetCanModify: Boolean; Override;
+    {$IFNDEF FPC}
     function  GetFieldFullName(Field: TField): string; override;
+    {$ENDIF}
     function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
     function  GetIndexField(Index: Integer): TField;
     function  GetIndexFieldCount: Integer;
@@ -547,10 +579,14 @@ type
     function  GetRecordCount: Integer; Override;
     function  GetRecNo: Integer; Override;
     function  GetRecordSize: Word; Override;
+    {$IFNDEF FPC}
     function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; Override;
     procedure GetObjectTypeNames(Fields: TFields);
+    {$ENDIF}
     function  GetUpdatesPending: Boolean;
+    {$IFNDEF FPC}
     function  GetUpdateRecordSet: TUpdateRecordTypes;
+    {$ENDIF}
     function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
     procedure InternalAddRecord(Buffer: Pointer; Append: Boolean); Override;
     procedure InternalCancel; Override;
@@ -597,13 +633,19 @@ type
     procedure SetKeyFieldCount(Value: Integer);
     procedure SetKeyFields(KeyIndex: TKeyIndex; const Values: array of const);
     procedure SetLinkRanges(MasterFields: TList);
+    {$IFNDEF FPC}
     procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); Override;
-    procedure SetOnFilterRecord(const Value: TFilterRecordEvent); Override;
+    {$ENDIF}
+    procedure SetOnFilterRecord(const Value: TFilterRecordEvent); override;
+    {$IFNDEF FPC}
     procedure SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);
+    {$ENDIF}
     procedure SetOptions(const Value: TPSQLDatasetOptions); virtual;
     procedure SetRecNo(Value: Integer); Override;
     procedure SetupCallBack(Value: Boolean);
+    {$IFNDEF FPC}
     procedure SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
+    {$ENDIF}
     procedure SetUpdateObject(Value: TPSQLSQLUpdateObject);
     procedure SwitchToIndex(const IndexName, TagName: String);
     function  UpdateCallbackRequired: Boolean;
@@ -629,9 +671,11 @@ type
     procedure FetchAll;
     procedure FlushBuffers;
     function GetCurrentRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean; Override;
+    {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
+    {$ENDIF}
     function GetFieldData(Field: TField; Buffer: Pointer): Boolean; overload; override;
-    function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload; override;
+    function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload;{$IFNDEF FPC}override;{$ENDIF}
     procedure GetIndexInfo;
     function  Locate(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions): Boolean; Override;
@@ -650,10 +694,12 @@ type
     property KeySize: Word read FKeySize;
     property UpdateObject: TPSQLSQLUpdateObject read FUpdateObject write SetUpdateObject;
     property UpdatesPending: Boolean read GetUpdatesPending;
+    {$IFNDEF FPC}
     property UpdateRecordTypes: TUpdateRecordTypes read GetUpdateRecordSet write SetUpdateRecordSet;
+    {$ENDIF}
     procedure PopulateFieldsOrigin();
- 	  procedure SortBy(FieldNames : string);
-	  property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;
+    procedure SortBy(FieldNames : string);
+    property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;
   published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property AutoRefresh: Boolean read FAutoRefresh write SetAutoRefresh default FALSE;
@@ -666,7 +712,9 @@ type
     property OnFilterRecord;
     property Active stored GetStoreActive;
     property AutoCalcFields;
+    {$IFNDEF FPC}
     property ObjectView default FALSE;
+    {$ENDIF}
     property Options: TPSQLDatasetOptions read FOptions write SetOptions;
     property BeforeOpen;
     property AfterOpen;
@@ -691,8 +739,10 @@ type
     property OnEditError;
     property OnNewRecord;
     property OnPostError;
+    {$IFNDEF FPC}
     property OnUpdateError: TUpdateErrorEvent read FOnUpdateError write SetOnUpdateError;
     property OnUpdateRecord: TUpdateRecordEvent read FOnUpdateRecord write FOnUpdateRecord;
+    {$ENDIF}
   end;
 
 //////////////////////////////////////////////////////////
@@ -767,15 +817,19 @@ type
     function GetTableSpace: string;
   Protected
     { IProviderSupport }
+    {$IFNDEF FPC}
     function PSGetDefaultOrder: TIndexDef; override;
     function PSGetKeyFields: string; override;
     function PSGetTableName: string; override;
     function PSGetIndexDefs(IndexTypes: TIndexOptions): TIndexDefs; override;
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
+    {$ENDIF}
     function CreateHandle: HDBICur; Override;
     procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
+    {$IFNDEF FPC}
     procedure DefChanged(Sender: TObject); override;
+    {$ENDIF}
     procedure DestroyHandle; Override;
     procedure DestroyLookupCursor; Override;
     procedure DoOnNewRecord; Override;
@@ -815,7 +869,9 @@ type
     procedure EmptyTable;
     function FindKey(const KeyValues: array of const): Boolean;
     procedure FindNearest(const KeyValues: array of const);
+    {$IFNDEF FPC}
     procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
+    {$ENDIF}
     procedure GetIndexNames(List: TStrings);
     procedure GotoCurrent(Table: TPSQLTable);
     function GotoKey: Boolean;
@@ -898,12 +954,14 @@ type
       function GetRequestLive : Boolean;
     protected
       { IProviderSupport }
+    {$IFNDEF FPC}
       procedure PSExecute; override;
       function PSGetDefaultOrder: TIndexDef; override;
       function PSGetParams: TParams; override;
       function PSGetTableName: string; override;
       procedure PSSetCommandText(const CommandText: string); override;
       procedure PSSetParams(AParams: TParams); override;
+    {$ENDIF}
       function CreateHandle: HDBICur; Override;
       procedure DefineProperties(Filer: TFiler); Override;
       procedure Disconnect; Override;
@@ -920,7 +978,9 @@ type
       function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
       function  IsSequenced: Boolean; Override;
       procedure ExecSQL;
+    {$IFNDEF FPC}
       procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
+    {$ENDIF}
       function ParamByName(const Value: String): TPSQLParam;
       procedure Prepare;
       procedure UnPrepare;
@@ -1065,45 +1125,47 @@ type
 
   TSPParamDescList = array of SPParamDesc;
 
-	TPSQLStoredProc = class(TPSQLDataSet)
-	private
-		FParams: TPSQLParams;
-		FNeedRefreshParams : boolean;
+  TPSQLStoredProc = class(TPSQLDataSet)
+  private
+    FParams: TPSQLParams;
+    FNeedRefreshParams : boolean;
     FOverload: cardinal;
     FProcName: string;
     FBindMode: TParamBindMode;
-		function GetParamsCount: integer;
+    function GetParamsCount: integer;
     procedure SetOverload(const Value: cardinal);
     procedure SetProcName(const Value: string);
-	protected
+  protected
     { IProviderSupport }
+    {$IFNDEF FPC}
     procedure PSExecute; override;
     function PSGetTableName: string; override;
     function PSGetParams: TParams; override;
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
-		function CreateHandle: HDBICur;override;
-		function CreateCursor(IsExecProc : boolean): HDBICur;
+    {$ENDIF}
+    function CreateHandle: HDBICur;override;
+    function CreateCursor(IsExecProc : boolean): HDBICur;
     procedure CloseCursor;override;
-		procedure SetProcedureName(const Value: string);
-		function GetParamsList: TPSQLParams;
-		procedure SetParamsList(const Value: TPSQLParams);
+    procedure SetProcedureName(const Value: string);
+    function GetParamsList: TPSQLParams;
+    procedure SetParamsList(const Value: TPSQLParams);
     function GetCanModify: Boolean; override;
 	public
-		constructor Create(AOwner: TComponent); override;
-		destructor  Destroy; override;
+	constructor Create(AOwner: TComponent); override;
+	destructor  Destroy; override;
 
     function CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; override;
-		function Engine : TPSQLEngine; override;
+	function Engine : TPSQLEngine; override;
     function DescriptionsAvailable: Boolean;
     function ParamByName(const Value: String): TPSQLParam;
 
-		procedure ExecProc;
-		procedure RefreshParams;
-		procedure SetNeedRefreshParams;
+	procedure ExecProc;
+	procedure RefreshParams;
+	procedure SetNeedRefreshParams;
 
-		property ParamsCount : integer read GetParamsCount;
-	published
+	property ParamsCount : integer read GetParamsCount;
+  published
     property StoredProcName: string read FProcName write SetProcName;
     property Overload: cardinal read FOverload write SetOverload default 0;
     property Params: TPSQLParams read GetParamsList write SetParamsList;
@@ -1118,10 +1180,9 @@ Var
 
 implementation
 
-uses  ActiveX, Forms, DBPWDlg, DBLogDlg, DBConsts
-{$IFDEF DELPHI_10}, DBClient{$ENDIF},
-BDEConst
-{$IFDEF TRIAL}, PSQLAboutFrm{$ENDIF},
+uses  ActiveX, {$IFNDEF FPC}Forms, DBPWDlg, DBLogDlg, DBConsts, BDEConst,{$ENDIF}
+{$IFDEF DELPHI_10}DBClient, {$ENDIF}
+{$IFDEF TRIAL}PSQLAboutFrm, {$ENDIF}
 PSQLDirectQuery, Math, PSQLFields;
 
 {$R DB.DCR}
@@ -1180,7 +1241,9 @@ begin
     KillTimer(0, TimerID);
     TimerID   := 0;
     StartTime := 0;
+    {$IFNDEF FPC}
     Screen.Cursor := crDefault;
+    {$ENDIF}
   end;
 end;
 
@@ -1196,7 +1259,7 @@ begin
     Result := 0;
 end;
 
-function SetBoolProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer; Value: Bool) : Boolean;
+function SetBoolProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer; Value: Boolean) : Boolean;
 begin
   Result := Engine.SetEngProp(HDBIObj(Handle), PropName, Abs(Integer(Value))) = DBIERR_NONE;
 end;
@@ -1668,7 +1731,10 @@ begin
   if Assigned(FOnLogin) then FOnLogin(Self, LoginParams) else
   begin
     UserName := LoginParams.Values['UID'];
-    if not LoginDialogEx(DatabaseName, UserName, Password, FALSE) then DatabaseErrorFmt(SLoginError, [DatabaseName]);
+    {$IFNDEF FPC}
+    if not LoginDialogEx(DatabaseName, UserName, Password, FALSE) then
+    {$ENDIF}
+      DatabaseErrorFmt(SLoginError, [DatabaseName]);
     LoginParams.Values['UID'] := UserName;
     LoginParams.Values['PWD'] := Password;
   end;
@@ -2023,9 +2089,9 @@ end;
 
 function TPSQLDatabase.GetBackendPID:Integer;
 begin
-   if Connected then
-    Engine.GetBackendPID(Handle,Result) else
-    Result := 0;
+  Result := InvalidOID;
+  if Connected then
+    Engine.GetBackendPID(Handle, Result);
 end;
 
 
@@ -2311,7 +2377,9 @@ begin
   SetDBFlag(dbfOpened, TRUE);
   Inherited OpenCursor(InfoQuery);
   SetUpdateMode(FUpdateMode);
+  {$IFNDEF FPC}
   SetupAutoRefresh;
+  {$ENDIF}
 end;
 
 //////////////////////////////////////////////////////////
@@ -2417,7 +2485,7 @@ begin
     end;
     SetLength(FieldDescs, FldDescCount);
     Engine.GetFieldDescs(FHandle, FieldDescs);
-    FieldID := FieldNoOfs;
+    FieldID := {$IFNDEF FPC}FieldNoOfs{$ELSE}1{$ENDIF};
     I := FieldID - 1;
     FieldDefs.Clear;
     while I < FldDescCount do
@@ -2437,6 +2505,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLDataSet.GetObjectTypeNames(Fields: TFields);
 var
   Len: Word;
@@ -2462,6 +2531,7 @@ begin
         end;
     end
 end;
+{$ENDIF}
 
 procedure TPSQLDataSet.InternalOpen;
 var
@@ -2478,7 +2548,9 @@ begin
   if DefaultFields or (dsoForceCreateFields in FOptions) then
     CreateFields;
   BindFields(TRUE);
+  {$IFNDEF FPC}
   if ObjectView then GetObjectTypeNames(Fields);
+  {$ENDIF}
   if (dsoPopulateFieldsOrigin in FOptions) then PopulateFieldsOrigin();
   InitBufferPointers(FALSE);
   AllocKeyBuffers;
@@ -2514,7 +2586,9 @@ end;
 
 procedure TPSQLDataSet.InternalHandleException;
 begin
+  {$IFNDEF FPC}
   Application.HandleException(Self)
+  {$ENDIF}
 end;
 
 ////////////////////////////////////////////////////////////
@@ -2876,7 +2950,7 @@ begin
 
     with FieldDefs.AddFieldDef do
     begin
-      FieldNo := FieldID;
+      {$IFNDEF FPC}FieldNo := FieldID;{$ENDIF}
       Inc(FieldID);
       Name := FName;
       DataType := FType;
@@ -2895,14 +2969,14 @@ begin
             if iSubType = fldstADTNestedTable then
               Attributes := Attributes + [faUnNamed];
             for I := 0 to iUnits1 - 1 do
-              AddFieldDesc(FieldDescs, DescNo, FieldID, RequiredFields, ChildDefs);
+              AddFieldDesc(FieldDescs, DescNo, FieldID, RequiredFields, {$IFNDEF FPC}ChildDefs{$ELSE}nil{$ENDIF});
           end;
         ftArray:
           begin
             I := FieldID;
             FieldDescs[DescNo].szName := FieldDesc.szName + '[0]';
             //StrCat(StrCopy(FieldDescs[DescNo].szName, FieldDesc.szName),'[0]');
-            AddFieldDesc(FieldDescs, DescNo, I, RequiredFields, ChildDefs);
+            AddFieldDesc(FieldDescs, DescNo, I, RequiredFields, {$IFNDEF FPC}ChildDefs{$ELSE}nil{$ENDIF});
             Inc(FieldID, iUnits2);
           end;
       end;
@@ -2910,6 +2984,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 function TPSQLDataSet.GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer;
 var
   RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
@@ -2943,13 +3018,15 @@ begin
       Check(Engine, Status)
   end;
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
 var
-  IsBlank: LongBool;
+  IsBlank: Boolean;
   RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
   Status: DBIResult;
 begin
+{$IFNDEF FPC}
   if (BlockReadSize > 0) then
   begin
     Status := Engine.GetField(FHandle, FieldNo, FBlockReadBuf +
@@ -2957,6 +3034,7 @@ begin
     Result := (Status = DBIERR_NONE) and not IsBlank;
   end
   else
+{$ENDIF}
   begin
     Result := GetActiveRecBuf(RecBuf);
     if Result then
@@ -2966,6 +3044,7 @@ begin
     end
   end;
 end;
+
 
 function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
@@ -3041,6 +3120,7 @@ begin
   Engine.FreeBlob(Handle, ActiveBuffer, Field.FieldNo);
 end;
 
+{$IFNDEF FPC}
 function TPSQLDataSet.GetStateFieldValue(State: TDataSetState; Field: TField): Variant;
 var Param: TPSQLParam;
 begin
@@ -3065,24 +3145,11 @@ begin
   Inherited SetStateFieldValue(State, Field, Value);
 end;
 
-
 function TPSQLDataSet.GetFieldFullName(Field : TField) : String;
-{var
-  Len: Word;
-  AttrDesc: ObjAttrDesc;
-  Buffer: array[0..1024] of AnsiChar;
-  s: AnsiString;}
 begin
-  {if Field.FieldNo > 0  then
-  begin
-    AttrDesc.iFldNum := Field.FieldNo;
-    AttrDesc.pszAttributeName := Buffer;
-    Check(Engine, Engine.GetEngProp(HDBIOBJ(Handle), curFIELDFULLNAME, @AttrDesc, SizeOf(Buffer), Len));
-    TNativeToAnsi(Engine, Buffer, S);
-    Result := string(S);
-  end else}
     Result := inherited GetFieldFullName(Field);
 end;
+{$ENDIF}
 
 procedure TPSQLDataSet.InternalFirst;
 begin
@@ -3247,6 +3314,7 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLDataSet.SetBlockReadSize(Value: Integer);
 
   function CanBlockRead: Boolean;
@@ -3343,6 +3411,7 @@ begin
 
   DataEvent(deDataSetScroll, -1);
 end;
+{$ENDIF}
 
 procedure TPSQLDataSet.GetIndexInfo;
 var
@@ -3876,7 +3945,9 @@ begin
     Accept := TRUE;
     OnFilterRecord(Self, Accept);
   except
+    {$IFNDEF FPC}
     Application.HandleException(Self);
+    {$ENDIF}
   end;
   RestoreState(SaveState);
   Result := Ord(Accept);
@@ -4240,13 +4311,17 @@ end;
 
 function TPSQLDataSet.UpdateCallbackRequired: Boolean;
 begin
+{$IFDEF FPC}
+  Result := False;
+{$ELSE}
   Result := FCachedUpdates  and (Assigned(FOnUpdateError) or
     Assigned(FOnUpdateRecord) or Assigned(FUpdateObject));
+{$ENDIF}
 end;
 
 function TPSQLDataSet.ForceUpdateCallback: Boolean;
 begin
-  Result := True{FCachedUpdates} and (Assigned(FOnUpdateRecord) or
+  Result := True{FCachedUpdates} and ({$IFNDEF FPC}Assigned(FOnUpdateRecord) or{$ENDIF}
     Assigned(FUpdateObject));
 end;
 
@@ -4361,9 +4436,11 @@ begin
   UpdateAction := uaFail;
   UpdateKind := TUpdateKind(ord(FUpdateCBBuf.eDelayUpdOpType)-1);
   try
+{$IFNDEF FPC}
     if Assigned(FOnUpdateRecord) then
       FOnUpdateRecord(Self, UpdateKind, UpdateAction)
     else
+{$ENDIF}
       if Assigned(FUpdateObject) then
       begin
         FUpdateObject.Apply(UpdateKind);
@@ -4376,11 +4453,15 @@ begin
     begin
       if E is EPSQLDatabaseError then
         FUpdateCBBuf.iErrCode := EPSQLDatabaseError(E).ErrorCode;
+{$IFNDEF FPC}
       if (E is EDatabaseError) and Assigned(FOnUpdateError) then
         FOnUpdateError(Self, EDatabaseError(E), UpdateKind, UpdateAction)
       else
+{$ENDIF}
       begin
+        {$IFNDEF FPC}
         Application.HandleException(Self);
+        {$ENDIF}
         UpdateAction := uaAbort;
       end;
     end;
@@ -4391,7 +4472,7 @@ begin
   FInUpdateCallBack := FALSE;
 end;
 
-
+{$IFNDEF FPC}
 function TPSQLDataSet.GetUpdateRecordSet: TUpdateRecordTypes;
 begin
   if Active then
@@ -4410,7 +4491,7 @@ begin
   Check(Engine, Engine.SetEngProp(hDbiObj(Handle), curDELAYUPDDISPLAYOPT, Longint(Byte(RecordTypes))));
   Resync([]);
 end;
-
+{$ENDIF}
 
 procedure TPSQLDataSet.SetUpdateObject(Value: TPSQLSQLUpdateObject);
 begin
@@ -4430,19 +4511,20 @@ begin
   end;
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLDataSet.SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);
 begin
   if Active then SetupCallback(UpdateCallBackRequired);
   FOnUpdateError := UpdateEvent;
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetUpdatesPending: Boolean;
 begin
   Result := GetIntProp(Engine, FHandle, curDELAYUPDNUMUPDATES) > 0;
 end;
 
-procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: Integer);
-
+procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: LongInt);
 
   procedure CheckIfParentScrolled;
   var
@@ -4471,6 +4553,7 @@ begin
   inherited DataEvent(Event, Info);
 end;
 
+{$IFNDEF FPC}
 { TBDEDataSet.IProviderSupport}
 function TPSQLDataSet.PSGetUpdateException(E: Exception; Prev: EUpdateError): EUpdateError;
 var
@@ -4499,6 +4582,7 @@ begin
   if Handle <> NIL then
     Engine.ForceReread(Handle);
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetHandle: HDBICur;
 begin
@@ -4567,7 +4651,9 @@ begin
       begin
         FDatabase.Open;
         Inc(FDatabase.FRefCount);
+        {$IFNDEF FPC}
         FDatabase.RegisterClient(Self);
+        {$ENDIF}
       end;
       Include(FDBFlags, Flag);
     end;
@@ -4579,7 +4665,9 @@ begin
       Exclude(FDBFlags, Flag);
       if FDBFlags = [] then
       begin
+        {$IFNDEF FPC}
         FDatabase.UnRegisterClient(Self);
+        {$ENDIF}
         CloseDatabase(FDatabase);
       end;
     end;
@@ -4604,7 +4692,9 @@ procedure TPSQLDataSet.SetDatabase(Value: TPSQLDatabase);
 begin
    if Active then Close;
    try
+     {$IFNDEF FPC}
      if Assigned(FDatabase) then  FDatabase.UnRegisterClient(Self);
+     {$ENDIF}
      if Assigned(Value) then FDatabase := Value;
    finally
      FDatabase := Value;
@@ -4616,6 +4706,7 @@ begin
    Result := TPSQLDatabase(FDatabase);
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLDataSet.SetupAutoRefresh;
 const
   PropFlags : array[TAutoRefreshFlag] of LongInt = (0, curFIELDISAUTOINCR, curFIELDISDEFAULT);
@@ -4746,6 +4837,7 @@ begin
     SetDBFlag(dbfProvider, InProvider);
   end;
 end;
+{$ENDIF}
 
 /////////////////////////////////////////////////////////////////
 //                    TPSQLQuery                                //
@@ -5166,6 +5258,7 @@ begin
 end;
 
 
+{$IFNDEF FPC}
 procedure TPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields: TList);
 
   function AddFieldToList(const FieldName: string; DataSet: TDataSet;
@@ -5225,6 +5318,7 @@ begin
   if (CommandText <> '') then
     SQL.Text := CommandText;
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetLastInsertID(const FieldNum: integer): integer;
 begin
@@ -5567,10 +5661,12 @@ begin
   CheckMasterRange;
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLTable.DefChanged(Sender: TObject);
 begin
   StoreDefs := TRUE;
 end;
+{$ENDIF}
 
 procedure TPSQLTable.InitFieldDefs;
 var
@@ -5686,7 +5782,7 @@ begin
       DescFields := '';
       for I := 0 to iFldsInKey - 1 do
       begin
-        FieldName := FieldDefList[aiKeyFld[I] - 1].Name;
+        FieldName := FieldDefs[aiKeyFld[I] - 1].Name;
         ConcatField(FieldExpression, FieldName);
         if abDescending[I] then
           ConcatField(DescFields, FieldName);
@@ -6175,6 +6271,7 @@ begin
   DoAfterScroll;
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLTable.GetDetailLinkFields(MasterFields, DetailFields: TList);
 var
   i: Integer;
@@ -6202,6 +6299,7 @@ begin
     if Idx <> NIL then GetFieldList(DetailFields, Idx.Fields);
   end;
 end;
+{$ENDIF}
 
 procedure TPSQLTable.CheckMasterRange;
 begin
@@ -6424,6 +6522,7 @@ begin
 end;
 
 { TTable.IProviderSupport }
+{$IFNDEF FPC}
 function TPSQLTable.PSGetDefaultOrder: TIndexDef;
 
   function GetIdx(IdxType : TIndexOption) : TIndexDef;
@@ -6547,6 +6646,7 @@ begin
     if not IndexFound then Result := '';
   end;
 end;
+{$ENDIF}
 
 ///////////////////////////////////////////////////////////////////////////////
 //                         TPSQLBlobStream                                  //
@@ -6619,7 +6719,9 @@ begin
   try
     FDataSet.DataEvent(deFieldChange, Longint(FField));
   except
+    {$IFNDEF FPC}
     Application.HandleException(Self);
+    {$ENDIF}
   end;
 end;
 
@@ -7192,6 +7294,7 @@ begin
   Result := FParams.ParamByName(Value);
 end;
 
+{$IFNDEF FPC}
 procedure TPSQLStoredProc.PSExecute;
 begin
   inherited;
@@ -7219,6 +7322,7 @@ begin
   inherited;
 
 end;
+{$ENDIF}
 
 procedure TPSQLStoredProc.RefreshParams;
 var
@@ -7527,3 +7631,5 @@ finalization
     InitProc := SaveInitProc;
 
 end.
+
+

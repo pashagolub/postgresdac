@@ -1,4 +1,4 @@
-{$I psqldac.inc}
+{$I pSQLDAC.inc}
 unit psqlAboutFrm;
 
 {SVN revision: $Id$}
@@ -6,7 +6,7 @@ unit psqlAboutFrm;
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  {$IFDEF FPC}LCLIntf, LResources, {$ENDIF}Windows, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, Buttons;
 
 type          
@@ -46,7 +46,6 @@ procedure Dac4PSQLShowAbout(aComponentName : string);
 implementation
 uses ShellAPI, PSQLDbTables;
 
-{$R *.DFM}
 
 
 procedure Dac4PSQLShowAbout(aComponentName : string);
@@ -113,5 +112,10 @@ procedure TPSQLAboutComp.SpeedButton3Click(Sender: TObject);
 begin
    ShellExecute(0,'Open','http://microolap.com/products/connectivity/postgresdac/order/',nil,nil,SW_SHOW);
 end;
+
+initialization
+{$IFDEF FPC}
+  {$i psqlAboutFrm.lrs}
+{$ENDIF}
 
 end.
