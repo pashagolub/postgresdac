@@ -4,14 +4,16 @@ unit PSQLAccess;
 
 {SVN revision: $Id$}
 
-Interface
+{$T-}
 
-Uses Classes, {$IFDEF FPC}LCLIntf{$ELSE}Windows{$ENDIF}, Db, PSQLTypes, Math,
+interface
+
+uses Classes, {$IFDEF FPC}LCLIntf{$ELSE}Windows{$ENDIF}, Db, PSQLTypes, Math,
      {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
      {$IFDEF FPC}Variants,{$ENDIF}
      SysUtils;
-Type
+type
   {Forward declaration}
   TNativeConnect = class;
 
@@ -19,7 +21,7 @@ Type
 {                        Error handler                                       }
 {****************************************************************************}
   EPSQLException =  Class(EAbort)
-    Private
+    private
       FPSQL : TNativeConnect;
       FPSQLErrorCode : Word;
       FBDEErrorCode : Word;                
@@ -201,7 +203,7 @@ Type
 
   {Postgres Engine}
   TPSQLEngine =  Class(TBaseObject)
-    Private
+    private
       FDatabase                : hDBIDb;
       FNativeStatus            : Integer;
       FNativeMsg               : string;
@@ -393,7 +395,7 @@ Type
 
 
   TPSQLField = Class(TCollectionItem)
-    Private
+    private
       FDesc      : FldDesc;
       FValCheck  : VCHKDesc;
       FBuffer    : Pointer;
@@ -453,7 +455,7 @@ Type
   //Description : List PSQL Fields for current cursor
   //////////////////////////////////////////////////////////
    TPSQLFields = Class(TCollection)
-    Private
+    private
       FTable : TNativeDataSet;
       function GetField(Index : Integer) : TPSQLField;
     function GetNativeConnect: TNativeConnect;
@@ -473,7 +475,7 @@ Type
   //Description : PSQL Index Description
   //////////////////////////////////////////////////////////
   TPSQLIndex = Class(TCollectionItem)
-    Private
+    private
       FDesc      : IDXDesc;
     function GetIndexName: string;
     procedure SetIndexName(const Value: string);
@@ -496,7 +498,7 @@ Type
   //Description : List PSQL Indexes for current cursor
   //////////////////////////////////////////////////////////
    TPSQLIndexes = Class(TCollection)
-    Private
+    private
       FTable : TNativeDataSet;
       FUpdated: boolean;
       function GetIndex(Index : Integer) : TPSQLIndex;
@@ -552,7 +554,7 @@ Type
   //Description : PSQL Native Field Description
   //////////////////////////////////////////////////////////
   TPSQLNative = Class(TCollectionItem)
-    Private
+    private
       FDesc      : TPGField_Info;
     Public
       Constructor CreateNative(Owner : TCollection; P : PPGField_Info);
@@ -571,7 +573,7 @@ Type
   //Description : List PSQL Native Fields for current cursor
   //////////////////////////////////////////////////////////
    TPSQLNatives = Class(TCollection)
-    Private
+    private
       FTable : TNativeDataSet;
       function GetNative(Index : Integer) : TPSQLNative;
     Public
@@ -831,7 +833,7 @@ Type
 end;
 
  TIndexList = Class(TNativeDataSet)
- Private
+ private
     Descs     : TIDXDescList;
     Items     : Word;
     Position  : Word;
