@@ -549,7 +549,7 @@ type
     function  CreateHandle: HDBICur; Virtual;
     function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
-    procedure DataEvent(Event: TDataEvent; Info: LongInt); override;
+    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; Virtual;
     procedure DestroyLookupCursor; Virtual;
@@ -826,7 +826,7 @@ type
     procedure PSSetParams(AParams: TParams); override;
     {$ENDIF}
     function CreateHandle: HDBICur; Override;
-    procedure DataEvent(Event: TDataEvent; Info: Longint); Override;
+    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); Override;
     {$IFNDEF FPC}
     procedure DefChanged(Sender: TObject); override;
     {$ENDIF}
@@ -4524,7 +4524,7 @@ begin
   Result := GetIntProp(Engine, FHandle, curDELAYUPDNUMUPDATES) > 0;
 end;
 
-procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: LongInt);
+procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF});
 
   procedure CheckIfParentScrolled;
   var
@@ -6438,7 +6438,7 @@ begin
   end;
 end;
 
-procedure TPSQLTable.DataEvent(Event: TDataEvent; Info: Longint);
+procedure TPSQLTable.DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF});
 begin
   if Event = depropertyChange then
      IndexDefs.Updated := FALSE;
