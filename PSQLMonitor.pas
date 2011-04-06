@@ -1078,9 +1078,9 @@ begin
    FMonitors := TList.Create;
    InterlockedIncrement(FMonitorCount^);
    {$IFDEF DELPHI_15}
-   Start;
+   if Suspended then
    {$ELSE}
-   Resume;
+     Resume;
    {$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
