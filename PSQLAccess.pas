@@ -9348,20 +9348,20 @@ end;
 
 function TNativeDataSet.MemoValue(P : Pointer; NeedQuote: boolean = True):String;
 var
-   Buffer : PChar;
+   Buffer : PAnsiChar;
    SZ : Integer;
 begin
   Result := '';
   if TBlobItem(P^).Blob <> nil then
   begin
     if TBlobItem(P^).Blob.Size = 0 then exit;
-    SZ := TBlobItem(P^).Blob.Size;
-    GetMem(Buffer, SZ+1);
-    ZeroMemory(Buffer,SZ+1);
+    SZ := TBlobItem(P^).Blob.Size + SizeOf(Char); //null termination
+    GetMem(Buffer, SZ);
+    ZeroMemory(Buffer,SZ);
     TBlobItem(P^).Blob.Seek(0,0);
     TBlobItem(P^).Blob.Read(Buffer^, SZ);
     Result := StrValue(Buffer, NeedQuote);
-    FreeMem(Buffer, SZ+1);
+    FreeMem(Buffer, SZ);
   end;
 end;
 
@@ -9548,9 +9548,9 @@ begin
             (aFieldNumber >= 0) and
             (PQntuples(Stmt) > 0);
     if IsOK then
-      Result := RawToString(PQgetvalue(Stmt,0,aFieldNumber))
-    else
-      CheckResult;
+      Result := RawToString(PQgetvalue(Stmt,0,aFieldNumber));
+    {else
+      CheckResult;}
   finally
    PQClear(Stmt);
   end;
@@ -9572,9 +9572,9 @@ begin
             (PQfnumber(Stmt, P) > -1) and
             (PQntuples(Stmt) > 0);
     if IsOK then
-      Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)))
-    else
-      CheckResult;
+      Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)));
+    {else
+      CheckResult;}
     StrDispose(P);
   finally
    PQClear(Stmt);

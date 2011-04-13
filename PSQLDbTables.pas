@@ -6044,15 +6044,12 @@ begin
 end;
 
 function TPSQLTable.GetExists: Boolean;
-var
-  E: Word;
 begin
   Result := Active;
-  if Result or (TableName = '') then  Exit;
+  if Result or (TableName = '') or not Assigned(Database) then Exit;
   SetDBFlag(dbfTable, TRUE);
   try
-    E := Engine.TableExists(DBHandle, TableName);
-    Result := (E = DBIERR_NONE);
+    Database.SelectString('SELECT ' + QuotedStr(TableName) + ' :: regclass', Result)
   finally
     SetDBFlag(dbfTable, FALSE);
   end;
