@@ -44,9 +44,12 @@ var
 procedure Dac4PSQLShowAbout(aComponentName : string);
 
 implementation
+
+{$IFNDEF FPC}
+  {$R *.DFM}
+{$ENDIF}
+
 uses ShellAPI, PSQLDbTables;
-
-
 
 procedure Dac4PSQLShowAbout(aComponentName : string);
 begin
