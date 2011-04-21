@@ -152,6 +152,9 @@ const
   HINSTANCE_ERROR = 32;
 {$ENDIF}
 
+const
+  LIBEAY_DLL           : string = 'libeay32.dll';
+  SSLEAY_DLL           : string = 'ssleay32.dll';
 
 var
   PSQL_DLL             : string = 'libpq.dll';
@@ -3043,6 +3046,8 @@ begin
      else
       CheckLibraryLoaded();
       {$IFDEF M_DEBUG}
+       LogDebugMessage('LIB', GetModuleName(GetModuleHandle(LIBEAY_DLL)));
+       LogDebugMessage('LIB', GetModuleName(GetModuleHandle(SSLEAY_DLL)));
        LogDebugMessage('LIB', GetModuleName(SQLLibraryHandle));
       {$ENDIF}
    end;
