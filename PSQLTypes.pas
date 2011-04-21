@@ -3046,8 +3046,8 @@ begin
      else
       CheckLibraryLoaded();
       {$IFDEF M_DEBUG}
-       LogDebugMessage('LIB', GetModuleName(GetModuleHandle(LIBEAY_DLL)));
-       LogDebugMessage('LIB', GetModuleName(GetModuleHandle(SSLEAY_DLL)));
+       LogDebugMessage('LIB', GetModuleName(GetModuleHandle(PChar(LIBEAY_DLL))));
+       LogDebugMessage('LIB', GetModuleName(GetModuleHandle(PChar(SSLEAY_DLL))));
        LogDebugMessage('LIB', GetModuleName(SQLLibraryHandle));
       {$ENDIF}
    end;
