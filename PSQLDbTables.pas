@@ -2739,7 +2739,9 @@ begin
 end;
 
 function TPSQLDataSet.GetRecordCount: Integer;
-var p: pointer;
+var
+   P: pointer;
+   OldAfterScroll: TDataSetNotifyEvent;
 begin
   CheckActive;
   Result := 0;
@@ -2749,13 +2751,19 @@ begin
      try
        DisableControls;
        try
-         First;
-         while not Eof do
-           begin
-            inc(Result);
-            Next;
-           end;
-         GotoBookmark(p);
+          OldAfterScroll := AfterScroll;
+          try
+             AfterScroll := nil;
+             First;
+             while not Eof do
+               begin
+                inc(Result);
+                Next;
+               end;
+             GotoBookmark(p);
+          finally
+            AfterScroll := OldAfterScroll;
+          end;
        finally
         EnableControls;
        end;
@@ -3867,10 +3875,12 @@ begin
         ActivateFilters
       else
         DeactivateFilters;
-      Inherited SetFiltered(Value);
+      inherited SetFiltered(Value);
     end;
     First;
-  end else Inherited SetFiltered(Value);
+  end
+  else
+    inherited SetFiltered(Value);
 end;
 
 procedure TPSQLDataSet.SetFilterOptions(Value: TFilterOptions);
