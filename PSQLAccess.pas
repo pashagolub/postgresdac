@@ -4042,9 +4042,54 @@ begin
   if FStatement = nil then
      Result := 0
   else
-   begin
-     Result := PQntuples(FStatement);
-   end;
+     Result := PQntuples(FStatement)
+end;
+
+procedure TNativeDataSet.GetRecordCount( var iRecCount : Longint );
+var
+  P      : Pointer;
+  Buff   : Pointer;
+  Marked : Boolean;
+begin
+    if not FFilterActive then
+      iRecCount := GetRecCount()
+    else
+      begin
+        iRecCount := 0;
+        GetMem(Buff, GetWorkBufferSize);
+        try
+
+          GetMem(P, BookMarkSize);
+          try
+            try
+              GetBookMark(P);
+              Marked := true;
+            except
+              on E:EPSQLException do
+                Marked := false;
+            end;
+
+            SetToBegin();
+            try
+              repeat
+                GetNextRecord(dbiNOLOCK, Buff, nil);
+                Inc(iRecCount);
+              until false;
+            except
+              on E:EPSQLException do;
+            end;
+
+            if Marked then
+              SetToBookMark(P)
+            else
+              SetToBegin;
+          finally
+            FreeMem(P, BookMarkSize);
+          end;
+        finally
+          FreeMem(Buff, GetWorkBufferSize);
+        end;
+    end;
 end;
 
 procedure TNativeDataSet.CheckFilter(PRecord : Pointer);
@@ -4425,11 +4470,6 @@ begin
      RecordNumber := TPSQLBookMark(P^).Position-1 else
      FirstRecord;
   RecordState := tsPos;
-end;
-
-procedure TNativeDataSet.GetRecordCount( Var iRecCount : Longint );
-begin
-   iRecCount := RecordCount;
 end;
 
 procedure TNativeDataSet.OpenTable;

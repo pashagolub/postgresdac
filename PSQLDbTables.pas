@@ -2739,41 +2739,10 @@ begin
 end;
 
 function TPSQLDataSet.GetRecordCount: Integer;
-var
-   P: pointer;
-   OldAfterScroll: TDataSetNotifyEvent;
 begin
   CheckActive;
-  Result := 0;
-  if Filtered then
-    begin
-     p := GetBookmark;
-     try
-       DisableControls;
-       try
-          OldAfterScroll := AfterScroll;
-          try
-             AfterScroll := nil;
-             First;
-             while not Eof do
-               begin
-                inc(Result);
-                Next;
-               end;
-             GotoBookmark(p);
-          finally
-            AfterScroll := OldAfterScroll;
-          end;
-       finally
-        EnableControls;
-       end;
-     finally
-       FreeBookmark(p);
-     end
-    end
-  else
-    if Engine.GetRecordCount(FHandle, Result) <> DBIERR_NONE then
-      Result := -1;
+  if Engine.GetRecordCount(FHandle, Result) <> DBIERR_NONE then
+    Result := -1;
 end;
 
 function TPSQLDataSet.GetRecNo: Integer;

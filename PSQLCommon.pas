@@ -1510,7 +1510,7 @@ constructor TExprParser.Create(DataSet: TDataSet; const Text: string;
   Options: TFilterOptions; ParserOptions: TParserOptions; const FieldName: string;
   DepFields: TBits; FieldMap: TFieldMap);
 begin
-  FDecimalSeparator := DecimalSeparator;
+  FDecimalSeparator := PSQLTypes.PSQL_FS.DecimalSeparator;
   FFieldMap := FieldMap;
   FStrTrue := STextTrue;
   FStrFalse := STextFalse;
