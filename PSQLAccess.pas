@@ -2553,18 +2553,22 @@ begin
    Result := PQexec(Handle, 'SET DateStyle TO ''ISO, MDY''');
    PQclear(Result);
 
-   Result := PQexec(Handle, 'SELECT current_setting(''bytea_output'')');
-   if Assigned(Result) then
+   FNativeByteaFormat := nbfEscape;
+   if GetserverVersionAsInt >= 090000 then
     begin
-     if PQntuples(Result) > 0 then
-     begin
-       Utf8Encoded := PQgetvalue(Result, 0, 0);
-       if Utf8Encoded = 'hex' then
-         FNativeByteaFormat := nbfHex
-       else
-         FNativeByteaFormat := nbfEscape;
-     end;
-     PQclear(Result);
+     Result := PQexec(Handle, 'SELECT current_setting(''bytea_output'')');
+     if Assigned(Result) then
+      begin
+       if PQntuples(Result) > 0 then
+       begin
+         Utf8Encoded := PQgetvalue(Result, 0, 0);
+         if Utf8Encoded = 'hex' then
+           FNativeByteaFormat := nbfHex
+         else
+           FNativeByteaFormat := nbfEscape;
+       end;
+       PQclear(Result);
+      end;
     end;
 
    FLoggIn := True;
