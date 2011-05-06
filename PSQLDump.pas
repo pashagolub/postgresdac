@@ -1042,10 +1042,13 @@ end;
 function TPSQLRestore.GetVersionAsInt: integer;
 var
   h : Cardinal;
+  LibName: string;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
 begin
   Result := 0;
-  h := LoadLibrary('pg_restore.dll');
+  LibName := 'pg_restore.dll';
+  if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
+  h := LoadLibrary(PChar(LibName));
   try
    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));
    if Assigned(pdmbvm_GetVersionAsInt) then
