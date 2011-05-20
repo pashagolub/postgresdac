@@ -6,7 +6,7 @@ unit PSQLCOMP;
 interface
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
-     {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF},
+     {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF},
      Db, {$IFNDEF BCB}DsDesign,{$ENDIF} PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
      PSQLDirectQuery, PSQLFields;
@@ -155,8 +155,7 @@ Procedure RegisterPropertyEditors;
 
 implementation
 
-Uses {BDEConst,}TypInfo,PSQLAboutFrm,
-PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes, DBCommon;
+uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes, DBCommon;
 
 {$R DBPRO.DCR}
 

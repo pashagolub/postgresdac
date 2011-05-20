@@ -1,11 +1,12 @@
+{$I pSQLDAC.inc}
 unit PSQLTools;
 
 {SVN revision: $Id$}
 
 interface
 
-Uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Messages, SysUtils, Classes, Graphics, Controls,
-     PSQLDbTables, PSQLAccess, Dialogs;
+uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Messages, SysUtils, Classes,
+    Graphics, Controls, PSQLDbTables, PSQLAccess, Dialogs;
 
 type
   EPSQLToolsException = class(Exception);
@@ -17,7 +18,7 @@ type
 
   TPSQLTools = class;
 
-  TToolsEvent = procedure(Sender: TPSQLTools; const Operation:TPSQLOperation) of object;
+  TToolsEvent = procedure(Sender: TPSQLTools; const Operation: TPSQLOperation) of object;
 
   TPSQLTools = class(TComponent)
    private
@@ -60,7 +61,7 @@ type
 
 implementation
 
-Uses PSQLTypes;
+uses PSQLTypes;
 
 { TPSQLTools }
 
@@ -68,16 +69,16 @@ function TPSQLTools.AnalyzeStmt: string;
 var Target: string;
     i: integer;
 begin
- If FTableName > '' then
+ if FTableName > '' then
      Target := FTableName;
- If (FColumnList.Count > 0) and (Target > '') then
+ if (FColumnList.Count > 0) and (Target > '') then
   begin
    Target := Target + ' (' + FColumnList[0];
    for i := 1 to FColumnList.Count-1 do
     Target := Target + ', ' + FColumnList[i];
    Target := Target + ')';
   end;
- If FVerbose then
+ if FVerbose then
    Result := Format('ANALYZE VERBOSE %s',[Target])
  else
    Result := Format('ANALYZE %s',[Target]);
@@ -86,9 +87,9 @@ end;
 function TPSQLTools.ClusterStmt: string;
 var Target: string;
 begin
- If FTableName > '' then
+ if FTableName > '' then
      Target := FTableName;
- If (FIndexName > '') and (Target > '') then
+ if (FIndexName > '') and (Target > '') then
    Target := FIndexName + ' ON ' + Target;
  Result := Format('CLUSTER %s',[Target]);
 end;
@@ -96,7 +97,7 @@ end;
 constructor TPSQLTools.Create(AOwner: TComponent);
 var I: integer;
 begin
-  inherited Create(Owner);
+  inherited Create(AOwner);
   FQuery := TPSQLQuery.Create(nil);
   FColumnList := TStringList.Create;
   FVacuumOptions := [];
@@ -133,10 +134,10 @@ begin
   try
    FQuery.ExecSQL;
    Result := True;
-   If Assigned(OnSuccess) then
+   if Assigned(OnSuccess) then
        FOnSuccess(Self,FPSQLOperation);
   except
-   If Assigned(OnError) then
+   if Assigned(OnError) then
      FOnError(Self,FPSQLOperation);
   end;
 end;
@@ -152,15 +153,15 @@ end;
 function TPSQLTools.ReindexStmt: string;
 var Target: string;
 begin
- If FIndexName > '' then
+ if FIndexName > '' then
   Target := 'INDEX ' + FIndexName
  else
-   If FTableName > '' then
+   if FTableName > '' then
      Target := 'TABLE ' + TableName
    else
      IF Assigned(FDatabase) and (FDatabase.DatabaseName > '') then
        Target := 'DATABASE ' + AnsiQuotedStr(FDatabase.DatabaseName,'"');
- If Target = '' then
+ if Target = '' then
    raise EPSQLToolsException.Create('Reindex target not assigned')
  else
    Result := Format('REINDEX %s',[Target]);
@@ -183,13 +184,13 @@ end;
 function TPSQLTools.VacuumStmt: string;
 var Target: string;
 begin
- If voFULL in FVacuumOptions  then
+ if voFULL in FVacuumOptions  then
    Target := 'FULL';
- If voFREEZE in FVacuumOptions  then
+ if voFREEZE in FVacuumOptions  then
    Target := Target + ' FREEZE';
- If FVerbose then
+ if FVerbose then
    Target := Target + ' VERBOSE';
- If voAnalyze in FVacuumOptions then
+ if voAnalyze in FVacuumOptions then
    Target := Target + ' ANALYZE';
  Result := Format('VACUUM %s %s',[Target, FTableName]);
 end;
