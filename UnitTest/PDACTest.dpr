@@ -23,7 +23,8 @@ uses
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
   PSQLQueryTest in 'PSQLQueryTest.pas',
   TestHelper in 'TestHelper.pas',
-  TestPSQLFields in 'TestPSQLFields.pas';
+  TestPSQLFields in 'TestPSQLFields.pas',
+  PSQLToolsTest in 'PSQLToolsTest.pas';
 
 {$R *.RES}
 
