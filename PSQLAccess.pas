@@ -8413,12 +8413,12 @@ begin
     QAlloc(hDb,qryLangSQL,hStmt);
     SQLText := 'SELECT * FROM '+pszProc+'(%s)';
     if (aParams.Count > 0) and (aParams[0].ParamType in [ptInput,ptInputOutput]) then
-      ParStr := ':' + aParams[0].Name
+      ParStr := ':' + AnsiQuotedStr(aParams[0].Name, '"')
     else
       ParStr := '';
     for i := 1 to aParams.Count - 1 do
       if aParams[i].ParamType in [ptInput,ptInputOutput] then
-        ParStr := ParStr + ', :' + aParams[i].Name;
+        ParStr := ParStr + ', :' + AnsiQuotedStr(aParams[i].Name, '"');
     TNativeDataSet(hStmt).SQLQuery := Format(SQLText,[ParStr]);
     TNativeDataSet(hStmt).isQuery := True; // PaGo 24.07.2007
     Result := DBIERR_NONE;
