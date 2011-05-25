@@ -1,6 +1,7 @@
 package dclPostgresDAC16;
 
 {$R *.res}
+{$R *.otares}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
@@ -25,7 +26,7 @@ package dclPostgresDAC16;
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
-{$WARN SYMBOL_PLATFORM OFF}
+{$DEFINE DEBUG}
 
 requires
   rtl,
