@@ -127,7 +127,7 @@ type
       FErrorsourcefunc:string;
     Public
       constructor Create(Engine : TPSQLEngine; ErrorCode: Word);
-      destructor Destroy; Override;
+      destructor Destroy; override;
       property ErrorCode: Word read FErrorCode;
       //Error Field properties
       property ErrorPos:string read FErrorPos;
@@ -279,8 +279,8 @@ type
       function GetStoreConnected: boolean;
       function GetStorePassword: boolean;
       function GetDataSet(Index: Integer): TPSQLDataSet; reintroduce;
-      procedure Loaded; Override;
-      procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
+      procedure Loaded; override;
+      procedure Notification(AComponent: TComponent; Operation: TOperation); override;
       procedure InitEngine; //Init SQL Engine
       procedure AddDatabase(Value : TPSQLDatabase);
       procedure RemoveDatabase(Value : TPSQLDatabase);
@@ -289,8 +289,8 @@ type
       function GetSSLOption(Index: integer): string;
       procedure SetSSLOption(Index: integer; Value: string);
     public
-      constructor Create(AOwner: TComponent); Override;
-      destructor Destroy; Override;
+      constructor Create(AOwner: TComponent); override;
+      destructor Destroy; override;
 
       function  Engine : TPSQLEngine;
       function Execute(const SQL: string; Params: TParams = nil; Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
@@ -397,7 +397,7 @@ type
     Public
       constructor Create(Engine : TPSQLEngine; AOwner: TObject; Handle: hDBICur; CBType: CBType;
         CBBuf: Pointer; CBBufSize: Integer; CallbackEvent: TPSQLBDECallbackEvent;Chain: Boolean);
-      destructor Destroy; Override;
+      destructor Destroy; override;
   end;
 
 
@@ -507,7 +507,7 @@ type
     function GetStoreActive: boolean;
   protected
     FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
-    procedure DefineProperties(Filer: TFiler); Override;    
+    procedure DefineProperties(Filer: TFiler); override;
     { IProviderSupport }
     {$IFNDEF FPC}
     procedure PSEndTransaction(Commit: Boolean); override;
@@ -528,7 +528,7 @@ type
     procedure SetBlockReadSize(Value: Integer); override;
     procedure BlockReadNext; override;
     {$ENDIF}
-    procedure Notification(AComponent: TComponent; Operation: TOperation); Override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
     procedure ActivateFilters;
     procedure AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
       var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
@@ -553,34 +553,34 @@ type
     procedure DeactivateFilters;
     procedure DestroyHandle; Virtual;
     procedure DestroyLookupCursor; Virtual;
-    function  FindRecord(Restart, GoForward: Boolean): Boolean; Override;
+    function  FindRecord(Restart, GoForward: Boolean): Boolean; override;
     function  ForceUpdateCallback: Boolean;
     procedure FreeKeyBuffers;
-    procedure FreeRecordBuffer(var Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
-    procedure GetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); Override;
-    function  GetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): TBookmarkFlag; Override;
-    function  GetRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; Override;
-    procedure InitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
-    procedure InternalGotoBookmark(Bookmark: Pointer); Override;
-    procedure InternalInitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
-    procedure InternalSetToRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); Override;
-    function  GetCanModify: Boolean; Override;
+    procedure FreeRecordBuffer(var Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
+    procedure GetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); override;
+    function  GetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): TBookmarkFlag; override;
+    function  GetRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
+    procedure InitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
+    procedure InternalGotoBookmark(Bookmark: Pointer); override;
+    procedure InternalInitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
+    procedure InternalSetToRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
+    function  GetCanModify: Boolean; override;
     {$IFNDEF FPC}
     function  GetFieldFullName(Field: TField): string; override;
     {$ENDIF}
     function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
     function  GetIndexField(Index: Integer): TField;
     function  GetIndexFieldCount: Integer;
-    function  GetIsIndexField(Field: TField): Boolean; Override;
+    function  GetIsIndexField(Field: TField): Boolean; override;
     function  GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
     function  GetKeyExclusive: Boolean;
     function  GetKeyFieldCount: Integer;
     function  GetLookupCursor(const KeyFields: String; CaseInsensitive: Boolean): HDBICur; Virtual;
-    function  GetRecordCount: Integer; Override;
-    function  GetRecNo: Integer; Override;
-    function  GetRecordSize: Word; Override;
+    function  GetRecordCount: Integer; override;
+    function  GetRecNo: Integer; override;
+    function  GetRecordSize: Word; override;
     {$IFNDEF FPC}
-    function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; Override;
+    function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; override;
     procedure GetObjectTypeNames(Fields: TFields);
     {$ENDIF}
     function  GetUpdatesPending: Boolean;
@@ -588,22 +588,22 @@ type
     function  GetUpdateRecordSet: TUpdateRecordTypes;
     {$ENDIF}
     function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
-    procedure InternalAddRecord(Buffer: Pointer; Append: Boolean); Override;
-    procedure InternalCancel; Override;
-    procedure InternalClose; Override;
-    procedure InternalDelete; Override;
-    procedure InternalEdit; Override;
-    procedure InternalFirst; Override;
+    procedure InternalAddRecord(Buffer: Pointer; Append: Boolean); override;
+    procedure InternalCancel; override;
+    procedure InternalClose; override;
+    procedure InternalDelete; override;
+    procedure InternalEdit; override;
+    procedure InternalFirst; override;
 
-    procedure InternalHandleException; Override;
-    procedure InternalInitFieldDefs; Override;
+    procedure InternalHandleException; override;
+    procedure InternalInitFieldDefs; override;
 
     procedure InternalInsert; override;
-    procedure InternalLast; Override;
-    procedure InternalOpen; Override;
-    procedure InternalPost; Override;
-    procedure InternalRefresh; Override;
-    function  IsCursorOpen: Boolean; Override;
+    procedure InternalLast; override;
+    procedure InternalOpen; override;
+    procedure InternalPost; override;
+    procedure InternalRefresh; override;
+    function  IsCursorOpen: Boolean; override;
     function  LocateRecord(const KeyFields: String; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Boolean;
     function LocateFilteredRecord(const KeyFields: String;
@@ -617,16 +617,16 @@ type
     procedure PrepareCursor; Virtual;
     function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
     function  ResetCursorRange: Boolean;
-    procedure SetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); Override;
-    procedure SetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value: TBookmarkFlag); Override;
+    procedure SetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); override;
+    procedure SetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value: TBookmarkFlag); override;
     procedure SetCachedUpdates(Value: Boolean);
     function  SetCursorRange: Boolean;
-    procedure SetFieldData(Field: TField; Buffer: Pointer); Override;
+    procedure SetFieldData(Field: TField; Buffer: Pointer); override;
     procedure SetFilterData(const Text: String; Options: TFilterOptions);
     procedure SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
-    procedure SetFiltered(Value: Boolean); Override;
-    procedure SetFilterOptions(Value: TFilterOptions); Override;
-    procedure SetFilterText(const Value: String); Override;
+    procedure SetFiltered(Value: Boolean); override;
+    procedure SetFilterOptions(Value: TFilterOptions); override;
+    procedure SetFilterText(const Value: String); override;
     procedure SetIndexField(Index: Integer; Value: TField);
     procedure SetKeyBuffer(KeyIndex: TKeyIndex; Clear: Boolean);
     procedure SetKeyExclusive(Value: Boolean);
@@ -634,14 +634,14 @@ type
     procedure SetKeyFields(KeyIndex: TKeyIndex; const Values: array of const);
     procedure SetLinkRanges(MasterFields: TList);
     {$IFNDEF FPC}
-    procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); Override;
+    procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); override;
     {$ENDIF}
     procedure SetOnFilterRecord(const Value: TFilterRecordEvent); override;
     {$IFNDEF FPC}
     procedure SetOnUpdateError(UpdateEvent: TUpdateErrorEvent);
     {$ENDIF}
     procedure SetOptions(const Value: TPSQLDatasetOptions); virtual;
-    procedure SetRecNo(Value: Integer); Override;
+    procedure SetRecNo(Value: Integer); override;
     procedure SetupCallBack(Value: Boolean);
     {$IFNDEF FPC}
     procedure SetUpdateRecordSet(RecordTypes: TUpdateRecordTypes);
@@ -650,27 +650,27 @@ type
     procedure SwitchToIndex(const IndexName, TagName: String);
     function  UpdateCallbackRequired: Boolean;
     procedure Disconnect; Virtual;
-    procedure OpenCursor(InfoQuery: Boolean); Override;
+    procedure OpenCursor(InfoQuery: Boolean); override;
     function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; virtual;
     function GetHandle: HDBICur;
     property DBFlags: TDBFlags read FDBFlags;
     property UpdateMode: TUpdateMode read FUpdateMode write SetUpdateMode default upWhereAll;
     property StmtHandle: HDBIStmt read GetStmtHandle;
   public
-    constructor Create(AOwner: TComponent); Override;
-    destructor Destroy; Override;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
     function GetLastInsertID(const FieldNum: integer): integer;
     function GetFieldTypeOID(const FieldNum: integer): cardinal;
     procedure ApplyUpdates;
-    function  BookmarkValid(Bookmark: TBookmark): Boolean; Override;
-    procedure Cancel; Override;
+    function  BookmarkValid(Bookmark: TBookmark): Boolean; override;
+    procedure Cancel; override;
     procedure CancelUpdates;
     property  CacheBlobs: Boolean read FCacheBlobs write FCacheBlobs default TRUE;
-    function  CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Integer; Override;
+    function  CompareBookmarks(Bookmark1, Bookmark2: TBookmark): Integer; override;
     procedure CommitUpdates;
     procedure FetchAll;
     procedure FlushBuffers;
-    function GetCurrentRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean; Override;
+    function GetCurrentRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): Boolean; override;
     {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
     {$ENDIF}
@@ -678,13 +678,13 @@ type
     function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload;{$IFNDEF FPC}override;{$ENDIF}
     procedure GetIndexInfo;
     function  Locate(const KeyFields: String; const KeyValues: Variant;
-      Options: TLocateOptions): Boolean; Override;
+      Options: TLocateOptions): Boolean; override;
     function  Lookup(const KeyFields: String; const KeyValues: Variant;
-      const ResultFields: String): Variant; Override;
-    function  IsSequenced: Boolean; Override;
-    procedure Post; Override;
+      const ResultFields: String): Variant; override;
+    function  IsSequenced: Boolean; override;
+    procedure Post; override;
     procedure RevertRecord;
-    function  UpdateStatus: TUpdateStatus; Override;
+    function  UpdateStatus: TUpdateStatus; override;
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
@@ -825,39 +825,39 @@ type
     procedure PSSetCommandText(const CommandText: string); override;
     procedure PSSetParams(AParams: TParams); override;
     {$ENDIF}
-    function CreateHandle: HDBICur; Override;
-    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); Override;
+    function CreateHandle: HDBICur; override;
+    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
     {$IFNDEF FPC}
     procedure DefChanged(Sender: TObject); override;
     {$ENDIF}
-    procedure DestroyHandle; Override;
-    procedure DestroyLookupCursor; Override;
-    procedure DoOnNewRecord; Override;
+    procedure DestroyHandle; override;
+    procedure DestroyLookupCursor; override;
+    procedure DoOnNewRecord; override;
     procedure EncodeFieldDesc(var FieldDesc: FLDDesc;
       const Name: string; DataType: TFieldType; Size, Precision: Integer);
     procedure EncodeIndexDesc(var IndexDesc: IDXDesc;
       const Name, FieldExpression: string; Options: TIndexOptions;
       const DescFields: string = '');
-    function GetCanModify: Boolean; Override;
-    function GetDataSource: TDataSource; Override;
+    function GetCanModify: Boolean; override;
+    function GetDataSource: TDataSource; override;
     function GetHandle(const IndexName, IndexTag: String): HDBICur;
     function GetLanguageDriverName: String;
     function GetLookupCursor(const KeyFields: String;
-      CaseInsensitive: Boolean): HDBICur; Override;
-    procedure InitFieldDefs; Override;
+      CaseInsensitive: Boolean): HDBICur; override;
+    procedure InitFieldDefs; override;
     function GetFileName: string;
     function GetTableType: TTableType;
     function NativeTableName: PAnsiChar;
-    procedure PrepareCursor; Override;
-    procedure UpdateIndexDefs; Override;
+    procedure PrepareCursor; override;
+    procedure UpdateIndexDefs; override;
     procedure SetOptions(const Value: TPSQLDatasetOptions); override;
     property MasterLink: TMasterDataLink read FMasterLink;
   Public
-    constructor Create(AOwner: TComponent); Override;
-    destructor Destroy; Override;
-    function  Engine : TPSQLEngine; Override;
-    function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
-    function  IsSequenced: Boolean; Override;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    function  Engine : TPSQLEngine; override;
+    function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; override;
+    function  IsSequenced: Boolean; override;
     procedure AddIndex(const Name, Fields: string; Options: TIndexOptions; const DescFields: string = '');
     procedure ApplyRange;
     procedure CancelRange;
@@ -962,21 +962,21 @@ type
       procedure PSSetCommandText(const CommandText: string); override;
       procedure PSSetParams(AParams: TParams); override;
     {$ENDIF}
-      function CreateHandle: HDBICur; Override;
-      procedure DefineProperties(Filer: TFiler); Override;
-      procedure Disconnect; Override;
-      function GetDataSource: TDataSource; Override;
+      function CreateHandle: HDBICur; override;
+      procedure DefineProperties(Filer: TFiler); override;
+      procedure Disconnect; override;
+      function GetDataSource: TDataSource; override;
       function GetParamsCount: Word;
       function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; override;
       procedure SetOptions(const Value: TPSQLDatasetOptions); override;
       procedure GetStatementHandle(SQLText: PChar); virtual;
       property DataLink: TDataLink read FDataLink;
     Public
-      constructor Create(AOwner: TComponent); Override;
-      destructor Destroy; Override;
-      function  Engine : TPSQLEngine; Override;
-      function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; Override;
-      function  IsSequenced: Boolean; Override;
+      constructor Create(AOwner: TComponent); override;
+      destructor Destroy; override;
+      function  Engine : TPSQLEngine; override;
+      function  CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; override;
+      function  IsSequenced: Boolean; override;
       procedure ExecSQL;
     {$IFNDEF FPC}
       procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
@@ -1018,15 +1018,15 @@ type
     procedure SetSQL(UpdateKind: TUpdateKind; Value: TStrings);
     procedure SetSQLIndex(Index: Integer; Value: TStrings);
   Protected
-    function GetSQL(UpdateKind: TUpdateKind): TStrings; Override;
+    function GetSQL(UpdateKind: TUpdateKind): TStrings; override;
     function GetQueryClass : TPSQLQueryClass;
-    function GetDataSet: TPSQLDataSet; Override;
-    procedure SetDataSet(ADataSet: TPSQLDataSet); Override;
+    function GetDataSet: TPSQLDataSet; override;
+    procedure SetDataSet(ADataSet: TPSQLDataSet); override;
     procedure SQLChanged(Sender: TObject);
   Public
-    constructor Create(AOwner: TComponent); Override;
-    destructor Destroy; Override;
-    procedure Apply(UpdateKind: TUpdateKind); Override;
+    constructor Create(AOwner: TComponent); override;
+    destructor Destroy; override;
+    procedure Apply(UpdateKind: TUpdateKind); override;
     procedure ExecSQL(UpdateKind: TUpdateKind);
     procedure SetParams(UpdateKind: TUpdateKind);
     property DataSet;
@@ -1057,12 +1057,12 @@ type
       function GetBlobSize: Longint;
     Public
       constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
-      destructor Destroy; Override;
+      destructor Destroy; override;
       function Engine : TPSQLEngine;
       function PositionDataset: Boolean;
-      function Read(var Buffer; Count: Longint): Longint; Override;
-      function Write(const Buffer; Count: Longint): Longint; Override;
-      function Seek(Offset: Longint; Origin: Word): Longint; Override;
+      function Read(var Buffer; Count: Longint): Longint; override;
+      function Write(const Buffer; Count: Longint): Longint; override;
+      function Seek(Offset: Longint; Origin: Word): Longint; override;
       procedure Truncate;
   end;
 
@@ -1146,25 +1146,26 @@ type
     {$ENDIF}
     function CreateHandle: HDBICur;override;
     function CreateCursor(IsExecProc : boolean): HDBICur;
-    procedure CloseCursor;override;
+    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
+    procedure CloseCursor; override;
     procedure SetProcedureName(const Value: string);
     function GetParamsList: TPSQLParams;
     procedure SetParamsList(const Value: TPSQLParams);
     function GetCanModify: Boolean; override;
 	public
-	constructor Create(AOwner: TComponent); override;
-	destructor  Destroy; override;
+    constructor Create(AOwner: TComponent); override;
+    destructor  Destroy; override;
 
     function CreateBlobStream(Field : TField; Mode : TBlobStreamMode) : TStream; override;
-	function Engine : TPSQLEngine; override;
+    function Engine : TPSQLEngine; override;
     function DescriptionsAvailable: Boolean;
     function ParamByName(const Value: String): TPSQLParam;
 
-	procedure ExecProc;
-	procedure RefreshParams;
-	procedure SetNeedRefreshParams;
+    procedure ExecProc;
+    procedure RefreshParams;
+    procedure SetNeedRefreshParams;
 
-	property ParamsCount : integer read GetParamsCount;
+    property ParamsCount : integer read GetParamsCount;
   published
     property StoredProcName: string read FProcName write SetProcName;
     property Overload: cardinal read FOverload write SetOverload default 0;
@@ -1215,10 +1216,10 @@ type
     Private
       FQuery: TPSQLQuery;
     Protected
-      procedure ActiveChanged; Override;
-      procedure RecordChanged(Field: TField); Override;
-      function GetDetailDataSet: TDataSet; Override;
-      procedure CheckBrowseMode; Override;
+      procedure ActiveChanged; override;
+      procedure RecordChanged(Field: TField); override;
+      function GetDetailDataSet: TDataSet; override;
+      procedure CheckBrowseMode; override;
     Public
       constructor Create(AQuery: TPSQLQuery);
   end;
@@ -7203,13 +7204,27 @@ begin
   Check(Engine, Engine.QSetProcParams(hDBIStmt(FHandle), FParams));
 
 	Check(Engine, Engine.QExec(hDBIStmt(FHandle), PCursor, AffectedRows));
-
-  Check(Engine, Engine.QGetProcParams(hDBIStmt(FHandle), FParams));
 end;
 
 function TPSQLStoredProc.CreateHandle: HDBICur;
 begin
 	 Result := HDBICur(CreateCursor(false));
+end;
+
+procedure TPSQLStoredProc.DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF});
+var
+  F: TField;
+  i: integer;
+begin
+  inherited DataEvent(Event, Info);
+  if (Event = deUpdateState) and (State = dsBrowse) then
+    for i := 0 to FParams.Count - 1 do
+     if FParams[i].ParamType in [ptOutput, ptInputOutput] then
+      begin
+        F := FieldByName(FParams[i].Name);
+        if Assigned(F) then
+          Params[i].Value  := F.Value;
+      end;
 end;
 
 function TPSQLStoredProc.DescriptionsAvailable: Boolean;
