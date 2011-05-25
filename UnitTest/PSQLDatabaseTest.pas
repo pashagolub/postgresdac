@@ -65,9 +65,6 @@ end;
 procedure TestTPSQLDatabase.TestExecute;
 var
   ReturnValue: Integer;
-  Cursor: phDBICur;
-  Cache: Boolean;
-  Params: TParams;
   SQL: string;
 begin
   SQL := 'SELECT version()';
@@ -77,7 +74,7 @@ end;
 
 procedure TestTPSQLDatabase.TestGetBackendPID;
 var
-  ReturnValue: Integer;
+  ReturnValue: Cardinal;
 begin
   ReturnValue := FPSQLDatabase.GetBackendPID;
   Check(ReturnValue > InvalidOID);

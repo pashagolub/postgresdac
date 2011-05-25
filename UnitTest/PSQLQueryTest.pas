@@ -33,13 +33,6 @@ type
     procedure TearDown; override;
   published
     procedure TestEmptyCharAsNullOption;
-    procedure TestCreateBlobStream;
-    procedure TestIsSequenced;
-    procedure TestExecSQL;
-    procedure TestGetDetailLinkFields;
-    procedure TestParamByName;
-    procedure TestPrepare;
-    procedure TestUnPrepare;
   end;
 
 var
@@ -62,8 +55,6 @@ begin
 end;
 
 procedure TestTPSQLQuery.TestEmptyCharAsNullOption;
-var
-  ReturnValue: TPSQLEngine;
 begin
   FPSQLQuery.Options := [];
   FPSQLQuery.SQL.Text := 'SELECT Cast('''' AS varchar(30)), Cast(''text'' AS varchar(30)) as col1';
@@ -77,69 +68,6 @@ begin
   Check(FPSQLQuery.Fields[0].IsNull, 'IsNULL must be true due to dsoEmptyCharAsNull used');
   Check(FPSQLQuery.Fields.FieldByName('col1').AsWideString = 'text', 'Field must be not empty if dsoEmptyCharAsNull enabled');
   FPSQLQuery.Close;
-end;
-
-procedure TestTPSQLQuery.TestCreateBlobStream;
-var
-  ReturnValue: TStream;
-  Mode: TBlobStreamMode;
-  Field: TField;
-begin
-  Check(False);
-  // TODO: Setup method call parameters
-  ReturnValue := FPSQLQuery.CreateBlobStream(Field, Mode);
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLQuery.TestIsSequenced;
-var
-  ReturnValue: Boolean;
-begin
-  Check(False);
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLQuery.TestExecSQL;
-begin
-  Check(False);
-  FPSQLQuery.ExecSQL;
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLQuery.TestGetDetailLinkFields;
-var
-  DetailFields: TList;
-  MasterFields: TList;
-begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields);
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLQuery.TestParamByName;
-var
-  ReturnValue: TPSQLParam;
-  Value: string;
-begin
-  Check(False);
-  // TODO: Setup method call parameters
-  ReturnValue := FPSQLQuery.ParamByName(Value);
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLQuery.TestPrepare;
-begin
-  Check(False);
-  FPSQLQuery.Prepare;
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLQuery.TestUnPrepare;
-begin
-  Check(False);
-  FPSQLQuery.UnPrepare;
-  // TODO: Validate method results
 end;
 
 { TDbSetup }

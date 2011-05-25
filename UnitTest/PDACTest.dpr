@@ -24,7 +24,8 @@ uses
   PSQLQueryTest in 'PSQLQueryTest.pas',
   TestHelper in 'TestHelper.pas',
   TestPSQLFields in 'TestPSQLFields.pas',
-  PSQLToolsTest in 'PSQLToolsTest.pas';
+  PSQLToolsTest in 'PSQLToolsTest.pas',
+  PSQLBlobsTest in 'PSQLBlobsTest.pas';
 
 {$R *.RES}
 

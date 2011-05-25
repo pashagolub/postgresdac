@@ -11,9 +11,8 @@ procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
 implementation
 
 procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
-var Frm: TPSQLConnForm;
-    F: TextFile;
-    S: string;
+var
+  Frm: TPSQLConnForm;
 begin
   DB := TPSQLDatabase.Create(nil);
   if FileExists(ConfFileName) then
@@ -42,7 +41,6 @@ procedure ComponentToFile(Component: TComponent; Name: string);
 var
   BinStream: TMemoryStream;
   StrStream: TFileStream;
-  s: string;
 begin
   BinStream := TMemoryStream.Create;
   try
