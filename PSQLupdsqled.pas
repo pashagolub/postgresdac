@@ -6,7 +6,7 @@ unit PSQLupdsqled;
 interface
 
 uses Forms, DB, ExtCtrls, StdCtrls, Controls, ComCtrls,
-  Classes, SysUtils, Windows, Menus,PSQLDBTables;
+  Classes, SysUtils, Windows, Menus, PSQLDBTables;
 
 type
 

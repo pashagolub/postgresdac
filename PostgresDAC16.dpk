@@ -1,7 +1,6 @@
 package PostgresDAC16;
 
 {$R *.res}
-{$R *.otares}
 {$ALIGN 8}
 {$ASSERTIONS OFF}
 {$BOOLEVAL OFF}

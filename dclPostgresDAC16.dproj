@@ -2,8 +2,8 @@
 		<PropertyGroup>
 			<ProjectGuid>{8FF2A483-D902-4DFB-8989-F109E368A288}</ProjectGuid>
 			<MainSource>dclPostgresDAC16.dpk</MainSource>
-			<ProjectVersion>13.2</ProjectVersion>
-			<Config Condition="'$(Config)'==''">Release</Config>
+			<ProjectVersion>13.3</ProjectVersion>
+			<Config Condition="'$(Config)'==''">Debug</Config>
 			<DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
 			<Base>True</Base>
 			<AppType>Package</AppType>
@@ -42,7 +42,6 @@
 			<DesignOnlyPackage>true</DesignOnlyPackage>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 			<DCC_DependencyCheckOutputName>C:\Documents and Settings\All Users\Documents\RAD Studio\7.0\Bpl\dclPostgresDAC14.bpl</DCC_DependencyCheckOutputName>
-			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_Platform>x86</DCC_Platform>
 			<DCC_Description>PostgreSQL Direct Access Components</DCC_Description>
 			<DCC_N>false</DCC_N>
@@ -54,11 +53,11 @@
 			<DCC_F>false</DCC_F>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base_Win64)'!=''">
-			<Icon_MainIcon>E:\1_PostgresDAC\dclPostgresDAC16_Icon.ico</Icon_MainIcon>
+			<Icon_MainIcon>E:\1_PostgresDAC\PDAC.ico</Icon_MainIcon>
 			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base_Win32)'!=''">
-			<Icon_MainIcon>E:\1_PostgresDAC\dclPostgresDAC16_Icon.ico</Icon_MainIcon>
+			<Icon_MainIcon>E:\1_PostgresDAC\PDAC.ico</Icon_MainIcon>
 			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">

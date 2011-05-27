@@ -1,7 +1,6 @@
 package dclPostgresDAC16;
 
 {$R *.res}
-{$R *.otares}
 {$ALIGN 8}
 {$ASSERTIONS ON}
 {$BOOLEVAL OFF}
