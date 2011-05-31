@@ -5561,8 +5561,10 @@ var
   SQL : String;
   OldQueryFlag: boolean;
   KN : Integer;
+  CurrentRecNum: LongInt;
 begin
   KN := -1;
+  CurrentRecNum := RecNo;
   if FOMode = dbiREADONLY then
      Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   CheckUniqueKey(KN);
@@ -5589,7 +5591,7 @@ begin
        RecordState := tsPos;
        try
          if not SetRowPosition(KN, 0, PRecord) then
-            SettoSeqNo(RecNo+1);
+            SettoSeqNo(CurrentRecNum + 1);
        except
        end;
      end;

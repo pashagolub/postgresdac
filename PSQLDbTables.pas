@@ -5413,10 +5413,15 @@ begin
     begin
        RN := TNativeDataset(FDataset.Handle).RecordNumber;
        TNativeDataset(FDataset.Handle).OpenTable;
-//       FDataset.DisableControls;
        TNativeDataset(FDataset.Handle).RecordState := tsPos;
        if UpdateKind <> ukDelete then
-         TNativeDataset(FDataset.Handle).SetRowPosition(-1,0,FDataset.ActiveBuffer)
+        begin
+         if not TNativeDataset(FDataset.Handle).SetRowPosition(-1, 0, FDataset.ActiveBuffer) then
+          try
+           TNativeDataset(FDataset.Handle).SettoSeqNo(RN + 1);
+          except
+          end
+        end
        else
          begin
           if Engine.GetRecordCount(FDataset.Handle, RC) <> DBIERR_NONE then
@@ -5429,7 +5434,6 @@ begin
           end;
          end;
        TNativeDataset(FDataset.Handle).IsLocked := False;
-//       FDataSet.EnableControls;
     end;
     if Assigned(FRecordChangeCompleteEvent) then
       FRecordChangeCompleteEvent(FDataset,UpdateKind);
