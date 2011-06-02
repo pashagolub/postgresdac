@@ -647,6 +647,13 @@ type
                               tup_num: Integer;
                               field_num: Integer): PAnsiChar; cdecl;
 
+  TPQsetvalue      = function(Result: PPGresult;
+                              tup_num: Integer;
+                              field_num: Integer;
+                              value: PAnsiChar;
+                              len: integer): integer; cdecl;
+
+
   TPQgetlength     = function(Result: PPGresult;
                               tup_num: Integer;
                               field_num: Integer): Integer; cdecl;
@@ -791,6 +798,7 @@ var
   PQoidStatus:     TPQoidStatus;
   PQcmdTuples:     TPQcmdTuples;
   PQgetvalue:      TPQgetvalue;
+  PQsetvalue:      TPQsetvalue;
   PQgetlength:     TPQgetlength;
   PQgetisnull:     TPQgetisnull;
   PQclear:         TPQclear;
@@ -1836,7 +1844,8 @@ Type
 
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
-                        dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsMaxString);
+                        dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsMaxString,
+                        dsoRefreshModifiedRecordOnly);
 
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
@@ -3018,6 +3027,7 @@ begin
          @PQoidStatus    := GetPSQLProc('PQoidStatus');
          @PQcmdTuples    := GetPSQLProc('PQcmdTuples');
          @PQgetvalue     := GetPSQLProc('PQgetvalue');
+         @PQsetvalue     := GetPSQLProc('PQsetvalue');
          @PQgetlength    := GetPSQLProc('PQgetlength');
          @PQgetisnull    := GetPSQLProc('PQgetisnull');
          @PQclear        := GetPSQLProc('PQclear');

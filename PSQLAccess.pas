@@ -681,7 +681,7 @@ type
       function GetLOUnlinkSQL(ObjOID: string): string; overload;
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
       function GetInsertSQL(Table: string; PRecord: Pointer): string;
-      function GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer): String;
+      function GetUpdateSQL(Table: string; OldRecord, PRecord: Pointer; ReturnUpdated: boolean = False): String;
       procedure FreeBlobStreams(PRecord: Pointer);
       function FieldVal(FieldNo: Integer; FieldPtr : Pointer):String;
       //////////////////////////////////////////////////////////
@@ -5466,34 +5466,44 @@ begin
    Result := Format('INSERT INTO %s (%s) VALUES (%s)', [Table, Fields, Values]);
 end;
 
-function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer): String;
+function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer; ReturnUpdated: boolean = False): String;
 var
   I: Integer;
   Fld: TPSQLField;
   FldName, Values: string;
 
-function GetWHERE(P : Pointer) : String;
-var
-    I, FieldCount: Integer;
-  FieldList  : TFieldArray;
-  Fld        : TPSQLField;
-  FldName: string;
-begin
-  Result := '';
-  GetKeys(False, FieldList, FieldCount);
-  for I := 0 to FieldCount-1 do
+  function GetWHERE(P : Pointer) : String;
+  var
+      I, FieldCount: Integer;
+    FieldList  : TFieldArray;
+    Fld        : TPSQLField;
+    FldName: string;
   begin
-    Fld := FFieldDescs.Field[FieldList[I]];
-    Fld.Buffer:= P;
-    FldName := AnsiQuotedStr(Fld.FieldName, '"');
-      if Result <> '' then  Result := Result + ' AND ';
-      if Fld.FieldNull then
-        Result := Result + FldName + ' IS NULL'
-                      else
-        Result := Result + FldName + '=' + Fld.FieldValueAsStr;
+    Result := '';
+    GetKeys(False, FieldList, FieldCount);
+    for I := 0 to FieldCount-1 do
+    begin
+      Fld := FFieldDescs.Field[FieldList[I]];
+      Fld.Buffer:= P;
+      FldName := AnsiQuotedStr(Fld.FieldName, '"');
+        if Result <> '' then  Result := Result + ' AND ';
+        if Fld.FieldNull then
+          Result := Result + FldName + ' IS NULL'
+                        else
+          Result := Result + FldName + '=' + Fld.FieldValueAsStr;
+    end;
+      Result := ' WHERE ' + Result;
   end;
-    Result := ' WHERE ' + Result;
-end;
+
+  function GetRETURNING: string;
+  var I: integer;
+  begin
+    Result := '';
+    if not ReturnUpdated then Exit;
+    if FieldCount > 0 then Result := ' RETURNING ' + AnsiQuotedStr(FieldName(0), '"');
+    for I := 1 to FieldCount-1 do
+       Result := Result + ', ' + AnsiQuotedStr(FieldName(I), '"');
+  end;
 
 begin
   Result := '';
@@ -5512,7 +5522,7 @@ begin
   end;
   Delete(VALUES,Length(Values)-1,2);
   if VALUES > '' then
-    Result := Format('UPDATE %s SET %s', [Table, Values]) + GetWhere(OldRecord) + ';' + Result; //LOUnlinkSql at the end
+    Result := Format('UPDATE %s SET %s', [Table, Values]) + GetWhere(OldRecord) + GetRETURNING() + ';' + Result; //LOUnlinkSql at the end
 end;
 
 procedure TNativeDataSet.AppendRecord (PRecord : Pointer);
@@ -5561,18 +5571,45 @@ var
   SQL : String;
   OldQueryFlag: boolean;
   KN : Integer;
+  i: integer;
   CurrentRecNum: LongInt;
+  AStatement: PPGResult;
+  fval, fname: PAnsiChar;
+  flen: integer;
 begin
   KN := -1;
+  AStatement := nil;
   CurrentRecNum := RecNo;
   if FOMode = dbiREADONLY then
-     Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
+     raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   CheckUniqueKey(KN);
   try
-    SQL := GetUpdateSQL(TableName, OldRecord, PRecord);
-    if Sql <> '' then
-      FConnect.QExecDirect(SQL, nil, FAffectedRows);
+    SQL := GetUpdateSQL(TableName, OldRecord, PRecord, dsoRefreshModifiedRecordOnly in Options);
+    if SQL <> '' then
+      //FConnect.QExecDirect(SQL, nil, FAffectedRows);
+      AStatement := _PQExecute(FConnect, SQL);
+      if Assigned(AStatement) then
+        try
+          FConnect.CheckResult(AStatement);
+          MonitorHook.SQLExecute(Self, True);
+          FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
+          if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
+           for i := 0 to PQnfields(AStatement) - 1 do
+            begin
+             fval := PQgetvalue(AStatement, 0, i);
+             fname := PQfname(AStatement, i);
+             flen := PQgetlength(AStatement, 0, i);
+             if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
+               raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
+            end;
+        except
+          MonitorHook.SQLExecute(Self, False);
+          raise;
+        end
+      else
+        FConnect.CheckResult;
   finally
+    PQclear(AStatement);
     FReFetch := False;
     RecordState := tsPos;
   end;
@@ -5582,7 +5619,7 @@ begin
   InternalBuffer := nil;
   if bFreeLock then LockRecord(dbiNOLOCK);
 
-  if FAffectedRows > 0 then
+  if (FAffectedRows > 0) and not (dsoRefreshModifiedRecordOnly in Options) then
     if not FReFetch then
      begin
        OldQueryFlag := IsQuery;
