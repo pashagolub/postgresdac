@@ -5552,7 +5552,6 @@ var
   CurrentRecNum: integer;
 begin
   AStatement := nil;
-  ATempCopyStmt := nil;
 
   KN := -1;
   if FOMode = dbiREADONLY then
@@ -5688,10 +5687,14 @@ end;
 procedure TNativeDataSet.DeleteRecord(PRecord : Pointer);
 var
   SQL : String;
-  RN : LongInt;
+  CurrentRecNum: LongInt;
+  ATempCopyStmt: PPGResult;
+  fval: PAnsiChar;
+  flen, i, j: integer;
 begin
   if FOMode = dbiREADONLY then
-     Raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
+     raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
+
   InternalBuffer := PRecord;
   SQL := GetDeleteSQL(TableName, PRecord);
   if Sql <> '' then
@@ -5699,16 +5702,41 @@ begin
     FConnect.QExecDirect(SQL, nil, FAffectedRows);
     RecordState := tsEmpty;
    end;
-  if FAffectedRows > 0 then
+
+  if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
+    begin
+     ATempCopyStmt := PQcopyResult(FStatement, PG_COPYRES_ATTRS); //hack because libpq have some bugs. must be eliminated further
+     if not Assigned(ATempCopyStmt) then
+       raise EPSQLException.CreateMsg(FConnect, 'Refresh for deleted fiels failed, cannot copy results');
+     j := 0;
+     for CurrentRecNum := 0 to RecordCount - 1 do
+      begin
+       if CurrentRecNum = RecNo then Continue; //exclude row from new set and check bounds
+       for i := 0 to PQnfields(FStatement) - 1 do
+         begin
+           fval := PQgetvalue(FStatement, j, i);
+           flen := PQgetlength(FStatement, j, i);
+           if PQsetvalue(ATempCopyStmt, j, i, fval, flen) = 0 then
+             raise EPSQLException.CreateFmt('Refresh for deleted fiels failed', []);
+         end;
+       inc(j);
+      end;
+     PQclear(FStatement);
+     FStatement := ATempCopyStmt;
+     RecordState := tsPos;
+     CurrentRecord(Min(RecNo, RecordCount - 1));
+  end;
+
+  if (FAffectedRows > 0) and not (dsoRefreshModifiedRecordOnly in Options) then
     if not FReFetch then
     begin
-     RN := RecordNumber+1;
+     CurrentRecNum := RecNo;
      ReOpenTable;
-     if RN >= RecordCount then
-        RN := RecordCount;
      RecordState := tsPos;
+     if CurrentRecNum >= RecordCount then
+       CurrentRecNum := RecordCount;
      try
-       SettoSeqNo(RN);
+       SettoSeqNo(CurrentRecNum);
      except
      end;
     end;
