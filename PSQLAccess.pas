@@ -5546,11 +5546,13 @@ var
   SQL : String;
   OldQueryFlag: boolean;
   KN, i: integer;
-  AStatement: PPGResult;
+  AStatement, ATempCopyStmt: PPGResult;
   fval, fname: PAnsiChar;
   flen: integer;
   CurrentRecNum: integer;
 begin
+  AStatement := nil;
+  ATempCopyStmt := nil;
 
   KN := -1;
   if FOMode = dbiREADONLY then
@@ -5569,13 +5571,20 @@ begin
           FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
           CurrentRecNum := PQntuples(FStatement);
           if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
-           for i := 0 to PQnfields(AStatement) - 1 do
             begin
-             fval := PQgetvalue(AStatement, 0, i);
-             fname := PQfname(AStatement, i);
-             flen := PQgetlength(AStatement, 0, i);
-             if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
-               raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
+             ATempCopyStmt := PQcopyResult(FStatement, PG_COPYRES_TUPLES); //hack because libpq have some bugs. must be eliminated further
+             if not Assigned(ATempCopyStmt) then
+               raise EPSQLException.CreateMsg(FConnect, 'Refresh for inserted fiels failed, cannot copy results');
+             for i := 0 to PQnfields(AStatement) - 1 do
+               begin
+                 fval := PQgetvalue(AStatement, 0, i);
+                 fname := PQfname(AStatement, i);
+                 flen := PQgetlength(AStatement, 0, i);
+                 if PQsetvalue(ATempCopyStmt, CurrentRecNum, i, fval, flen) = 0 then
+                   raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
+               end;
+             PQclear(FStatement);
+             FStatement := ATempCopyStmt;
             end;
         except
           MonitorHook.SQLExecute(Self, False);
