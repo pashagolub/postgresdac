@@ -680,7 +680,7 @@ type
       function GetLOUnlinkSQL(ObjOID: cardinal): string; overload;
       function GetLOUnlinkSQL(ObjOID: string): string; overload;
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
-      function GetInsertSQL(Table: string; PRecord: Pointer): string;
+      function GetInsertSQL(Table: string; PRecord: Pointer; ReturnUpdated: boolean = False): string;
       function GetUpdateSQL(Table: string; OldRecord, PRecord: Pointer; ReturnUpdated: boolean = False): String;
       procedure FreeBlobStreams(PRecord: Pointer);
       function FieldVal(FieldNo: Integer; FieldPtr : Pointer):String;
@@ -5440,12 +5440,23 @@ begin
       FreeBlob(PRecord,i);
 end;
 
-function TNativeDataSet.GetInsertSQL(Table: string; PRecord: Pointer): string;
+function TNativeDataSet.GetInsertSQL(Table: string; PRecord: Pointer; ReturnUpdated: boolean = False): string;
 var
   I    : Integer;
   Fld    : TPSQLField;
   Fields : String;
   Values : String;
+
+  function GetRETURNING: string;
+  var I: integer;
+  begin
+    Result := '';
+    if not ReturnUpdated then Exit;
+    if FieldCount > 0 then Result := ' RETURNING ' + AnsiQuotedStr(FieldName(0), '"');
+    for I := 1 to FieldCount-1 do
+       Result := Result + ', ' + AnsiQuotedStr(FieldName(I), '"');
+  end;
+
 begin
   Result := '';
   Fields := '';
@@ -5463,7 +5474,7 @@ begin
   Delete(Fields, Length(Fields)-1, 2);
   Delete(Values, Length(Values)-1, 2);
   if (Fields <> '') and (Values <> '') then
-   Result := Format('INSERT INTO %s (%s) VALUES (%s)', [Table, Fields, Values]);
+   Result := Format('INSERT INTO %s (%s) VALUES (%s)', [Table, Fields, Values]) + GetReturning();
 end;
 
 function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer; ReturnUpdated: boolean = False): String;
@@ -5534,7 +5545,11 @@ procedure TNativeDataSet.InsertRecord( eLock : DBILockType; PRecord : Pointer );
 var
   SQL : String;
   OldQueryFlag: boolean;
-  KN: integer;
+  KN, i: integer;
+  AStatement: PPGResult;
+  fval, fname: PAnsiChar;
+  flen: integer;
+  CurrentRecNum: integer;
 begin
 
   KN := -1;
@@ -5542,27 +5557,53 @@ begin
      raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   CheckUniqueKey(KN);
 
-  SQL := GetInsertSQL(TableName, PRecord);
-  if Sql <> '' then
-   begin
-      FConnect.QExecDirect(SQL, nil, FAffectedRows);
-      RecordState := tsEmpty;
-   end;
+  SQL := GetInsertSQL(TableName, PRecord, dsoRefreshModifiedRecordOnly in FOptions);
+  try
+    if SQL <> '' then
+      //FConnect.QExecDirect(SQL, nil, FAffectedRows);
+      AStatement := _PQExecute(FConnect, SQL);
+      if Assigned(AStatement) then
+        try
+          FConnect.CheckResult(AStatement);
+          MonitorHook.SQLExecute(Self, True);
+          FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
+          CurrentRecNum := PQntuples(FStatement);
+          if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
+           for i := 0 to PQnfields(AStatement) - 1 do
+            begin
+             fval := PQgetvalue(AStatement, 0, i);
+             fname := PQfname(AStatement, i);
+             flen := PQgetlength(AStatement, 0, i);
+             if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
+               raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
+            end;
+        except
+          MonitorHook.SQLExecute(Self, False);
+          raise;
+        end
+      else
+        FConnect.CheckResult;
+  finally
+    PQclear(AStatement);
+    FReFetch := False;
+    RecordState := tsPos;
+  end;
 
   FreeBlobStreams(PRecord);
   InternalBuffer := nil;
-  if not FReFetch then
-  begin
-     OldQueryFlag := IsQuery;
-     ReOpenTable;
-     IsQuery := OldQueryFlag;
-     RecordState := tsPos;
-     try
-      if not SetRowPosition(KN,GetLastInsertID(KN),PRecord) then
-          SettoSeqNo(RecordCount);
-     except
+  if (FAffectedRows > 0) and not (dsoRefreshModifiedRecordOnly in Options) then
+    if not FReFetch then
+     begin
+       OldQueryFlag := IsQuery;
+       ReOpenTable;
+       IsQuery := OldQueryFlag;
+       RecordState := tsPos;
+       try
+        if not SetRowPosition(KN,GetLastInsertID(KN),PRecord) then
+            SettoSeqNo(RecordCount);
+       except
+       end;
      end;
-  end;
   FIsLocked := FALSE;
 end;
 
@@ -5584,7 +5625,7 @@ begin
      raise EPSQLException.CreateBDE(DBIERR_TABLEREADONLY);
   CheckUniqueKey(KN);
   try
-    SQL := GetUpdateSQL(TableName, OldRecord, PRecord, dsoRefreshModifiedRecordOnly in Options);
+    SQL := GetUpdateSQL(TableName, OldRecord, PRecord, dsoRefreshModifiedRecordOnly in FOptions);
     if SQL <> '' then
       //FConnect.QExecDirect(SQL, nil, FAffectedRows);
       AStatement := _PQExecute(FConnect, SQL);

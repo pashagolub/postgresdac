@@ -26,6 +26,15 @@ const
   PG_DIAG_SOURCE_FUNCTION     = ord('R');
 
 //============================================================================//
+//                            Option flags for PQcopyResult                   //
+//============================================================================//
+const
+  PG_COPYRES_ATTRS            = 01;
+  PG_COPYRES_TUPLES           = 02;  // Implies PG_COPYRES_ATTRS
+  PG_COPYRES_EVENTS           = 04;
+  PG_COPYRES_NOTICEHOOKS      = 08;
+
+//============================================================================//
 //                            Error Categories                                //
 //============================================================================//
 const
@@ -412,7 +421,7 @@ type
 //  commands and thus return multiple PGresult objects).
 //  The contents of this struct are not supposed to be known to applications.
   PGresult = Pointer;
-  PPGresult = Pointer;
+  PPGresult = ^PGresult;
 
 // PGnotify represents the occurrence of a NOTIFY message.
 //  Ideally this would be an opaque typedef, but it's so simple that it's
@@ -653,6 +662,8 @@ type
                               value: PAnsiChar;
                               len: integer): integer; cdecl;
 
+  TPQcopyResult    = function(Result: PPGresult;
+                              flags: integer): PPGresult; cdecl;
 
   TPQgetlength     = function(Result: PPGresult;
                               tup_num: Integer;
@@ -799,6 +810,7 @@ var
   PQcmdTuples:     TPQcmdTuples;
   PQgetvalue:      TPQgetvalue;
   PQsetvalue:      TPQsetvalue;
+  PQcopyResult:    TPQcopyResult;
   PQgetlength:     TPQgetlength;
   PQgetisnull:     TPQgetisnull;
   PQclear:         TPQclear;
@@ -3028,6 +3040,7 @@ begin
          @PQcmdTuples    := GetPSQLProc('PQcmdTuples');
          @PQgetvalue     := GetPSQLProc('PQgetvalue');
          @PQsetvalue     := GetPSQLProc('PQsetvalue');
+         @PQcopyResult   := GetPSQLProc('PQcopyResult');
          @PQgetlength    := GetPSQLProc('PQgetlength');
          @PQgetisnull    := GetPSQLProc('PQgetisnull');
          @PQclear        := GetPSQLProc('PQclear');
