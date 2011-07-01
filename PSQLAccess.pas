@@ -587,9 +587,9 @@ type
   //Description : Base class for All Objects
   //////////////////////////////////////////////////////////
     TNativeDataSet = Class(TObject)
-  private
-    function GetFieldTypType(Index: integer): AnsiChar;
-    Protected
+    private
+      function GetFieldTypType(Index: integer): AnsiChar;
+    protected
       RecNo         : LongInt; {Record Nomber}
       FOMode        : DBIOpenMode;  {Open mode}
       FFilteredRecordCount  : LongInt; {Record count}
@@ -5711,7 +5711,7 @@ begin
      j := 0;
      for CurrentRecNum := 0 to RecordCount - 1 do
       begin
-       if CurrentRecNum = RecNo then Continue; //exclude row from new set and check bounds
+       if CurrentRecNum = RecNo - 1 then Continue; //exclude row from new set and check bounds
        for i := 0 to PQnfields(FStatement) - 1 do
          begin
            fval := PQgetvalue(FStatement, j, i);
@@ -5724,7 +5724,10 @@ begin
      PQclear(FStatement);
      FStatement := ATempCopyStmt;
      RecordState := tsPos;
-     CurrentRecord(Min(RecNo, RecordCount - 1));
+     try
+      SettoSeqNo(Min(RecNo, RecordCount - 1));
+     except
+     end;
   end;
 
   if (FAffectedRows > 0) and not (dsoRefreshModifiedRecordOnly in Options) then
