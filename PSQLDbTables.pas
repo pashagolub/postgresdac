@@ -15,7 +15,7 @@ Uses  Windows, SysUtils, Classes, Db, Controls,
       ExtCtrls;
 
 const
-    VERSION : string = '2.6.3';
+    VERSION : string = '2.6.4';
 
 { TDBDataSet flags }          
   dbfOpened     = 0;

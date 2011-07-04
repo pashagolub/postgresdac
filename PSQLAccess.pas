@@ -5595,6 +5595,7 @@ begin
     PQclear(AStatement);
     FReFetch := False;
     RecordState := tsPos;
+    SettoSeqNo(RecordCount); //tuple added to the end
   end;
 
   FreeBlobStreams(PRecord);
@@ -5703,6 +5704,9 @@ begin
     RecordState := tsEmpty;
    end;
 
+  FreeBlobStreams(PRecord);
+  InternalBuffer := nil;
+
   if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
     begin
      ATempCopyStmt := PQcopyResult(FStatement, PG_COPYRES_ATTRS); //hack because libpq have some bugs. must be eliminated further
@@ -5711,11 +5715,11 @@ begin
      j := 0;
      for CurrentRecNum := 0 to RecordCount - 1 do
       begin
-       if CurrentRecNum = RecNo - 1 then Continue; //exclude row from new set and check bounds
+       if CurrentRecNum = RecNo then Continue; //exclude row from new set and check bounds
        for i := 0 to PQnfields(FStatement) - 1 do
          begin
-           fval := PQgetvalue(FStatement, j, i);
-           flen := PQgetlength(FStatement, j, i);
+           fval := PQgetvalue(FStatement, CurrentRecNum, i);
+           flen := PQgetlength(FStatement, CurrentRecNum, i);
            if PQsetvalue(ATempCopyStmt, j, i, fval, flen) = 0 then
              raise EPSQLException.CreateFmt('Refresh for deleted fiels failed', []);
          end;
@@ -5725,7 +5729,7 @@ begin
      FStatement := ATempCopyStmt;
      RecordState := tsPos;
      try
-      SettoSeqNo(Min(RecNo, RecordCount - 1));
+       SettoSeqNo(Min(RecNo + 1, RecordCount));
      except
      end;
   end;
