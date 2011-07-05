@@ -538,7 +538,7 @@ end;
 
 procedure TAbstractCopyObject.SetOptions(const Value: TCopyOptions);
 begin
-  if (coBinary in Value) and (Value * [coDelimiter, coNULL, coCSV, coHeader]  <> []) then
+  if (coBinary in Value) and (Value * [coDelimiter, coNULL, coCSV]  <> []) then
     raise EPSQLCopyException.Create('You cannot specify the coDelimiter, coNULL or coCSV options in binary mode.')
   else
     FOptions := Value;
