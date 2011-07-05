@@ -16,6 +16,9 @@ type
   TCopyMode = (cmFile, cmSTDInOut); //copy to file or to active connection
                                 // STDInOut = Standart In\Out
 
+
+  TCopyFormat = (cfText, cfCSV, cfBinary);
+
   EPSQLCopyException = class(Exception);
 
   TCopyOption = (coUseOIDs, coBinary, coCSV, coHeader, coNULL, coDelimiter, coQuote, coEscape);
@@ -44,6 +47,8 @@ type
     procedure SetQuote(const Value: char);
     procedure SetDelimiter(const Value: char);
     procedure SetNullValue(const Value: string);
+    function GetDataFormat: TCopyFormat;
+    procedure SetDataFormat(const Value: TCopyFormat);
    protected
     function GetSQLStatement: string; virtual; abstract;
     procedure DoServerSideCopyGet; virtual; abstract;
@@ -64,6 +69,7 @@ type
     property Options: TCopyOptions read FOptions write SetOptions default [];
     property SQL: TStrings read FSQL write SetSQL;
     property RowsAffected: Integer read FRowsAffected;
+    property DataFormat: TCopyFormat read GetDataFormat write SetDataFormat;
   end;
 
   TCustomPSQLCopy = class(TAbstractCopyObject)
@@ -112,6 +118,7 @@ type
     property Database;
     property Options;
     property SQL;
+    property DataFormat;
     property BeforeCopyGet;
     property AfterCopyGet;
     property BeforeCopyPut;
@@ -156,6 +163,17 @@ begin
  inherited Destroy;
 end;
 
+function TAbstractCopyObject.GetDataFormat: TCopyFormat;
+begin
+  if coCSV in FOptions then
+    Result := cfCSV
+  else
+    if coBinary in FOptions then
+      Result := cfBinary
+    else
+      Result := cfText;
+end;
+
 procedure TAbstractCopyObject.SetColumns(const Value: TStrings);
 begin
   if Assigned(Value) then FColumns.Assign(Value);
@@ -187,7 +205,7 @@ begin
         begin
          Repeat
           LineRes := PQgetCopyData(AConnect.Handle, @Buffer);
-          If (LineRes > 0) and Assigned(Buffer) then
+          if (LineRes > 0) and Assigned(Buffer) then
            begin
             S := Copy(Buffer,1,LineRes);
             Stream.Write(Pointer(S)^,length(S));
@@ -324,7 +342,7 @@ function TCustomPSQLCopy.GetCommaSeparatedText(
   const AStrings: TStrings): string;
 var i: integer;
 begin
-  If AStrings.Count > 0 then
+  if AStrings.Count > 0 then
     Result := AStrings[0]
   else
    begin
@@ -342,7 +360,7 @@ const
     cForced: array[TCopyDirection] of string = (' FORCE NOT NULL %s ',' FORCE QUOTE %s ');
 begin
 
- If (FCopyDirection = cdOUT) and (FSQL.Count > 0) then
+ if (FCopyDirection = cdOUT) and (FSQL.Count > 0) then
    Result := Format('COPY (%s) ',[FSQL.Text])
  else
   begin
@@ -372,29 +390,29 @@ begin
      Result := Result + 'STDIN ';
 
   WithStat := 'WITH ';
-  If coUseOIDs in FOptions then WithStat := WithStat + 'OIDS ';
-  If coBinary in FOptions then
+  if coUseOIDs in FOptions then WithStat := WithStat + 'OIDS ';
+  if coBinary in FOptions then
     WithStat := WithStat + 'BINARY '
   else
    begin
-    If (coDelimiter in FOptions) and (FDelimiter > #0) then
+    if (coDelimiter in FOptions) and (FDelimiter > #0) then
       WithStat := WithStat + Format(' DELIMITER %s ',[QuotedStr(FDelimiter)]);
-    If (coNull in FOptions) and (FNullValue > '') then
+    if (coNull in FOptions) and (FNullValue > '') then
       WithStat := WithStat + Format(' NULL %s ',[QuotedStr(FNullValue)]);
-    If (coCSV in FOptions) then
+    if (coCSV in FOptions) then
      begin
       WithStat := WithStat + ' CSV ';
-      If (coHeader in FOptions) then
+      if (coHeader in FOptions) then
         WithStat := WithStat + ' HEADER ';
-      If (coQuote in FOptions) and (FQuote > #0) then
+      if (coQuote in FOptions) and (FQuote > #0) then
        WithStat := WithStat + Format(' QUOTE %s ',[FQuote]);
-      If (coEscape in FOptions) and (FEscape > #0) then
+      if (coEscape in FOptions) and (FEscape > #0) then
        WithStat := WithStat + Format(' ESCAPE %s ',[FEscape]);
-      If FForcedColumns.Count > 0 then
+      if FForcedColumns.Count > 0 then
         WithStat := WithStat + Format(cForced[FCopyDirection],[GetCommaSeparatedText(FForcedColumns)]);
      end;
    end;
-   If length(WithStat) > 5 then
+   if length(WithStat) > 5 then
      Result := Result + WithStat;
    Result := TrimRight(Result);
 end;
@@ -487,20 +505,30 @@ end;
 procedure TAbstractCopyObject.SetDelimiter(const Value: char);
 begin
   FDelimiter := Value;
-  If Value > #0 then
+  if Value > #0 then
     FOptions := FOptions + [coDelimiter];
 end;
 
 procedure TAbstractCopyObject.SetEscape(const Value: char);
 begin
   FEscape := Value;
-  If Value > #0 then
+  if Value > #0 then
     FOptions := FOptions + [coEscape];
 end;
 
 procedure TAbstractCopyObject.SetForcedColumns(const Value: TStrings);
 begin
-  If Assigned(Value) then FForcedColumns.Assign(Value);
+  if Assigned(Value) then FForcedColumns.Assign(Value);
+end;
+
+procedure TAbstractCopyObject.SetDataFormat(const Value: TCopyFormat);
+begin
+  if GetDataFormat <> Value then
+    case Value of
+      cfText: FOptions := FOptions - [coBinary, coCSV];
+      cfCSV: FOptions := FOptions - [coBinary] + [coCSV];
+      cfBinary: FOptions := FOptions - [coDelimiter, coNULL, coCSV] + [coBinary];
+    end;
 end;
 
 procedure TAbstractCopyObject.SetNullValue(const Value: string);
@@ -510,7 +538,7 @@ end;
 
 procedure TAbstractCopyObject.SetOptions(const Value: TCopyOptions);
 begin
-  If (coBinary in Value) and (Value * [coDelimiter,coNULL,coCSV]  <> []) then
+  if (coBinary in Value) and (Value * [coDelimiter, coNULL, coCSV, coHeader]  <> []) then
     raise EPSQLCopyException.Create('You cannot specify the coDelimiter, coNULL or coCSV options in binary mode.')
   else
     FOptions := Value;
@@ -519,13 +547,13 @@ end;
 procedure TAbstractCopyObject.SetQuote(const Value: char);
 begin
   FQuote := Value;
-  If Value > #0 then
+  if Value > #0 then
     FOptions := FOptions + [coQuote];
 end;
 
 procedure TAbstractCopyObject.SetSQL(const Value: TStrings);
 begin
-  If Assigned(Value) then FSQL.Assign(Value);
+  if Assigned(Value) then FSQL.Assign(Value);
 end;
 
 end.
