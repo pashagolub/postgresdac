@@ -481,7 +481,7 @@ var I: TDumpOption;
     J: TDumpStrOption;
     k: integer;
 begin
- If not Assigned(FDatabase) then
+ if not Assigned(FDatabase) then
    raise EPSQLDumpException.Create('Database property not assigned!');
 
  FmiParams.Clear;

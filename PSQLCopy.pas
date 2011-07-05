@@ -38,6 +38,7 @@ type
     FEscape: char;
     FQuote: char;
     FRowsAffected: Integer;
+    FEncoding: string;
     procedure SetColumns(const Value: TStrings);
     procedure SetDatabase(const Value: TPSQLDatabase);
     procedure SetOptions(const Value: TCopyOptions);
@@ -49,6 +50,7 @@ type
     procedure SetNullValue(const Value: string);
     function GetDataFormat: TCopyFormat;
     procedure SetDataFormat(const Value: TCopyFormat);
+    procedure SetEncoding(const Value: string);
    protected
     function GetSQLStatement: string; virtual; abstract;
     procedure DoServerSideCopyGet; virtual; abstract;
@@ -70,6 +72,7 @@ type
     property SQL: TStrings read FSQL write SetSQL;
     property RowsAffected: Integer read FRowsAffected;
     property DataFormat: TCopyFormat read GetDataFormat write SetDataFormat;
+    property Encoding: string read FEncoding write SetEncoding;
   end;
 
   TCustomPSQLCopy = class(TAbstractCopyObject)
@@ -119,6 +122,7 @@ type
     property Options;
     property SQL;
     property DataFormat;
+    property Encoding;
     property BeforeCopyGet;
     property AfterCopyGet;
     property BeforeCopyPut;
@@ -128,7 +132,7 @@ type
 
 implementation
 
-Uses DB;
+uses DB, BDEConst;
 
 { TAbstractCopyObject }
 
@@ -194,7 +198,7 @@ begin
   if Assigned(FBeforeCopyGet) then
     FBeforeCopyGet(Self);
   FRowsAffected := -1;
-  FDatabase.Connected := True;
+  if not FDatabase.Connected then DatabaseError(SDatabaseClosed);
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
@@ -240,7 +244,7 @@ begin
   if Assigned(FBeforeCopyPut) then
     FBeforeCopyPut(Self);
   FRowsAffected := -1;
-  FDatabase.Connected := True;
+  if not FDatabase.Connected then DatabaseError(SDatabaseClosed);
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
@@ -290,7 +294,7 @@ begin
   if Assigned(FBeforeCopyGet) then
     FBeforeCopyGet(Self);
   FRowsAffected := -1;
-  FDatabase.Connected := True;
+  if not FDatabase.Connected then DatabaseError(SDatabaseClosed);
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
@@ -318,7 +322,7 @@ begin
   if Assigned(FBeforeCopyPut) then
     FBeforeCopyPut(Self);
   FRowsAffected := -1;
-  FDatabase.Connected := True;
+  if not FDatabase.Connected then DatabaseError(SDatabaseClosed);
   AConnect := TNativeConnect(FDatabase.Handle);
   Result := _PQExecute(AConnect, GetSQLStatement);
   try
@@ -354,12 +358,67 @@ begin
 end;
 
 function TCustomPSQLCopy.GetSQLStatement: string;
-var 
-    WithStat: string;
-const
-    cForced: array[TCopyDirection] of string = (' FORCE NOT NULL %s ',' FORCE QUOTE %s ');
-begin
 
+    function GetOldWithStmt: string;
+    const
+      cForced: array[TCopyDirection] of string = (' FORCE NOT NULL %s ',' FORCE QUOTE %s ');
+    begin
+      if coUseOIDs in FOptions then Result := Result + 'OIDS ';
+      if coBinary in FOptions then
+        Result := Result + 'BINARY '
+      else
+       begin
+        if (coDelimiter in FOptions) and (FDelimiter > #0) then
+          Result := Result + Format(' DELIMITER %s ',[QuotedStr(FDelimiter)]);
+        if (coNull in FOptions) and (FNullValue > '') then
+          Result := Result + Format(' NULL %s ',[QuotedStr(FNullValue)]);
+        if (coCSV in FOptions) then
+         begin
+          Result := Result + ' CSV ';
+          if (coHeader in FOptions) then
+            Result := Result + ' HEADER ';
+          if (coQuote in FOptions) and (FQuote > #0) then
+           Result := Result + Format(' QUOTE %s ',[FQuote]);
+          if (coEscape in FOptions) and (FEscape > #0) then
+           Result := Result + Format(' ESCAPE %s ',[FEscape]);
+          if FForcedColumns.Count > 0 then
+            Result := Result + Format(cForced[FCopyDirection],[GetCommaSeparatedText(FForcedColumns)]);
+         end;
+       end;
+      if Result > '' then
+        Result := 'WITH ' + Result;
+    end;
+
+    function GetNewWithStmt: string;
+    const
+      cFormat: array[TCopyFormat] of string = ('''text''', '''csv''', '''binary''');
+      cForced: array[TCopyDirection] of string = (', FORCE NOT NULL %s', ', FORCE QUOTE %s');
+    begin
+      Result := 'FORMAT ' + cFormat[GetDataFormat];
+      if coUseOIDs in FOptions then Result := Result + ', OIDS true';
+      if not (coBinary in FOptions) then
+       begin
+        if (coDelimiter in FOptions) and (FDelimiter > #0) then
+          Result := Result + Format(', DELIMITER %s ',[QuotedStr(FDelimiter)]);
+        if (coNull in FOptions) and (FNullValue > '') then
+          Result := Result + Format(', NULL %s ',[QuotedStr(FNullValue)]);
+        if (coCSV in FOptions) then
+         begin
+          if (coHeader in FOptions) then
+            Result := Result + ', HEADER true';
+          if (coQuote in FOptions) and (FQuote > #0) then
+           Result := Result + Format(', QUOTE %s ',[QuotedStr(FQuote)]);
+          if (coEscape in FOptions) and (FEscape > #0) then
+           Result := Result + Format(', ESCAPE %s ',[QuotedStr(FEscape)]);
+          if FForcedColumns.Count > 0 then
+            Result := Result + Format(cForced[FCopyDirection],[GetCommaSeparatedText(FForcedColumns)]);
+         end;
+       end;
+      if FEncoding > '' then
+        Result := Result + ', ENCODING ' + QuotedStr(FEncoding);
+      Result := 'WITH (' + Result + ')';
+    end;
+begin
  if (FCopyDirection = cdOUT) and (FSQL.Count > 0) then
    Result := Format('COPY (%s) ',[FSQL.Text])
  else
@@ -368,12 +427,10 @@ begin
    if FColumns.Count > 0 then
     Result := Result + '(' + GetCommaSeparatedText(FColumns) + ')';
   end;
-  
  if FCopyDirection = cdOut then
    Result := Result + ' TO '
  else
    Result := Result + ' FROM ';
-
  if (FCopyMode = cmFile) then
     begin
      if FFileName = '' then
@@ -389,32 +446,10 @@ begin
     else
      Result := Result + 'STDIN ';
 
-  WithStat := 'WITH ';
-  if coUseOIDs in FOptions then WithStat := WithStat + 'OIDS ';
-  if coBinary in FOptions then
-    WithStat := WithStat + 'BINARY '
-  else
-   begin
-    if (coDelimiter in FOptions) and (FDelimiter > #0) then
-      WithStat := WithStat + Format(' DELIMITER %s ',[QuotedStr(FDelimiter)]);
-    if (coNull in FOptions) and (FNullValue > '') then
-      WithStat := WithStat + Format(' NULL %s ',[QuotedStr(FNullValue)]);
-    if (coCSV in FOptions) then
-     begin
-      WithStat := WithStat + ' CSV ';
-      if (coHeader in FOptions) then
-        WithStat := WithStat + ' HEADER ';
-      if (coQuote in FOptions) and (FQuote > #0) then
-       WithStat := WithStat + Format(' QUOTE %s ',[FQuote]);
-      if (coEscape in FOptions) and (FEscape > #0) then
-       WithStat := WithStat + Format(' ESCAPE %s ',[FEscape]);
-      if FForcedColumns.Count > 0 then
-        WithStat := WithStat + Format(cForced[FCopyDirection],[GetCommaSeparatedText(FForcedColumns)]);
-     end;
-   end;
-   if length(WithStat) > 5 then
-     Result := Result + WithStat;
-   Result := TrimRight(Result);
+  if Assigned(FDatabase) and (FDatabase.ServerVersionAsInt < 090000) then
+      Result := Result + GetOldWithStmt()
+    else
+      Result := Result + GetNewWithStmt();
 end;
 
 
@@ -507,6 +542,11 @@ begin
   FDelimiter := Value;
   if Value > #0 then
     FOptions := FOptions + [coDelimiter];
+end;
+
+procedure TAbstractCopyObject.SetEncoding(const Value: string);
+begin
+  FEncoding := Trim(Value);
 end;
 
 procedure TAbstractCopyObject.SetEscape(const Value: char);

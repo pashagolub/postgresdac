@@ -432,6 +432,7 @@ Procedure RegisterPropertyEditors;
 begin
     RegisterPropertyEditor(TypeInfo(string), TPSQLDatabase, 'CharSet', TPSQLDatabaseCharsetPropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLDump, 'Encoding', TPSQLDatabaseCharsetPropertyEditor);
+    RegisterPropertyEditor(TypeInfo(string), TPSQLCopy, 'Encoding', TPSQLDatabaseCharsetPropertyEditor);
     RegisterPropertyEditor(TypeInfo(TFileName), TPSQLTable, 'TableName', TPSQLTableNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(cardinal), TPSQLParam, 'DataTypeOID', TPSQLParamOidPropertyEditor);
     RegisterPropertyEditor(TypeInfo(TFileName), TPSQLCopy, 'TableName', TPSQLTableNamePropertyEditor);
@@ -524,19 +525,19 @@ begin
   if AComp is TPSQLDatabase then
     DB := AComp as TPSQLDatabase
   else
-   if (AComp is TPSQLDump) and Assigned((AComp as TPSQLDump).Database) then
-     DB := (AComp as TPSQLDump).Database;
+    if (AComp is TPSQLDump) and Assigned((AComp as TPSQLDump).Database) then
+      DB := (AComp as TPSQLDump).Database
+    else
+      if (AComp is TAbstractCopyObject) and Assigned((AComp as TAbstractCopyObject).Database) then
+        DB := (AComp as TAbstractCopyObject).Database;
   if not Assigned(DB) or not DB.Connected then
-    List.CommaText := '<default>,BIG5,EUC_CN,EUC_JIS_2004,EUC_JP,EUC_KR,EUC_TW,'+
+    List.CommaText := 'BIG5,EUC_CN,EUC_JIS_2004,EUC_JP,EUC_KR,EUC_TW,'+
      'GB18030,GBK,ISO_8859_5,ISO_8859_6,ISO_8859_7,ISO_8859_8,JOHAB,KOI8,LATIN1,'+
      'LATIN10,LATIN2,LATIN3,LATIN4,LATIN5,LATIN6,LATIN7,LATIN8,LATIN9,MULE_INTERNAL,'+
      'SHIFT_JIS_2004,SJIS,SQL_ASCII,UHC,UTF8,WIN1250,WIN1251,WIN1252,WIN1253,'+
      'WIN1254,WIN1255,WIN1256,WIN1257,WIN1258,WIN866,WIN874'
   else
-   begin
     DB.GetCharsets(List);
-    List.Insert(0,'<default>');
-   end;
 end;
 
 procedure TPSQLDatabaseCharsetPropertyEditor.GetValues(Proc: TGetStrProc);
