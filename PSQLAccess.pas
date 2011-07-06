@@ -5559,42 +5559,40 @@ begin
 
   SQL := GetInsertSQL(TableName, PRecord, dsoRefreshModifiedRecordOnly in FOptions);
   try
-    if SQL <> '' then
-      //FConnect.QExecDirect(SQL, nil, FAffectedRows);
-      AStatement := _PQExecute(FConnect, SQL);
-      if Assigned(AStatement) then
-        try
-          FConnect.CheckResult(AStatement);
-          MonitorHook.SQLExecute(Self, True);
-          FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
-          CurrentRecNum := PQntuples(FStatement);
-          if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
-            begin
-             ATempCopyStmt := PQcopyResult(FStatement, PG_COPYRES_TUPLES); //hack because libpq have some bugs. must be eliminated further
-             if not Assigned(ATempCopyStmt) then
-               raise EPSQLException.CreateMsg(FConnect, 'Refresh for inserted fiels failed, cannot copy results');
-             for i := 0 to PQnfields(AStatement) - 1 do
-               begin
-                 fval := PQgetvalue(AStatement, 0, i);
-                 fname := PQfname(AStatement, i);
-                 flen := PQgetlength(AStatement, 0, i);
-                 if PQsetvalue(ATempCopyStmt, CurrentRecNum, i, fval, flen) = 0 then
-                   raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
-               end;
-             PQclear(FStatement);
-             FStatement := ATempCopyStmt;
-            end;
-        except
-          MonitorHook.SQLExecute(Self, False);
-          raise;
-        end
-      else
-        FConnect.CheckResult;
+    AStatement := _PQExecute(FConnect, SQL);
+    if Assigned(AStatement) then
+      try
+        FConnect.CheckResult(AStatement);
+        MonitorHook.SQLExecute(Self, True);
+        FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
+        CurrentRecNum := PQntuples(FStatement);
+        if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
+          begin
+           ATempCopyStmt := PQcopyResult(FStatement, PG_COPYRES_TUPLES); //hack because libpq have some bugs. must be eliminated further
+           if not Assigned(ATempCopyStmt) then
+             raise EPSQLException.CreateMsg(FConnect, 'Refresh for inserted fiels failed, cannot copy results');
+           for i := 0 to PQnfields(AStatement) - 1 do
+             begin
+               fval := PQgetvalue(AStatement, 0, i);
+               fname := PQfname(AStatement, i);
+               flen := PQgetlength(AStatement, 0, i);
+               if PQsetvalue(ATempCopyStmt, CurrentRecNum, i, fval, flen) = 0 then
+                 raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
+             end;
+           PQclear(FStatement);
+           FStatement := ATempCopyStmt;
+           RecordState := tsPos;
+           SettoSeqNo(RecordCount); //tuple added to the end
+           FReFetch := False;
+          end;
+      except
+        MonitorHook.SQLExecute(Self, False);
+        raise;
+      end
+    else
+      FConnect.CheckResult;
   finally
     PQclear(AStatement);
-    FReFetch := False;
-    RecordState := tsPos;
-    SettoSeqNo(RecordCount); //tuple added to the end
   end;
 
   FreeBlobStreams(PRecord);
@@ -5651,6 +5649,8 @@ begin
              if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
                raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
             end;
+          FReFetch := False;
+          RecordState := tsPos;
         except
           MonitorHook.SQLExecute(Self, False);
           raise;
@@ -5659,8 +5659,6 @@ begin
         FConnect.CheckResult;
   finally
     PQclear(AStatement);
-    FReFetch := False;
-    RecordState := tsPos;
   end;
 
   FreeBlobStreams(OldRecord);

@@ -47,7 +47,6 @@ type
     procedure TestGetUserNames;
     procedure TestReset;
     procedure TestRollback;
-    procedure TestStartTransaction;
   end;
 
 var
@@ -150,10 +149,15 @@ var
   aList: TStrings;
   aSQL: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.SelectStrings(aSQL, aList, aFieldName);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    aSQL := 'SELECT 1, g.s FROM generate_series(1,10) as g(s)';
+    aFieldName := 's';
+    FPSQLDatabase.SelectStrings(aSQL, aList, aFieldName);
+    Check(aList.Count = 10, 'SelectStrings by FieldName failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestSelectStrings1;
@@ -162,37 +166,52 @@ var
   aList: TStrings;
   aSQL: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.SelectStrings(aSQL, aList, aFieldNumber);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    aSQL := 'SELECT 1, g.s FROM generate_series(1,10) as g(s)';
+    aFieldNumber := 1;
+    FPSQLDatabase.SelectStrings(aSQL, aList, aFieldNumber);
+    Check(aList.Count = 10, 'SelectStrings by FieldNumber failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestCommit;
 begin
+  FPSQLDatabase.StartTransaction;
+  Check(FPSQLDatabase.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
+  FPSQLDatabase.Execute('CREATE TEMP TABLE foo()');
   FPSQLDatabase.Commit;
-  // TODO: Validate method results
+  Check(FPSQLDatabase.TransactionStatus = trstIDLE, 'Failed to COMMIT transaction');
 end;
 
 procedure TestTPSQLDatabase.TestGetCharsets;
 var
-  List: TStrings;
+  aList: TStrings;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetCharsets(List);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    FPSQLDatabase.GetCharsets(aList);
+    Check(aList.Count > 0, 'GetCharsets failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestGetDatabases;
 var
-  List: TStrings;
+  aList: TStrings;
   Pattern: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetDatabases(Pattern, List);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    Pattern := '%';
+    FPSQLDatabase.GetDatabases(Pattern, aList);
+    Check(aList.Count > 0, 'GetDatabases failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestGetSchemaNames;
@@ -200,22 +219,35 @@ var
   List: TStrings;
   SystemSchemas: Boolean;
   Pattern: string;
+  Count: integer;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetSchemaNames(Pattern, SystemSchemas, List);
-  // TODO: Validate method results
+  List := TStringList.Create;
+  try
+    Pattern := '%';
+    SystemSchemas := True;
+    FPSQLDatabase.GetSchemaNames(Pattern, SystemSchemas, List);
+    Count := List.Count;
+    List.Clear;
+    FPSQLDatabase.GetSchemaNames(Pattern, not SystemSchemas, List);
+    Check(List.Count <= Count, 'GetSchemaNames failed');
+  finally
+    List.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestGetStoredProcNames;
 var
-  List: TStrings;
+  aList: TStrings;
   Pattern: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetStoredProcNames(Pattern, List);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    Pattern := '%';
+    FPSQLDatabase.GetStoredProcNames(Pattern, aList);
+    Check(aList.Count > 0, 'GetStoredProcNames failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestGetTableNames;
@@ -223,54 +255,64 @@ var
   List: TStrings;
   SystemTables: Boolean;
   Pattern: string;
+  Count: integer;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetTableNames(Pattern, SystemTables, List);
-  // TODO: Validate method results
+  List := TStringList.Create;
+  try
+    Pattern := '%';
+    SystemTables := True;
+    FPSQLDatabase.GetTableNames(Pattern, SystemTables, List);
+    Count := List.Count;
+    List.Clear;
+    FPSQLDatabase.GetTableNames(Pattern, not SystemTables, List);
+    Check(List.Count <= Count, 'GetTableNames failed');
+  finally
+    List.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestGetTablespaces;
 var
-  List: TStrings;
+  aList: TStrings;
   Pattern: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetTablespaces(Pattern, List);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    Pattern := '%';
+    FPSQLDatabase.GetTablespaces(Pattern, aList);
+    Check(aList.Count > 0, 'GetTablespaces failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestGetUserNames;
 var
-  List: TStrings;
+  aList: TStrings;
   Pattern: string;
 begin
-  Check(False);
-  // TODO: Setup method call parameters
-  FPSQLDatabase.GetUserNames(Pattern, List);
-  // TODO: Validate method results
+  aList := TStringList.Create;
+  try
+    Pattern := '%';
+    FPSQLDatabase.GetUserNames(Pattern, aList);
+    Check(aList.Count > 0, 'GetUserNames failed');
+  finally
+    aList.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestReset;
 begin
-  Check(False);
   FPSQLDatabase.Reset;
-  // TODO: Validate method results
 end;
 
 procedure TestTPSQLDatabase.TestRollback;
 begin
-  Check(False);
-  FPSQLDatabase.Rollback;
-  // TODO: Validate method results
-end;
-
-procedure TestTPSQLDatabase.TestStartTransaction;
-begin
-  Check(False);
   FPSQLDatabase.StartTransaction;
-  // TODO: Validate method results
+  Check(FPSQLDatabase.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
+  FPSQLDatabase.Execute('CREATE TEMP TABLE foo()');
+  FPSQLDatabase.Rollback;
+  Check(FPSQLDatabase.TransactionStatus = trstIDLE, 'Failed to ROLLBACK transaction');
 end;
 
 { MainFormSetup }
