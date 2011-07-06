@@ -110,7 +110,7 @@ type
 
   { Exception Classes }
   EPSQLDatabaseError =  Class(EDatabaseError)
-    Private
+    private
       FErrorCode: Word;
       //Error fields added by Tony Caduto 5/17/2006
       FErrorPos:string;
@@ -125,7 +125,7 @@ type
       FErrorsourcefile:string;
       FErrorsourceline:string;
       FErrorsourcefunc:string;
-    Public
+    public
       constructor Create(Engine : TPSQLEngine; ErrorCode: Word);
       destructor Destroy; override;
       property ErrorCode: Word read FErrorCode;

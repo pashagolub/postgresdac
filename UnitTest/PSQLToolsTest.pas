@@ -34,6 +34,7 @@ type
     procedure TestVacuum;
     procedure TestReindex;
     procedure TestCluster;
+    procedure TestException;
   end;
 
 var
@@ -64,6 +65,17 @@ begin
   Check(Tools.Execute, 'Cannot execute CLUSTER TABLE');
   Tools.TableName := '';
   Check(Tools.Execute, 'Cannot execute CLUSTER DATABASE');
+end;
+
+procedure TestTPSQLTools.TestException;
+begin
+  Tools.TableName := 'WRONG_TABLE_NAME';
+  try
+    Tools.Execute(poANALYZE);
+  except
+    on E: Exception do
+      Check(E is EPSQLDatabaseError, 'Overloaded Execute method failed');
+  end;
 end;
 
 procedure TestTPSQLTools.TestReindex;

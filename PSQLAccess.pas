@@ -4670,7 +4670,6 @@ begin
     end;
     FAffectedRows := StrToIntDef(String(PQcmdTuples(FStatement)), 0);
     FLastOperationTime := GetTickCount - FLastOperationTime;
-//    ROWID := PQOidValue(FStatement);
     PQclear(FStatement);
     FStatement := nil;
   end else

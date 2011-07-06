@@ -40,11 +40,12 @@ type
     function ReindexStmt: string;
     function VacuumStmt: string;
    protected
-    procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
+    procedure Notification(AComponent: TComponent; Operation: TOperation ); Override;
    public
     constructor Create(AOwner : TComponent); override;
     destructor Destroy; override;
-    function Execute: Boolean;
+    function Execute: Boolean; overload;
+    procedure Execute(Operation: TPSQLOperation); overload;
    published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property ColumnList : TStrings read FColumnList write SetColumnList;
@@ -117,6 +118,22 @@ begin
   inherited;
 end;
 
+procedure TPSQLTools.Execute(Operation: TPSQLOperation);
+begin
+  case Operation of
+    poANALYZE: FDatabase.Execute(AnalyzeStmt);
+    poCLUSTER: FDatabase.Execute(ClusterStmt);
+    poVACUUM:  begin
+                 if FDatabase.TransactionStatus in [trstINTRANS, trstINERROR] then
+                   FDatabase.Commit;
+                 FDatabase.Execute(VacuumStmt);
+              end;
+    poREINDEX: FDatabase.Execute(ReindexStmt);
+  end;
+  if Assigned(OnSuccess) then
+    FOnSuccess(Self, Operation);
+end;
+
 function TPSQLTools.Execute: Boolean;
 begin
   Result := False;
@@ -135,17 +152,17 @@ begin
    FQuery.ExecSQL;
    Result := True;
    if Assigned(OnSuccess) then
-       FOnSuccess(Self,FPSQLOperation);
+       FOnSuccess(Self, FPSQLOperation);
   except
    if Assigned(OnError) then
-     FOnError(Self,FPSQLOperation);
+     FOnError(Self, FPSQLOperation);
   end;
 end;
 
 procedure TPSQLTools.Notification(AComponent: TComponent;
   Operation: TOperation);
 begin
-  Inherited Notification( AComponent, Operation );
+  inherited Notification( AComponent, Operation );
   if (Operation = opRemove) and (AComponent = FDatabase) then
      FDatabase := nil;
 end;
@@ -159,7 +176,7 @@ begin
    if FTableName > '' then
      Target := 'TABLE ' + TableName
    else
-     IF Assigned(FDatabase) and (FDatabase.DatabaseName > '') then
+     if Assigned(FDatabase) and (FDatabase.DatabaseName > '') then
        Target := 'DATABASE ' + AnsiQuotedStr(FDatabase.DatabaseName,'"');
  if Target = '' then
    raise EPSQLToolsException.Create('Reindex target not assigned')
