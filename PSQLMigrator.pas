@@ -4,7 +4,7 @@ unit PSQLMigrator;
 {SVN revision: $Id$}
 
 interface
-uses Classes, DB, PSQLDBTables, Forms, SysUtils, DBTables;
+uses Classes, DB, PSQLDBTables, PSQLMacroQuery, Forms, SysUtils, DBTables;
 
 type
 
@@ -210,28 +210,6 @@ begin
     aDataSet.OnFilterRecord := OnFilterRecord;
     aDataSet.OnNewRecord    := OnNewRecord;
     aDataSet.OnPostError    := OnPostError;
-    {BeforeOpen     := nil;
-    AfterOpen      := nil;
-    BeforeClose    := nil;
-    AfterClose     := nil;
-    BeforeInsert   := nil;
-    AfterInsert    := nil;
-    BeforeEdit     := nil;
-    AfterEdit      := nil;
-    BeforePost     := nil;
-    AfterPost      := nil;
-    BeforeCancel   := nil;
-    AfterCancel    := nil;
-    BeforeDelete   := nil;
-    AfterDelete    := nil;
-    BeforeScroll   := nil;
-    AfterScroll    := nil;
-    OnCalcFields   := nil;
-    OnDeleteError  := nil;
-    OnEditError    := nil;
-    OnFilterRecord := nil;
-    OnNewRecord    := nil;
-    OnPostError    := nil;} // PaGo 23.05.2007
   end;
 end;
 
@@ -434,7 +412,11 @@ begin
      OldDataSet.ClassNameIs('TSQLStoredProc') and (convDBX in FConvertComponents) or
      OldDataSet.ClassNameIs('TADOStoredProc') and (convADO in FConvertComponents) or
      OldDataSet.ClassNameIs('TMySQLStoredProc') and (convMySQLDAC in FConvertComponents)then
-            aDataSet := TPSQLStoredProc.Create(OldDataSet.Owner);
+            aDataSet := TPSQLStoredProc.Create(OldDataSet.Owner)
+  else
+
+  if OldDataSet.ClassNameIs('TMySQLMacroQuery') and (convMySQLDAC in FConvertComponents) then
+            aDataSet := TPSQLMacroQuery.Create(OldDataSet.Owner);
 
   if Assigned(aDataset) then
     begin
@@ -452,10 +434,11 @@ procedure TBDE2PSQLDAC.GetNeededSQLs(aDataSet: TPSQLDataSet; OldDataSet: TDataSe
 var AObj: TObject;
 begin
   if OldDataSet.ClassNameIs('TQuery') or OldDataSet.ClassNameIs('TZQuery') or
-     OldDataSet.ClassNameIs('TSQLQuery') or OldDataSet.ClassNameIs('TADOQuery') then
+     OldDataSet.ClassNameIs('TSQLQuery') or OldDataSet.ClassNameIs('TADOQuery') or
+     OldDataSet.ClassNameIs('TMySQLMacroQuery') then
       begin
        AObj := GetObjectProp(OldDataSet,'SQL');
-       If Assigned(AObj) and (AObj is TStrings) then
+       if Assigned(AObj) and (AObj is TStrings) then
          TPSQLQuery(aDataSet).SQL.Assign(AObj as TStrings)
       end
   else
@@ -476,7 +459,7 @@ begin
       OldDataSet.ClassNameIs('TSQLStoredProc') then
        TPSQLStoredProc(aDataSet).StoredProcName := GetStrProp(OldDataSet, 'StoredProcName')
   else
-   If OldDataSet.ClassNameIs('TADOStoredProc') then
+   if OldDataSet.ClassNameIs('TADOStoredProc') then
        TPSQLStoredProc(aDataSet).StoredProcName := GetStrProp(OldDataSet, 'ProcedureName');
 end;
 
