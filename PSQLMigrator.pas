@@ -14,7 +14,7 @@ type
     NewDataSet: TDataSet;
   end;
 
-  TConvertComponent = (convBDE, convADO, convDBX, convZeos);
+  TConvertComponent = (convBDE, convADO, convDBX, convZeos, convMySQLDAC);
   TConvertComponents = set of TConvertComponent;
 
 
@@ -408,35 +408,39 @@ procedure TBDE2PSQLDAC.CheckDataSet(OldDataSet: TDataSet);
 var
   aDataSet: TPSQLDataSet;
 begin
+  aDataSet := nil;
   if OldDataSet.ClassNameIs('TQuery') and (convBDE in FConvertComponents)  or
      OldDataSet.ClassNameIs('TZQuery') and (convZeos in FConvertComponents) or
      OldDataSet.ClassNameIs('TSQLQuery') and (convDBX in FConvertComponents) or
      OldDataSet.ClassNameIs('TSQLDataset') and (convDBX in FConvertComponents) or
      OldDataSet.ClassNameIs('TADOQuery') and (convADO in FConvertComponents) or
-     OldDataSet.ClassNameIs('TADODataset') and (convADO in FConvertComponents) then
-  begin
-    aDataSet := TPSQLQuery.Create(OldDataSet.Owner);
-    UpdateDesignInfo(OldDataSet,aDataSet);
-    NewDataSetPair(aDataSet, OldDataSet);
-  end else
+     OldDataSet.ClassNameIs('TADODataset') and (convADO in FConvertComponents) or
+     OldDataSet.ClassNameIs('TMySQLQuery') and (convMySQLDAC in FConvertComponents) then
+            aDataSet := TPSQLQuery.Create(OldDataSet.Owner)
+
+  else
+
   if OldDataSet.ClassNameIs('TTable') and (convBDE in FConvertComponents)  or
      OldDataSet.ClassNameIs('TZTable') and (convZeos in FConvertComponents) or
      OldDataSet.ClassNameIs('TSQLTable') and (convDBX in FConvertComponents) or
-     OldDataSet.ClassNameIs('TADOTable') and (convADO in FConvertComponents) then
-  begin
-    aDataSet := TPSQLTable.Create(OldDataSet.Owner);
-    UpdateDesignInfo(OldDataSet,aDataSet);
-    NewDataSetPair(aDataSet, OldDataSet);
-  end else
+     OldDataSet.ClassNameIs('TADOTable') and (convADO in FConvertComponents) or
+     OldDataSet.ClassNameIs('TMySQLTable') and (convMySQLDAC in FConvertComponents) then
+            aDataSet := TPSQLTable.Create(OldDataSet.Owner)
+
+  else
+
   if OldDataSet.ClassNameIs('TStoredProc') and (convBDE in FConvertComponents)  or
      OldDataSet.ClassNameIs('TZStoredProc') and (convZeos in FConvertComponents) or
      OldDataSet.ClassNameIs('TSQLStoredProc') and (convDBX in FConvertComponents) or
-     OldDataSet.ClassNameIs('TADOStoredProc') and (convADO in FConvertComponents) then
-  begin
-    aDataSet := TPSQLStoredProc.Create(OldDataSet.Owner);
-    UpdateDesignInfo(OldDataSet,aDataSet);
-    NewDataSetPair(aDataSet, OldDataSet);
-  end;
+     OldDataSet.ClassNameIs('TADOStoredProc') and (convADO in FConvertComponents) or
+     OldDataSet.ClassNameIs('TMySQLStoredProc') and (convMySQLDAC in FConvertComponents)then
+            aDataSet := TPSQLStoredProc.Create(OldDataSet.Owner);
+
+  if Assigned(aDataset) then
+    begin
+      UpdateDesignInfo(OldDataSet, aDataSet);
+      NewDataSetPair(aDataSet, OldDataSet);
+    end;
 end;
 
 procedure TBDE2PSQLDAC.GetCachedUpdates(aDataSet: TPSQLDataSet; OldDataSet: TDataSet);
