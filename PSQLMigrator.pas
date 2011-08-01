@@ -46,11 +46,13 @@ type
     FExecute: Boolean;
     FDeleteSourceComponents: Boolean;
     FConvertComponents: TConvertComponents;
+    FSourceConnection: TCustomConnection;
     function GetDatabase: TPSQLDatabase;
     procedure SetDatabase(Value: TPSQLDatabase);
     procedure FillComponents(ACompList: TList; ACompClass: TClass);
     procedure SetDeleteSourceComponents(const Value: Boolean);
     procedure SetConvertComponents(const Value: TConvertComponents);
+    procedure SetSourceConnection(const Value: TCustomConnection);
   protected
     { Common methods }
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -74,6 +76,7 @@ type
   published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property Database: TPSQLDatabase read GetDatabase write SetDatabase;
+    property SourceConnection: TCustomConnection read FSourceConnection write SetSourceConnection;
     property Execute: Boolean read FExecute write FExecute;
     property ConvertComponents: TConvertComponents read FConvertComponents write SetConvertComponents;
     property DeleteSourceComponents: Boolean read FDeleteSourceComponents
@@ -179,8 +182,12 @@ end;
 procedure TBDE2PSQLDAC.Notification(AComponent: TComponent; Operation: TOperation);
 begin
   inherited Notification(AComponent, Operation);
-  if (Operation = opRemove) and (aComponent = FPSQLDatabase) then
-     FPSQLDatabase := nil;
+  if (Operation = opRemove) then
+    if (aComponent = FPSQLDatabase) then
+      FPSQLDatabase := nil
+    else
+      if (aComponent = FSourceConnection) then
+        FSourceConnection := nil;
 end;
 
 procedure TBDE2PSQLDAC.AssignEvents(aDataSet: TPSQLDataSet;
@@ -261,7 +268,7 @@ var
    Index, NamePos: integer;
    rName1, rName2: string;
 begin
-    If Assigned(OldDataSet) then OldDataSet.Close; // PaGo 23.05.2007
+    if Assigned(OldDataSet) then OldDataSet.Close; // PaGo 23.05.2007
     //UpdateDesignInfo(OldDataSet, aDataSet);
     aDataSet.DataBase := FPSQLDatabase;
     GetNeededSQLs(aDataSet, OldDataSet);
@@ -317,11 +324,10 @@ begin
   FDataSets.ClearAll;  // PaGo 23.05.2007
   Screen.Cursor := crHourGlass;
   try
-
     MigrateTables;
     MigrateDataSources;
     MigrateLookupFields;
-    If DeleteSourceComponents then
+    if DeleteSourceComponents then
      for I:=0 to FDataSets.Count-1 do
       begin
        if GetPropInfo(FDataSets.OldDataSets[I], 'UpdateObject') <> nil then
@@ -341,19 +347,17 @@ var
 begin
   List := TList.Create;
   try
-    FillComponents(List,TDataset);
-    For i := List.Count-1 downto 0 do
-     begin
-       If TDataset(List[i]) is TNestedTable then
-         List.Delete(I)
-       else
-         CheckDataset(TDataset(List[i]));
-     end;
+    FillComponents(List, TDataset);
+    for i := List.Count-1 downto 0 do
+     if TDataset(List[i]) is TNestedTable then
+       List.Delete(I)
+     else
+       CheckDataset(TDataset(List[i]));
   finally
     List.Free;
   end;
   for I := 0 to FDataSets.Count - 1 do
-    CreatePSQLDataSet(TPSQLDataSet(FDataSets.NewDataSets[I]),FDataSets.OldDataSets[I]);
+    CreatePSQLDataSet(TPSQLDataSet(FDataSets.NewDataSets[I]), FDataSets.OldDataSets[I]);
 end;
 
 constructor TBDE2PSQLDAC.Create(aOwner: TComponent);
@@ -362,7 +366,7 @@ begin
   FDataSets := TDataSetList.Create;
   FFields := TList.Create;
   FDeleteSourceComponents := True;
-  FConvertComponents := [convBDE, convADO, convDBX, convZeos];
+  FConvertComponents := [convBDE, convADO, convDBX, convZeos, convMySQLDAC];
 end;
 
 destructor TBDE2PSQLDAC.Destroy;
@@ -385,8 +389,23 @@ end;
 procedure TBDE2PSQLDAC.CheckDataSet(OldDataSet: TDataSet);
 var
   aDataSet: TPSQLDataSet;
+  anObj: TObject;
+  Propinfo: PPropInfo;
 begin
+  if Assigned(FSourceConnection) then
+   begin
+    Propinfo := GetPropInfo(PTypeInfo(OldDataSet.ClassInfo), 'Connection'); //ADO & Zeos
+    if not Assigned(Propinfo) then
+      Propinfo := GetPropInfo(PTypeInfo(OldDataSet.ClassInfo), 'SQLConnection'); //dbX
+    if not Assigned(Propinfo) then
+      Propinfo := GetPropInfo(PTypeInfo(OldDataSet.ClassInfo), 'Database'); //MySqlDAC
+    if not Assigned(Propinfo) then Exit;
+    anObj := GetObjectProp(OldDataSet, Propinfo);
+    if anObj <> FSourceConnection then Exit;
+   end;
+
   aDataSet := nil;
+
   if OldDataSet.ClassNameIs('TQuery') and (convBDE in FConvertComponents)  or
      OldDataSet.ClassNameIs('TZQuery') and (convZeos in FConvertComponents) or
      OldDataSet.ClassNameIs('TSQLQuery') and (convDBX in FConvertComponents) or
@@ -526,7 +545,7 @@ begin
         begin
           Comp := (RootComp as INTAComponent).GetComponent;
           for K :=0 to Comp.ComponentCount-1 do
-           If Comp.Components[K] is ACompClass then
+           if Comp.Components[K] is ACompClass then
              ACompList.Add(Comp.Components[K]);
         end;
       end;
@@ -537,6 +556,12 @@ end;
 procedure TBDE2PSQLDAC.SetDeleteSourceComponents(const Value: Boolean);
 begin
   FDeleteSourceComponents := Value;
+end;
+
+procedure TBDE2PSQLDAC.SetSourceConnection(const Value: TCustomConnection);
+begin
+  FSourceConnection := Value;
+  if Value <> nil then Value.FreeNotification(Self)
 end;
 
 procedure TBDE2PSQLDAC.MigrateLookupFields;
