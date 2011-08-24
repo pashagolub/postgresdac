@@ -5189,14 +5189,13 @@ begin
        origBuffer := FCurrentBuffer;
        for i:=0 to FieldCount-1 do
        begin
-      //    if Fields.Count>=i then
-      //    begin
-             T := Fields[i+1];
-             T.Buffer  := origBuffer;
-             T.FieldChanged := FALSE;
-             null := FieldIsNull(I);
-             T.FieldNull    := null;
-      //    end;
+
+          T := Fields[i+1];
+          T.Buffer  := origBuffer;
+          T.FieldChanged := FALSE;
+          null := FieldIsNull(I);
+          T.FieldNull    := null;
+
           size := T.NativeSize; //FieldLength
           if null then
               ZeroMemory(FCurrentBuffer,size)
