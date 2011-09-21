@@ -60,6 +60,7 @@ procedure TestTPSQLDump.SetUp;
 begin
   FPSQLDump := TPSQLDump.Create(nil);
   FPSQLDump.Database := QryDb;
+  FPSQLDump.Options := [doVerbose];
 end;
 
 procedure TestTPSQLDump.TearDown;
