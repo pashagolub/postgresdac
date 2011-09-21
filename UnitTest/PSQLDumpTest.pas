@@ -59,6 +59,7 @@ uses TestHelper;
 procedure TestTPSQLDump.SetUp;
 begin
   FPSQLDump := TPSQLDump.Create(nil);
+  FPSQLDump.Database := QryDb;
 end;
 
 procedure TestTPSQLDump.TearDown;
@@ -71,9 +72,13 @@ procedure TestTPSQLDump.TestDumpToStream;
 var
   Stream: TStream;
 begin
-  // TODO: Setup method call parameters
-  FPSQLDump.DumpToStream(Stream);
-  // TODO: Validate method results
+  Stream := TMemoryStream.Create;
+  try
+    FPSQLDump.DumpToStream(Stream);
+    Check(Stream.Size > 0, 'Dump stream empty');
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TestTPSQLDump.TestDumpToStream1;
@@ -81,9 +86,19 @@ var
   Log: TStrings;
   Stream: TStream;
 begin
-  // TODO: Setup method call parameters
-  FPSQLDump.DumpToStream(Stream, Log);
-  // TODO: Validate method results
+  Stream := TMemoryStream.Create;
+  try
+    Log := TStringList.Create;
+    try
+      FPSQLDump.DumpToStream(Stream, Log);
+      Check(Stream.Size > 0, 'Dump stream empty');
+      Check(Log.Count > 0, 'Dump log empty');
+    finally
+      Log.Free;
+    end;
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TestTPSQLDump.TestDumpToStream2;
@@ -91,9 +106,19 @@ var
   LogFileName: string;
   Stream: TStream;
 begin
-  // TODO: Setup method call parameters
-  FPSQLDump.DumpToStream(Stream, LogFileName);
-  // TODO: Validate method results
+  Stream := TMemoryStream.Create;
+  try
+    LogFileName := 'TestDumpToStream2.log';
+    try
+      FPSQLDump.DumpToStream(Stream, LogFileName);
+      Check(Stream.Size > 0, 'Dump stream empty');
+      Check(FileExists(LogFileName), 'Log file empty');
+    finally
+      SysUtils.DeleteFile(LogFileName);
+    end;
+  finally
+    Stream.Free;
+  end;
 end;
 
 procedure TestTPSQLDump.TestDumpToFile;
@@ -101,9 +126,15 @@ var
   Log: TStrings;
   FileName: string;
 begin
-  // TODO: Setup method call parameters
-  FPSQLDump.DumpToFile(FileName, Log);
-  // TODO: Validate method results
+  FileName := 'TestDumpToFile.backup';
+  Log := TStringList.Create;
+  try
+    FPSQLDump.DumpToFile(FileName, Log);
+    Check(FileExists(FileName), 'Dump file empty');
+    Check(Log.Count > 0, 'Dump log empty');
+  finally
+    Log.Free;
+  end;
 end;
 
 procedure TestTPSQLDump.TestDumpToFile1;
@@ -111,9 +142,15 @@ var
   LogFileName: string;
   FileName: string;
 begin
-  // TODO: Setup method call parameters
-  FPSQLDump.DumpToFile(FileName, LogFileName);
-  // TODO: Validate method results
+  FileName := 'TestDumpToFile.backup';
+  LogFileName := 'TestDumpToFile1.log';
+  try
+    FPSQLDump.DumpToFile(FileName, LogFileName);
+    Check(FileExists(FileName), 'Dump file empty');
+    Check(FileExists(LogFileName), 'Log file empty');
+  finally
+    SysUtils.DeleteFile(LogFileName);
+  end;
 end;
 
 procedure TestTPSQLRestore.SetUp;
@@ -152,25 +189,20 @@ end;
 procedure TDbSetup.SetUp;
 begin
   inherited;
-  SetUpTestDatabase(QryDB, 'PSQLBlobs.conf');
-  QryDB.Execute('CREATE TABLE blobs_test_case_table(' +
-                'id SERIAL NOT NULL PRIMARY KEY,'  +
-                'byteaf bytea,' +
-                'oidf oid,'  +
-                'memof text)');
+  SetUpTestDatabase(QryDB, 'PSQLDump.conf');
 end;
 
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  ComponentToFile(QryDB, 'PSQLBlobs.conf');
-  QryDB.Execute('DROP TABLE blobs_test_case_table');
+  ComponentToFile(QryDB, 'PSQLDump.conf');
   QryDB.Free;
 end;
 
 initialization
-  // Register any test cases with the test runner
-  RegisterTest(TestTPSQLDump.Suite);
-  RegisterTest(TestTPSQLRestore.Suite);
+  //PaGo: Register any test cases with setup decorator
+  RegisterTest(TDbSetup.Create(TestTPSQLDump.Suite, 'Database Setup'));
+  RegisterTest(TDbSetup.Create(TestTPSQLRestore.Suite, 'Database Setup'));
+
 end.
 
