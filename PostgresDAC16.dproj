@@ -58,10 +58,10 @@
 			<GenPackage>true</GenPackage>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base_Win64)'!=''">
-			<Icon_MainIcon>E:\1_PostgresDAC\PDAC.ico</Icon_MainIcon>
+			<Icon_MainIcon>PDAC.ico</Icon_MainIcon>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base_Win32)'!=''">
-			<Icon_MainIcon>E:\1_PostgresDAC\PDAC.ico</Icon_MainIcon>
+			<Icon_MainIcon>PDAC.ico</Icon_MainIcon>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
 			<Version>7.0</Version>
