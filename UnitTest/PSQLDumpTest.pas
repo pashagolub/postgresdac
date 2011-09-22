@@ -36,6 +36,12 @@ type
     procedure TestDumpToStream2;
     procedure TestDumpToFile;
     procedure TestDumpToFile1;
+    //specific routines
+    procedure TestDumpCompressed;
+    procedure TestDumpTar;
+    procedure TestDumpDirectory;
+    procedure TestDumpPlain;
+    procedure TestDumpPlainCompressed;
   end;
 
   // Test methods for class TPSQLRestore
@@ -50,7 +56,10 @@ type
     procedure TestRestoreFromFile1;
   end;
 
-var QryDb: TPSQLDatabase;
+var
+  QryDb: TPSQLDatabase;
+  DumpFileName: string = 'TestDumpToFile.backup';
+
 
 implementation
 
@@ -122,16 +131,58 @@ begin
   end;
 end;
 
+procedure TestTPSQLDump.TestDumpCompressed;
+begin
+  FPSQLDump.DumpFormat := dfCompressedArchive;
+  FPSQLDump.CompressLevel := 9;
+  FPSQLDump.RewriteFile := True;
+  TestDumpToFile();
+end;
+
+procedure TestTPSQLDump.TestDumpDirectory;
+begin
+  DumpFileName := 'TestDumpToFile';
+  FPSQLDump.DumpFormat := dfDirectory;
+  FPSQLDump.RewriteFile := True;
+  TestDumpToFile();
+end;
+
+procedure TestTPSQLDump.TestDumpPlain;
+begin
+  DumpFileName := 'TestDumpToFile.sql';
+  FPSQLDump.DumpFormat := dfPlain;
+  FPSQLDump.CompressLevel := 0;
+  FPSQLDump.RewriteFile := True;
+  TestDumpToFile();
+end;
+
+procedure TestTPSQLDump.TestDumpPlainCompressed;
+begin
+  DumpFileName := 'TestDumpToFile.gz';
+  FPSQLDump.DumpFormat := dfPlain;
+  FPSQLDump.CompressLevel := 6;
+  FPSQLDump.RewriteFile := True;
+  TestDumpToFile();
+end;
+
+procedure TestTPSQLDump.TestDumpTar;
+begin
+  DumpFileName := 'TestDumpToFile.tar';
+  FPSQLDump.DumpFormat := dfTarArchive;
+  FPSQLDump.CompressLevel := 0;
+  FPSQLDump.RewriteFile := True;
+  TestDumpToFile();
+end;
+
 procedure TestTPSQLDump.TestDumpToFile;
 var
   Log: TStrings;
   FileName: string;
 begin
-  FileName := 'TestDumpToFile.backup';
   Log := TStringList.Create;
   try
-    FPSQLDump.DumpToFile(FileName, Log);
-    Check(FileExists(FileName), 'Dump file empty');
+    FPSQLDump.DumpToFile(DumpFileName, Log);
+    Check(FileExists(DumpFileName), 'Dump file empty');
     Check(Log.Count > 0, 'Dump log empty');
   finally
     Log.Free;
@@ -141,13 +192,11 @@ end;
 procedure TestTPSQLDump.TestDumpToFile1;
 var
   LogFileName: string;
-  FileName: string;
 begin
-  FileName := 'TestDumpToFile.backup';
   LogFileName := 'TestDumpToFile1.log';
   try
-    FPSQLDump.DumpToFile(FileName, LogFileName);
-    Check(FileExists(FileName), 'Dump file empty');
+    FPSQLDump.DumpToFile(DumpFileName, LogFileName);
+    Check(FileExists(DumpFileName), 'Dump file empty');
     Check(FileExists(LogFileName), 'Log file empty');
   finally
     SysUtils.DeleteFile(LogFileName);

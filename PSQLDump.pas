@@ -47,7 +47,8 @@ type
                   doColumnInserts, doIgnoreVersion, doOIDs, doNoOwner,
                   doSchemaOnly, doVerbose, doNoPrivileges, doDisableDollarQuoting,
                   doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces,
-                  doQuoteAllIdentifiers);
+                  doQuoteAllIdentifiers, doNoSecurityLabels, doNoUnloggedTableData,
+                  doSerializableDeferrable);
 
     TDumpOptions = set of TDumpOption;
 
@@ -229,7 +230,10 @@ const
      '--disable-triggers',               //doDisableTriggers,
      '--use-set-session-authorization',  //doUseSetSessionAuthorization,
      '--no-tablespaces',                 //doNoTablespaces
-     '--quote-all-identifiers'           //doQuoteAllIdentifiers
+     '--quote-all-identifiers',          //doQuoteAllIdentifiers
+     '--no-security-labels',             //doNoSecurityLabels
+     '--no-unlogged-table-data',         //doNoUnloggedTableData
+     '--serializable-deferrable'         //doSerializableDeferrable
     );
 
     RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -247,7 +251,7 @@ const
      '--use-set-session-authorization',  //roUseSetSessionAuthorization
      '--single-transaction',             //roSingleTransaction
      '--no-data-for-failed-tables',      //roNoDataForFailedTables
-     '--no-tablespaces'
+     '--no-tablespaces'                  //roNoTablespaces
      );
 
     DumpCommandLineStrParameters: array[TDumpStrOption] of string =(
