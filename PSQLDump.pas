@@ -46,14 +46,15 @@ type
     TDumpOption = (doDataOnly, doIncludeBLOBs, doClean, doCreate, doInserts,
                   doColumnInserts, doIgnoreVersion, doOIDs, doNoOwner,
                   doSchemaOnly, doVerbose, doNoPrivileges, doDisableDollarQuoting,
-                  doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces);
+                  doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces,
+                  doQuoteAllIdentifiers);
 
     TDumpOptions = set of TDumpOption;
 
     TDumpStrOption = (dsoSchema, dsoSuperuser, dsoTable, dsoExcludeSchema,
                       dsoExcludeTable, dsoEncoding, dsoRole);
 
-    TDumpFormat = (dfPlain, dfTarArchive, dfCompressedArchive);
+    TDumpFormat = (dfPlain, dfTarArchive, dfCompressedArchive, dfDirectory);
 
     TCompressLevel = 0..9;
 
@@ -227,7 +228,8 @@ const
      '--disable-dollar-quoting',         //doDisableDollarQuoting,
      '--disable-triggers',               //doDisableTriggers,
      '--use-set-session-authorization',  //doUseSetSessionAuthorization,
-     '--no-tablespaces'                  //doNoTablespaces
+     '--no-tablespaces',                 //doNoTablespaces
+     '--quote-all-identifiers'           //doQuoteAllIdentifiers
     );
 
     RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -274,7 +276,8 @@ const
     DumpCommandLineFormatValues: array[TDumpFormat] of string = (
     '--format=p',  //plain
     '--format=t',  //tar archive
-    '--format=c'   //custom archive
+    '--format=c',  //custom archive
+    '--format=d'   //directory
     );
 
     RestoreCommandLineFormatValues: array[TRestoreFormat] of string = (
@@ -562,7 +565,7 @@ begin
   try
     DumpToStream(Stream,tmpLogFile);
   finally
-    If Assigned(Log) then
+    if Assigned(Log) then
      begin
       Log.LoadFromFile(tmpLogFile);
       SysUtils.DeleteFile(tmpLogFile);

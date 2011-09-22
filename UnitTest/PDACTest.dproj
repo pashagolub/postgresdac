@@ -57,6 +57,7 @@
 			<DCCReference Include="TestPSQLFields.pas"/>
 			<DCCReference Include="PSQLToolsTest.pas"/>
 			<DCCReference Include="PSQLBlobsTest.pas"/>
+			<DCCReference Include="PSQLDumpTest.pas"/>
 			<None Include="PDACTest.dpr"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
@@ -125,7 +126,7 @@
 
 <!-- EurekaLog First Line
 [Exception Log]
-EurekaLog Version=6101
+EurekaLog Version=6102
 Activate=0
 Activate Handle=1
 Save Log File=1

@@ -990,7 +990,7 @@ type
       property Text: String read FText;
       property RowsAffected: Integer read GetRowsAffected;
       property SQLBinary: PChar read FSQLBinary write FSQLBinary;
-    Published
+    published
       property DataSource: TDataSource read GetDataSource write SetDataSource;
       property ParamCheck: Boolean read FParamCheck write FParamCheck default TRUE;
       property RequestLive: Boolean read GetRequestLive write SetRequestLive default FALSE;
@@ -5273,7 +5273,7 @@ end;
 
 function TPSQLQuery.PSGetParams : TParams;
 begin
-  Result := Params;
+  Result := FParams;
 end;
 
 procedure TPSQLQuery.PSSetParams(AParams : TParams);
