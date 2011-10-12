@@ -4009,7 +4009,7 @@ begin
   if (CurrentBuffer <> nil) and (FBookOfs > 0) then
   begin
     Buffer := CurrentBuffer;
-    Inc(LongInt(Buffer), FBookOfs);
+    Buffer := Pointer(Int64(Buffer) + FBookOfs);
     GetBookMark(Buffer);
   end;
 end;

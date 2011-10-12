@@ -2072,8 +2072,8 @@ procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
 
-function ScanStr(const S: string; Ch: Char; StartPos: Integer = 1): Integer;
-function TestMask(const S, Mask: string; MaskChar: Char = 'X'): Boolean;
+//function ScanStr(const S: string; Ch: Char; StartPos: Integer = 1): Integer;
+//function TestMask(const S, Mask: string; MaskChar: Char = 'X'): Boolean;
 
 
 function MaskSearch(const Str, Mask: string;
@@ -3159,7 +3159,7 @@ begin
 end;
 
 //New Reliase
-function ScanStr(const S: string; Ch: Char; StartPos: Integer): Integer;
+{function ScanStr(const S: string; Ch: Char; StartPos: Integer): Integer;
 asm
         TEST    EAX,EAX
         JE      @@qt
@@ -3182,9 +3182,9 @@ asm
 @@m1:   POP     EDI
         XOR     EAX,EAX
 @@qt:
-end;
+end;  }
 
-function TestMask(const S, Mask: string; MaskChar: Char): Boolean;
+{function TestMask(const S, Mask: string; MaskChar: Char): Boolean;
 asm
         TEST    EAX,EAX
         JE      @@qt2
@@ -3231,7 +3231,7 @@ asm
         RET
 @@07:   XOR     EAX,EAX
         POP     EBX
-end;
+end; }
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;

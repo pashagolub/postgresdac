@@ -5,7 +5,7 @@ unit PSQLDump;
 
 interface
 
-Uses Classes, SysUtils, Windows, BDE, Db,DbTables,PSQLTypes,Math,
+Uses Classes, SysUtils, Windows, Db, PSQLTypes, Math,
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
      PSQLDbTables, PSQLAboutFrm;
 

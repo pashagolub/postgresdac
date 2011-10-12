@@ -319,10 +319,10 @@ end;}
 
 function GUIDToString(const AGUID: TGUID): AnsiString;
 var
-  P: Cardinal;
+  P: Cardinal absolute Result;
 begin
   SetLength(Result, 38);
-  P := Cardinal(Result);
+  //P := Cardinal(Result);
   PByte(P)^ := Ord('{'); Inc(P);
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).F3]; Inc(P, SizeOf(Word));
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).F2]; Inc(P, SizeOf(Word));
