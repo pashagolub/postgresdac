@@ -1181,7 +1181,7 @@ Var
 
 implementation
 
-uses  ActiveX, {$IFNDEF FPC}Forms, DBPWDlg, DBLogDlg, DBConsts, BDEConst,{$ENDIF}
+uses  ActiveX, {$IFNDEF FPC}Forms, DBPWDlg, DBLogDlg, DBConsts,{$ENDIF}
 {$IFDEF DELPHI_10}DBClient, {$ENDIF}
 {$IFDEF TRIAL}PSQLAboutFrm, {$ENDIF}
 PSQLDirectQuery, Math, PSQLFields;

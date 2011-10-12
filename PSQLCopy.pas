@@ -132,7 +132,7 @@ type
 
 implementation
 
-uses DB, BDEConst;
+uses DB;
 
 { TAbstractCopyObject }
 
