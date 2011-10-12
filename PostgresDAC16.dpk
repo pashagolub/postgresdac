@@ -30,7 +30,7 @@ package PostgresDAC16;
 requires
   vcl,
   vcldb,
-  bdertl,
+  //bdertl,
   rtl,
   dsnap,
   dbrtl;
