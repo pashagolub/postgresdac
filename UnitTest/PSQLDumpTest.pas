@@ -12,7 +12,7 @@ unit PSQLDumpTest;
 interface
 
 uses
-  TestFramework, Db, PSQLDump, PSQLTypes, BDE, Classes, SysUtils, PSQLDbTables, DbTables,
+  TestFramework, Db, PSQLDump, PSQLTypes, Classes, SysUtils, PSQLDbTables,
   Variants, Windows, Math, PSQLAboutFrm, TestExtensions;
 
 type
@@ -177,7 +177,6 @@ end;
 procedure TestTPSQLDump.TestDumpToFile;
 var
   Log: TStrings;
-  FileName: string;
 begin
   Log := TStringList.Create;
   try
