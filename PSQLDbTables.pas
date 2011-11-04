@@ -1109,7 +1109,8 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure ListenTo(Event: string);
-    procedure SendNotify(Event: string);
+    procedure SendNotify(Event: string); overload;
+    procedure SendNotify(Channel: string; Payload: string); overload;
     procedure UnlistenTo(Event: string);
     procedure UnlistenAll;
   published
@@ -6921,6 +6922,12 @@ begin
               (ddoStoreConnected in FDatabase.DesignOptions)
                or not (csDesigning in ComponentState)
                 );
+end;
+
+procedure TPSQLNotify.SendNotify(Channel, Payload: string);
+begin
+  CheckActive;
+  Check(Engine, Engine.DoNotifyEx(FHandle, Channel, Payload));
 end;
 
 procedure TPSQLNotify.SetActive(Value: Boolean);

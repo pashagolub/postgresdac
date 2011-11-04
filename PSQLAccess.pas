@@ -340,6 +340,7 @@ type
       function ListenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function UnlistenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function DoNotify(hNotify : hDBIObj; pszEvent: string) : DBIResult;
+      function DoNotifyEx(hNotify : hDBIObj; pszChannel: string; pszPayload: string) : DBIResult;
       function CheckEvents(hNotify : hDBIObj; var Pid : Integer; var pszOutPut, pszPayload : String)  : DBIResult;
       function GetBackendPID(hDb: hDBIDb; var PID: Integer): DBIResult;
       function GetServerVersion(hDb: hDBIDb; var ServerVersion: string): DBIResult;
@@ -877,6 +878,7 @@ end;
     procedure ListenTo(Event: string);
     procedure UnlistenTo(Event: string);
     procedure DoNotify(Event: string);
+    procedure DoNotifyEx(Channel: string; Payload: string);
     function CheckEvents(var PID : Integer; var Payload: string): string;
     property Handle: PPGnotify read fHandle;
   end;
@@ -7794,6 +7796,16 @@ begin
    end;
 end;
 
+function TPSQLEngine.DoNotifyEx(hNotify: hDBIObj; pszChannel: string; pszPayload: string): DBIResult;
+begin
+   try
+     TNativePGNotify(hNotify).DoNotifyEx(pszChannel, pszPayload);
+     Result := DBIERR_NONE;
+   except
+     Result := CheckError;
+   end;
+end;
+
 function TPSQLEngine.DoNotify(hNotify : hDBIObj; pszEvent: string) : DBIResult;
 begin
    try
@@ -7861,6 +7873,13 @@ begin
   Event := Trim(Event);
   if Event <> '' then
     InternalExecute('UNLISTEN ' + Event);
+end;
+
+procedure TNativePGNotify.DoNotifyEx(Channel, Payload: string);
+begin
+  Channel := Trim(Channel);
+  if Channel <> '' then
+    InternalExecute(Format('NOTIFY %s, %s', [Channel, QuotedStr(Payload)]));
 end;
 
 procedure TNativePGNotify.DoNotify(Event: string);
