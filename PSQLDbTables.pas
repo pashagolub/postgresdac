@@ -1111,6 +1111,7 @@ type
     procedure ListenTo(Event: string);
     procedure SendNotify(Event: string);
     procedure UnlistenTo(Event: string);
+    procedure UnlistenAll;
   published
     property Database: TPSQLDatabase read FDatabase write SetDatabase;
     property Active: Boolean read FActive write SetActive stored GetStoreActive;
@@ -6957,7 +6958,7 @@ end;
 procedure TPSQLNotify.ListenChanging(Sender: TObject);
 begin
   if not Active then Exit;
-  FBackupList.Text:=FListenList.Text;
+  FBackupList.Text := FListenList.Text;
 end;
 
 procedure TPSQLNotify.ListenChange(Sender: TObject);
@@ -7075,6 +7076,20 @@ procedure TPSQLNotify.SendNotify(Event: string);
 begin
   CheckActive;
   Check(Engine,Engine.DoNotify(FHandle, Event));
+end;
+
+procedure TPSQLNotify.UnlistenAll;
+begin
+  CheckActive;
+  Check(Engine, Engine.UnlistenTo(FHandle, '*'));
+  with TStringList(FListenList) do
+  begin
+    OnChange := nil;
+    OnChanging := nil;
+    Clear;
+    OnChange := ListenChange;
+    OnChanging := ListenChanging;
+  end;
 end;
 
 procedure TPSQLNotify.UnlistenTo(Event: string);
