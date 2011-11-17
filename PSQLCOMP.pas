@@ -9,7 +9,8 @@ Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
      {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF},
      Db, {$IFNDEF BCB}DsDesign,{$ENDIF} PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
      PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
-     PSQLDirectQuery, PSQLFields;
+     PSQLDirectQuery, PSQLFields,
+     ToolsAPI;
 
 type
     TAboutProperty = class(TPropertyEditor)
@@ -157,6 +158,7 @@ implementation
 
 uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes, DBCommon;
 
+{$R DB.DCR}
 {$R DBPRO.DCR}
 
 function GetPropertyValue(Instance: TPersistent; const PropName: string): TPersistent;
@@ -448,6 +450,17 @@ end;
 
 procedure Register;
 begin
+  {$IFDEF DELPHI_9}
+    if Assigned(SplashScreenServices) then
+    begin
+      ForceDemandLoadState(dlDisable);
+      SplashScreenServices.AddPluginBitmap(Format('MicroOLAP PostgresDAC Component Suite %s', [PSQLDBTables.VERSION]),
+                LoadBitmap(FindResourceHInstance(HInstance), 'LOGO'),
+                false,
+                PSQLDBTables.LICENSETYPE);
+    end;
+  {$ENDIF}
+
   RegisterComponents('PostgresDAC',
       [TPSQLDatabase, TPSQLTable, TPSQLQuery, TPSQLStoredProc, TPSQLUpdateSQL, TPSQLNotify,
       TPSQLBatchExecute, TPSQLMacroQuery, TPSQLMonitor, TPSQLDirectQuery,
@@ -735,6 +748,8 @@ procedure TPSQLParamOidPropertyEditor.SetValue(const Value: string);
 begin
   inherited SetValue(Copy(Value, Pos('=', Value) + 1, MaxInt));
 end;
+
+initialization
 
 end.
 
