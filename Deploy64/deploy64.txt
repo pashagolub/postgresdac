@@ -1,0 +1,17 @@
+In order to run applications using PostgresDAC 2.6.x on Windows 64-bit platform, 
+the PostgreSQL x64 client library must be available on a computer, it includes 
+the following files:
+
+    libpq.dll
+    libintl.dll
+    ssleay32.dll
+    libeay32.dll
+
+Copy these files to a directory on your PATH environment variable
+or place them in the directory where the client application is installed.
+
+Alternatively, you can make use of the installation package from
+PostgreSQL.org and install only the client libraries.
+
+PS There are no dump and restore libraries available for x64 platform yet.
+
