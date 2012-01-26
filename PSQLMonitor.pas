@@ -7,13 +7,13 @@ interface
 
 uses
   SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF} Windows, Messages, Classes, PSQLAccess,
-  Forms, Controls, DB, PSQLDbTables;
+  DB, PSQLDbTables{$IFNDEF FMX_AVAILABLE}, Forms{$ENDIF};
 
 const
-{$IFDEF FPC}
+  {Consts from Controls.pas}
   CM_BASE                   = $B000;
   CM_RELEASE                = CM_BASE + 33;
-{$ENDIF}
+
   WM_MIN_MONITOR = WM_USER;
   WM_MAX_MONITOR = WM_USER + 512;
   WM_SQL_EVENT = WM_MIN_MONITOR + 1;
@@ -771,8 +771,11 @@ begin
     end;
   end;
 
+  {$IFDEF FMX_AVAILABLE}
+  AppName := ''; //cannot use TApplication.Title 'cause have no idea if it's FMX or VCL
+  {$ELSE}
   AppName := Application.Title;
-//   vText := CRLF + '[Application: ' + Application.Title + ']' + CRLF + Text; {do not localize}
+  {$ENDIF}
   if not Assigned(FPSQLWriterThread) then
     FPSQLWriterThread := TMonitorWriterThread.Create;
 

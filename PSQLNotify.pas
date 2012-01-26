@@ -83,8 +83,7 @@ type
 
 implementation
 
-uses SysUtils, DB{$IFDEF DELPHI_15}, Diagnostics{$ENDIF}
-     {$IFDEF UNDER_DELPHI_6}, Windows{$ENDIF};
+uses SysUtils, DB{$IFDEF DELPHI_15}, Diagnostics{$ELSE}, Windows{$ENDIF};
 
 const LoopDelayStep = 50;
 
