@@ -1428,7 +1428,7 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
     begin
       Info := PStmtInfo(FStmtList[i]);
       if (Info.HashCode = HashCode) and
-         (AnsiStrIComp(PChar(Info.SQLText), SQL) = 0) then
+         AnsiSameText(PChar(Info.SQLText), SQL) then
       begin
         Result := Info;
         break;
@@ -2627,7 +2627,7 @@ end;
 procedure TPSQLDataSet.ClearCalcFields(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
  {$IFDEF DELPHI_12}
-  FillMemory(@(Buffer[RecordSize]), CalcFieldsSize, 0);
+  FillChar(Buffer[RecordSize], CalcFieldsSize, 0)
  {$ELSE}
   FillChar(Buffer[RecordSize], CalcFieldsSize, 0);
  {$ENDIF}
@@ -6687,7 +6687,7 @@ begin
     FDataSet.DataEvent(deFieldChange, Longint(FField));
   except
     {$IFNDEF FPC}
-    Application.HandleException(Self);
+    Self.FDataSet.InternalHandleException();
     {$ENDIF}
   end;
 end;
