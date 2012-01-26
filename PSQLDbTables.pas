@@ -5,14 +5,13 @@ unit PSQLDbTables;
 
 {$R-,T-,H+,X+}
 {$C+}
-Interface              
+interface
 
-Uses  Windows, SysUtils, Classes, Db, Controls,
+uses  SysUtils, Classes, Db,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
       {$IFDEF DELPHI_6}Variants,{$ENDIF}
       {$IFDEF FPC}Variants,{$ENDIF}
-      {$IFNDEF FPC}StdVCL,{$ENDIF} PSQLAccess, PSQLTypes,
-      ExtCtrls;
+      PSQLAccess, PSQLTypes;
 
 const
     VERSION : string = '2.7.0';
@@ -205,6 +204,7 @@ type
 
   TDatabaseNoticeEvent = procedure (Sender: TPSQLDatabase; Message: string) of object;
   TBaseDatabaseLoginEvent = procedure(Database: TPSQLDatabase; LoginParams: TStrings) of object;
+  TDbExceptionEvent = procedure (Sender: TObject; E: Exception) of object;
 
   TDBFlags = set of 0..15;
 
@@ -255,6 +255,7 @@ type
       FCheckIfActiveOnParamChange: boolean;
       FSSLMode: TSSLMode;
       FErrorVerbosity: TErrorVerbosity;
+      FOnException: TDbExceptionEvent;
       function GetNotifyItem(Index: Integer): TObject;
       function GetNotifyCount: Integer;
       procedure FillAddonInfo;
@@ -297,6 +298,8 @@ type
       function GetUserName: string;
       function GetUserPassword: string;
       function GetDatabaseName: string;
+      function GetSSLOption(Index: integer): string;
+      procedure SetSSLOption(Index: integer; Value: string);
     protected
       procedure DefineProperties(Filer: TFiler); override; //deal with old missing properties
       procedure CloseDatabaseHandle;
@@ -314,8 +317,6 @@ type
       procedure RemoveDatabase(Value : TPSQLDatabase);
       property CheckIfActiveOnParamChange: boolean read FCheckIfActiveOnParamChange write FCheckIfActiveOnParamChange;
       procedure WriteState(Writer: TWriter); override;
-      function GetSSLOption(Index: integer): string;
-      procedure SetSSLOption(Index: integer; Value: string);
     public
       constructor Create(AOwner: TComponent); override;
       destructor Destroy; override;
@@ -390,6 +391,7 @@ type
       property LoginPrompt;
       property OEMConvert: Boolean read FOEMConvert write FOEMConvert default False;
       property OnAdd: TNotifyEvent read FOnAdd;
+      property OnException: TDbExceptionEvent read FOnException write FOnException;
       property OnLogin: TBaseDatabaseLoginEvent read FOnLogin write FOnLogin;
       property OnNotice: TDatabaseNoticeEvent read FOnNotice write FOnNotice;
       property Owner: string read GetDBOwner write SetDummyStr stored False;
@@ -1095,62 +1097,6 @@ type
   end;
 
 
-//****************************************************************************//
-//                  TPSQLNotify Object                                        //
-//                  Asynchronous notifying                                    //
-//****************************************************************************//
-  TPSQLNotifyEvent = procedure (Sender: TObject; Event: string; ProcessID : Integer) of object;
-  TPSQLNotifyEventEx = procedure (Sender: TObject; Channel: string; Payload: string; ProcessID : Integer) of object;
-
-  TPSQLNotify = class (TComponent)
-  private
-    FHandle : hDBIObj;  //Handle
-    FActive : Boolean;
-    FAutoOpen: Boolean;
-    FListenList: TStrings;
-    FTimer: TTimer;
-    FDatabase: TPSQLDatabase;
-    FBackupList: TStringList;
-    FFirstConnect: Boolean;
-    FNotifyFired: TPSQLNotifyEvent;
-    FNotifyFiredEx: TPSQLNotifyEventEx;
-    function GetStoreActive: boolean;
-  protected
-    procedure SetActive(Value: Boolean);
-    function GetInterval: Cardinal;
-    procedure SetInterval(Value: Cardinal);
-    procedure SetListenList(Value: TStrings);
-    procedure SetDatabase(Value: TPSQLDatabase);
-    procedure ListenProc(Sender: TObject);
-    procedure CheckEvents;
-    procedure ListenChange(Sender: TObject);
-    procedure ListenChanging(Sender: TObject);
-    procedure CheckActive;
-    procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    procedure Loaded; override;
-    function  Engine : TPSQLEngine;
-    procedure OpenNotify;
-    procedure CloseNotify;
-    function CreateHandle : hDBIObj;
-    property Handle: hDBIObj read FHandle;
-  public
-    constructor Create(AOwner: TComponent); override;
-    destructor Destroy; override;
-    procedure ListenTo(Event: string);
-    procedure SendNotify(Event: string); overload;
-    procedure SendNotify(Channel: string; Payload: string); overload;
-    procedure UnlistenTo(Event: string);
-    procedure UnlistenAll;
-  published
-    property Database: TPSQLDatabase read FDatabase write SetDatabase;
-    property Active: Boolean read FActive write SetActive stored GetStoreActive;
-    property ListenList: TStrings read FListenList write SetListenList;
-    property Interval: Cardinal read GetInterval write SetInterval default 250;
-    property OnNotify: TPSQLNotifyEvent read FNotifyFired write FNotifyFired;
-    property OnNotifyEx: TPSQLNotifyEventEx read FNotifyFiredEx write FNotifyFiredEx;
-  end;
-
-
   TParamBindMode = (pbByName, pbByNumber);
 
   TSPParamDescList = array of SPParamDesc;
@@ -1211,20 +1157,20 @@ Var
 
 implementation
 
-uses  ActiveX, {$IFNDEF FPC}Forms, DBPWDlg, DBLogDlg, DBConsts,{$ENDIF}
-{$IFDEF DELPHI_10}DBClient, {$ENDIF}
-{$IFDEF TRIAL}PSQLAboutFrm, {$ENDIF}
-PSQLDirectQuery, Math, PSQLFields;
+uses
+{$IFNDEF FPC}
+  {$IFNDEF CONSOLE}
+    {$IFNDEF FMX_AVAILABLE}
+           Forms, DBPWDlg, DBLogDlg,
+    {$ENDIF}
+  {$ENDIF}
+{$ENDIF}
+  DBConsts,
+  {$IFDEF DELPHI_10}DBClient, {$ENDIF}
+  {$IFDEF TRIAL}PSQLAboutFrm, {$ENDIF}
+  PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
 
 {$R DB.DCR}
-
-var
-  TimerID: Word = 0;
-  SQLDelay: DWORD = 50;
-  StartTime: DWORD = 0;
-  BDEInitProcs: TList;
-
-
 
 //NoticeProcessor callback function
 procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar);
@@ -1264,21 +1210,6 @@ begin
   if Status <> 0 then TDbiError(Engine, Status);
 end;
 
-{ Timer callback function }
-procedure FreeTimer(ForceKill : Boolean = FALSE);
-begin
-  if (TimerID <> 0) and (ForceKill or (GetTickCount - StartTime > SQLDelay)) then
-  begin
-    KillTimer(0, TimerID);
-    TimerID   := 0;
-    StartTime := 0;
-    {$IFNDEF FPC}
-    Screen.Cursor := crDefault;
-    {$ENDIF}
-  end;
-end;
-
-
 function GetIntProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer): Integer;
 Var
   Length : Word;
@@ -1315,7 +1246,7 @@ constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
   end;
 
 begin
-  FreeTimer(TRUE);
+  //FreeTimer(TRUE);
   FErrorCode := ErrorCode;
   FErrorPos                :=engine.errorpos;
   FErrorContext            :=engine.errorcontext;
@@ -1759,16 +1690,22 @@ procedure TPSQLDatabase.Login(LoginParams: TStrings);
 var
   UserName, Password: string;
 begin
-  if Assigned(FOnLogin) then FOnLogin(Self, LoginParams) else
-  begin
-    UserName := LoginParams.Values['UID'];
-    {$IFNDEF FPC}
-    if not LoginDialogEx(DatabaseName, UserName, Password, FALSE) then
-    {$ENDIF}
-      DatabaseErrorFmt(SLoginError, [DatabaseName]);
-    LoginParams.Values['UID'] := UserName;
-    LoginParams.Values['PWD'] := Password;
-  end;
+  if Assigned(FOnLogin) then
+    FOnLogin(Self, LoginParams)
+  else
+    begin
+      UserName := LoginParams.Values['UID'];
+      {$IFNDEF FPC}
+        {$IFNDEF CONSOLE}
+          {$IFNDEF FMX_AVAILABLE}
+            if not LoginDialogEx(DatabaseName, UserName, Password, FALSE) then
+          {$ENDIF}
+        {$ENDIF}
+      {$ENDIF}
+        DatabaseErrorFmt(SLoginError, [DatabaseName]);
+      LoginParams.Values['UID'] := UserName;
+      LoginParams.Values['PWD'] := Password;
+    end;
 end;
 
 procedure TPSQLDatabase.CheckDatabase(var Password: string);
@@ -2419,10 +2356,7 @@ begin
   if FHandle = nil then
      FHandle := CreateHandle;
   if FHandle = nil then
-  begin
-    FreeTimer(TRUE);
     raise ENoResultSet.Create(SHandleError);
-  end;
   SetDBFlag(dbfOpened, TRUE);
   Inherited OpenCursor(InfoQuery);
   SetUpdateMode(FUpdateMode);
@@ -2634,10 +2568,14 @@ begin
 end;
 
 procedure TPSQLDataSet.InternalHandleException;
+var
+  O: TObject;
 begin
-  {$IFNDEF FPC}
-  Application.HandleException(Self)
-  {$ENDIF}
+  if not Assigned(FDatabase) then Exit;
+  O := ExceptObject;
+  if not Assigned(O) then Exit;
+  if (O is Exception) and not (O is EAbort) and Assigned(FDatabase.FOnException) then
+    FDatabase.FOnException(Self, Exception(O))
 end;
 
 ////////////////////////////////////////////////////////////
@@ -3526,7 +3464,7 @@ end;
 
 function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
 begin
-  FillMemory(Buffer, SizeOf(TKeyBuffer) + FRecordSize, 0);
+  FillChar(Buffer^, SizeOf(TKeyBuffer) + FRecordSize, 0);
   Engine.InitRecord(FHandle, PAnsiChar(Buffer) + SizeOf(TKeyBuffer));
   Result := Buffer;
 end;
@@ -3974,7 +3912,7 @@ begin
     OnFilterRecord(Self, Accept);
   except
     {$IFNDEF FPC}
-    Application.HandleException(Self);
+    InternalHandleException();
     {$ENDIF}
   end;
   RestoreState(SaveState);
@@ -4488,7 +4426,7 @@ begin
 {$ENDIF}
       begin
         {$IFNDEF FPC}
-        Application.HandleException(Self);
+        InternalHandleException();
         {$ENDIF}
         UpdateAction := uaAbort;
       end;
@@ -6900,289 +6838,13 @@ begin
   if FQuery.Active then  FQuery.CheckBrowseMode;
 end;
 
-
-constructor TPSQLNotify.Create(AOwner: TComponent);
-var I: integer;
-begin
-  inherited Create(AOwner);
-  FListenList := TStringList.Create;
-  with TStringList(FListenList) do
-  begin
-    Duplicates := dupIgnore;
-    OnChange := ListenChange;
-    OnChanging := ListenChanging;
-  end;
-  FBackupList := TStringList.Create;
-  FTimer := TTimer.Create(Self);
-  FTimer.Enabled := False;
-  SetInterval(250);
-//  FTimer.Interval := 250;
-  FTimer.OnTimer := ListenProc;
-  FActive := False;
-  FFirstConnect := True;
-
-  if (csDesigning in ComponentState) and Assigned(AOwner) then
-    for I := AOwner.ComponentCount - 1 downto 0 do
-      if AOwner.Components[I] is TPSQLDatabase then
-      begin
-         Database := AOwner.Components[I] as TPSQLDatabase;
-         Break;
-      end;
-end;
-
-destructor TPSQLNotify.Destroy;
-begin
-  CloseNotify;
-  FListenList.Free;
-  FBackupList.Free;
-  FTimer.Free;
-  if FHandle <> nil then
-     Engine.ClosePGNotify(FHandle);
-  inherited Destroy;
-end;
-
-procedure TPSQLNotify.SetInterval(Value: Cardinal);
-begin
-  FTimer.Interval := Value;
-end;
-
-function TPSQLNotify.GetInterval;
-begin
-  Result := FTimer.Interval;
-end;
-
-procedure TPSQLNotify.SetListenList(Value: TStrings);
-var
-  I: Integer;
-begin
-  FListenList.Assign(Value);
-  for I := 0 to FListenList.Count -1 do
-    FListenList[I] := Trim(FListenList[I]);
-end;
-
-function TPSQLNotify.GetStoreActive: boolean;
-begin
- Result := Active
-            and Assigned(FDatabase)
-            and (
-              (ddoStoreConnected in FDatabase.DesignOptions)
-               or not (csDesigning in ComponentState)
-                );
-end;
-
-procedure TPSQLNotify.SendNotify(Channel, Payload: string);
-begin
-  CheckActive;
-  Check(Engine, Engine.DoNotifyEx(FHandle, Channel, Payload));
-end;
-
-procedure TPSQLNotify.SetActive(Value: Boolean);
-begin
-  if FActive <> Value then
-  begin
-    if Value then
-       OpenNotify else
-       CloseNotify;
-  end;
-end;
-
-procedure TPSQLNotify.SetDatabase(Value: TPSQLDatabase);
-begin
-  if FDatabase <> Value then
-  begin
-    CloseNotify;
-    if FDatabase <> nil then FDatabase.RemoveNotify(Self);
-    FDatabase := Value;
-    if FDatabase <> nil then FDatabase.AddNotify(Self);
-  end;
-end;
-
-procedure TPSQLNotify.Notification(AComponent: TComponent; Operation: TOperation);
-begin
-  inherited Notification(AComponent, Operation);
-  if (AComponent = FDatabase) and (Operation = opRemove) then
-  begin
-    CloseNotify;
-    if  FDatabase <> nil then FDatabase.RemoveNotify(Self);
-    FDatabase := nil;
-  end;
-end;
-
-procedure TPSQLNotify.ListenChanging(Sender: TObject);
-begin
-  if not Active then Exit;
-  FBackupList.Text := FListenList.Text;
-end;
-
-procedure TPSQLNotify.ListenChange(Sender: TObject);
-var
-  I: Integer;
-begin
-  if not Active then Exit;
-  with TStringList(FListenList) do
-  begin
-    OnChange := nil;
-    OnChanging := nil;
-  end;
-  try
-    for I := 0 to FBackupList.Count-1 do
-    begin
-      if FListenList.IndexOf(FBackupList[I]) = -1 then
-         Check(Engine,Engine.UnlistenTo(FHandle, Trim(FBackupList[I])));
-    end;
-    for I := 0 to FListenList.Count-1 do
-    begin
-      if FBackupList.IndexOf(FListenList[I])=-1 then
-         Check(Engine,Engine.ListenTo(fHandle,Trim(FListenList[I])));
-    end;
-  finally
-    with TStringList(FListenList) do
-    begin
-      OnChange := ListenChange;
-      OnChanging := ListenChanging;
-    end;
-    FBackupList.Clear;
-  end;
-end;
-
-procedure TPSQLNotify.ListenProc(Sender: TObject);
-begin
-  if not Active then
-     FTimer.Enabled := False else
-     CheckEvents;
-end;
-
-procedure TPSQLNotify.CheckActive;
-begin
-  if not Assigned(FDatabase) then DatabaseError('Property Database not set!');
-  if not Active then DatabaseError('TPSQLNotify not in active mode');
-end;
-
-procedure TPSQLNotify.Loaded;
-begin
-  inherited Loaded;
-  if FAutoOpen then
-  begin
-    FAutoOpen := False;
-    OpenNotify;
-  end;
-end;
-
-function TPSQLNotify.Engine : TPSQLEngine;
-begin
-   Result := FDataBase.Engine;
-end;
-
-function TPSQLNotify.CreateHandle:hDBIObj;
-var
-  PObj: phDBIObj;
-begin
-   PObj := @Result;
-   Check(Engine, Engine.OpenPGNotify(FDatabase.Handle, PObj^));
-end;
-
-procedure TPSQLNotify.OpenNotify;
-var
-  I: Integer;
-begin
-  if Active then Exit;
-  if not Assigned(FDatabase) and (csLoading in ComponentState) then
-  begin
-    FAutoOpen := True;
-    Exit;
-  end;
-  if not Assigned(FDatabase) then DatabaseError('Property Database not set!');
-  if not FDatabase.Connected then FDatabase.Open;
-  if not Assigned(FHandle) then FHandle := CreateHandle;
-  for I := 0 to FListenList.Count-1 do
-      Check(Engine,Engine.ListenTo(FHandle, FListenList[I]));
-  FActive := True;
-  FTimer.Enabled := True;
-end;
-
-procedure TPSQLNotify.CloseNotify;
-var
-  I: Integer;
-begin
-  if not Active then Exit;
-  FActive := False;
-  FTimer.Enabled := False;
-  for I := 0 to FListenList.Count-1 do
-      Check(Engine,Engine.UnlistenTo(FHandle, FListenList[I]));
-end;
-
-procedure TPSQLNotify.ListenTo(Event: string);
-begin
-  CheckActive;
-  Check(Engine,Engine.ListenTo(FHandle, Trim(Event)));
-  with TStringList(FListenList) do
-  begin
-    OnChange := nil;
-    OnChanging := nil;
-    if IndexOf(Event) = -1 then Append(Event);
-    OnChange := ListenChange;
-    OnChanging := ListenChanging;
-  end;
-end;
-
-procedure TPSQLNotify.SendNotify(Event: string);
-begin
-  CheckActive;
-  Check(Engine,Engine.DoNotify(FHandle, Event));
-end;
-
-procedure TPSQLNotify.UnlistenAll;
-begin
-  CheckActive;
-  Check(Engine, Engine.UnlistenTo(FHandle, '*'));
-  with TStringList(FListenList) do
-  begin
-    OnChange := nil;
-    OnChanging := nil;
-    Clear;
-    OnChange := ListenChange;
-    OnChanging := ListenChanging;
-  end;
-end;
-
-procedure TPSQLNotify.UnlistenTo(Event: string);
-begin
-  CheckActive;
-  Check(Engine,Engine.UnlistenTo(FHandle, Trim(Event)));
-  with TStringList(FListenList) do
-  begin
-    OnChange := nil;
-    OnChanging := nil;
-    Delete(IndexOf(Event));
-    OnChange := ListenChange;
-    OnChanging := ListenChanging;
-  end;
-end;
-
-procedure TPSQLNotify.CheckEvents;
-var
-  Notify, Payload : string;
-  Pid    : Integer;
-begin
-  CheckActive;
-  while True do
-  begin
-    Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify, Payload));
-    if Notify = '' then Break;
-    if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
-    if Assigned(FNotifyFiredEx) then FNotifyFiredEx(Self, Notify, Payload, Pid);
-  end;
-end;
-
 var
   SaveInitProc: Pointer;
-  NeedToUninitialize: Boolean;
 
 procedure InitDBTables;
 begin
   if (SaveInitProc <> NIL) then
-    Tprocedure(SaveInitProc);
-  NeedToUninitialize := Succeeded(CoInitialize(NIL));
+    TProcedure(SaveInitProc);
 end;
 
 
@@ -7685,10 +7347,6 @@ initialization
 finalization
 
   DBList.Free;
-  FreeAndNil(BDEInitProcs);
-  FreeTimer(TRUE);
-
-  if NeedToUninitialize then  CoUninitialize;
 
   if not IsLibrary then
     InitProc := SaveInitProc;
