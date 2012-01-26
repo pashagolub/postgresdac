@@ -88,6 +88,7 @@
 			<DCCReference Include="PSQLDirectQuery.pas"/>
 			<DCCReference Include="PSQLExtMask.pas"/>
 			<DCCReference Include="PSQLFields.pas"/>
+			<DCCReference Include="PSQLNotify.pas"/>
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>

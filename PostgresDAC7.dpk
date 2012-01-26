@@ -49,6 +49,7 @@ contains
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',
   psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},
-  PSQLFields in 'PSQLFields.pas';
+  PSQLFields in 'PSQLFields.pas',
+  PSQLNotify in 'PSQLNotify.pas';
 
 end.

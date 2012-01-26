@@ -1,6 +1,7 @@
 package PostgresDAC16;
 
 {$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
 {$ASSERTIONS OFF}
 {$BOOLEVAL OFF}
@@ -22,15 +23,15 @@ package PostgresDAC16;
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
+{$DEFINE RELEASE}
+{$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$RUNONLY}
 {$IMPLICITBUILD OFF}
-{$DEFINE RELEASE}
 
 requires
   vcl,
   vcldb,
-  //bdertl,
   rtl,
   dsnap,
   dbrtl;
@@ -51,6 +52,7 @@ contains
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',
-  PSQLFields in 'PSQLFields.pas';
+  PSQLFields in 'PSQLFields.pas',
+  PSQLNotify in 'PSQLNotify.pas';
 
 end.

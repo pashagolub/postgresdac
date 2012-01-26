@@ -49,6 +49,7 @@ contains
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',
-  PSQLFields in 'PSQLFields.pas';
+  PSQLFields in 'PSQLFields.pas',
+  PSQLNotify in 'PSQLNotify.pas';
 
 end.
