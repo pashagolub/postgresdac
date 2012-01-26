@@ -24,8 +24,9 @@
 //---------------------------
 // Delphi/Builder versions
 //---------------------------
-//DELPHI 16 (Delphi Pulsar)
+//DELPHI 16 (Delphi XE2)
 {$IFDEF VER230}
+  {$DEFINE FMX_AVAILABLE}
   {$DEFINE DELPHI_16}
   {$DEFINE DELPHI_15}
   {$DEFINE DELPHI_14}
