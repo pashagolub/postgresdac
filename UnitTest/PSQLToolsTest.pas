@@ -120,8 +120,10 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  ComponentToFile(DB, 'PSQLToolsTest.conf');
+
   DB.Execute('DROP TABLE tools_test_case_table CASCADE');
+  DB.Close;
+  ComponentToFile(DB, 'PSQLToolsTest.conf');
   Tools.Free;
   DB.Free;
 end;

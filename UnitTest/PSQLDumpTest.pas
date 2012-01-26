@@ -244,6 +244,7 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
+  QryDB.Close;
   ComponentToFile(QryDB, 'PSQLDump.conf');
   QryDB.Free;
 end;

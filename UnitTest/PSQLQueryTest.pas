@@ -81,6 +81,7 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
+  QryDB.Close;
   ComponentToFile(QryDB, 'PSQLQueryTest.conf');
   QryDB.Free;
 end;

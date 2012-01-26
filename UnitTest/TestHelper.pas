@@ -16,7 +16,12 @@ var
 begin
   DB := TPSQLDatabase.Create(nil);
   if FileExists(ConfFileName) then
+  try
     FileToComponent(ConfFileName, DB);
+    DB.Close;
+  except
+    on E: EPSQLDatabaseError do //nothing, failed connection
+  end;
   Application.CreateForm(TPSQLConnForm, Frm);
   try
     with Frm do

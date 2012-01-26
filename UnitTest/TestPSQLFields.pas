@@ -214,8 +214,9 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  ComponentToFile(FldDB, 'PSQLQueryTest.conf');
   FldDB.Execute('DROP TABLE uuid_test_case_table');
+  FldDB.Close;
+  ComponentToFile(FldDB, 'PSQLQueryTest.conf');
   FldQry.Free;
   FldDB.Free;
 end;

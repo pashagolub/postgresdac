@@ -326,6 +326,7 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
+  FPSQLDatabase.Close;
   ComponentToFile(FPSQLDatabase, 'PSQLDatabaseTest.conf');
   FPSQLDatabase.Free;
 end;

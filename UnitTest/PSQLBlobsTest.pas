@@ -119,8 +119,9 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  ComponentToFile(QryDB, 'PSQLBlobs.conf');
   QryDB.Execute('DROP TABLE blobs_test_case_table');
+  QryDB.Close;
+  ComponentToFile(QryDB, 'PSQLBlobs.conf');
   QryDB.Free;
 end;
 
