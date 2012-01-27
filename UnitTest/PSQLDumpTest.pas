@@ -200,7 +200,7 @@ procedure TestTPSQLRestore.SetUp;
 begin
   FPSQLRestore := TPSQLRestore.Create(nil);
   FPSQLRestore.Database := QryDb;
-  FPSQLRestore.Options := [doVerbose];
+  FPSQLRestore.Options := [roVerbose];
   QryDb.Execute('CREATE DATABASE restore_test TEMPLATE template0;')
 end;
 
