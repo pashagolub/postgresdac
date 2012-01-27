@@ -37,7 +37,6 @@ contains
   PSQLTypes in 'PSQLTypes.pas',
   PSQLAccess in 'PSQLAccess.pas',
   PSQLDbTables in 'PSQLDbTables.pas',
-  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},
   psqlBatch in 'psqlBatch.pas',
   PSQLMacroQuery in 'PSQLMacroQuery.pas',
   PSQLMonitor in 'PSQLMonitor.pas',
