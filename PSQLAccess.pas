@@ -923,6 +923,12 @@ uses PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
 {                     Utility Objects                                      }
 {**************************************************************************}
 
+{$IFDEF TRIAL}
+function PQntuples(Res: PPGresult): Integer;
+begin
+  Result := Min(PSQLTypes.PQntuples(Res), 25);
+end;
+{$ENDIF}
 
 {$IFDEF M_DEBUG}
 var F: TextFile;
