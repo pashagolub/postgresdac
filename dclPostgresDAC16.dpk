@@ -52,6 +52,8 @@ contains
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
   PSQLMigrator in 'PSQLMigrator.pas',
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
-  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm};
+  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm},
+  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp};
 
 end.
+

@@ -110,9 +110,6 @@
 			<DCCReference Include="PSQLTypes.pas"/>
 			<DCCReference Include="PSQLAccess.pas"/>
 			<DCCReference Include="PSQLDbTables.pas"/>
-			<DCCReference Include="psqlAboutFrm.pas">
-				<Form>PSQLAboutComp</Form>
-			</DCCReference>
 			<DCCReference Include="psqlBatch.pas"/>
 			<DCCReference Include="PSQLMacroQuery.pas"/>
 			<DCCReference Include="PSQLMonitor.pas"/>
