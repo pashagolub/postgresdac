@@ -43,9 +43,6 @@
     <DCCReference Include="bdertl.dcp" />
     <DCCReference Include="dbrtl.dcp" />
     <DCCReference Include="dsnap.dcp" />
-    <DCCReference Include="psqlAboutFrm.pas">
-      <Form>PSQLAboutComp</Form>
-    </DCCReference>
     <DCCReference Include="PSQLAccess.pas" />
     <DCCReference Include="psqlBatch.pas" />
     <DCCReference Include="PSQLCommon.pas" />
