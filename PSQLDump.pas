@@ -7,7 +7,7 @@ interface
 
 Uses Classes, SysUtils, Windows, Db, PSQLTypes, Math,
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
-     PSQLDbTables, PSQLAboutFrm;
+     PSQLDbTables;
 
 type
   Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;

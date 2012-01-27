@@ -1167,7 +1167,6 @@ uses
 {$ENDIF}
   DBConsts,
   {$IFDEF DELPHI_10}DBClient, {$ENDIF}
-  {$IFDEF TRIAL}PSQLAboutFrm, {$ENDIF}
   PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
 
 {$R DB.DCR}
@@ -1741,9 +1740,6 @@ begin
   if FHandle = nil then
   begin
     InitEngine;
-    {$IFDEF TRIAL}
-    Dac4PSQLShowAbout(Self.ClassName);
-    {$ENDIF}
     CheckDatabase(DBPassword);
     OEMConv := FOEMConvert;
     Check(Engine, Engine.OpenDatabase(FParams, FHandle));

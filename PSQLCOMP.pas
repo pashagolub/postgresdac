@@ -7,10 +7,9 @@ interface
 
 Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
      {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF},
-     Db, {$IFNDEF BCB}DsDesign,{$ENDIF} PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
-     PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump, PSQLCopy, PSQLMetaData,
-     PSQLDirectQuery, PSQLFields, PSQLNotify,
-     ToolsAPI;
+     Db, {$IFNDEF BCB}DsDesign,{$ENDIF} PSQLFldLinks, PSQLDbTables, PSQLupdsqled,
+     PSQLBatch, PSQLMacroQuery, PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump,
+     PSQLCopy, PSQLMetaData, PSQLDirectQuery, PSQLFields, PSQLNotify, ToolsAPI;
 
 type
     TAboutProperty = class(TPropertyEditor)
