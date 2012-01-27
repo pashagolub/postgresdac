@@ -34,6 +34,7 @@ requires
 contains
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
   PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
+  psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp},  
   PSQLCOMP in 'PSQLCOMP.pas',
   PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
