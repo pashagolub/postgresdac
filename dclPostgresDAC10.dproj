@@ -79,6 +79,9 @@
     <DCCReference Include="PSQLConnFrm.pas">
       <Form>PSQLConnForm</Form>
     </DCCReference>
+    <DCCReference Include="psqlAboutFrm.pas">
+      <Form>PSQLAboutComp</Form>
+    </DCCReference>	
     <DCCReference Include="PSQLfldlinks.pas">
       <Form>PSQLLinkFields</Form>
     </DCCReference>
