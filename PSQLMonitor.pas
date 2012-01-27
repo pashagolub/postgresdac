@@ -527,13 +527,7 @@ end;
 
 function  TPSQLMonitorHook.SQLString(k:integer):Byte;
 begin
-// {$IFDEF TRIAL}
-//  if (k mod 5)>0 then
-//   Result:=FReserved^ else
-//   Result:=FReserved1^;
-// {$ELSE}
   Result:=127
-// {$ENDIF}
 end;
 
 procedure TPSQLMonitorHook.DBConnect(db: TNativeConnect; const AExecOK: boolean);
