@@ -58,7 +58,7 @@ type
 
 var
   QryDb: TPSQLDatabase;
-  DumpFileName: string = 'TestDumpToFile.backup';
+  DumpFileName: string = 'TestOutput\TestDumpToFile.backup';
 
 
 implementation
@@ -103,6 +103,7 @@ begin
       FPSQLDump.DumpToStream(Stream, Log);
       Check(Stream.Size > 0, 'Dump stream empty');
       Check(Log.Count > 0, 'Dump log empty');
+      Log.SaveToFile('TestOutput\TestDumpToStream1.log');
     finally
       Log.Free;
     end;
@@ -118,14 +119,10 @@ var
 begin
   Stream := TMemoryStream.Create;
   try
-    LogFileName := 'TestDumpToStream2.log';
-    try
-      FPSQLDump.DumpToStream(Stream, LogFileName);
-      Check(Stream.Size > 0, 'Dump stream empty');
-      Check(FileExists(LogFileName), 'Log file empty');
-    finally
-      SysUtils.DeleteFile(LogFileName);
-    end;
+    LogFileName := 'TestOutput\TestDumpToStream2.log';
+    FPSQLDump.DumpToStream(Stream, LogFileName);
+    Check(Stream.Size > 0, 'Dump stream empty');
+    Check(FileExists(LogFileName), 'Log file empty');
   finally
     Stream.Free;
   end;
@@ -141,7 +138,7 @@ end;
 
 procedure TestTPSQLDump.TestDumpDirectory;
 begin
-  DumpFileName := 'TestDumpToFile';
+  DumpFileName := 'TestOutput\TestDumpToFile';
   FPSQLDump.DumpFormat := dfDirectory;
   FPSQLDump.RewriteFile := True;
   TestDumpToFile();
@@ -149,7 +146,7 @@ end;
 
 procedure TestTPSQLDump.TestDumpPlain;
 begin
-  DumpFileName := 'TestDumpToFile.sql';
+  DumpFileName := 'TestOutput\TestDumpToFile.sql';
   FPSQLDump.DumpFormat := dfPlain;
   FPSQLDump.CompressLevel := 0;
   FPSQLDump.RewriteFile := True;
@@ -158,7 +155,7 @@ end;
 
 procedure TestTPSQLDump.TestDumpPlainCompressed;
 begin
-  DumpFileName := 'TestDumpToFile.gz';
+  DumpFileName := 'TestOutput\TestDumpToFile.gz';
   FPSQLDump.DumpFormat := dfPlain;
   FPSQLDump.CompressLevel := 6;
   FPSQLDump.RewriteFile := True;
@@ -167,7 +164,7 @@ end;
 
 procedure TestTPSQLDump.TestDumpTar;
 begin
-  DumpFileName := 'TestDumpToFile.tar';
+  DumpFileName := 'TestOutput\TestDumpToFile.tar';
   FPSQLDump.DumpFormat := dfTarArchive;
   FPSQLDump.CompressLevel := 0;
   FPSQLDump.RewriteFile := True;
@@ -184,6 +181,7 @@ begin
     Check(FileExists(DumpFileName), 'Dump file empty');
     Check(Log.Count > 0, 'Dump log empty');
   finally
+    Log.SaveToFile('TestOutput\TestDumpToFile.log');
     Log.Free;
   end;
 end;
@@ -192,25 +190,25 @@ procedure TestTPSQLDump.TestDumpToFile1;
 var
   LogFileName: string;
 begin
-  LogFileName := 'TestDumpToFile1.log';
-  try
-    FPSQLDump.DumpToFile(DumpFileName, LogFileName);
-    Check(FileExists(DumpFileName), 'Dump file empty');
-    Check(FileExists(LogFileName), 'Log file empty');
-  finally
-    SysUtils.DeleteFile(LogFileName);
-  end;
+  LogFileName := 'TestOutput\TestDumpToFile1.log';
+  FPSQLDump.DumpToFile(DumpFileName, LogFileName);
+  Check(FileExists(DumpFileName), 'Dump file empty');
+  Check(FileExists(LogFileName), 'Log file empty');
 end;
 
 procedure TestTPSQLRestore.SetUp;
 begin
   FPSQLRestore := TPSQLRestore.Create(nil);
+  FPSQLRestore.Database := QryDb;
+  FPSQLRestore.Options := [doVerbose];
+  QryDb.Execute('CREATE DATABASE restore_test TEMPLATE template0;')
 end;
 
 procedure TestTPSQLRestore.TearDown;
 begin
   FPSQLRestore.Free;
   FPSQLRestore := nil;
+  QryDb.Execute('DROP DATABASE restore_test;')
 end;
 
 procedure TestTPSQLRestore.TestRestoreFromFile;
@@ -218,9 +216,15 @@ var
   Log: TStrings;
   FileName: string;
 begin
-  // TODO: Setup method call parameters
-  FPSQLRestore.RestoreFromFile(FileName, Log);
-  // TODO: Validate method results
+  Log := TStringList.Create;
+  try
+    FileName := DumpFileName;
+    FPSQLRestore.DBName := 'restore_test';
+    FPSQLRestore.RestoreFromFile(FileName, Log);
+    Log.SaveToFile('TestOutput\TestRestoreFromFile.log');
+  finally
+    Log.Free;
+  end;
 end;
 
 procedure TestTPSQLRestore.TestRestoreFromFile1;
@@ -228,9 +232,11 @@ var
   LogFileName: string;
   FileName: string;
 begin
-  // TODO: Setup method call parameters
+  LogFileName := 'TestOutput\TestRestoreFromFile1.log';
+  FileName := DumpFileName;
   FPSQLRestore.RestoreFromFile(FileName, LogFileName);
-  // TODO: Validate method results
+  Check(FileExists(DumpFileName), 'Dump file empty');
+  Check(FileExists(LogFileName), 'Log file empty');
 end;
 
 { TDbSetup }
