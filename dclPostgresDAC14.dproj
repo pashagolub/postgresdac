@@ -66,6 +66,9 @@
 			<DCCReference Include="PSQLupdsqled.pas">
 				<Form>PSQLUpdateSQLEditForm</Form>
 			</DCCReference>
+			<DCCReference Include="psqlAboutFrm.pas">
+				<Form>PSQLAboutComp</Form>
+			</DCCReference>			
 			<DCCReference Include="PSQLCOMP.pas"/>
 			<DCCReference Include="PSQLConnFrm.pas">
 				<Form>PSQLConnForm</Form>
