@@ -5,8 +5,7 @@ unit PSQLTools;
 
 interface
 
-uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Messages, SysUtils, Classes,
-    Graphics, Controls, PSQLDbTables, PSQLAccess, Dialogs;
+uses {$IFDEF FPC}LCLIntf,{$ENDIF} SysUtils, Classes, PSQLDbTables, PSQLAccess, PSQLTypes;
 
 type
   EPSQLToolsException = class(Exception);
@@ -61,8 +60,6 @@ type
 
 
 implementation
-
-uses PSQLTypes;
 
 { TPSQLTools }
 
