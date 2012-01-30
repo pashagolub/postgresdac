@@ -4,7 +4,7 @@ unit PSQLMigrator;
 {SVN revision: $Id$}
 
 interface
-uses Classes, DB, PSQLDBTables, PSQLMacroQuery, Forms, SysUtils, DBTables;
+uses Classes, DB, PSQLDBTables, PSQLMacroQuery, Forms, SysUtils, DBTables, PSQLTypes;
 
 type
 
