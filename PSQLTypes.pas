@@ -2132,7 +2132,7 @@ function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 implementation
 
 uses DB, PSQLDbTables, PSQLAccess,
-     {$IFDEF MSWINDOWS}Winapi.Windows{$ENDIF}
+     {$IFDEF MSWINDOWS}Windows{$ENDIF}
      {$IFDEF MACOS}Macapi.CoreServices{$ENDIF};
 
 procedure ZeroMemory(Destination: Pointer; Length: integer);
