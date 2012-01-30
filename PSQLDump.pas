@@ -5,9 +5,7 @@ unit PSQLDump;
 
 interface
 
-Uses Classes, SysUtils, Windows, Db, PSQLTypes, Math,
-     {$IFDEF DELPHI_6}Variants,{$ENDIF}
-     PSQLDbTables;
+Uses Classes, SysUtils, Db, PSQLTypes, Math, PSQLDbTables;
 
 type
   Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
@@ -292,7 +290,13 @@ const
 
 implementation
 
-uses PSQLAccess;
+uses PSQLAccess,
+{$IFDEF MSWINDOWS}
+  Winapi.Windows,
+{$ENDIF}
+{$IFDEF POSIX}
+  Posix.SysTypes, Posix.Stdio, Posix.Stdlib
+{$ENDIF};
 
 var ProccessOwner: TComponent = nil;
 
@@ -304,6 +308,87 @@ begin
   Revision := VerInt mod 100;
   Result := Format('%d.%d.%d', [Major, Minor, Revision]);
 end;
+
+function GetTempFileName: string;
+{$IFDEF MSWINDOWS}
+var
+  TempPath: string;
+  ErrCode: UINT;
+begin
+  TempPath := GetTempPath;
+  SetLength(Result, MAX_PATH);
+
+  SetLastError(ERROR_SUCCESS);
+  ErrCode := Winapi.Windows.GetTempFileName(PChar(TempPath), 'tmp', 0, PChar(Result)); // DO NOT LOCALIZE
+  if ErrCode = 0 then
+    raise EInOutError.Create(SysErrorMessage(GetLastError));
+
+  SetLength(Result, StrLen(PChar(Result)));
+end;
+{$ENDIF}
+{$IFDEF POSIX}
+var
+  LTempPath: PAnsiChar;
+begin
+  { Obtain a temporary file name }
+  LTempPath := tmpnam(nil);
+
+  { Convert to UTF16 or leave blank on possible error }
+  if LTempPath <> nil then
+    Result := UTF8ToUnicodeString(LTempPath)
+  else
+    Result := '';
+end;
+{$ENDIF}
+
+function GetTempPath: string;
+{$IFDEF MSWINDOWS}
+var
+  Len: Integer;
+begin
+  SetLastError(ERROR_SUCCESS);
+
+  // get memory for the buffer retaining the temp path (plus null-termination)
+  SetLength(Result, MAX_PATH);
+  Len := Winapi.Windows.GetTempPath(MAX_PATH, PWideChar(Result));
+  if Len <> 0 then
+  begin
+    Len := GetLongPathName(PChar(Result), nil, 0);
+    GetLongPathName(PChar(Result), PChar(Result), Len);
+    SetLength(Result, Len - 1);
+  end
+  else
+    Result := '';
+end;
+{$ENDIF}
+{$IFDEF POSIX}
+const
+  CEnvVars: array[0..2] of AnsiString = ('TMPDIR', 'TMP', 'TEMP'); // Do not localize
+  CTmpDir = '/tmp'; // Do not localize
+
+var
+  LTempPathVar: PAnsiChar;
+  I: Integer;
+begin
+  { Lookup env variables, in order: TMPDIR, TMP, TEMP }
+  for I := Low(CEnvVars) to High(CEnvVars) do
+  begin
+    LTempPathVar := getenv(PAnsiChar(CEnvVars[I]));
+
+    if (LTempPathVar <> nil) and (LTempPathVar^ <> #0) then
+    begin
+      { We have found our temporary path }
+      Break;
+    end;
+  end;
+
+  { Get the UTF16 value out of the UTF8 one. The last resort is to fallback to /tmp }
+  if LTempPathVar <> nil then
+    Result := UTF8ToUnicodeString(LTempPathVar)
+  else
+    Result := CTmpDir;
+end;
+{$ENDIF}
 
 { TpdmvmParams }
 procedure TpdmvmParams.Add(aStr: string);
@@ -427,15 +512,15 @@ end;
 
 procedure TPSQLDump.DumpToFile(const FileName: string; Log: TStrings);
 var
-   tmpPath, tmpLogFile: array[0..MAX_PATH] of char;
+   tmpLogFile: string;
 begin
-  If (GetTempPath(MAX_PATH, tmpPath) = 0) or
-     (GetTempFileName(tmpPath,'pgd',0,tmpLogFile) = 0) then
+  tmpLogFile := GetTempFileName();
+  if tmpLogFile = '' then
     raise EPSQLDumpException.Create('Can''t create temporary log file');
   try
-    DumpToFile(FileName,tmpLogFile);
+    DumpToFile(FileName, tmpLogFile);
   finally
-    If Assigned(Log) then
+    if Assigned(Log) then
       Log.LoadFromFile(tmpLogFile);
     SysUtils.DeleteFile(tmpLogFile);
   end;
@@ -559,12 +644,11 @@ end;
 
 procedure TPSQLDump.DumpToStream(Stream: TStream; Log: TStrings);
 var
-   tmpPath, tmpLogFile: array[0..MAX_PATH] of char;
+   tmpLogFile: string;
 begin
-  tmpLogFile := '';
+  tmpLogFile := GetTempFileName();
   if Assigned(Log) then
-    if (GetTempPath(MAX_PATH, tmpPath) = 0) or
-       (GetTempFileName(tmpPath,'pgd',0,tmpLogFile) = 0) then
+    if tmpLogFile = '' then
       raise EPSQLDumpException.Create('Can''t create temporary log file');
   try
     DumpToStream(Stream,tmpLogFile);
@@ -579,15 +663,15 @@ end;
 
 procedure TPSQLDump.DumpToStream(Stream: TStream; LogFileName: string);
 var
-   tmpPath, tmpTargetFile: array[0..MAX_PATH] of char;
+   tmpTargetFile: string;
    FS: TFileStream;
 begin
-  if (GetTempPath(MAX_PATH, tmpPath) = 0) or
-     (GetTempFileName(tmpPath,'pgd',0,tmpTargetFile) = 0) then
+  tmpTargetFile := GetTempFileName();
+  if tmpTargetFile = '' then
     raise EPSQLDumpException.Create('Can''t create temporary target file');
   try
     DumpToFile(tmpTargetFile,LogFileName);
-    If Assigned(Stream) then
+    if Assigned(Stream) then
      begin
       FS := TFileStream.Create(tmpTargetFile,fmOpenRead);
       try
@@ -646,19 +730,19 @@ begin
    LogDebugMessage('DUMPLIB', GetModuleName(h));
   {$ENDIF}
   try
-    @pdmvm_dump := GetProcAddress(h, PAnsiChar('pdmvm_dump'));
+    @pdmvm_dump := GetProcAddress(h, PChar('pdmvm_dump'));
     if not assigned(@pdmvm_dump) then
       raise EPSQLDumpException.Create('Can''t load pg_dump.dll');
 
-    @pdmvm_GetLastError := GetProcAddress(h, PAnsiChar('pdmbvm_GetLastError'));
-    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
+    @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
+    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
 
     {$IFDEF M_DEBUG}
     LogDebugMessage('DUMPVER', IntToStr(pdmbvm_GetVersionAsInt()));
     {$ENDIF}
 
-    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
-    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
+    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
+    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
 
 
 
@@ -739,7 +823,7 @@ begin
   if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
   h := LoadLibrary(PChar(LibName));
   try
-   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));
+   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
    if Assigned(pdmbvm_GetVersionAsInt) then
      Result := pdmbvm_GetVersionAsInt();
   finally
@@ -811,11 +895,10 @@ begin
 end;
 
 procedure TPSQLRestore.RestoreFromFile(const FileName: string; Log: TStrings);
-var tmpLogFile: array[0..MAX_PATH] of char;
-    tmpPath: array[0..MAX_PATH] of char;
+var tmpLogFile: string;
 begin
-  If (GetTempPath(MAX_PATH, tmpPath) = 0) or
-     (GetTempFileName(tmpPath,'pgr',0,tmpLogFile) = 0) then
+  tmpLogFile := GetTempFileName();
+  if tmpLogFile = '' then
     raise EPSQLRestoreException.Create('Can''t create temporary log file');
   try
     RestoreFromFile(FileName,tmpLogFile);
@@ -827,21 +910,19 @@ begin
 end;
 
 procedure TPSQLRestore.RestoreFromFile(const FileName, LogFileName: string);
-var tmpOutFile: array[0..MAX_PATH] of char;
-    tmpPath: array[0..MAX_PATH] of char;
+var tmpOutFile: string;
 begin
   CheckDependencies;
 
-  If Assigned(FBeforeRestore) then
+  if Assigned(FBeforeRestore) then
     FBeforeRestore(Self);
 
-  If FRestoreStrOptions[rsoDBName] = '' then
-   Restore(FileName,FRestoreStrOptions[rsoFileName],LogFileName)
+  if FRestoreStrOptions[rsoDBName] = '' then
+   Restore(FileName, FRestoreStrOptions[rsoFileName], LogFileName)
   else
      begin
-
-       If (GetTempPath(MAX_PATH, tmpPath) = 0) or
-          (GetTempFileName(tmpPath,'pgr',0,tmpOutFile) = 0) then
+       tmpOutFile := GetTempFileName();
+       if tmpOutFile = '' then
          raise EPSQLRestoreException.Create('Can''t create temporary out file');
        try
          Restore(FileName,tmpOutFile,logFileName);
@@ -849,7 +930,7 @@ begin
          SysUtils.DeleteFile(tmpOutFile);
        end;
      end;
-  If Assigned(FAfterRestore) then
+  if Assigned(FAfterRestore) then
     FAfterRestore(Self);
 end;
 
@@ -977,19 +1058,19 @@ begin
   LogDebugMessage('RESTLIB', GetModuleName(h));
   {$ENDIF}
   try
-    @pdmvm_restore := GetProcAddress(h, PAnsiChar('pdmvm_restore'));
+    @pdmvm_restore := GetProcAddress(h, PChar('pdmvm_restore'));
     if not assigned(@pdmvm_restore) then
      raise EPSQLRestoreException.Create('Can''t load pg_restore.dll');
 
-    @pdmvm_GetLastError := GetProcAddress(h, PAnsiChar('pdmbvm_GetLastError'));
-    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
+    @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
+    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
 
     {$IFDEF M_DEBUG}
     LogDebugMessage('RESTVER', IntToStr(pdmbvm_GetVersionAsInt()));
     {$ENDIF}
 
-    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
-    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PAnsiChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
+    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
+    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
 
     pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);//mi:2007-01-15
     If Assigned(FOnLog) then
@@ -1057,7 +1138,7 @@ begin
   if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
   h := LoadLibrary(PChar(LibName));
   try
-   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PAnsiChar('pdmbvm_GetVersionAsInt'));
+   @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
    if Assigned(pdmbvm_GetVersionAsInt) then
      Result := pdmbvm_GetVersionAsInt();
   finally
