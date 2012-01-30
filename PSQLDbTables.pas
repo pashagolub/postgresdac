@@ -115,8 +115,6 @@ const
     ftBlob, ftBlob);    
 
 type
-  TPSQLDACAbout = Class
-  end;
 
   //used for LOCK TABLE
   TPSQLLockType = (ltAccessShare, ltRowShare, ltRowExclusive, ltShareUpdateExclusive,
@@ -1158,13 +1156,6 @@ Var
 implementation
 
 uses
-{$IFNDEF FPC}
-  {$IFNDEF CONSOLE}
-    {$IFNDEF FMX_AVAILABLE}
-           Forms, DBPWDlg, DBLogDlg,
-    {$ENDIF}
-  {$ENDIF}
-{$ENDIF}
   DBConsts,
   {$IFDEF DELPHI_10}DBClient, {$ENDIF}
   PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
@@ -1686,25 +1677,11 @@ begin
 end;
 
 procedure TPSQLDatabase.Login(LoginParams: TStrings);
-var
-  UserName, Password: string;
 begin
   if Assigned(FOnLogin) then
     FOnLogin(Self, LoginParams)
   else
-    begin
-      UserName := LoginParams.Values['UID'];
-      {$IFNDEF FPC}
-        {$IFNDEF CONSOLE}
-          {$IFNDEF FMX_AVAILABLE}
-            if not LoginDialogEx(DatabaseName, UserName, Password, FALSE) then
-          {$ENDIF}
-        {$ENDIF}
-      {$ENDIF}
-        DatabaseErrorFmt(SLoginError, [DatabaseName]);
-      LoginParams.Values['UID'] := UserName;
-      LoginParams.Values['PWD'] := Password;
-    end;
+    DatabaseErrorFmt(SLoginError, [DatabaseName]);
 end;
 
 procedure TPSQLDatabase.CheckDatabase(var Password: string);
