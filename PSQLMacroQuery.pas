@@ -7,7 +7,7 @@ unit PSQLMacroQuery;
 
 interface
 
-uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Classes, SysUtils, DB, PSQLDbTables, PSQLTypes, PSQLAccess;
+uses {$IFDEF FPC}LCLIntf,{$ENDIF} Classes, SysUtils, DB, PSQLDbTables, PSQLTypes, PSQLAccess;
 
 const
   DefaultMacroChar = '%';
@@ -94,7 +94,7 @@ function IsDataSetEmpty(DataSet: TDataSet): Boolean;
 
 implementation
 
-uses {$IFDEF DELPHI_6}RTLConsts, {$ENDIF} {Consts,} Forms, PSQLCommon;
+uses {$IFDEF DELPHI_6}RTLConsts; {$ENDIF}
 
 { Parse SQL utility routines }
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
@@ -486,11 +486,8 @@ end;
 procedure TPSQLMacroQueryThread.DoHandleException;
 begin
   if (FException is Exception) and not (FException is EAbort) then
-  begin
-    if Assigned(Application.OnException) then
-       Application.OnException(FData, Exception(FException)) else
-       Application.ShowException(Exception(FException));
-  end;
+    if Assigned(FData.Database) and Assigned(FData.Database.OnException)then
+      FData.Database.OnException(Self, Exception(FException));
 end;
 
 procedure TPSQLMacroQueryThread.HandleException;
