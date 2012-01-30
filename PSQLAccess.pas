@@ -8,7 +8,7 @@ unit PSQLAccess;
 
 interface
 
-uses Classes, {$IFDEF FPC}LCLIntf{$ELSE}Windows{$ENDIF}, Db, PSQLTypes, Math,
+uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
      {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
      {$IFDEF FPC}Variants,{$ENDIF}
@@ -3734,12 +3734,12 @@ begin
     fldUUID:  Result := string(PAnsiChar(@Dest));
     fldBOOL : Result := PWordBool(@Dest)^;
     fldDATE : begin
-                 DWORD(TimeStamp.Date) := PDWORD(@Dest)^;
+                 LongWord(TimeStamp.Date) := PLongWord(@Dest)^;
                  TimeStamp.Time := 0;
                  Result := SysUtils.Time+Trunc(TimeStampToDateTime(TimeStamp) + 1E-11);
               end;
     fldTIME : begin
-                 DWORD(TimeStamp.Time) := PDWORD(@Dest)^;
+                 LongWord(TimeStamp.Time) := PLongWord(@Dest)^;
                  TimeStamp.Date := 0;
                  Result := SysUtils.Date+TimeOf(TimeStampToDateTime(TimeStamp));
               end;
@@ -3826,7 +3826,7 @@ begin
                      end;
 {$ENDIF}
       fldDATE      : begin
-                       DWORD( TimeStamp.Date ) := PDWORD( Offs )^;
+                       LongWord( TimeStamp.Date ) := PLongWord( Offs )^;
                        TimeStamp.Time := 0;
                        Result := SysUtils.Time+ Trunc(TimeStampToDateTime(TimeStamp) + 1E-11);
                        FldType := FT_DATE;
@@ -3855,7 +3855,7 @@ begin
                        FldType := FT_FLOAT;
                      end;
       fldTIME      : begin
-                       DWORD( TimeStamp.Time ) := PDWORD( Offs )^;
+                       LongWord( TimeStamp.Time ) := PLongWord( Offs )^;
                        TimeStamp.Date := 0;
                        Result := SysUtils.Date+TimeOf(TimeStampToDateTime( TimeStamp ));
                        FldType := FT_TIME;
@@ -7993,12 +7993,12 @@ begin
               {$ENDIF}
                 Result := String(PAnsiChar(@Buff));
     fldDATE : begin
-                 DWORD(TimeStamp.Date) := PDWORD(@Buff)^;
+                 LongWord(TimeStamp.Date) := PLongWord(@Buff)^;
                  TimeStamp.Time := 0;
                  Result := FormatDateTime('mm-dd-yyyy',SysUtils.Time+Trunc(TimeStampToDateTime(TimeStamp) + 1E-11), PSQL_FS);
               end;
     fldTIME : begin
-                 DWORD(TimeStamp.Time) := PDWORD(@Buff)^;
+                 LongWord(TimeStamp.Time) := PLongWord(@Buff)^;
                  TimeStamp.Date := DateDelta;
                  Result := FormatDateTime('hh:nn:ss',SysUtils.Date+TimeOf(TimeStampToDateTime(TimeStamp)), PSQL_FS);
               end;
