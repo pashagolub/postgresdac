@@ -6,7 +6,8 @@ unit PSQLTypes;
 {$Z+,T-} //taken from MySQLDAC 
 interface
 
-uses {$IFDEF FPC}LCLIntf, dynlibs, {$ELSE}Windows,{$ENDIF} Classes, SysUtils, Math;
+uses {$IFDEF FPC}LCLIntf, dynlibs, {$ENDIF}
+     Classes, SysUtils, Math;
 
 //============================================================================//
 //                            Result Error Field Codes                        //
@@ -157,8 +158,13 @@ const //date/time convertion
   TIME_MODE = 2;
 
 {$IFDEF FPC}
-const
-  HINSTANCE_ERROR = 32;
+  const
+    HINSTANCE_ERROR = 32;
+{$ELSE}
+  {$IFNDEF WINDOWS}
+    const
+      HINSTANCE_ERROR = 32;
+  {$ENDIF}
 {$ENDIF}
 
 const
@@ -166,7 +172,10 @@ const
   SSLEAY_DLL           : string = 'ssleay32.dll';
 
 var
-  PSQL_DLL             : string = 'libpq.dll';
+  PSQL_DLL             : string =
+                                {$IFDEF MSWINDOWS}'libpq.dll'{$ENDIF}
+                                {$IFDEF MACOS}'libpq.dylib'{$ENDIF};
+
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
   OEMConv              : Boolean; //Global OEM->ANSI Variable
   PSQL_FS              : TFormatSettings;
@@ -196,6 +205,9 @@ type
     case Integer of
       0: (X1, Y1, X2, Y2: Double);
       1: (P1, P2: TPSQLPoint);
+  end;
+
+  TPSQLDACAbout = class
   end;
 
 const
@@ -2110,24 +2122,50 @@ type
 function GetModuleName(Module: HMODULE): string;
 {$ENDIF}
 
-{$IFDEF FPC}
-procedure ZeroMemory(Destination: Pointer; Length: integer);
-{$ENDIF}
 
+//function for compatibility with FreePascal and MacOS
+procedure ZeroMemory(Destination: Pointer; Length: integer);
+procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
+function GetTickCount: LongWord; //thanks to Indy project
+function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
 implementation
 
-uses DB, PSQLDbTables, PSQLAccess;
-/////////////////////////////////////////////////////////////////////////////
-//                  IMPLEMENTATION TCONTAINER OBJECT                       //
-/////////////////////////////////////////////////////////////////////////////
+uses DB, PSQLDbTables, PSQLAccess,
+     {$IFDEF MSWINDOWS}Winapi.Windows{$ENDIF}
+     {$IFDEF MACOS}Macapi.CoreServices{$ENDIF};
 
-{$IFDEF FPC}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 begin
   FillChar(Destination^, Length, 0);
 end;
+
+procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
+begin
+  Move(Source^, Destination^, Length);
+end;
+
+function GetTickCount: LongWord;
+{$IFDEF DELPHI_12}inline;{$ENDIF}
+begin
+{$IFDEF MACOS}
+  Result := AbsoluteToNanoseconds(UpTime) div 1000000;
 {$ENDIF}
+{$IFDEF MSWINDOWS}
+  Result := Windows.GetTickCount;
+{$ENDIF}
+end;
+
+function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
+{$IFDEF DELPHI_12}inline;{$ENDIF}
+begin
+  {This is just in case the TickCount rolled back to zero}
+  if ANewTickCount >= AOldTickCount then begin
+    Result := ANewTickCount - AOldTickCount;
+  end else begin
+    Result := High(LongWord) - AOldTickCount + ANewTickCount;
+  end;
+end;
 
 {$IFDEF DELPHI_5}
   function GetModuleName(Module: HMODULE): string;
@@ -3032,9 +3070,9 @@ end;
 
 Procedure LoadPSQLLibrary(LibPQPath: string = '');
 
-  function GetPSQLProc( ProcName : PAnsiChar ) : pointer;
+  function GetPSQLProc( ProcName : string ) : pointer;
   begin
-    Result := GetProcAddress( SQLLibraryHandle, ProcName );
+    Result := GetProcAddress( SQLLibraryHandle, PChar(ProcName));
     {$IFDEF M_DEBUG}
     if not Assigned(Result) then
      LogDebugMessage('PROC', Format('No entry address for procedure <b>"%s"</b>', [ProcName]));
@@ -3158,81 +3196,6 @@ begin
       raise EPSQLDatabaseError.CreateFmt('Error loading client library %s', [PSQL_DLL]);
 end;
 
-//New Reliase
-{function ScanStr(const S: string; Ch: Char; StartPos: Integer): Integer;
-asm
-        TEST    EAX,EAX
-        JE      @@qt
-        PUSH    EDI
-        MOV     EDI,EAX
-        LEA     EAX,[ECX-1]
-        MOV     ECX,[EDI-4]
-        SUB     ECX,EAX
-        JLE     @@m1
-        PUSH    EDI
-        ADD     EDI,EAX
-        MOV     EAX,EDX
-        POP     EDX
-        REPNE   SCASB
-        JNE     @@m1
-        MOV     EAX,EDI
-        SUB     EAX,EDX
-        POP     EDI
-        RET
-@@m1:   POP     EDI
-        XOR     EAX,EAX
-@@qt:
-end;  }
-
-{function TestMask(const S, Mask: string; MaskChar: Char): Boolean;
-asm
-        TEST    EAX,EAX
-        JE      @@qt2
-        PUSH    EBX
-        TEST    EDX,EDX
-        JE      @@qt1
-        MOV     EBX,[EAX-4]
-        CMP     EBX,[EDX-4]
-        JE      @@01
-@@qt1:  XOR     EAX,EAX
-        POP     EBX
-@@qt2:  RET
-@@01:   DEC     EBX
-        JS      @@07
-@@lp:   MOV     CH,BYTE PTR [EDX+EBX]
-        CMP     CL,CH
-        JNE     @@cm
-        DEC     EBX
-        JS      @@eq
-        MOV     CH,BYTE PTR [EDX+EBX]
-        CMP     CL,CH
-        JNE     @@cm
-        DEC     EBX
-        JS      @@eq
-        MOV     CH,BYTE PTR [EDX+EBX]
-        CMP     CL,CH
-        JNE     @@cm
-        DEC     EBX
-        JS      @@eq
-        MOV     CH,BYTE PTR [EDX+EBX]
-        CMP     CL,CH
-        JNE     @@cm
-        DEC     EBX
-        JNS     @@lp
-@@eq:   MOV     EAX,1
-        POP     EBX
-        RET
-@@cm:   CMP     CH,BYTE PTR [EAX+EBX]
-        JNE     @@07
-        DEC     EBX
-        JNS     @@lp
-        MOV     EAX,1
-        POP     EBX
-        RET
-@@07:   XOR     EAX,EAX
-        POP     EBX
-end; }
-
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
                     MaskChar: Char = '?';
@@ -3302,8 +3265,6 @@ begin
   end;
 end;
 
-
-
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 var
   S1,S2 : String;
@@ -3315,6 +3276,8 @@ begin
    end;
    S1 := Op1;
    S2 := Op2;
+
+{$IFDEF MSWINDOWS}
   if OEM then
   begin
     {$IFDEF DELPHI_12}
@@ -3327,6 +3290,8 @@ begin
         {$ENDIF}
     {$ENDIF}
   end;
+{$ENDIF}
+
    if CaseSen then //case insensitive
    begin
       if PartLen = 0 then
@@ -3338,7 +3303,7 @@ begin
          Result := AnsiStrComp(PChar(S1), PChar(S2)) = 0 else  // Full len
          Result := AnsiStrLComp(PChar(S1), PChar(S2), PartLen) = 0; //Part len
    end;
- end;
+end;
 
 function GetBDEErrorMessage(ErrorCode : Word):String;
 begin
