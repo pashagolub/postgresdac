@@ -1,7 +1,7 @@
 {$I PSQLDAC.inc}
 unit PSQLNotify;
 
-{SVN revision: $Id: PSQLNotify.pas 715 2011-11-17 10:47:14Z pavel $}
+{SVN revision: $Id$}
 
 interface
 
