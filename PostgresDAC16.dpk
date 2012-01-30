@@ -22,7 +22,6 @@ package PostgresDAC16;
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST ON}
 {$MINENUMSIZE 1}
-{$IMAGEBASE $400000}
 {$DEFINE RELEASE}
 {$ENDIF IMPLICITBUILDING}
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
@@ -30,8 +29,6 @@ package PostgresDAC16;
 {$IMPLICITBUILD OFF}
 
 requires
-  vcl,
-  vcldb,
   rtl,
   dsnap,
   dbrtl;
@@ -47,7 +44,6 @@ contains
   PSQLDump in 'PSQLDump.pas',
   PSQLMetaData in 'PSQLMetaData.pas',
   PSQLConsts in 'PSQLConsts.pas',
-  PSQLCommon in 'PSQLCommon.pas',
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',
