@@ -5,7 +5,7 @@ unit PSQLMetaData;
 
 interface
 
-Uses Classes, SysUtils, Windows, Db, PSQLTypes, Math,
+Uses Classes, SysUtils, Db, PSQLTypes, Math,
      {$IFDEF DELPHI_6}Variants,{$ENDIF} PSQLDbTables,
      PSQLConsts, DBConsts, PSQLAccess;
 
