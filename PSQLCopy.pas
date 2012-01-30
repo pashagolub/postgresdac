@@ -6,7 +6,7 @@ unit PSQLCopy;
 
 interface
 
-Uses {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} Messages, SysUtils, Classes, Dialogs, PSQLTypes,
+Uses {$IFDEF FPC}LCLIntf,{$ENDIF} SysUtils, Classes, PSQLTypes,
         PSQLAccess, PSQLDbTables;
 
 type
