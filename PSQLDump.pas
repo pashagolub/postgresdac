@@ -292,7 +292,7 @@ implementation
 
 uses PSQLAccess,
 {$IFDEF MSWINDOWS}
-  Winapi.Windows,
+  Windows
 {$ENDIF}
 {$IFDEF POSIX}
   Posix.SysTypes, Posix.Stdio, Posix.Stdlib
@@ -309,38 +309,6 @@ begin
   Result := Format('%d.%d.%d', [Major, Minor, Revision]);
 end;
 
-function GetTempFileName: string;
-{$IFDEF MSWINDOWS}
-var
-  TempPath: string;
-  ErrCode: UINT;
-begin
-  TempPath := GetTempPath;
-  SetLength(Result, MAX_PATH);
-
-  SetLastError(ERROR_SUCCESS);
-  ErrCode := Winapi.Windows.GetTempFileName(PChar(TempPath), 'tmp', 0, PChar(Result)); // DO NOT LOCALIZE
-  if ErrCode = 0 then
-    raise EInOutError.Create(SysErrorMessage(GetLastError));
-
-  SetLength(Result, StrLen(PChar(Result)));
-end;
-{$ENDIF}
-{$IFDEF POSIX}
-var
-  LTempPath: PAnsiChar;
-begin
-  { Obtain a temporary file name }
-  LTempPath := tmpnam(nil);
-
-  { Convert to UTF16 or leave blank on possible error }
-  if LTempPath <> nil then
-    Result := UTF8ToUnicodeString(LTempPath)
-  else
-    Result := '';
-end;
-{$ENDIF}
-
 function GetTempPath: string;
 {$IFDEF MSWINDOWS}
 var
@@ -350,7 +318,7 @@ begin
 
   // get memory for the buffer retaining the temp path (plus null-termination)
   SetLength(Result, MAX_PATH);
-  Len := Winapi.Windows.GetTempPath(MAX_PATH, PWideChar(Result));
+  Len := Windows.GetTempPath(MAX_PATH, PWideChar(Result));
   if Len <> 0 then
   begin
     Len := GetLongPathName(PChar(Result), nil, 0);
@@ -387,6 +355,38 @@ begin
     Result := UTF8ToUnicodeString(LTempPathVar)
   else
     Result := CTmpDir;
+end;
+{$ENDIF}
+
+function GetTempFileName: string;
+{$IFDEF MSWINDOWS}
+var
+  TempPath: string;
+  ErrCode: UINT;
+begin
+  TempPath := GetTempPath();
+  SetLength(Result, MAX_PATH);
+
+  SetLastError(ERROR_SUCCESS);
+  ErrCode := Windows.GetTempFileName(PChar(TempPath), 'tmp', 0, PChar(Result)); // DO NOT LOCALIZE
+  if ErrCode = 0 then
+    raise EInOutError.Create(SysErrorMessage(GetLastError));
+
+  SetLength(Result, StrLen(PChar(Result)));
+end;
+{$ENDIF}
+{$IFDEF POSIX}
+var
+  LTempPath: PAnsiChar;
+begin
+  { Obtain a temporary file name }
+  LTempPath := tmpnam(nil);
+
+  { Convert to UTF16 or leave blank on possible error }
+  if LTempPath <> nil then
+    Result := UTF8ToUnicodeString(LTempPath)
+  else
+    Result := '';
 end;
 {$ENDIF}
 
