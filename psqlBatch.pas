@@ -4,8 +4,8 @@ interface
 
 {SVN revision: $Id$}
 
-Uses  {$IFDEF FPC}LCLIntf,{$ELSE}Windows,{$ENDIF} SysUtils, Graphics, Classes, Controls, Db,
-      {$IFDEF DELPHI_6}Variants,{$ENDIF}{StdVCL,} PSQLDbTables{,SMIntf};
+Uses  {$IFDEF FPC}LCLIntf,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} SysUtils, Classes, Db,
+      {$IFDEF DELPHI_6}Variants,{$ENDIF}{StdVCL,} PSQLDbTables, PSQLTypes;
 
 type
   {TPSQLBatchExecute}
@@ -45,7 +45,6 @@ type
   end;
 
 implementation
-uses PSQLTypes,Forms;
 
 {TPSQLBatchExecute}
 constructor TPSQLBatchExecute.Create(AOwner: TComponent);
@@ -104,7 +103,7 @@ begin
            case Action of
              baFail:     raise;
              baAbort:    SysUtils.Abort;
-             baContinue: Application.HandleException(Self);
+             baContinue: if Assigned(FDatabase.OnException) then FDatabase.OnException(Self, E);
              baIgnore:   ;
            end;
            Text :='';
@@ -127,7 +126,7 @@ begin
        case Action of
          baFail:     raise;
          baAbort:    SysUtils.Abort;
-         baContinue: Application.HandleException(Self);
+         baContinue: if Assigned(FDatabase.OnException) then FDatabase.OnException(Self, E);
          baIgnore:   ;
        end;
     end;
