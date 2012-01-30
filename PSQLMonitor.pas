@@ -6,11 +6,18 @@ unit PSQLMonitor;
 interface
 
 uses
-  SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF} Windows, Messages, Classes, PSQLAccess,
-  DB, PSQLDbTables{$IFNDEF FMX_AVAILABLE}, Forms{$ENDIF};
+  SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF}{$IFDEF MSWINDOWS} Windows, Messages,{$ENDIF}
+  Classes, PSQLAccess, DB, PSQLDbTables, PSQLTypes;
+
+{$IFDEF MACOS}
+  {$WARNINGS OFF}
+  {$HINTS OFF}
+{$ENDIF}
 
 const
   {Consts from Controls.pas}
+  WM_USER = $400;
+
   CM_BASE                   = $B000;
   CM_RELEASE                = CM_BASE + 33;
 
@@ -34,11 +41,13 @@ type
 
   TPSQLCustomMonitor = class(TComponent)
   private
-    FHWnd: HWND;
+    FHWnd: THandle;
     FOnSQLEvent: TSQLEvent;
     FTraceFlags: TPSQLTraceFlags;
     FActive: Boolean;  protected
+{$IFDEF MSWINDOWS}
     procedure MonitorWndProc(var Message : TMessage);
+{$ENDIF}
     procedure SetActive(const Value: Boolean);
     procedure SetTraceFlags(const Value: TPSQLTraceFlags);
   protected
@@ -49,7 +58,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure  Release;
-    property   Handle : HWND read FHwnd;
+    property   Handle : THandle read FHwnd;
   end;
 
   TPSQLMonitor = class(TPSQLCustomMonitor)
@@ -243,7 +252,9 @@ var
   _MonitorHook: TPSQLMonitorHook;
 
   bDone: Boolean;
+{$IFDEF MSWINDOWS}
   CS : TRTLCriticalSection;
+{$ENDIF}
   bEnabledMonitoring:boolean;
 
 constructor TPSQLCustomMonitor.Create(AOwner: TComponent);
@@ -252,7 +263,9 @@ begin
   FActive := true;
   if not (csDesigning in ComponentState) then
   begin
+  {$IFDEF MSWINDOWS}
      FHWnd := {$IFDEF DELPHI_6}Classes.{$ENDIF}AllocateHWnd(MonitorWndProc);
+  {$ENDIF}
      MonitorHook.RegisterMonitor(self);
   end;
   TraceFlags := [tfqPrepare .. tfTransact];
@@ -262,6 +275,7 @@ destructor TPSQLCustomMonitor.Destroy();
 begin
   if not (csDesigning in ComponentState) then
   begin
+{$IFDEF MSWINDOWS}
      if (tfQPrepare in TraceFlags) then
         InterlockedDecrement(FQPrepareReaderCount^);
      if (tfQExecute in TraceFlags) then
@@ -275,11 +289,13 @@ begin
      if FActive then
         MonitorHook.UnregisterMonitor(self);
      {$IFDEF DELPHI_6}Classes.{$ENDIF}DeallocateHwnd(FHWnd);
+{$ENDIF}
   end;
 
   inherited Destroy;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+
+{$IFDEF MSWINDOWS}
 procedure TPSQLCustomMonitor.MonitorWndProc(var Message: TMessage);
 var
   st : TPSQLTraceObject;
@@ -299,7 +315,8 @@ begin
      DefWindowProc(FHWnd, Message.Msg, Message.WParam, Message.LParam);
   end;
 end;
-//----------------------------------------------------------------------------------------------------------------------
+{$ENDIF}
+
 procedure TPSQLCustomMonitor.Release;
 begin
   MonitorHook.ReleaseMonitor(self);
@@ -321,6 +338,7 @@ procedure TPSQLCustomMonitor.SetTraceFlags(const Value: TPSQLTraceFlags);
 begin
    if not (csDesigning in ComponentState) then
    begin
+{$IFDEF MSWINDOWS}
       if (tfQPrepare in TraceFlags) and not (tfQPrepare in Value) then
          InterlockedDecrement(FQPrepareReaderCount^) else
          if (not (tfQPrepare in TraceFlags)) and (tfQPrepare in Value) then
@@ -341,6 +359,7 @@ begin
          InterlockedDecrement(FTransactReaderCount^) else
          if (not (tfTransact in TraceFlags)) and (tfTransact in Value) then
             InterlockedIncrement(FTransactReaderCount^);
+{$ENDIF}
    end;
    FTraceFlags:=Value
 end;
@@ -361,16 +380,19 @@ begin
 end;
 
 procedure TPSQLMonitorHook.CreateEvents;
+{$IFDEF MSWINDOWS}
 var
   Sa : TSecurityAttributes;
   Sd : TSecurityDescriptor;
   MapError: Integer;
+{$ENDIF}
 
 {$IFDEF VER100}
 const
   SECURITY_DESCRIPTOR_REVISION = 1;
 {$ENDIF}
 
+{$IFDEF MSWINDOWS}
   function OpenLocalEvent(Idx: Integer): THandle;
   begin
     Result := OpenEvent(EVENT_ALL_ACCESS, true, PChar(MonitorHookNames[Idx]));
@@ -454,23 +476,6 @@ begin
         MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
   end;
 
-{  FSharedBuffer := CreateFileMapping($FFFFFFFF, @sa, PAGE_READWRITE,
-                       0, cMonitorHookSize, PChar(MonitorHookNames[1]));}
-
-{  MapError:=GetLastError;
-  if  MapError= ERROR_ALREADY_EXISTS then
-  begin
-     FSharedBuffer := OpenFileMapping(FILE_MAP_ALL_ACCESS, false, PChar(MonitorHookNames[1]));
-     if (FSharedBuffer = 0) then
-        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
-  end else
-  begin
-     FWriteLock := CreateMutex(@sa, False, PChar(MonitorHookNames[0]));
-     FWriteEvent := CreateLocalEvent(2, False);
-     FWriteFinishedEvent := CreateLocalEvent(3, True);
-     FReadEvent := CreateLocalEvent(4, False);
-     FReadFinishedEvent := CreateLocalEvent(5, False);
-  end;}
 //  FBuffer := MapViewOfFile(FSharedBuffer, FILE_MAP_ALL_ACCESS, 0, 0, 0);
   FAppBuffer := MapViewOfFile(FAppSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
   FDBBuffer := MapViewOfFile(FDBSharedBuf, FILE_MAP_ALL_ACCESS, 0, 0, 0);
@@ -524,6 +529,11 @@ begin
      FReaderCount^ := 0;
   vEventsCreated := true;
 end;
+{$ELSE}
+begin
+//no support for non-Windows environment yet
+end;
+{$ENDIF}
 
 function  TPSQLMonitorHook.SQLString(k:integer):Byte;
 begin
@@ -556,6 +566,7 @@ end;
 
 destructor TPSQLMonitorHook.Destroy;
 begin
+{$IFDEF MSWINDOWS}
    if vEventsCreated then
    begin
 //      UnmapViewOfFile(FBuffer);
@@ -577,6 +588,7 @@ begin
       CloseHandle(FReadFinishedEvent);
       CloseHandle(FWriteLock);
    end;
+{$ENDIF}
    inherited Destroy;
 end;
 
@@ -818,6 +830,7 @@ end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.Execute;
 begin
+{$IFDEF MSWINDOWS}
   while (Assigned(FMonitorMsgs)) and not StopExec do
   begin
     if (Terminated or bDone) and (FMonitorMsgs.Count = 0) then//mi:2006-09-15 removed from while condition to ensure FMonitorMsgs<>nil
@@ -867,16 +880,21 @@ begin
       end;
     end
   end;
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.Lock;
 begin
+{$IFDEF MSWINDOWS}
    WaitForSingleObject(FWriteLock, INFINITE);
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.Unlock;
 begin
+{$IFDEF MSWINDOWS}
    ReleaseMutex(FWriteLock);
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.WriteSQLData(const AAppName, ADatabase, AMsg, ASQL: String;
@@ -917,6 +935,7 @@ begin
    * 7. Unblock all readers waiting for a write to be finished.
    * 8. Unlock the mutex.
    }
+{$IFDEF MSWINDOWS}
   while WaitForSingleObject(FReadEvent, cDefaultTimeout) = WAIT_TIMEOUT do
   begin
     if FMonitorCount^ > 0 then
@@ -939,9 +958,11 @@ begin
   ResetEvent(FWriteEvent);
   SetEvent(FWriteFinishedEvent);
   Unlock();
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.WriteToBuffer();
+{$IFDEF MSWINDOWS}
 //local procedures
   procedure _WriteStrToBuf(const S: string; Buf: PAnsiChar; BufSize: PInteger);
   var
@@ -1014,6 +1035,10 @@ begin
     Unlock();
   end;
 end;
+{$ELSE}
+begin
+end;
+{$ENDIF}
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorWriterThread.ReleaseMonitor(HWnd: THandle);
 begin
@@ -1046,14 +1071,17 @@ end;
 
 procedure TMonitorReaderThread.AddMonitor(Arg: TPSQLCustomMonitor);
 begin
+{$IFDEF MSWINDOWS}
    EnterCriticalSection(CS);
    if FMonitors.IndexOf(Arg) < 0 then
       FMonitors.Add(Arg);
    LeaveCriticalSection(CS);
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.BeginRead();
 begin
+{$IFDEF MSWINDOWS}
   {
    * 1. Wait for the "previous" write event to complete.
    * 2. Increment the number of readers.
@@ -1066,11 +1094,13 @@ begin
   if FReaderCount^ = FMonitorCount^ then
      SetEvent(FReadEvent);
   WaitForSingleObject(FWriteEvent, INFINITE);
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 constructor TMonitorReaderThread.Create;
 begin
    inherited Create(true);
+{$IFDEF MSWINDOWS}
    st := TPSQLTraceObject.Create('', '', '', '', tfMisc, True);
    FMonitors := TList.Create;
    InterlockedIncrement(FMonitorCount^);
@@ -1079,10 +1109,12 @@ begin
    {$ELSE}
      Resume;
    {$ENDIF}
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 destructor TMonitorReaderThread.Destroy;
 begin
+{$IFDEF MSWINDOWS}
    if FMonitorCount^ > 0 then
       InterlockedDecrement(FMonitorCount^);
 
@@ -1091,17 +1123,19 @@ begin
 
    st.Free();
    st := nil; //mi:2006-09-15
-   
+{$ENDIF}
    inherited Destroy;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.EndRead;
 begin
+{$IFDEF MSWINDOWS}
    if InterlockedDecrement(FReaderCount^) = 0 then
    begin
       ResetEvent(FReadEvent);
       SetEvent(FReadFinishedEvent);
    end;
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.Execute;
@@ -1109,6 +1143,7 @@ var
   i : Integer;
   FTemp : TPSQLTraceObject;
 begin
+{$IFDEF MSWINDOWS}
   while (not Terminated) and (not bDone) do
   begin
     ReadSQLData();
@@ -1124,6 +1159,7 @@ begin
                   LPARAM(FTemp));
     end;
   end;
+{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.ReadSQLData();
@@ -1169,13 +1205,16 @@ end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.RemoveMonitor(Arg: TPSQLCustomMonitor);
 begin
+{$IFDEF MSWINDOWS}
    EnterCriticalSection(CS);
    FMonitors.Remove(Arg);
    LeaveCriticalSection(CS);
+{$ENDIF}
 end;
 
 function MonitorHook: TPSQLMonitorHook;
 begin
+{$IFDEF MSWINDOWS}
    if (_MonitorHook = nil) and (not bDone) then
    begin
       EnterCriticalSection(CS);
@@ -1186,6 +1225,7 @@ begin
       LeaveCriticalSection(CS);
   end;
   Result := _MonitorHook
+{$ENDIF}
 end;
 
 procedure EnableMonitoring;
@@ -1203,6 +1243,7 @@ begin
   Result := bEnabledMonitoring;
 end;
 
+{$IFDEF MSWINDOWS}
 initialization
   InitializeCriticalSection(CS);
   _MonitorHook := nil;
@@ -1236,6 +1277,7 @@ finalization
     _MonitorHook := nil;
     DeleteCriticalSection(CS);
   end;
+{$ENDIF}
 end.
 
 
