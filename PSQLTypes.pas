@@ -6,8 +6,10 @@ unit PSQLTypes;
 {$Z+,T-} //taken from MySQLDAC 
 interface
 
-uses {$IFDEF FPC}LCLIntf, dynlibs, {$ENDIF}
-     Classes, SysUtils, Math;
+uses {$IFDEF FPC}LCLIntf, dynlibs,{$ENDIF}
+     Classes, SysUtils, Math,
+     {$IFDEF MSWINDOWS}Windows{$ENDIF}
+     {$IFDEF MACOS}Macapi.CoreServices{$ENDIF};
 
 //============================================================================//
 //                            Result Error Field Codes                        //
@@ -2131,9 +2133,7 @@ function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
 implementation
 
-uses DB, PSQLDbTables, PSQLAccess,
-     {$IFDEF MSWINDOWS}Windows{$ENDIF}
-     {$IFDEF MACOS}Macapi.CoreServices{$ENDIF};
+uses DB, PSQLDbTables, PSQLAccess;
 
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 begin

@@ -916,8 +916,11 @@ procedure DateTimeToString(var Result: string; const Format: string;
 
 implementation
 
-uses PSQLDbTables, PSQLMonitor{$IFNDEF DELPHI_5}, StrUtils{$ENDIF},
-     {$IFNDEF FPC}DbConsts,{$ENDIF} PSQLExtMask, PSQLFields;
+uses PSQLDbTables, PSQLMonitor,
+     {$IFNDEF DELPHI_5}StrUtils,{$ENDIF}
+     {$IFDEF MSWINDOWS}Windows,{$ENDIF}
+     {$IFNDEF FPC}DbConsts,{$ENDIF}
+     PSQLExtMask, PSQLFields;
 
 {**************************************************************************}
 {                     Utility Objects                                      }

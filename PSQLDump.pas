@@ -318,14 +318,8 @@ begin
 
   // get memory for the buffer retaining the temp path (plus null-termination)
   SetLength(Result, MAX_PATH);
-  Len := Windows.GetTempPath(MAX_PATH, PWideChar(Result));
-  if Len <> 0 then
-  begin
-    Len := GetLongPathName(PChar(Result), nil, 0);
-    GetLongPathName(PChar(Result), PChar(Result), Len);
-    SetLength(Result, Len - 1);
-  end
-  else
+  Len := Windows.GetTempPath(MAX_PATH, PChar(Result));
+  if Len = 0 then
     Result := '';
 end;
 {$ENDIF}

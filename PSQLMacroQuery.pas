@@ -94,8 +94,6 @@ function IsDataSetEmpty(DataSet: TDataSet): Boolean;
 
 implementation
 
-uses {$IFDEF DELPHI_6}RTLConsts; {$ENDIF}
-
 { Parse SQL utility routines }
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
 begin
