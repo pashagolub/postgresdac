@@ -112,7 +112,7 @@ function MonitoringEnabled: Boolean;
 implementation
 
 uses
-   Math{$IFDEF DELPHI_5}, Forms{$ENDIF};
+   Math{$IFNDEF FMX_AVAILABLE}, Forms{$ENDIF};
 
 procedure MonError(ErrMess: String; const Args: array of const);
 begin
