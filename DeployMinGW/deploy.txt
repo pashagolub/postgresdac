@@ -1,5 +1,5 @@
 
-In order to run applications using PostgresDAC 2.6.x, the PostgreSQL 9.0 client
+In order to run applications using PostgresDAC 2.7.x, the PostgreSQL 9.1 client
 library must be available on a computer, it includes the following
 files:
 
