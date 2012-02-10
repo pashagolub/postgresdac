@@ -47,6 +47,8 @@ type
     procedure TestGetUserNames;
     procedure TestReset;
     procedure TestRollback;
+    procedure TestPing;
+    procedure TestPingEx;
   end;
 
 var
@@ -299,6 +301,24 @@ begin
   finally
     aList.Free;
   end;
+end;
+
+procedure TestTPSQLDatabase.TestPing;
+begin
+  Check(FPSQLDatabase.Ping = pstOK, 'Ping failed');
+end;
+
+procedure TestTPSQLDatabase.TestPingEx;
+var ConnParams: TStringList;
+begin
+  ConnParams := TStringList.Create;
+  try
+    ConnParams.Assign(FPSQLDatabase.Params);
+    Check(FPSQLDatabase.Ping() = pstOK, 'PingEx failed');
+  finally
+    ConnParams.Free;
+  end;
+
 end;
 
 procedure TestTPSQLDatabase.TestReset;

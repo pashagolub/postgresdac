@@ -59,6 +59,7 @@
 			<DCCReference Include="PSQLBlobsTest.pas"/>
 			<DCCReference Include="PSQLDumpTest.pas"/>
 			<DCCReference Include="PSQLNotifyTest.pas"/>
+			<DCCReference Include="PSQLTypesTest.pas"/>
 			<None Include="PDACTest.dpr"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>

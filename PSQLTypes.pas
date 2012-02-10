@@ -414,13 +414,18 @@ type
 
   TErrorVerbosity = (evTERSE, evDEFAULT, evVERBOSE);
 
-  //
   TTransactionStatusType = (
-	trstIDLE,				// connection idle */
-	trstACTIVE,				// command in progress */
-	trstINTRANS,			// idle, within transaction block */
-	trstINERROR,			// idle, within failed transaction */
-	trstUNKNOWN);       		// cannot determine status */
+	trstIDLE,			    // connection idle
+	trstACTIVE,				// command in progress
+	trstINTRANS,			// idle, within transaction block
+	trstINERROR,			// idle, within failed transaction
+	trstUNKNOWN);     // cannot determine status
+
+  TPingStatus = (
+   pstOK,         //The server is running and appears to be accepting connections
+   pstReject,     //The server is running but is in a state that disallows connections (startup, shutdown, or crash recovery)
+   pstNoResponse, //The server could not be contacted
+   pstNoAttempt); //No attempt was made to contact the server due to incorrect parameters
 
 ////////////////////////////////////////////////////////////////////
 //   PGconn encapsulates a connection to the backend.             //
@@ -506,6 +511,10 @@ type
   TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //blocking manner
 
   TPQconnectStart  = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //non-blocking manner
+
+  TPQping          = function(ConnInfo: PAnsiChar): TPingStatus; cdecl;
+
+  TPQpingParams    = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): TPingStatus;
 
   TPQconnectPoll   = function (Handle : PPGconn): PollingStatusType; cdecl;
 
@@ -764,6 +773,8 @@ type
 var
   PQconnectdb:     TPQconnectdb;
   PQconnectStart:  TPQconnectStart;
+  PQping:          TPQping;
+  PQpingParams:    TPQpingParams;
   PQconnectPoll:   TPQconnectPoll;
   PQsetdbLogin:    TPQsetdbLogin;
   PQconndefaults:  TPQconndefaults;
@@ -2086,9 +2097,7 @@ procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
 
-//function ScanStr(const S: string; Ch: Char; StartPos: Integer = 1): Integer;
-//function TestMask(const S, Mask: string; MaskChar: Char = 'X'): Boolean;
-
+function IsValidIP(const S: string): boolean;
 
 function MaskSearch(const Str, Mask: string;
                     CaseSensitive : boolean = true;
@@ -2133,7 +2142,242 @@ function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
 implementation
 
-uses DB, PSQLDbTables, PSQLAccess;
+uses DB, PSQLDbTables, PSQLAccess{$IFDEF DELPHI_6}, StrUtils{$ENDIF};
+
+const
+  IPv4BitSize = SizeOf(Byte) * 4 * 8;
+  IPv6BitSize = SizeOf(Word) * 8 * 8;
+
+type
+  T4 = 0..3;
+  T8 = 0..7;
+  TIPv4ByteArray = array[T4] of Byte;
+  TIPv6WordArray = array[T8] of Word;
+
+  TIPv4 = packed record
+    case Integer of
+      0: (D, C, B, A: Byte);
+      1: (Groups: TIPv4ByteArray);
+      2: (Value: Cardinal);
+  end;
+
+  TIPv6 = packed record
+    case Integer of
+      0: (H, G, F, E, D, C, B, A: Word);
+      1: (Groups: TIPv6WordArray);
+  end;
+
+{$IFDEF DELPHI_5}
+function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
+var
+  I,X: Integer;
+  Len, LenSubStr: Integer;
+begin
+  if Offset = 1 then
+    Result := Pos(SubStr, S)
+  else
+  begin
+    I := Offset;
+    LenSubStr := Length(SubStr);
+    Len := Length(S) - LenSubStr + 1;
+    while I <= Len do
+    begin
+      if S[I] = SubStr[1] then
+      begin
+        X := 1;
+        while (X < LenSubStr) and (S[I + X] = SubStr[X + 1]) do
+          Inc(X);
+        if (X = LenSubStr) then
+        begin
+          Result := I;
+          exit;
+        end;
+      end;
+      Inc(I);
+    end;
+    Result := 0;
+  end;
+end;
+
+function TryStrToInt(const S: string; out V: integer): boolean;
+var Code: integer;
+begin
+  Val(S, V, Code);
+  Result := Code = 0;
+end;
+{$ENDIF}
+
+function StrToIPv4(const S: String): TIPv4;
+var
+  SIP: String;
+  Start: Integer;
+  I: T4;
+  Index: Integer;
+  Count: Integer;
+  SGroup: String;
+  G: Integer;
+begin
+  SIP := S + '.';
+  Start := 1;
+  for I := High(T4) downto Low(T4) do
+  begin
+    Index := PosEx('.', SIP, Start);
+    if Index = 0 then
+      raise EConvertError.CreateFmt('Invalid IPv4 value: %s', [S]);
+    Count := Index - Start + 1;
+    SGroup := Copy(SIP, Start, Count - 1);
+    if TryStrToInt(SGroup, G) and (G >= Low(Byte)) and (G < High(Byte)) then
+        Result.Groups[I] := G
+      else
+        raise EConvertError.CreateFmt('Invalid IPv4 value: %s', [S]);
+    Inc(Start, Count);
+  end;
+end;
+
+function StrToIPv6(const S: String): TIPv6;
+{ Valid examples for S:
+  2001:0db8:85a3:0000:0000:8a2e:0370:7334
+  2001:db8:85a3:0:0:8a2e:370:7334
+  2001:db8:85a3::8a2e:370:7334
+  ::8a2e:370:7334
+  2001:db8:85a3::
+  ::1
+  ::
+  ::ffff:c000:280
+  ::ffff:192.0.2.128 }
+var
+  ZeroPos: Integer;
+  DotPos: Integer;
+  SIP: String;
+  Start: Integer;
+  Index: Integer;
+  Count: Integer;
+  SGroup: String;
+  G: Integer;
+
+  procedure NormalNotation;
+  var
+    I: T8;
+  begin
+    SIP := S + ':';
+    Start := 1;
+    for I := High(T8) downto Low(T8) do
+    begin
+      Index := PosEx(':', SIP, Start);
+      if Index = 0 then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+      Count := Index - Start + 1;
+      SGroup := '$' + Copy(SIP, Start, Count - 1);
+      if not TryStrToInt(SGroup, G) or (G > High(Word)) or (G < 0) then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+      Result.Groups[I] := G;
+      Inc(Start, Count);
+    end;
+  end;
+
+  procedure CompressedNotation;
+  var
+    I: T8;
+    A: array of Word;
+  begin
+    SIP := S + ':';
+    Start := 1;
+    I := High(T8);
+    while Start < ZeroPos do
+    begin
+      Index := PosEx(':', SIP, Start);
+      if Index = 0 then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+      Count := Index - Start + 1;
+      SGroup := '$' + Copy(SIP, Start, Count - 1);
+      if not TryStrToInt(SGroup, G) or (G > High(Word)) or (G < 0) then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+      Result.Groups[I] := G;
+      Inc(Start, Count);
+      Dec(I);
+    end;
+    FillChar(Result.H, (I + 1) * SizeOf(Word), 0);
+    if ZeroPos < (Length(S) - 1) then
+    begin
+      SetLength(A, I + 1);
+      Start := ZeroPos + 2;
+      repeat
+        Index := PosEx(':', SIP, Start);
+        if Index > 0 then
+        begin
+          Count := Index - Start + 1;
+          SGroup := '$' + Copy(SIP, Start, Count - 1);
+          if not TryStrToInt(SGroup, G) or (G > High(Word)) or (G < 0) then
+            raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+          A[I] := G;
+          Inc(Start, Count);
+          Dec(I);
+        end;
+      until Index = 0;
+      Inc(I);
+      Count := Length(A) - I;
+      Move(A[I], Result.H, Count * SizeOf(Word));
+    end;
+  end;
+
+  procedure DottedQuadNotation;
+  var
+    I: T4;
+  begin
+    if UpperCase(Copy(S, ZeroPos + 2, 4)) <> 'FFFF' then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+    FillChar(Result.E, 5 * SizeOf(Word), 0);
+    Result.F := $FFFF;
+    SIP := S + '.';
+    Start := ZeroPos + 7;
+    for I := Low(T4) to High(T4) do
+    begin
+      Index := PosEx('.', SIP, Start);
+      if Index = 0 then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+      Count := Index - Start + 1;
+      SGroup := Copy(SIP, Start, Count - 1);
+      if not TryStrToInt(SGroup, G) or (G > High(Byte)) or (G < 0) then
+        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+      case I of
+        0: Result.G := G shl 8;
+        1: Inc(Result.G, G);
+        2: Result.H := G shl 8;
+        3: Inc(Result.H, G);
+      end;
+      Inc(Start, Count);
+    end;
+  end;
+
+begin
+  ZeroPos := Pos('::', S);
+  if ZeroPos = 0 then
+    NormalNotation
+  else
+  begin
+    DotPos := Pos('.', S);
+    if DotPos = 0 then
+      CompressedNotation
+    else
+      DottedQuadNotation;
+  end;
+end;
+
+function IsValidIP(const S: string): boolean;
+begin
+  Result := True;
+  try
+    StrToIPv4(S);
+  except
+    on EConvertError do
+      try
+       StrToIPv6(S);
+      except
+       on EConvertError do
+         Result := False;
+      end;
+  end;
+end;
 
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 begin
@@ -2168,12 +2412,12 @@ begin
 end;
 
 {$IFDEF DELPHI_5}
-  function GetModuleName(Module: HMODULE): string;
-  var
-    ModName: array[0..MAX_PATH] of Char;
-  begin
-    SetString(Result, ModName, GetModuleFileName(Module, ModName, SizeOf(ModName)));
-  end;
+function GetModuleName(Module: HMODULE): string;
+var
+  ModName: array[0..MAX_PATH] of Char;
+begin
+  SetString(Result, ModName, GetModuleFileName(Module, ModName, SizeOf(ModName)));
+end;
 {$ENDIF}
 
 {$IFNDEF DELPHI_12}
@@ -3088,6 +3332,8 @@ begin
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
+         @PQping         := GetPSQLProc('PQping');
+         @PQpingParams   := GetPSQLProc('PQpingParams');
          @PQconnectPoll  := GetPSQLProc('PQconnectPoll');
          @PQconnectStart := GetPSQLProc('PQconnectStart');
          @PQsetdbLogin   := GetPSQLProc('PQsetdbLogin');

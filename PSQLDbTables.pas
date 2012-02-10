@@ -328,6 +328,9 @@ type
       function SelectStringDef(aSQL: string; aDefaultValue: string; aFieldName: string): string; overload;
       function SelectStringDef(aSQL: string; aDefaultValue: string; aFieldNumber: integer = 0): string; overload;
 
+      function Ping: TPingStatus; overload;
+      function Ping(ConnectionParams: TStrings): TPingStatus; overload;
+
       procedure SelectStrings(aSQL: string; aList: TStrings; aFieldName: string); overload;
       procedure SelectStrings(aSQL: string; aList: TStrings; aFieldNumber: integer = 0); overload;
 
@@ -1150,7 +1153,7 @@ type
 procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar); cdecl;
 
-Var
+var
    DBList : TList;
 
 implementation
@@ -1265,10 +1268,10 @@ end;
 { TPSQLDatabase }
 procedure TPSQLDatabase.InitEngine;
 begin
-  Try
+  try
     if FEngine = nil then FEngine := TPSQLEngine.Create(nil, nil);
-  Except
-    raise EDatabaseError.Create('Engine not Initialize');
+  except
+    raise EDatabaseError.Create('The Engine is not initialized');
   end;
 end;
 
@@ -1320,12 +1323,12 @@ begin
   Destroying;
   Close;
   RemoveDatabase(Self);
-  if FEngine <> nil then FEngine.Free;
+  FEngine.Free;
   FNotifyList.Free;
   FDirectQueryList.Free;
-  Inherited Destroy;
   FParams.Free;
   FStmtList.Free;
+  inherited Destroy;
 end;
 
 
@@ -1737,6 +1740,16 @@ end;
 procedure TPSQLDatabase.ParamsChanging(Sender: TObject);
 begin
  if FCheckIfActiveOnParamChange then CheckInactive; //SSH tunneling
+end;
+
+function TPSQLDatabase.Ping(ConnectionParams: TStrings): TPingStatus;
+begin
+  Check(Engine, Engine.Ping(ConnectionParams, Result));
+end;
+
+function TPSQLDatabase.Ping: TPingStatus;
+begin
+  Check(Engine, Engine.Ping(FParams, Result));
 end;
 
 procedure TPSQLDatabase.SetDatabaseName(const Value : string);
@@ -4987,18 +5000,6 @@ begin
   end;
 end;
 
-{procedure TPSQLQuery.FreeStatement;
-var
-  Result: Word;
-begin
-  if StmtHandle <> NIL then
-  begin
-    Result := Engine.QFree(FStmtHandle);
-    if not (csDestroying in ComponentState) then
-      Check(Engine, Result);
-  end;
-end;}
-
 procedure TPSQLQuery.SetParamsFromCursor;
 var
   I: Integer;
@@ -5019,7 +5020,6 @@ begin
     end;
   end;
 end;
-
 
 procedure TPSQLQuery.RefreshParams;
 var

@@ -116,8 +116,12 @@ type
     Tables : TContainer; {List of Tables}
     FLoggin : Boolean; {Loggin flag}
     DBOptions : TDBOptions; {Connection parameters}
-    Constructor Create;
-    Destructor  Destroy; Override;
+
+    constructor Create;
+    destructor  Destroy; Override;
+
+    class function Ping(Params: TStrings): TPingStatus;
+
     procedure DirectExecute(SQL: String);
     procedure ProcessDBParams(Params : TStrings);
     procedure InternalConnect; {Login to database}
@@ -126,7 +130,7 @@ type
     function Rollback: boolean; {Rollback transaction}
     function Commit: boolean; {Commit transaction}
     procedure CancelBackend(PID: Integer);
-    procedure CheckResult;overload;{Check result last operation}
+    procedure CheckResult; overload;{Check result last operation}
     procedure CheckResult(FStatement: PPGresult); overload;
     function GetErrorText: String; {Get Error text}
     function Success: Boolean;
@@ -242,6 +246,7 @@ type
 
       Property Database: hDBIDb Read  GetDatabase Write SetDatabase;
       function IsSqlBased(hDb: hDBIDB): Boolean;
+      function Ping(Params: TStrings; var PingResult: TPingStatus): DBIResult;
       function OpenDatabase(Params : TStrings; var hDb: hDBIDb): DBIResult;
       function CloseDatabase(var hDb : hDBIDb) : DBIResult;
       function OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string;
@@ -2498,6 +2503,16 @@ begin
  if aCondition then Result := IfTrue else Result := IfFalse;
 end;
 {$ENDIF}
+
+class function TNativeConnect.Ping(Params: TStrings): TPingStatus;
+var ConnStr: string;
+    i: integer;
+begin
+  ConnStr := '';
+  for i := 0 to Params.Count - 1 do
+    ConnStr := Params[i] + ' ';
+  Result := PQping(PAnsiChar({$IFDEF DELPHI_12}Utf8Encode{$ENDIF}(ConnStr)));
+end;
 
 procedure TNativeConnect.ProcessDBParams(Params : TStrings);
 
@@ -7033,6 +7048,17 @@ function TPSQLEngine.GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOf
 begin
   try
     TNativeDataSet(hCursor).GetBlob(PRecord, FieldNo, iOffset, iLen, pDest, iRead);
+    Result := DBIERR_NONE;
+  except
+    Result := CheckError;
+  end;
+end;
+
+function TPSQLEngine.Ping(Params: TStrings;
+  var PingResult: TPingStatus): DBIResult;
+begin
+  try
+    PingResult := TNativeConnect.Ping(Params);
     Result := DBIERR_NONE;
   except
     Result := CheckError;
