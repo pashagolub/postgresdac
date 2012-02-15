@@ -2164,7 +2164,7 @@ type
       1: (Groups: TIPv6WordArray);
   end;
 
-{$IFDEF DELPHI_5}
+{$IFDEF UNDER_DELPHI_6}
 function PosEx(const SubStr, S: string; Offset: Cardinal = 1): Integer;
 var
   I,X: Integer;
@@ -2202,7 +2202,7 @@ begin
   Val(S, V, Code);
   Result := Code = 0;
 end;
-{$ENDIF}
+{$ENDIF UNDER_DELPHI_6}
 
 function StrToIPv4(const S: String): TIPv4;
 var
