@@ -124,7 +124,7 @@ type
 
     procedure DirectExecute(SQL: String);
     procedure ProcessDBParams(Params : TStrings);
-    procedure InternalConnect; {Login to database}
+    procedure InternalConnect(ConnParams: TStrings = nil); {Login to database}
     procedure InternalDisconnect; {Logout from database}
     procedure Reset; {reset connection to server}
     function Rollback: boolean; {Rollback transaction}
@@ -247,7 +247,7 @@ type
       Property Database: hDBIDb Read  GetDatabase Write SetDatabase;
       function IsSqlBased(hDb: hDBIDB): Boolean;
       function Ping(Params: TStrings; var PingResult: TPingStatus): DBIResult;
-      function OpenDatabase(Params : TStrings; var hDb: hDBIDb): DBIResult;
+      function OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb: hDBIDb): DBIResult;
       function CloseDatabase(var hDb : hDBIDb) : DBIResult;
       function OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string;
                iIndexId: Word; eOpenMode: DBIOpenMode; eShareMode: DBIShareMode; exltMode: XLTMode; bUniDirectional : Boolean;
@@ -2054,6 +2054,41 @@ begin
   end;
 end;
 
+function _PQConnectDBParams(AParams: TStrings; ExpandDbName: boolean = False): PPGConn;
+var
+  ConnKeywords, ConnValues: array of PAnsiChar;
+  K,V: AnsiString;
+  i: integer;
+begin
+  SetLength(ConnKeywords, AParams.Count);
+  SetLength(ConnValues, AParams.Count);
+  for i := 0 to AParams.Count - 1 do
+   begin
+     K := UTF8Encode(AParams.Names[i]); //since this is connection assume we'll use UTF8
+     GetMem(ConnKeywords[i], Length(K) + 1);
+     StrPCopy(ConnKeywords[i], K);
+     {$IFDEF DELPHI_7}
+     V := UTF8Encode(AParams.ValueFromIndex[i]);
+     {$ELSE}
+     V := UTF8Encode(Copy(AParams[I], Length(K) + 2, MaxInt));
+     {$ENDIF}
+     GetMem(ConnValues[i], Length(V) + 1);
+     StrPCopy(ConnValues[i], V);
+   end;
+   try
+     {$IFDEF M_DEBUG}
+     LogDebugMessage('CONN', AParams.CommaText);
+     {$ENDIF}
+     Result := PQconnectdbParams(@ConnKeywords[0], @ConnValues[0], ord(ExpandDbName));
+   finally
+     for i := 0 to AParams.Count - 1 do
+      begin
+       FreeMem(ConnValues[i]);
+       FreeMem(ConnKeywords[i]);
+      end;
+   end;
+end;
+
 function TimeOf(const ADateTime: TDateTime): TDateTime;
 var
   Hour, Min, Sec, MSec: Word;
@@ -2483,7 +2518,7 @@ begin
   OldLoggin := FLoggin;
   if FLoggin then InternalDisconnect;
   with DBOptions do
-    LocHandle := PQconnectdb(PAnsiChar({$IFDEF DELPHI_6}UTF8Encode{$ENDIF}((FDirectConnectString))));
+    LocHandle := PQconnectdb(PAnsiChar(UTF8Encode((FDirectConnectString))));
   if not Assigned(LocHandle) then Exit;
   LocResult := _PQExecute(Self, SQL);
   if Assigned(LocResult) then
@@ -2510,59 +2545,24 @@ var ConnStr: string;
 begin
   ConnStr := '';
   for i := 0 to Params.Count - 1 do
-    ConnStr := Params[i] + ' ';
-  Result := PQping(PAnsiChar({$IFDEF DELPHI_12}Utf8Encode{$ENDIF}(ConnStr)));
+    ConnStr := ConnStr + Params[i] + ' ';
+  Result := PQping(PAnsiChar(Utf8Encode(ConnStr)));
 end;
 
 procedure TNativeConnect.ProcessDBParams(Params : TStrings);
-
-  function GetAddr(Value: String): Boolean;
-  var I, N: Integer;
-  const _Digits: set of AnsiChar = ['0'..'9'];
-  begin
-    Result := False;
-    N := 0;
-    for I := 1 to Length(Value) do
-    begin
-      if Value[I] = '.' then
-        Inc(N)
-      else if not CharInSet(Value[I], _Digits) then
-        Exit;
-    end;
-    Result := (N = 3);
-  end;
-
-var ConnStr, sHost, sSSL: string;
-    i: integer;
+var i: integer;
 begin
-  sHost := Params.Values['Host'];
-  sSSL := Params.Values['SSLMode'];
-
-  ConnStr := Format('%s=%s port=%u user=%s password=%s connect_timeout=%u sslmode=''%s''',
-                                     [ifThen(GetAddr(sHost), 'hostaddr', 'host'),
-                                     QuotedStr(sHost),
-                                     StrToIntDef(Params.Values['Port'], PSQL_PORT),
-                                     QuotedStr(Params.Values['UID']),
-                                     QuotedStr(Params.Values['PWD']),
-                                     StrToIntDef(Params.Values['ConnectionTimeout'], 0),
-                                     ifThen(sSSL = '', 'prefer', sSSL)]);
-
-  for i := Low(SSLOpts) to High(SSLOpts) do
+  for i := 0 to Params.Count - 1 do
    begin
-    sSSL := Params.Values[SSLOpts[i]];
-    if sSSL > '' then
-      ConnStr := ConnStr + Format(' %s=%s', [SSLOpts[i], QuotedStr(sSSL)]);
+    FConnectString := FConnectString + Params[i] + ' ';
+    if Params.Names[i] = 'dbname' then
+      FDirectConnectString := FDirectConnectString + 'dbname=template1 '
+    else
+      FDirectConnectString := Params[i] + ' ';
    end;
-
-
-  FDirectConnectString := 'dbname=template1 ' + ConnStr;
-  FConnectString := Format('dbname=%s ',
-                [QuotedStr(Params.Values['DatabaseName'])]) + ConnStr;
-
-
 end;
 
-procedure TNativeConnect.InternalConnect;
+procedure TNativeConnect.InternalConnect(ConnParams: TStrings = nil);
 var
    Result: PPGresult;
    Utf8Encoded: PAnsiChar;
@@ -2571,8 +2571,13 @@ begin
   try
    if SQLLibraryHandle <= HINSTANCE_ERROR then LoadPSQLLibrary();
    FLastOperationTime := GetTickCount;
-   Utf8Encoded := PAnsiChar({$IFDEF DELPHI_12}Utf8Encode{$ENDIF}(FConnectString));
-   FHandle := PQconnectdb(Utf8Encoded);
+   if Assigned(ConnParams) then
+     FHandle := _PQConnectDBParams(ConnParams)
+   else
+    begin
+     Utf8Encoded := PAnsiChar(Utf8Encode(FConnectString));
+     FHandle := PQconnectdb(Utf8Encoded);
+    end;
    FLastOperationTime := GetTickCount - FLastOperationTime;
    if PQstatus(Handle) = CONNECTION_BAD then
      CheckResult();
@@ -2611,7 +2616,7 @@ end;
 
 function TNativeConnect.GetBackendPID: Integer;
 begin
-  Result :=PQbackendPID(Handle); 
+  Result := PQbackendPID(Handle);
 end;
 
 function TNativeConnect.GetCommitOperation: Boolean;
@@ -6806,7 +6811,7 @@ begin
   Result   := True;
 end;
 
-function TPSQLEngine.OpenDatabase(Params : TStrings; Var hDb : hDBIDb): DBIResult;
+function TPSQLEngine.OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb : hDBIDb): DBIResult;
 Var
   DB : TNativeConnect;
 begin
@@ -6815,8 +6820,13 @@ begin
     if Db = nil then
       raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
     try
-      DB.ProcessDBParams(Params);
-      Db.InternalConnect;
+      if UseSinleLineConnInfo then
+        begin
+         DB.ProcessDBParams(Params);
+         Db.InternalConnect;
+        end
+      else
+        DB.InternalConnect(Params);
     except
       on E: EPSQLException do
       begin
@@ -8568,11 +8578,9 @@ end;
 
 function TNativeConnect.StringToRawS(S: string): AnsiString;
 begin
-{$IFDEF DELPHI_12}
  if IsUnicodeUsed then
   Result := UTF8Encode(S)
  else
-{$ENDIF}
   Result := AnsiString(S);
 end;
 

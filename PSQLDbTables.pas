@@ -218,15 +218,8 @@ type
       FTransIsolation: TTransIsolation;
       FKeepConnection: Boolean; //AutoStop
       FOEMConvert : Boolean;  //OEM->ANSI
-      FDatabaseName: string; //DatabaseName
       FCharSet: string;
-      FUserName : string; //Username
-      FUserPassword : string; //UserPassword
-      FPort : Cardinal; //Port
-      FConnectionTimeout: Cardinal;
       FCommandTimeout: cardinal;
-      FHost : string;
-      FUseSSL : Boolean; //use SSL connection
       FEngine : TPSQLEngine; //Postgres Engine
       FTemporary: Boolean;
       FAcquiredHandle: Boolean;
@@ -254,12 +247,12 @@ type
       FSSLMode: TSSLMode;
       FErrorVerbosity: TErrorVerbosity;
       FOnException: TDbExceptionEvent;
+      FUseSingleLineConnInfo: boolean;
       function GetNotifyItem(Index: Integer): TObject;
       function GetNotifyCount: Integer;
       procedure FillAddonInfo;
       procedure CheckActive;
       procedure CheckInactive;
-      procedure CheckDatabase(var Password: string);
       procedure ClearStatements;
       procedure EndTransaction(TransEnd: EXEnd);
       function GetInTransaction: Boolean;
@@ -298,6 +291,9 @@ type
       function GetDatabaseName: string;
       function GetSSLOption(Index: integer): string;
       procedure SetSSLOption(Index: integer; Value: string);
+      function GetConnectionTimeout: cardinal;
+      function GetServerPort: Cardinal;
+      function GetHost: string;
     protected
       procedure DefineProperties(Filer: TFiler); override; //deal with old missing properties
       procedure CloseDatabaseHandle;
@@ -306,7 +302,6 @@ type
       procedure DoDisconnect; override;
       function GetConnected: Boolean; override;
       function GetStoreConnected: boolean;
-      function GetStorePassword: boolean;
       function GetDataSet(Index: Integer): TPSQLDataSet; reintroduce;
       procedure Loaded; override;
       procedure Notification(AComponent: TComponent; Operation: TOperation); override;
@@ -369,6 +364,7 @@ type
       property ServerVersionAsInt: integer read GetServerVersionAsInt;
       property Temporary: Boolean read FTemporary write FTemporary;
       property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
+      property UseSingleLineConnInfo: boolean read FUseSingleLineConnInfo write FUseSingleLineConnInfo;
     published
       property About : TPSQLDACAbout read FAbout write FAbout;
       property AfterConnect;
@@ -379,16 +375,13 @@ type
       property CommandTimeout: cardinal read FCommandTimeout write SetCommandTimeout default 0;
       property Comment: string read GetDatabaseComment write SetDummyStr stored False;
       property Connected stored GetStoreConnected;
-      property ConnectionTimeout: cardinal read FConnectionTimeout write SetConnectionTimeout default 15;
       property DatabaseID: cardinal read GetDatabaseID write SetDummyInt stored False;
-      property DatabaseName: string read GetDatabaseName write SetDatabaseName;
       property DesignOptions: TPSQLDBDesignOptions read FDesignOptions write FDesignOptions default [ddoStoreConnected, ddoStorePassword];
       property ErrorVerbosity: TErrorVerbosity read FErrorVerbosity write SetErrorVerbosity default evDEFAULT;
-      property Exclusive: Boolean read FExclusive write SetExclusive default FALSE;
-      property HandleShared: Boolean read FHandleShared write FHandleShared default FALSE;
-      property Host : string read FHost write SetHost;
+      property Exclusive: Boolean read FExclusive write SetExclusive default False;
+      property HandleShared: Boolean read FHandleShared write FHandleShared default False;
       property IsTemplate: boolean read GetIsTemplate write SetDummyBool stored False;
-      property KeepConnection: Boolean read FKeepConnection write SetKeepConnection default TRUE;
+      property KeepConnection: Boolean read FKeepConnection write SetKeepConnection default True;
       property LoginPrompt;
       property OEMConvert: Boolean read FOEMConvert write FOEMConvert default False;
       property OnAdd: TNotifyEvent read FOnAdd;
@@ -396,19 +389,23 @@ type
       property OnLogin: TBaseDatabaseLoginEvent read FOnLogin write FOnLogin;
       property OnNotice: TDatabaseNoticeEvent read FOnNotice write FOnNotice;
       property Owner: string read GetDBOwner write SetDummyStr stored False;
-      property Params: TStrings read FParams write SetParams;
-      property Port : Cardinal read FPort write SetServerPort default PSQL_PORT;
       property ReadOnly: Boolean read FReadOnly write SetReadOnly default FALSE;
       property ServerVersion: string read FServerVersion write SetDummyStr stored False;
-      property SSLMode: TSSLMode read FSSLMode write SetSSLMode default sslPrefer;
-      property SSLCert: string  index 0 read GetSSLOption write SetSSLOption;
-      property SSLKey: string index 1 read GetSSLOption write SetSSLOption;
-      property SSLRootCert: string index 2 read GetSSLOption write SetSSLOption;
-      property SSLCRL: string index 3 read GetSSLOption write SetSSLOption;
       property Tablespace: string read GetTablespace write SetDummyStr stored False;
       property TransIsolation: TTransIsolation read FTransIsolation write FTransIsolation default tiReadCommitted;
-      property UserName : string read GetUserName write SetUserName;
-      property UserPassword : string read GetUserPassword write SetUserPassword stored GetStorePassword;
+      //connection parameters
+      property ConnectionTimeout: cardinal read GetConnectionTimeout write SetConnectionTimeout stored False default 15;
+      property DatabaseName: string read GetDatabaseName write SetDatabaseName stored False;
+      property Host: string read GetHost write SetHost stored False;
+      property Params: TStrings read FParams write SetParams;
+      property Port : Cardinal read GetServerPort write SetServerPort stored False default PSQL_PORT;
+      property UserName : string read GetUserName write SetUserName stored False;
+      property UserPassword : string read GetUserPassword write SetUserPassword stored False;
+      property SSLMode: TSSLMode read FSSLMode write SetSSLMode default sslPrefer;
+      property SSLCert: string  index 0 read GetSSLOption write SetSSLOption stored False;
+      property SSLKey: string index 1 read GetSSLOption write SetSSLOption stored False;
+      property SSLRootCert: string index 2 read GetSSLOption write SetSSLOption stored False;
+      property SSLCRL: string index 3 read GetSSLOption write SetSSLOption stored False;
   end;
 
   { TPSQLBDECallBack }
@@ -423,9 +420,9 @@ type
       FOldCBFunc: pfDBICallBack;
       FCallbackEvent: TPSQLBDECallbackEvent;
       FEngine : TPSQLEngine;
-    Protected
+    protected
       function Invoke(CallType: CBType; CBInfo: Pointer): CBRType;
-    Public
+    public
       constructor Create(Engine : TPSQLEngine; AOwner: TObject; Handle: hDBICur; CBType: CBType;
         CBBuf: Pointer; CBBufSize: Integer; CallbackEvent: TPSQLBDECallbackEvent;Chain: Boolean);
       destructor Destroy; override;
@@ -1291,10 +1288,18 @@ begin
 end;
 
 procedure TPSQLDatabase.WriteState(Writer: TWriter);
+var OldPwd: string;
 begin
   if not (ddoStorePassword in FDesignOptions) then
-   FParams.Values['PWD'] := '';
+  begin
+   OldPwd := GetUserPassword();
+   SetUserPassword('');
+  end;
+
   inherited;
+
+  if not (ddoStorePassword in FDesignOptions) then
+   SetUserPassword(OldPwd);
 end;
 
 constructor TPSQLDatabase.Create(AOwner : TComponent);
@@ -1312,7 +1317,7 @@ begin
   FNotifyList := TList.Create;
   FDirectQueryList := TList.Create;
   FCheckIfActiveOnParamChange := True; //SSH Tunneling stuff
-  FConnectionTimeout := 15;
+  SetConnectionTimeout(15);
   FDatabaseID := InvalidOid;
   FDesignOptions := [ddoStoreConnected, ddoStorePassword];
   FErrorVerbosity := evDEFAULT;
@@ -1611,15 +1616,15 @@ begin
   Result := FHandle <> nil;
 end;
 
+function TPSQLDatabase.GetConnectionTimeout: cardinal;
+begin
+  Result := StrToUIntDef(FParams.Values['connect_timeout'], 15);
+end;
+
 function TPSQLDatabase.GetStoreConnected: Boolean;
 begin
   Result := Connected and
    (ddoStoreConnected in FDesignOptions);
-end;
-
-function TPSQLDatabase.GetStorePassword: boolean;
-begin
-  Result := ddoStorePassword in FDesignOptions;
 end;
 
 function TPSQLDatabase.GetDataSet(Index : Integer) : TPSQLDataSet;
@@ -1636,13 +1641,6 @@ begin
   FPseudoIndexes := FALSE;
 end;
 
-//function TPSQLDatabase.GetTraceFlags: TTraceFlags;
-//begin
-//  if Connected then
-//    Result := TTraceFlags(Word(GetIntProp(Engine,FHandle,dbTraceMode))) else
-//    Result := [];
-//end;
-
 function TPSQLDatabase.GetInTransaction: Boolean;
 var
   TranInfo : XInfo;
@@ -1650,6 +1648,11 @@ begin
   Result := (Handle <> nil) and
             (Engine.GetTranInfo(Handle, nil, @TranInfo) = DBIERR_NONE) and
             ( (TranInfo.exState = xsActive));
+end;
+
+function TPSQLDatabase.GetServerPort: Cardinal;
+begin
+  Result := StrToUIntDef(FParams.Values['port'], PSQL_PORT);
 end;
 
 function TPSQLDatabase.GetServerVersionAsInt: integer;
@@ -1669,9 +1672,29 @@ begin
 end;
 
 procedure TPSQLDatabase.Loaded;
+
+  procedure ChangeOldParameter(const OldName, NewName: string);
+  var I: integer;
+      V: string;
+  begin
+    I := FParams.IndexOfName(OldName);
+    if I = -1 then Exit;
+    V := Copy(FParams[I], Length(OldName) + 2, MaxInt);
+    FParams.Delete(I);
+    FParams.Values[NewName] := V;
+  end;
+
 begin
-  Inherited Loaded;
+  inherited Loaded;
   if not StreamedConnected then InitEngine;
+  ChangeOldParameter('UID', 'user');
+  ChangeOldParameter('PWD', 'password');
+  ChangeOldParameter('DatabaseName', 'dbname');
+  ChangeOldParameter('ConnectionTimeout', 'connect_timeout');
+  ChangeOldParameter('Port', 'port');
+  ChangeOldParameter('SSLMode', 'sslmode');
+  ChangeOldParameter('Host', 'host');
+  SetHost(FParams.Values['host']); //make sure correct keyword used depending on IP or host name
 end;
 
 procedure TPSQLDatabase.Notification(AComponent : TComponent; Operation : TOperation);
@@ -1687,42 +1710,17 @@ begin
     DatabaseErrorFmt(SLoginError, [DatabaseName]);
 end;
 
-procedure TPSQLDatabase.CheckDatabase(var Password: string);
-var
-  DBName: string;
-  LoginParams: TStringList;
-begin
-  Password := '';
-  DBName := FDatabaseName;
-  if LoginPrompt then
-  begin
-     LoginParams := TStringList.Create;
-     try
-       Login(LoginParams);
-       Password := LoginParams.Values['PWD'];
-       FParams.Values['UID'] := LoginParams.Values['UID'];
-       FParams.Values['PWD'] := LoginParams.Values['PWD'];
-     finally
-       LoginParams.Free;
-     end;
-  end else
-      Password := FParams.Values['PWD'];
-end;
-
 procedure TPSQLDatabase.DoConnect;
 const
   OpenModes: array[Boolean] of DbiOpenMode = (dbiReadWrite, dbiReadOnly);
   ShareModes: array[Boolean] of DbiShareMode = (dbiOpenShared, dbiOpenExcl);
-var
-  DBPassword: string;
-
 begin
   if FHandle = nil then
   begin
     InitEngine;
-    CheckDatabase(DBPassword);
+    if LoginPrompt then Login(FParams);
     OEMConv := FOEMConvert;
-    Check(Engine, Engine.OpenDatabase(FParams, FHandle));
+    Check(Engine, Engine.OpenDatabase(FParams, FUseSingleLineConnInfo, FHandle));
     Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
     Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
     Check(Engine, Engine.SetCommandTimeout(FHandle, FCommandTimeout));
@@ -1754,53 +1752,26 @@ end;
 
 procedure TPSQLDatabase.SetDatabaseName(const Value : string);
 begin
-    if csReading in ComponentState then
-    begin
-       FDatabaseName := Value;
-       FParams.Values['DatabaseName'] := FDatabaseName;
-    end
-    else
-    if FDatabaseName <> Value then
-    begin
-      if FCheckIfActiveOnParamChange then
-        CheckInactive; //SSH tunneling
-      FDatabaseName := Value;
-      FParams.Values['DatabaseName'] := FDatabaseName;
-    end;
+  if not (csReading in ComponentState) then
+    if FCheckIfActiveOnParamChange then
+      CheckInactive; //SSH tunneling
+  FParams.Values['dbname'] := Value;
 end;
 
 procedure TPSQLDatabase.SetServerPort(const Value : Cardinal);
 begin
-   if csReading in ComponentState then
-    begin
-       FPort := Value;
-       FParams.Values['Port'] := IntToStr(FPort);
-    end
-    else
-    if FPort <> Value then
-    begin
-      if FCheckIfActiveOnParamChange then
-        CheckInactive; //SSH tunneling
-      FPort := Value;
-      FParams.Values['Port'] := IntToStr(FPort);
-    end;
+  if not (csReading in ComponentState) then
+    if FCheckIfActiveOnParamChange then
+      CheckInactive; //SSH tunneling
+  FParams.Values['port'] := UIntToStr(Value);
 end;
 
 procedure TPSQLDatabase.SetConnectionTimeout(const Value : Cardinal);
 begin
-   if csReading in ComponentState then
-    begin
-       FConnectionTimeout := Value;
-       FParams.Values['ConnectionTimeout'] := IntToStr(FConnectionTimeout);
-    end
-    else
-    if FConnectionTimeout <> Value then
-    begin
-      if FCheckIfActiveOnParamChange then
+   if not (csReading in ComponentState) then
+     if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
-      FConnectionTimeout := Value;
-      FParams.Values['ConnectionTimeout'] := IntToStr(FConnectionTimeout);
-    end;
+   FParams.Values['connect_timeout'] := IntToStr(Value);
 end;
 
 procedure TPSQLDatabase.SetCommandTimeout(const Value : Cardinal);
@@ -1815,13 +1786,12 @@ end;
 
 procedure TPSQLDatabase.SetHost(const Value : string);
 begin
-    if FHost <> Value then
-    begin
-      if FCheckIfActiveOnParamChange then
+    if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
-      FHost := Value;
-      FParams.Values['Host'] := FHost;
-    end;
+    if IsValidIP(Value) then
+      FParams.Values['hostaddr'] := Value
+    else
+      FParams.Values['host'] := Value;
 end;
 
 procedure TPSQLDatabase.SetUseSSL(Reader: TReader);
@@ -1831,24 +1801,17 @@ end;
 
 procedure TPSQLDatabase.SetUserName(const Value : string);
 begin
-    if FUserName <> Value then
-    begin
-      if FCheckIfActiveOnParamChange then
-        CheckInactive; //SSH tunneling
-      FUserName := Value;
-      FParams.Values['UID'] := FUserName;
-    end;
+  if FCheckIfActiveOnParamChange then
+    CheckInactive; //SSH tunneling
+  FParams.Values['user'] := Value;
 end;
 
 procedure TPSQLDatabase.SetUserPassword(const Value : string);
 begin
-    if FUserPassword <> Value then
-    begin
-      if FCheckIfActiveOnParamChange then
-        CheckInactive; //SSH tunneling
-      FUserPassword := Value;
-      FParams.Values['PWD'] := FUserPassword;
-    end;
+  if FCheckIfActiveOnParamChange then
+    CheckInactive; //SSH tunneling
+
+  FParams.Values['password'] := Value;
 end;
 
 procedure TPSQLDatabase.SetHandle(Value: HDBIDB);
@@ -1948,8 +1911,7 @@ end;
 
 function TPSQLDatabase.GetUserName: string;
 begin
-  Result := FUserName;
-  if (Result = '') then Result := FParams.Values['UID'];
+  Result := FParams.Values['user'];
 end;
 
 procedure TPSQLDatabase.GetUserNames(Pattern: string; List: TStrings);
@@ -1966,8 +1928,7 @@ end;
 
 function TPSQLDatabase.GetUserPassword: string;
 begin
-  Result := FUserPassword;
-  if (Result = '') then Result := FParams.Values['PWD'];
+  Result := FParams.Values['password'];
 end;
 
 procedure TPSQLDatabase.GetCharsets(List: TStrings);
@@ -2143,8 +2104,7 @@ begin
      if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
      FSSLMode := Value;
-     FParams.Values['SSLMode'] := SSLConsts[FSSLMode];
-     FUseSSL := Value in [sslPrefer,sslAllow,sslRequire];
+     FParams.Values['sslmode'] := SSLConsts[FSSLMode];
    end;
 end;
 
@@ -2222,7 +2182,7 @@ end;
 procedure TPSQLDatabase.FillAddonInfo;
 begin
   if not Connected or (FDatabaseID > 0) then Exit;
-  Engine.GetDBProps(FHandle,FDatabaseName, FOwner, FTablespace,
+  Engine.GetDBProps(FHandle,GetDatabaseName(), FOwner, FTablespace,
         FIsTemplate,FDatabaseId, FComment);
 end;
 
@@ -2240,8 +2200,7 @@ end;
 
 function TPSQLDatabase.GetDatabaseName: string;
 begin
-  Result := FDatabaseName;
-  if (Result = '') then Result := FParams.Values['DatabaseName'];
+  Result := FParams.Values['dbname'];
 end;
 
 function TPSQLDatabase.GetIsSSLUsed: Boolean;
@@ -2270,6 +2229,13 @@ function TPSQLDatabase.GetDbOwner: string;
 begin
  FillAddonInfo;
  Result := FOwner;
+end;
+
+function TPSQLDatabase.GetHost: string;
+begin
+  Result := FParams.Values['hostaddr'];
+  if Result = '' then
+    Result := FParams.Values['host'];
 end;
 
 function TPSQLDatabase.GetTablespace: string;

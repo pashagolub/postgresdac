@@ -512,6 +512,8 @@ type
 
   TPQconnectStart  = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //non-blocking manner
 
+  TPQconnectdbParams = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): PPGconn; cdecl; //blocking manner
+
   TPQping          = function(ConnInfo: PAnsiChar): TPingStatus; cdecl;
 
   TPQpingParams    = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): TPingStatus;
@@ -772,6 +774,7 @@ type
 
 var
   PQconnectdb:     TPQconnectdb;
+  PQconnectdbParams: TPQconnectdbParams;
   PQconnectStart:  TPQconnectStart;
   PQping:          TPQping;
   PQpingParams:    TPQpingParams;
@@ -1914,14 +1917,7 @@ const
 /////////////////////////////////////////////////////////////////////////////
 //            INDEX AND PRIMARY KEY DEFINITIONS                            //
 /////////////////////////////////////////////////////////////////////////////
-Type
-    PAIDXDesc = ^TAIDXDesc;
-    TAIDXDesc = array[0..49] of IDXDesc;
-
-    TIndexsList =  Packed Record
-              Quantity : SmallInt;    //index count
-              Indexes  : PAIDXDesc;   //idxDesc
-    end;
+type
 
   TPropRec = Record
     Prop  : Word;
@@ -2112,6 +2108,7 @@ procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : Wor
 
 function UIntToStr(C: cardinal): string;
 function StrToUInt(S: string): cardinal;
+function StrToUIntDef(S: string; DefVal: cardinal = 0): cardinal;
 
 {$IFNDEF DELPHI_12}
 type
@@ -3138,8 +3135,15 @@ end;
 function StrToUInt(S: string): cardinal;
 var E: integer;
 begin
-  Val(S,Result,E);
+  Val(S, Result, E);
   if E <> 0 then raise EConvertError.Create(S + ' is not valid cardinal value');
+end;
+
+function StrToUIntDef(S: string; DefVal: cardinal = 0): cardinal;
+var E: integer;
+begin
+  Val(S, Result, E);
+  if E <> 0 then Result := DefVal;
 end;
 
 Procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : Word;
@@ -3332,6 +3336,7 @@ begin
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
+         @PQconnectdbParams := GetPSQLProc('PQconnectdbParams');
          @PQping         := GetPSQLProc('PQping');
          @PQpingParams   := GetPSQLProc('PQpingParams');
          @PQconnectPoll  := GetPSQLProc('PQconnectPoll');

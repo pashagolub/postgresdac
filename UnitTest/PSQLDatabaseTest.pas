@@ -29,6 +29,7 @@ type
   TestTPSQLDatabase = class(TTestCase)
   published
     procedure HookUp;
+    procedure TestPlainConnInfoConnect;
     procedure TestExecute;
     procedure TestGetBackendPID;
     procedure TestSelectString;
@@ -318,7 +319,14 @@ begin
   finally
     ConnParams.Free;
   end;
+end;
 
+procedure TestTPSQLDatabase.TestPlainConnInfoConnect;
+begin
+  FPSQLDatabase.Close;
+  FPSQLDatabase.UseSingleLineConnInfo := True;
+  FPSQLDatabase.Open;
+  Check(FPSQLDatabase.Connected, 'Failed to connect using PQconnectdb');
 end;
 
 procedure TestTPSQLDatabase.TestReset;
