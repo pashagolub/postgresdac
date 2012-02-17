@@ -2056,12 +2056,12 @@ end;
 
 function _PQConnectDBParams(AParams: TStrings; ExpandDbName: boolean = False): PPGConn;
 var
-  ConnKeywords, ConnValues: array of PAnsiChar;
+  ConnKeywords, ConnValues: packed array of PAnsiChar;
   K,V: AnsiString;
   i: integer;
 begin
-  SetLength(ConnKeywords, AParams.Count);
-  SetLength(ConnValues, AParams.Count);
+  SetLength(ConnKeywords, AParams.Count + 1);
+  SetLength(ConnValues, AParams.Count + 1);
   for i := 0 to AParams.Count - 1 do
    begin
      K := UTF8Encode(AParams.Names[i]); //since this is connection assume we'll use UTF8
@@ -2079,6 +2079,8 @@ begin
      {$IFDEF M_DEBUG}
      LogDebugMessage('CONN', AParams.CommaText);
      {$ENDIF}
+     ConnKeywords[High(ConnKeywords)] := nil;
+     ConnValues[High(ConnValues)] := nil;
      Result := PQconnectdbParams(@ConnKeywords[0], @ConnValues[0], ord(ExpandDbName));
    finally
      for i := 0 to AParams.Count - 1 do
