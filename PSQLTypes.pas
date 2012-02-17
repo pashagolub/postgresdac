@@ -2204,7 +2204,7 @@ begin
 end;
 {$ENDIF UNDER_DELPHI_6}
 
-function StrToIPv4(const S: String): TIPv4;
+function TryStrToIPv4(const S: String; out Value: TIPv4): boolean;
 var
   SIP: String;
   Start: Integer;
@@ -2214,24 +2214,26 @@ var
   SGroup: String;
   G: Integer;
 begin
+  Result := False;
   SIP := S + '.';
   Start := 1;
   for I := High(T4) downto Low(T4) do
   begin
     Index := PosEx('.', SIP, Start);
     if Index = 0 then
-      raise EConvertError.CreateFmt('Invalid IPv4 value: %s', [S]);
+      Exit;
     Count := Index - Start + 1;
     SGroup := Copy(SIP, Start, Count - 1);
     if TryStrToInt(SGroup, G) and (G >= Low(Byte)) and (G < High(Byte)) then
-        Result.Groups[I] := G
+        Value.Groups[I] := G
       else
-        raise EConvertError.CreateFmt('Invalid IPv4 value: %s', [S]);
+        Exit;
     Inc(Start, Count);
   end;
+  Result := True;
 end;
 
-function StrToIPv6(const S: String): TIPv6;
+function TryStrToIPv6(const S: String; out Value: TIPv6): boolean;
 { Valid examples for S:
   2001:0db8:85a3:0000:0000:8a2e:0370:7334
   2001:db8:85a3:0:0:8a2e:370:7334
@@ -2262,14 +2264,15 @@ var
     begin
       Index := PosEx(':', SIP, Start);
       if Index = 0 then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+        Exit;
       Count := Index - Start + 1;
       SGroup := '$' + Copy(SIP, Start, Count - 1);
       if not TryStrToInt(SGroup, G) or (G > High(Word)) or (G < 0) then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
-      Result.Groups[I] := G;
+        Exit;
+      Value.Groups[I] := G;
       Inc(Start, Count);
     end;
+    Result := True;
   end;
 
   procedure CompressedNotation;
@@ -2284,16 +2287,16 @@ var
     begin
       Index := PosEx(':', SIP, Start);
       if Index = 0 then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+        Exit;
       Count := Index - Start + 1;
       SGroup := '$' + Copy(SIP, Start, Count - 1);
       if not TryStrToInt(SGroup, G) or (G > High(Word)) or (G < 0) then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
-      Result.Groups[I] := G;
+        Exit;
+      Value.Groups[I] := G;
       Inc(Start, Count);
       Dec(I);
     end;
-    FillChar(Result.H, (I + 1) * SizeOf(Word), 0);
+    FillChar(Value.H, (I + 1) * SizeOf(Word), 0);
     if ZeroPos < (Length(S) - 1) then
     begin
       SetLength(A, I + 1);
@@ -2305,7 +2308,7 @@ var
           Count := Index - Start + 1;
           SGroup := '$' + Copy(SIP, Start, Count - 1);
           if not TryStrToInt(SGroup, G) or (G > High(Word)) or (G < 0) then
-            raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+            Exit;
           A[I] := G;
           Inc(Start, Count);
           Dec(I);
@@ -2313,8 +2316,9 @@ var
       until Index = 0;
       Inc(I);
       Count := Length(A) - I;
-      Move(A[I], Result.H, Count * SizeOf(Word));
+      Move(A[I], Value.H, Count * SizeOf(Word));
     end;
+    Result := True;
   end;
 
   procedure DottedQuadNotation;
@@ -2322,31 +2326,33 @@ var
     I: T4;
   begin
     if UpperCase(Copy(S, ZeroPos + 2, 4)) <> 'FFFF' then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
-    FillChar(Result.E, 5 * SizeOf(Word), 0);
-    Result.F := $FFFF;
+        Exit;
+    FillChar(Value.E, 5 * SizeOf(Word), 0);
+    Value.F := $FFFF;
     SIP := S + '.';
     Start := ZeroPos + 7;
     for I := Low(T4) to High(T4) do
     begin
       Index := PosEx('.', SIP, Start);
       if Index = 0 then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+        Exit;
       Count := Index - Start + 1;
       SGroup := Copy(SIP, Start, Count - 1);
       if not TryStrToInt(SGroup, G) or (G > High(Byte)) or (G < 0) then
-        raise EConvertError.CreateFmt('Invalid IPv6 value: %s', [S]);
+        Exit;
       case I of
-        0: Result.G := G shl 8;
-        1: Inc(Result.G, G);
-        2: Result.H := G shl 8;
-        3: Inc(Result.H, G);
+        0: Value.G := G shl 8;
+        1: Inc(Value.G, G);
+        2: Value.H := G shl 8;
+        3: Inc(Value.H, G);
       end;
       Inc(Start, Count);
     end;
+    Result := True;
   end;
 
 begin
+  Result := False;
   ZeroPos := Pos('::', S);
   if ZeroPos = 0 then
     NormalNotation
@@ -2361,19 +2367,10 @@ begin
 end;
 
 function IsValidIP(const S: string): boolean;
+var IP4: TIPv4;
+    IP6: TIPv6;
 begin
-  Result := True;
-  try
-    StrToIPv4(S);
-  except
-    on EConvertError do
-      try
-       StrToIPv6(S);
-      except
-       on EConvertError do
-         Result := False;
-      end;
-  end;
+  Result := TryStrToIPv4(S, IP4) or TryStrToIPv6(S, IP6);
 end;
 
 procedure ZeroMemory(Destination: Pointer; Length: integer);
