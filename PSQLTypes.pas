@@ -3441,7 +3441,7 @@ end;
 Procedure CheckLibraryLoaded;
 begin
   if SQLLibraryHandle <= HINSTANCE_ERROR then
-      raise EPSQLDatabaseError.CreateFmt('Error loading client library %s', [PSQL_DLL]);
+      raise EFileNotFoundException.CreateFmt('Error loading client library "%s"', [PSQL_DLL]);
 end;
 
 function MaskSearch(const Str, Mask: string;

@@ -2571,6 +2571,7 @@ var
 begin
  if not FLoggIn then
   try
+   FHandle := nil;
    if SQLLibraryHandle <= HINSTANCE_ERROR then LoadPSQLLibrary();
    FLastOperationTime := GetTickCount;
    if Assigned(ConnParams) then
@@ -2581,15 +2582,15 @@ begin
      FHandle := PQconnectdb(Utf8Encoded);
     end;
    FLastOperationTime := GetTickCount - FLastOperationTime;
-   if PQstatus(Handle) = CONNECTION_BAD then
+   if PQstatus(FHandle) = CONNECTION_BAD then
      CheckResult();
-   Result := PQexec(Handle, 'SET DateStyle TO ''ISO, MDY''');
+   Result := PQexec(FHandle, 'SET DateStyle TO ''ISO, MDY''');
    PQclear(Result);
 
    FNativeByteaFormat := nbfEscape;
    if GetserverVersionAsInt >= 090000 then
     begin
-     Result := PQexec(Handle, 'SELECT current_setting(''bytea_output'')');
+     Result := PQexec(FHandle, 'SELECT current_setting(''bytea_output'')');
      if Assigned(Result) then
       begin
        if PQntuples(Result) > 0 then
@@ -2607,12 +2608,9 @@ begin
    FLoggIn := True;
    MonitorHook.DBConnect(Self, True);
   except
-   on e:EPSQLException do
-    begin
      MonitorHook.DBConnect(Self, False);
-     PQFinish(Handle);
+     if Assigned(FHandle) then PQFinish(FHandle);
      raise;
-    end;
   end;
 end;
 
@@ -6830,11 +6828,8 @@ begin
       else
         DB.InternalConnect(Params);
     except
-      on E: EPSQLException do
-      begin
-         DB.Free;
-         raise;
-      end;
+      FreeAndNil(DB);
+      raise;
     end;
     hDb := hDBIDb(DB);
     Database := hDb;
@@ -7470,32 +7465,34 @@ begin
 end;
 
 function TPSQLEngine.CheckError : DBIResult;
+var ExceptionPtr : Pointer;
 begin
-  if ExceptObject is EPSQLException then
+  ExceptionPtr := AcquireExceptionObject;
+  if TObject(ExceptionPtr) is EPSQLException then
   begin
-    if EPSQLException(ExceptObject).BDEErrors then
-      Result := EPSQLException(ExceptObject).BDEErrorCode
+    if EPSQLException(ExceptionPtr).BDEErrors then
+      Result := EPSQLException(ExceptionPtr).BDEErrorCode
     else
       begin
-       FNativeStatus := EPSQLException(ExceptObject).PSQLErrorCode;
+       FNativeStatus := EPSQLException(ExceptionPtr).PSQLErrorCode;
        Result := 1001;
       end;
-       FNativeMsg := EPSQLException(ExceptObject).PSQLErrorMsg;
-       FNativeErrorPos:= EPSQLException(ExceptObject).FPSQLErrorPos;
-       FNativeErrorContext:= EPSQLException(ExceptObject).FPSQLErrorContext;
-       FNativeErrorseverity:= EPSQLException(ExceptObject).FPSQLErrorseverity;
-       FNativeErrorsqlstate:= EPSQLException(ExceptObject).FPSQLErrorsqlstate;
-       FNativeErrorprimary:=  EPSQLException(ExceptObject).FPSQLErrorprimary;
-       FNativeErrordetail:=  EPSQLException(ExceptObject).FPSQLErrordetail;
-       FNativeErrorhint:=    EPSQLException(ExceptObject).FPSQLErrorhint;
-       FNativeErrorinternalpos:= EPSQLException(ExceptObject).FPSQLErrorinternalpos;
-       FNativeErrorinternalquery:=EPSQLException(ExceptObject).FPSQLErrorinternalquery;
-       FNativeErrorsourcefile:= EPSQLException(ExceptObject).FPSQLErrorsourcefile;
-       FNativeErrorsourceline:= EPSQLException(ExceptObject).FPSQLErrorsourceline;
-       FNativeErrorsourcefunc:= EPSQLException(ExceptObject).FPSQLErrorsourcefunc;
+       FNativeMsg := EPSQLException(ExceptionPtr).PSQLErrorMsg;
+       FNativeErrorPos:= EPSQLException(ExceptionPtr).FPSQLErrorPos;
+       FNativeErrorContext:= EPSQLException(ExceptionPtr).FPSQLErrorContext;
+       FNativeErrorseverity:= EPSQLException(ExceptionPtr).FPSQLErrorseverity;
+       FNativeErrorsqlstate:= EPSQLException(ExceptionPtr).FPSQLErrorsqlstate;
+       FNativeErrorprimary:=  EPSQLException(ExceptionPtr).FPSQLErrorprimary;
+       FNativeErrordetail:=  EPSQLException(ExceptionPtr).FPSQLErrordetail;
+       FNativeErrorhint:=    EPSQLException(ExceptionPtr).FPSQLErrorhint;
+       FNativeErrorinternalpos:= EPSQLException(ExceptionPtr).FPSQLErrorinternalpos;
+       FNativeErrorinternalquery:=EPSQLException(ExceptionPtr).FPSQLErrorinternalquery;
+       FNativeErrorsourcefile:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefile;
+       FNativeErrorsourceline:= EPSQLException(ExceptionPtr).FPSQLErrorsourceline;
+       FNativeErrorsourcefunc:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefunc;
   end
   else
-     Raise ExceptObject;
+     raise TObject(ExceptionPtr);
 end;
 
 function TPSQLEngine.GetDatabases(hDb: hDBIdb; pszWild: string; List : TStrings):DBIResult;
