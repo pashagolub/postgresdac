@@ -13,7 +13,7 @@ uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
      {$IFDEF FPC}Variants,{$ENDIF}
      SysUtils;
-type
+type             
   {Forward declaration}
   TNativeConnect = class;
 
@@ -225,7 +225,7 @@ type
       FNativeErrorsourcefunc   : string;
       function GetDatabase: hDBIDb;
       procedure SetDatabase(H : hDBIDb);
-    Public
+    public
       Constructor Create(P : TObject; Container : TContainer);
       Destructor Destroy; Override;
       Property Status: Integer Read  FNativeStatus;
@@ -7465,34 +7465,56 @@ begin
 end;
 
 function TPSQLEngine.CheckError : DBIResult;
+
+    {$IFDEF DELPHI_5}
+    function AcquireExceptionObject: Pointer;
+    type
+      PRaiseFrame = ^TRaiseFrame;
+      TRaiseFrame = record
+        NextRaise: PRaiseFrame;
+        ExceptAddr: Pointer;
+        ExceptObject: TObject;
+        ExceptionRecord: PExceptionRecord;
+      end;
+    begin
+      if RaiseList <> nil then
+      begin
+        Result := PRaiseFrame(RaiseList)^.ExceptObject;
+        PRaiseFrame(RaiseList)^.ExceptObject := nil;
+      end
+      else
+        Result := nil;
+    end;
+    {$ENDIF DELPHI_5}
+
 var ExceptionPtr : Pointer;
 begin
   ExceptionPtr := AcquireExceptionObject;
   if TObject(ExceptionPtr) is EPSQLException then
-  begin
-    if EPSQLException(ExceptionPtr).BDEErrors then
-      Result := EPSQLException(ExceptionPtr).BDEErrorCode
-    else
+   begin
+     if EPSQLException(ExceptionPtr).BDEErrors then
+       Result := EPSQLException(ExceptionPtr).BDEErrorCode
+     else
       begin
        FNativeStatus := EPSQLException(ExceptionPtr).PSQLErrorCode;
        Result := 1001;
       end;
-       FNativeMsg := EPSQLException(ExceptionPtr).PSQLErrorMsg;
-       FNativeErrorPos:= EPSQLException(ExceptionPtr).FPSQLErrorPos;
-       FNativeErrorContext:= EPSQLException(ExceptionPtr).FPSQLErrorContext;
-       FNativeErrorseverity:= EPSQLException(ExceptionPtr).FPSQLErrorseverity;
-       FNativeErrorsqlstate:= EPSQLException(ExceptionPtr).FPSQLErrorsqlstate;
-       FNativeErrorprimary:=  EPSQLException(ExceptionPtr).FPSQLErrorprimary;
-       FNativeErrordetail:=  EPSQLException(ExceptionPtr).FPSQLErrordetail;
-       FNativeErrorhint:=    EPSQLException(ExceptionPtr).FPSQLErrorhint;
-       FNativeErrorinternalpos:= EPSQLException(ExceptionPtr).FPSQLErrorinternalpos;
-       FNativeErrorinternalquery:=EPSQLException(ExceptionPtr).FPSQLErrorinternalquery;
-       FNativeErrorsourcefile:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefile;
-       FNativeErrorsourceline:= EPSQLException(ExceptionPtr).FPSQLErrorsourceline;
-       FNativeErrorsourcefunc:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefunc;
-  end
+     FNativeMsg := EPSQLException(ExceptionPtr).PSQLErrorMsg;
+     FNativeErrorPos:= EPSQLException(ExceptionPtr).FPSQLErrorPos;
+     FNativeErrorContext:= EPSQLException(ExceptionPtr).FPSQLErrorContext;
+     FNativeErrorseverity:= EPSQLException(ExceptionPtr).FPSQLErrorseverity;
+     FNativeErrorsqlstate:= EPSQLException(ExceptionPtr).FPSQLErrorsqlstate;
+     FNativeErrorprimary:=  EPSQLException(ExceptionPtr).FPSQLErrorprimary;
+     FNativeErrordetail:=  EPSQLException(ExceptionPtr).FPSQLErrordetail;
+     FNativeErrorhint:=    EPSQLException(ExceptionPtr).FPSQLErrorhint;
+     FNativeErrorinternalpos:= EPSQLException(ExceptionPtr).FPSQLErrorinternalpos;
+     FNativeErrorinternalquery:=EPSQLException(ExceptionPtr).FPSQLErrorinternalquery;
+     FNativeErrorsourcefile:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefile;
+     FNativeErrorsourceline:= EPSQLException(ExceptionPtr).FPSQLErrorsourceline;
+     FNativeErrorsourcefunc:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefunc;
+   end
   else
-     raise TObject(ExceptionPtr);
+   raise TObject(ExceptionPtr);
 end;
 
 function TPSQLEngine.GetDatabases(hDb: hDBIdb; pszWild: string; List : TStrings):DBIResult;

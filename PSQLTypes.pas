@@ -106,6 +106,11 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
+{$IFDEF DELPHI_5}
+  type
+   EFileNotFoundException = class(Exception);
+{$ENDIF DELPHI_5}
+
 {$IFDEF UNDER_DELPHI_6}
    type
     PBoolean      = ^Boolean;
