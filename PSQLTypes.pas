@@ -106,10 +106,8 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
-{$IFDEF DELPHI_5}
   type
-   EFileNotFoundException = class(Exception);
-{$ENDIF DELPHI_5}
+   EPGLibraryNotFoundException = class(Exception);
 
 {$IFDEF UNDER_DELPHI_6}
    type
@@ -3446,7 +3444,7 @@ end;
 Procedure CheckLibraryLoaded;
 begin
   if SQLLibraryHandle <= HINSTANCE_ERROR then
-      raise EFileNotFoundException.CreateFmt('Error loading client library "%s"', [PSQL_DLL]);
+      raise EPGLibraryNotFoundException.CreateFmt('Error loading client library "%s"', [PSQL_DLL]);
 end;
 
 function MaskSearch(const Str, Mask: string;
