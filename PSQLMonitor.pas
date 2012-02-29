@@ -207,7 +207,7 @@ const
 
   cMonitorHookSize = 2048;
   cMaxBufferSize = cMonitorHookSize - (9 * SizeOf(Integer)) - SizeOf(TDateTime) - 2*SizeOf(Byte);
-  cDefaultTimeout = 1000; // 1 seconds
+  cDefaultTimeout = 1000; // 1 second
 
 var
   FAppSharedBuf,
@@ -1181,14 +1181,6 @@ begin
   BeginRead();
   if not bDone then
   try
-{
-//mi:2008-11-12 code refactored for Tiburon compatibility
-    SetString(st.FApplication, FAppBuffer, FAppBufSize^);
-    SetString(st.FDatabase, FDBBuffer, FDBBufSize^);
-    SetString(st.FMsg, FMsgBuffer, FMsgBufSize^);
-    SetString(st.FSQL, FSQLBuffer, FSQLBufSize^);
-    SetString(st.FErrorMsg, FErrBuffer, FErrBufSize^);
-}
     st.FApplication := _ReadStr(FAppBuffer, FAppBufSize^);
     st.FDatabase := _ReadStr(FDBBuffer, FDBBufSize^);
     st.FMsg := _ReadStr(FMsgBuffer, FMsgBufSize^);
@@ -1279,17 +1271,3 @@ finalization
   end;
 {$ENDIF}
 end.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
