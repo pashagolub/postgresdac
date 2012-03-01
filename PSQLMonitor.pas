@@ -7,7 +7,8 @@ interface
 
 uses
   SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF}{$IFDEF MSWINDOWS} Windows, Messages,{$ENDIF}
-  Classes, PSQLAccess, DB, PSQLDbTables, PSQLTypes;
+  Classes, PSQLAccess, DB, PSQLDbTables, PSQLTypes
+  {$IFDEF DELPHI_16}, System.SyncObjs{$ENDIF};
 
 {$IFDEF MACOS}
   {$WARNINGS OFF}
@@ -252,9 +253,12 @@ var
   _MonitorHook: TPSQLMonitorHook;
 
   bDone: Boolean;
-{$IFDEF MSWINDOWS}
-  CS : TRTLCriticalSection;
+{$IFDEF DELPHI_16}
+  CS: TCriticalSection;
+{$ELSE}
+  CS: TRTLCriticalSection;
 {$ENDIF}
+
   bEnabledMonitoring:boolean;
 
 constructor TPSQLCustomMonitor.Create(AOwner: TComponent);
@@ -295,7 +299,7 @@ begin
   inherited Destroy;
 end;
 
-{$IFDEF MSWINDOWS}
+
 procedure TPSQLCustomMonitor.MonitorWndProc(var Message: TMessage);
 var
   st : TPSQLTraceObject;
@@ -312,10 +316,12 @@ begin
 
      CM_RELEASE :  Free;
    else
+{$IFDEF MSWINDOWS}
      DefWindowProc(FHWnd, Message.Msg, Message.WParam, Message.LParam);
+{$ENDIF}
   end;
 end;
-{$ENDIF}
+
 
 procedure TPSQLCustomMonitor.Release;
 begin
@@ -637,7 +643,7 @@ begin
       FPSQLWriterThread.Terminate;
       FPSQLWriterThread.WaitFor;
       FPSQLWriterThread.Free;
-      FPSQLWriterThread:=nil;
+      FPSQLWriterThread := nil;
    end;
 end;
 //----------------------------------------------------------------------------------------------------------------------
@@ -1071,12 +1077,21 @@ end;
 
 procedure TMonitorReaderThread.AddMonitor(Arg: TPSQLCustomMonitor);
 begin
-{$IFDEF MSWINDOWS}
-   EnterCriticalSection(CS);
-   if FMonitors.IndexOf(Arg) < 0 then
-      FMonitors.Add(Arg);
-   LeaveCriticalSection(CS);
+{$IFDEF DELPHI_16}
+  CS.Enter;
+{$ELSE}
+  EnterCriticalSection(CS);
 {$ENDIF}
+  try
+    if FMonitors.IndexOf(Arg) < 0 then
+      FMonitors.Add(Arg);
+  finally
+ {$IFDEF DELPHI_16}
+   CS.Leave;
+ {$ELSE}
+   LeaveCriticalSection(CS);
+ {$ENDIF}
+  end;
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.BeginRead();
@@ -1197,37 +1212,54 @@ end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.RemoveMonitor(Arg: TPSQLCustomMonitor);
 begin
-{$IFDEF MSWINDOWS}
-   EnterCriticalSection(CS);
-   FMonitors.Remove(Arg);
-   LeaveCriticalSection(CS);
+{$IFDEF DELPHI_16}
+  CS.Enter;
+{$ELSE}
+  EnterCriticalSection(CS);
 {$ENDIF}
+  try
+   FMonitors.Remove(Arg);
+  finally
+ {$IFDEF DELPHI_16}
+   CS.Leave;
+ {$ELSE}
+   LeaveCriticalSection(CS);
+ {$ENDIF}
+  end;
 end;
 
 function MonitorHook: TPSQLMonitorHook;
 begin
-{$IFDEF MSWINDOWS}
-   if (_MonitorHook = nil) and (not bDone) then
+  if (_MonitorHook = nil) and (not bDone) then
    begin
-      EnterCriticalSection(CS);
-      if (_MonitorHook = nil) and (not bDone) then
-      begin
-         _MonitorHook := TPSQLMonitorHook.Create;
-      end;
-      LeaveCriticalSection(CS);
-  end;
+    {$IFDEF DELPHI_16}
+    CS.Enter;
+    {$ELSE}
+    EnterCriticalSection(CS);
+    {$ENDIF}
+
+    if (_MonitorHook = nil) and (not bDone) then
+    begin
+       _MonitorHook := TPSQLMonitorHook.Create;
+    end;
+
+    {$IFDEF DELPHI_16}
+    CS.Leave;
+    {$ELSE}
+    LeaveCriticalSection(CS);
+    {$ENDIF}
+   end;
   Result := _MonitorHook
-{$ENDIF}
 end;
 
 procedure EnableMonitoring;
 begin
-  bEnabledMonitoring:=true;
+  bEnabledMonitoring := true;
 end;
 
 procedure DisableMonitoring;
 begin
-  bEnabledMonitoring  :=false;
+  bEnabledMonitoring :=false;
 end;
 
 function MonitoringEnabled: Boolean;
@@ -1235,14 +1267,19 @@ begin
   Result := bEnabledMonitoring;
 end;
 
-{$IFDEF MSWINDOWS}
+
 initialization
+{$IFDEF DELPHI_16}
+  CS := TCriticalSection.Create;
+{$ELSE}
   InitializeCriticalSection(CS);
+{$ENDIF}
   _MonitorHook := nil;
   FPSQLWriterThread := nil;
   FPSQLReaderThread := nil;
   bDone := False;
   bEnabledMonitoring:=true;
+
 finalization
   try
      bDone := True;
@@ -1264,10 +1301,13 @@ finalization
      {$ENDIF}
      if FPSQLWriterThread <> nil then
         FreeAndNil(FPSQLWriterThread);
-     if Assigned(_MonitorHook) then _MonitorHook.Free;
+     _MonitorHook.Free;
   finally
     _MonitorHook := nil;
+  {$IFDEF DELPHI_16}
+    CS.Free;
+  {$ELSE}
     DeleteCriticalSection(CS);
+  {$ENDIF}
   end;
-{$ENDIF}
 end.
