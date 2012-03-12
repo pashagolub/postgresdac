@@ -10,11 +10,6 @@ uses
   Classes, PSQLAccess, DB, PSQLDbTables, PSQLTypes
   {$IFDEF DELPHI_16}, System.SyncObjs{$ENDIF};
 
-{$IFDEF MACOS}
-  {$WARNINGS OFF}
-  {$HINTS OFF}
-{$ENDIF}
-
 const
   {Consts from Controls.pas}
   WM_USER = $400;
@@ -164,7 +159,7 @@ type
 
   TMonitorWriterThread = class(TThread)
   private
-    StopExec:boolean;
+    StopExec: boolean;
     FMonitorMsgs : TList;
   protected
     procedure Lock;
@@ -279,27 +274,27 @@ destructor TPSQLCustomMonitor.Destroy();
 begin
   if not (csDesigning in ComponentState) then
   begin
-{$IFDEF MSWINDOWS}
-     if (tfQPrepare in TraceFlags) then
-        InterlockedDecrement(FQPrepareReaderCount^);
-     if (tfQExecute in TraceFlags) then
-        InterlockedDecrement(FQExecuteReaderCount^);
-     if (tfQFetch in TraceFlags) then
-        InterlockedDecrement(FQFetchReaderCount^);
-     if (tfConnect in TraceFlags) then
-        InterlockedDecrement(FConnectReaderCount^);
-     if (tfTransact in TraceFlags) then
-        InterlockedDecrement(FTransactReaderCount^);
-     if FActive then
-        MonitorHook.UnregisterMonitor(self);
+   if (tfQPrepare in TraceFlags) then
+     {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FQPrepareReaderCount^);
+   if (tfQExecute in TraceFlags) then
+     {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FQExecuteReaderCount^);
+   if (tfQFetch in TraceFlags) then
+     {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FQFetchReaderCount^);
+   if (tfConnect in TraceFlags) then
+     {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FConnectReaderCount^);
+   if (tfTransact in TraceFlags) then
+     {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FTransactReaderCount^);
+   if FActive then
+      MonitorHook.UnregisterMonitor(self);
+   {$IFDEF MSWINDOWS}
      {$IFDEF DELPHI_6}Classes.{$ENDIF}DeallocateHwnd(FHWnd);
-{$ENDIF}
+   {$ENDIF MSWINDOWS}
   end;
 
   inherited Destroy;
 end;
 
-
+{$IFDEF MSWINDOWS}
 procedure TPSQLCustomMonitor.MonitorWndProc(var Message: TMessage);
 var
   st : TPSQLTraceObject;
@@ -316,12 +311,10 @@ begin
 
      CM_RELEASE :  Free;
    else
-{$IFDEF MSWINDOWS}
      DefWindowProc(FHWnd, Message.Msg, Message.WParam, Message.LParam);
-{$ENDIF}
   end;
 end;
-
+{$ENDIF}
 
 procedure TPSQLCustomMonitor.Release;
 begin
@@ -344,28 +337,26 @@ procedure TPSQLCustomMonitor.SetTraceFlags(const Value: TPSQLTraceFlags);
 begin
    if not (csDesigning in ComponentState) then
    begin
-{$IFDEF MSWINDOWS}
       if (tfQPrepare in TraceFlags) and not (tfQPrepare in Value) then
-         InterlockedDecrement(FQPrepareReaderCount^) else
+        {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FQPrepareReaderCount^) else
          if (not (tfQPrepare in TraceFlags)) and (tfQPrepare in Value) then
-            InterlockedIncrement(FQPrepareReaderCount^);
+           {$IFDEF DELPHI_16}TInterlocked.Increment{$ELSE}InterlockedIncrement{$ENDIF}(FQPrepareReaderCount^);
       if (tfQExecute in TraceFlags) and not (tfQExecute in Value) then
-         InterlockedDecrement(FQExecuteReaderCount^) else
+        {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FQExecuteReaderCount^) else
          if (not (tfQExecute in TraceFlags)) and (tfQExecute in Value) then
-            InterlockedIncrement(FQExecuteReaderCount^);
+           {$IFDEF DELPHI_16}TInterlocked.Increment{$ELSE}InterlockedIncrement{$ENDIF}(FQExecuteReaderCount^);
       if (tfQFetch in TraceFlags) and not (tfQFetch in Value) then
-         InterlockedDecrement(FQFetchReaderCount^) else
+        {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FQFetchReaderCount^) else
          if (not (tfQFetch in TraceFlags)) and (tfQFetch in Value) then
-            InterlockedIncrement(FQFetchReaderCount^);
+           {$IFDEF DELPHI_16}TInterlocked.Increment{$ELSE}InterlockedIncrement{$ENDIF}(FQFetchReaderCount^);
       if (tfConnect in TraceFlags) and not (tfConnect in Value) then
-         InterlockedDecrement(FConnectReaderCount^) else
+        {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FConnectReaderCount^) else
          if (not (tfConnect in TraceFlags)) and (tfConnect in Value) then
-            InterlockedIncrement(FConnectReaderCount^);
+           {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FConnectReaderCount^);
       if (tfTransact in TraceFlags) and not (tfTransact in Value) then
-         InterlockedDecrement(FTransactReaderCount^) else
+        {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FTransactReaderCount^) else
          if (not (tfTransact in TraceFlags)) and (tfTransact in Value) then
-            InterlockedIncrement(FTransactReaderCount^);
-{$ENDIF}
+           {$IFDEF DELPHI_16}TInterlocked.Increment{$ELSE}InterlockedIncrement{$ENDIF}(FTransactReaderCount^);
    end;
    FTraceFlags:=Value
 end;
@@ -385,30 +376,25 @@ begin
   end;
 end;
 
+
 procedure TPSQLMonitorHook.CreateEvents;
 {$IFDEF MSWINDOWS}
 var
   Sa : TSecurityAttributes;
   Sd : TSecurityDescriptor;
   MapError: Integer;
-{$ENDIF}
-
-{$IFDEF VER100}
-const
-  SECURITY_DESCRIPTOR_REVISION = 1;
-{$ENDIF}
-
-{$IFDEF MSWINDOWS}
-  function OpenLocalEvent(Idx: Integer): THandle;
-  begin
-    Result := OpenEvent(EVENT_ALL_ACCESS, true, PChar(MonitorHookNames[Idx]));
-    if Result = 0 then
-       MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
-  end;
 
   function CreateLocalEvent(Idx: Integer; InitialState: Boolean): THandle;
   begin
     Result := CreateEvent(@sa, true, InitialState, PChar(MonitorHookNames[Idx]));
+    if Result = 0 then
+       MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
+  end;
+
+
+  function OpenLocalEvent(Idx: Integer): THandle;
+  begin
+    Result := OpenEvent(EVENT_ALL_ACCESS, true, PChar(MonitorHookNames[Idx]));
     if Result = 0 then
        MonError('Cannot create shared resource. (Windows error %d)',[GetLastError]);
   end;
@@ -605,9 +591,10 @@ end;
 
 function TPSQLMonitorHook.GetMonitorCount: Integer;
 begin
-   if FMonitorCount=nil then
-      Result:=0 else
-      Result := FMonitorCount^;
+  if FMonitorCount = nil then
+    Result := 0
+  else
+    Result := FMonitorCount^;
 end;
 
 procedure TPSQLMonitorHook.RegisterMonitor(SQLMonitor: TPSQLCustomMonitor);
@@ -808,19 +795,19 @@ begin
   StopExec := False;
   FMonitorMsgs := TList.Create;
   inherited Create(False);
-  {$IFNDEF DELPHI_6}
   if FMonitorCount^ = 0 then
+ {$WARNINGS OFF}
     Suspend;
-  {$ENDIF}
+ {$WARNINGS ON}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 destructor TMonitorWriterThread.Destroy;
 var
   Msg:TObject;
 begin
-   {$IFNDEF DELPHI_6}
+ {$WARNINGS OFF}
    Resume;
-   {$ENDIF}
+ {$WARNINGS ON}
 
    if FMonitorMsgs.Count>0 then
    begin
@@ -843,48 +830,37 @@ begin
       break;
 
     if (FMonitorCount^ = 0) then
-    begin
-      while FMonitorMsgs.Count <> 0 do
-        FMonitorMsgs.Remove(FMonitorMsgs[0]);
-
-      {$IFNDEF DELPHI_6}
-      Suspend;
-      {$ELSE}
-      Sleep(50);
-      {$ENDIF}
-    end
-    else
-    begin
-      if FMonitorMsgs.Count <> 0 then
       begin
-        if (TObject(FMonitorMsgs.Items[0]) is TReleaseObject) then
-        begin
-          PostMessage(TReleaseObject(FMonitorMsgs.Items[0]).FHandle, CM_RELEASE, 0, 0);
-        end
-        else
-        begin
-          if bEnabledMonitoring  then
-          begin
-            WriteToBuffer();
-          end
-          else
-          begin
-            BeginWrite();
-            TPSQLTraceObject(FMonitorMsgs[0]).Free;
-            FMonitorMsgs.Delete(0);
-            EndWrite();
-          end;
-        end;
-      end
-      else
-      begin
-        {$IFNDEF DELPHI_6}
+        while FMonitorMsgs.Count <> 0 do
+          FMonitorMsgs.Remove(FMonitorMsgs[0]);
+ {$WARNINGS OFF}
         Suspend;
-        {$ELSE}
-        Sleep(50);
-        {$ENDIF}
-      end;
-    end
+ {$WARNINGS ON}
+      end
+
+    else
+
+      if FMonitorMsgs.Count <> 0 then
+        begin
+          if (TObject(FMonitorMsgs.Items[0]) is TReleaseObject) then
+            PostMessage(TReleaseObject(FMonitorMsgs.Items[0]).FHandle, CM_RELEASE, 0, 0)
+          else
+            begin
+              if bEnabledMonitoring  then
+                WriteToBuffer()
+              else
+                begin
+                  BeginWrite();
+                  TPSQLTraceObject(FMonitorMsgs[0]).Free;
+                  FMonitorMsgs.Delete(0);
+                  EndWrite();
+                end;
+            end;
+        end
+      else
+ {$WARNINGS OFF}
+        Suspend;
+ {$WARNINGS ON}
   end;
 {$ENDIF}
 end;
@@ -908,14 +884,14 @@ procedure TMonitorWriterThread.WriteSQLData(const AAppName, ADatabase, AMsg, ASQ
 var
   mto : TPSQLTraceObject;
 begin
-  if (FMonitorCount^ <> 0)   then
+  if (FMonitorCount^ <> 0) then
   begin
     mto := TPSQLTraceObject.Create(AAppName, ADatabase, AMsg, ASQL, ADataType, AExecOK, AErrorMsg);
     FMonitorMsgs.Add(mto);
 
-    {$IFNDEF DELPHI_6}
+ {$WARNINGS OFF}
     Resume;
-    {$ENDIF}
+ {$WARNINGS ON}
   end
   else
   begin
@@ -1119,11 +1095,10 @@ begin
    st := TPSQLTraceObject.Create('', '', '', '', tfMisc, True);
    FMonitors := TList.Create;
    InterlockedIncrement(FMonitorCount^);
-   {$IFDEF DELPHI_15}
    if Suspended then
-   {$ELSE}
-     Resume;
-   {$ENDIF}
+ {$WARNINGS OFF}
+    Resume;
+ {$WARNINGS ON}
 {$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
@@ -1131,13 +1106,9 @@ destructor TMonitorReaderThread.Destroy;
 begin
 {$IFDEF MSWINDOWS}
    if FMonitorCount^ > 0 then
-      InterlockedDecrement(FMonitorCount^);
-
-   FMonitors.Free();
-   FMonitors := nil;//mi:2006-09-15
-
-   st.Free();
-   st := nil; //mi:2006-09-15
+      {$IFDEF DELPHI_16}TInterlocked.Decrement{$ELSE}InterlockedDecrement{$ENDIF}(FMonitorCount^);
+   FreeAndNil(FMonitors);
+   FreeAndNil(st);
 {$ENDIF}
    inherited Destroy;
 end;
@@ -1158,7 +1129,6 @@ var
   i : Integer;
   FTemp : TPSQLTraceObject;
 begin
-{$IFDEF MSWINDOWS}
   while (not Terminated) and (not bDone) do
   begin
     ReadSQLData();
@@ -1168,13 +1138,14 @@ begin
     begin
       FTemp := TPSQLTraceObject.Create(st.Application, st.Database,
                                         st.Msg, st.SQL, st.FDataType, st.ExecutedOK, st.ErrorMsg);
+{$IFDEF MSWINDOWS}
       PostMessage(TPSQLCustomMonitor(FMonitors[i]).Handle,
                   WM_SQL_EVENT,
                   0,
                   LPARAM(FTemp));
+{$ENDIF}
     end;
   end;
-{$ENDIF}
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.ReadSQLData();
@@ -1278,32 +1249,38 @@ initialization
   FPSQLWriterThread := nil;
   FPSQLReaderThread := nil;
   bDone := False;
-  bEnabledMonitoring:=true;
+  bEnabledMonitoring := True;
 
 finalization
   try
      bDone := True;
-     {$IFDEF DELPHI_6}
+
      if Assigned(FPSQLWriterThread) then
      begin
-        FPSQLWriterThread.StopExec := True;
+      {$WARNINGS OFF}
+        FPSQLWriterThread.Resume;
+      {$WARNINGS ON}
         FPSQLWriterThread.Terminate;
+        FPSQLWriterThread.StopExec := True;
+     {$IFDEF DELPHI_6}
         FPSQLWriterThread.WaitFor;
+     {$ENDIF}
      end;
-     {$ENDIF}
 
-     if FPSQLReaderThread <> nil then
-        FreeAndNil(FPSQLReaderThread);
-
-     {$IFNDEF DELPHI_6}
-     if Assigned(FPSQLWriterThread) and not FPSQLWriterThread.Suspended then
-        FPSQLWriterThread.Suspend;
+     if Assigned(FPSQLReaderThread) then
+      begin
+      {$WARNINGS OFF}
+        FPSQLReaderThread.Resume;
+      {$WARNINGS ON}
+        FPSQLReaderThread.Terminate;
+     {$IFDEF DELPHI_6}
+        FPSQLReaderThread.WaitFor;
      {$ENDIF}
-     if FPSQLWriterThread <> nil then
-        FreeAndNil(FPSQLWriterThread);
-     _MonitorHook.Free;
+      end;
+
+     FreeAndNil(_MonitorHook);
+
   finally
-    _MonitorHook := nil;
   {$IFDEF DELPHI_16}
     CS.Free;
   {$ELSE}
