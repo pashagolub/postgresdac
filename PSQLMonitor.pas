@@ -11,8 +11,9 @@ uses
   {$IFDEF DELPHI_16}, System.SyncObjs{$ENDIF};
 
 const
-  {Consts from Controls.pas}
+  {$IFNDEF MSWINDOWS}
   WM_USER = $400;
+  {$ENDIF}
 
   CM_BASE                   = $B000;
   CM_RELEASE                = CM_BASE + 33;

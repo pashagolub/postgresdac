@@ -286,7 +286,7 @@ type
       function GetDatabaseComment: string;
       function GetIsSSLUsed: Boolean;
       procedure SetUseSSL(Reader: TReader);
-      function GetUserName: string;
+      function GetUsrName: string;
       function GetUserPassword: string;
       function GetDatabaseName: string;
       function GetSSLOption(Index: integer): string;
@@ -399,7 +399,7 @@ type
       property Host: string read GetHost write SetHost stored False;
       property Params: TStrings read FParams write SetParams;
       property Port : Cardinal read GetServerPort write SetServerPort stored False default PSQL_PORT;
-      property UserName : string read GetUserName write SetUserName stored False;
+      property UserName : string read GetUsrName write SetUserName stored False; //method name changed due to bug in ILINK32
       property UserPassword : string read GetUserPassword write SetUserPassword stored False;
       property SSLMode: TSSLMode read FSSLMode write SetSSLMode default sslPrefer;
       property SSLCert: string  index 0 read GetSSLOption write SetSSLOption stored False;
@@ -1909,7 +1909,7 @@ begin
   end;
 end;
 
-function TPSQLDatabase.GetUserName: string;
+function TPSQLDatabase.GetUsrName: string;
 begin
   Result := FParams.Values['user'];
 end;

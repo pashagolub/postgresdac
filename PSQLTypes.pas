@@ -7,9 +7,9 @@ unit PSQLTypes;
 interface
 
 uses {$IFDEF FPC}LCLIntf, dynlibs,{$ENDIF}
-     Classes, SysUtils, Math,
-     {$IFDEF MSWINDOWS}Windows{$ENDIF}
-     {$IFDEF MACOS}Macapi.CoreServices{$ENDIF};
+     Classes, SysUtils, Math
+     {$IFDEF MSWINDOWS}, Windows{$ENDIF}
+     {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
 
 //============================================================================//
 //                            Result Error Field Codes                        //
@@ -166,7 +166,7 @@ const //date/time convertion
   const
     HINSTANCE_ERROR = 32;
 {$ELSE}
-  {$IFNDEF WINDOWS}
+  {$IFNDEF MSWINDOWS}
     const
       HINSTANCE_ERROR = 32;
   {$ENDIF}
@@ -2144,8 +2144,10 @@ function GetModuleName(Module: HMODULE): string;
 
 
 //function for compatibility with FreePascal and MacOS
+{$IFDEF MACOS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
+{$ENDIF}
 function GetTickCount: LongWord; //thanks to Indy project
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
@@ -2385,6 +2387,7 @@ begin
   Result := TryStrToIPv4(S, IP4) or TryStrToIPv6(S, IP6);
 end;
 
+{$IFDEF MACOS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 begin
   FillChar(Destination^, Length, 0);
@@ -2394,6 +2397,7 @@ procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
 begin
   Move(Source^, Destination^, Length);
 end;
+{$ENDIF}
 
 function GetTickCount: LongWord;
 {$IFDEF DELPHI_12}inline;{$ENDIF}
