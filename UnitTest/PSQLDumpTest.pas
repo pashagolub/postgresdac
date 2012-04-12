@@ -234,6 +234,7 @@ var
 begin
   LogFileName := 'TestOutput\TestRestoreFromFile1.log';
   FileName := DumpFileName;
+  FPSQLRestore.DBName := 'restore_test';
   FPSQLRestore.RestoreFromFile(FileName, LogFileName);
   Check(FileExists(DumpFileName), 'Dump file empty');
   Check(FileExists(LogFileName), 'Log file empty');
