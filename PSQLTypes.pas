@@ -325,22 +325,22 @@ const
     FIELD_TYPE_VARBIT             = 1562;
     FIELD_TYPE_A_NUMERIC          = 1231;
     FIELD_TYPE_NUMERIC            = 1700;
-    FIELD_TYPE_UUID               = 2950; 
-	FIELD_TYPE_JSON				  = 114;
-    FIELD_TYPE_XML                = 142;  
-    FIELD_TYPE_TSVECTOR			  = 3614; 
+    FIELD_TYPE_UUID               = 2950;
+    FIELD_TYPE_JSON				        = 114;
+    FIELD_TYPE_XML                = 142;
+    FIELD_TYPE_TSVECTOR			      = 3614;
     FIELD_TYPE_GTSVECTOR          = 3642; 
     FIELD_TYPE_TSQUERY            = 3615; 
     FIELD_TYPE_REGCONFIG          = 3734; 
     FIELD_TYPE_REGDICTIONARY      = 3769; 
 	
-	//range types
-	FIELD_TYPE_INT4RANGE		= 3904;
-	FIELD_TYPE_NUMRANGE			= 3906;
-	FIELD_TYPE_TSRANGE			= 3908;
-	FIELD_TYPE_TSTZRANGE		= 3910;
-	FIELD_TYPE_DATERANGE		= 3912;
-	FIELD_TYPE_INT8RANGE		= 3926;
+    //range types
+    FIELD_TYPE_INT4RANGE		= 3904;
+    FIELD_TYPE_NUMRANGE			= 3906;
+    FIELD_TYPE_TSRANGE			= 3908;
+    FIELD_TYPE_TSTZRANGE		= 3910;
+    FIELD_TYPE_DATERANGE		= 3912;
+    FIELD_TYPE_INT8RANGE		= 3926;
 
 
     PSEUDO_TYPE_VOID              = 2278;
@@ -350,19 +350,19 @@ const
     PSEUDO_TYPE_CSTRING           = 2275;
     PSEUDO_TYPE_A_CSTRING         = 1263;
     PSEUDO_TYPE_INTERNAL          = 2281;
-    PSEUDO_TYPE_ANYENUM           = 3500; 
+    PSEUDO_TYPE_ANYENUM           = 3500;
     PSEUDO_ANY_ARRAY              = 2277;
     PSEUDO_ANY_NONARRAY           = 2276;
     PSEUDO_ANY_ELEMENT            = 2283;
     PSEUDO_OPAQUE                 = 2282;
     PSEUDO_ANY_ENUM               = 3500;
     
-    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_REGDICTIONARY; //15.11.2009 need to be changed if new built-in type appears
+    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_INT8RANGE; //pg: 04.04.2012 need to be changed if new built-in type appears
 
 
     MAXARRFLDTYPES = 38;
 
-    FldArrayType: array[0..MAXARRFLDTYPES-1] of Integer = (
+    FldArrayType: array[0..MAXARRFLDTYPES-1] of Cardinal = (
     FIELD_TYPE_A_LINE,    FIELD_TYPE_A_CIDR,   FIELD_TYPE_A_CIRCLE, FIELD_TYPE_A_MONEY,    FIELD_TYPE_A_BOOL,    FIELD_TYPE_A_BYTEA,
     FIELD_TYPE_A_CHAR,    FIELD_TYPE_A_NAME,   FIELD_TYPE_A_INT2,   FIELD_TYPE_A_INT28,    FIELD_TYPE_A_INT4,    FIELD_TYPE_A_REGPROC,
     FIELD_TYPE_A_TEXT,    FIELD_TYPE_A_TID,    FIELD_TYPE_A_XID,    FIELD_TYPE_A_CID,      FIELD_TYPE_A_OID8,    FIELD_TYPE_A_BPCHAR,
@@ -370,6 +370,14 @@ const
     FIELD_TYPE_A_FLOAT8,  FIELD_TYPE_A_ABSTIME,FIELD_TYPE_A_RELTIME,FIELD_TYPE_A_TINTERVAL,FIELD_TYPE_A_FILENAME,FIELD_TYPE_A_POLYGON,
     FIELD_TYPE_A_OID,     FIELD_TYPE_A_ACLITEM,FIELD_TYPE_A_MACADDR,FIELD_TYPE_A_INET,     FIELD_TYPE_A_DATE,    FIELD_TYPE_A_TIME,
     FIELD_TYPE_A_DATETIME,FIELD_TYPE_A_INTERVAL);
+
+//////////////////////////////////////////////////////////////////
+//                   Collation Constants                        //
+//////////////////////////////////////////////////////////////////
+const
+    DEFAULT_COLLATION_OID	= 100;
+    C_COLLATION_OID       = 950;
+    POSIX_COLLATION_OID   = 951;
 
 //////////////////////////////////////////////////////////////////
 //                   Plain API Types definition                 //
@@ -1419,7 +1427,7 @@ type
     iUnits2         : integer;         { Decimal places etc. }
     iOffset         : Word;             { Offset in the record (computed) }
     iLen            : Word;             { Length in bytes (computed) }
-    iNullOffset     : Word;             { For Null bits (computed) }
+    iNullOffset     : longint;          { For Null bits (computed) }
     efldvVchk       : FLDVchk;          { Field Has vcheck (computed) }
     efldrRights     : FLDRights;        { Field Rights (computed) }
     bCalcField      : WordBool;         { Is Calculated field (computed) }

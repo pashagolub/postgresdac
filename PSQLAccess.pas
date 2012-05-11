@@ -438,7 +438,7 @@ type
       Property FieldChanged : Boolean Read GetChanged Write SetChanged;
       Property FieldNull : Boolean Read GetNull Write SetNull;
       Property FieldStatus : PFieldStatus Read FStatus;
-      Property NullOffset : Word Read FDesc.iNullOffset Write FDesc.iNullOffset;
+      Property NullOffset : longint Read FDesc.iNullOffset Write FDesc.iNullOffset;
       Property FieldNumber : Word Read FDesc.iFldNum Write FDesc.iFldNum;
       Property FieldName : String Read GetFieldName Write SetFieldName;
       Property FieldType : Word Read   FDesc.iFldType Write  FDesc.iFldType;
@@ -5064,11 +5064,12 @@ var
   i         : Integer;
   FldInfo   : FLDDesc;
   ValCheck  : VCHKDesc;
-  LocalType, LocalSize, NullOffset, RecSize: Word;
-  LocArray : Boolean;
+  LocalType, LocalSize : Word;
+  RecSize, NullOffset: Longint;
+  LocArray  : Boolean;
 begin
    Fields.Clear;
-   For i := 1 to FieldCount() do
+   for i := 1 to FieldCount() do
     begin
       GetNativeDesc(i, FldInfo, ValCheck, LocalType, LocalSize, LocArray);
       Fields.AddField(FldInfo, ValCheck, i, LocalType, LocalSize, LocArray);
@@ -5077,8 +5078,8 @@ begin
     end;
 
    RecSize  := RecordSize;
-   NullOffset := RecSize+1;
-   For i := 1 to Fields.Count do
+   NullOffset := RecSize + 1;
+   for i := 1 to Fields.Count do
    begin
       Fields[i].NullOffset := NullOffset;
       Inc(NullOffset, SizeOf(TFieldStatus));
