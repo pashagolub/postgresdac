@@ -438,7 +438,7 @@ type
       Property FieldChanged : Boolean Read GetChanged Write SetChanged;
       Property FieldNull : Boolean Read GetNull Write SetNull;
       Property FieldStatus : PFieldStatus Read FStatus;
-      Property NullOffset : longint Read FDesc.iNullOffset Write FDesc.iNullOffset;
+      Property NullOffset : Word Read FDesc.iNullOffset Write FDesc.iNullOffset;
       Property FieldNumber : Word Read FDesc.iFldNum Write FDesc.iFldNum;
       Property FieldName : String Read GetFieldName Write SetFieldName;
       Property FieldType : Word Read   FDesc.iFldType Write  FDesc.iFldType;
@@ -5065,7 +5065,7 @@ var
   FldInfo   : FLDDesc;
   ValCheck  : VCHKDesc;
   LocalType, LocalSize : Word;
-  RecSize, NullOffset: Longint;
+  RecSize, NullOffset: Word;
   LocArray  : Boolean;
 begin
    Fields.Clear;

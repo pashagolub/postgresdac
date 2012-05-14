@@ -1427,7 +1427,7 @@ type
     iUnits2         : integer;         { Decimal places etc. }
     iOffset         : Word;             { Offset in the record (computed) }
     iLen            : Word;             { Length in bytes (computed) }
-    iNullOffset     : longint;          { For Null bits (computed) }
+    iNullOffset     : Word;          { For Null bits (computed) }
     efldvVchk       : FLDVchk;          { Field Has vcheck (computed) }
     efldrRights     : FLDRights;        { Field Rights (computed) }
     bCalcField      : WordBool;         { Is Calculated field (computed) }
