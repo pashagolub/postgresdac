@@ -96,22 +96,26 @@ begin
    FreeOnTerminate := True;
 end;
 
+(*
 {$IFDEF DELPHI_15}
 procedure TNotifyThread.Execute;
 var
   StopWatch: TStopWatch;
 begin
+  StopWatch.Reset;
   repeat
     Self.Sleep(LoopDelayStep); //for quick reaction if termination needed
     StopWatch.Start;
-    if (StopWatch.ElapsedMilliseconds > FInterval) and FActive then
+    if (StopWatch.ElapsedMilliseconds > int64(FInterval)) and FActive then
     begin
-       FOwner.CheckEvents;
+       //StopWatch.Stop;
+       Synchronize(FOwner.CheckEvents);
        StopWatch.Reset;
     end;
   until Terminated;
 end;
-{$ELSE}
+{$ELSE}*)
+
 procedure TNotifyThread.Execute;
 var
   Start : cardinal;
@@ -121,12 +125,12 @@ begin
     Sleep(LoopDelayStep); //for quick reaction if termination needed
     if (GetTickCount() - Start > FInterval) and FActive then
     begin
-       FOwner.CheckEvents;
+       Synchronize(FOwner.CheckEvents);
        Start := GetTickCount();
     end;
   until Terminated;
 end;
-{$ENDIF}
+// {$ENDIF}
 
 constructor TPSQLNotify.Create(AOwner: TComponent);
 var I: integer;
