@@ -495,7 +495,7 @@ end;
 procedure TfrxEnginePSQL.ReadTableList(ATableList: TStrings);
 begin
   ATableList.Clear;
-  FQuery.Database.GetTableNames(ATableList, ShowSystemTables);
+  FQuery.Database.GetTableNames('', False, ATableList);
 end;
 
 function TfrxEnginePSQL.ResultDataSet: TDataSet;
