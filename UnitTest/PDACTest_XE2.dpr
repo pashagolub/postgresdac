@@ -33,6 +33,7 @@ uses
 {$R *.RES}
 
 begin
+  ReportMemoryLeaksOnShutdown := True;
   Application.Initialize;
   if IsConsole then
     with TextTestRunner.RunRegisteredTests do

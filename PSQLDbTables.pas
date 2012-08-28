@@ -469,7 +469,6 @@ type
   private
     FAbout : TPSQLDACAbout;
     FRecProps: RecProps; //Record properties
-   // FStmtHandle: HDBIStmt; //Statement handle pg 21/02/06
     FExprFilter: HDBIFilter; //Filter expression
     FFuncFilter: HDBIFilter; // filter function
     FFilterBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; // filter buffer
@@ -480,18 +479,18 @@ type
     FInUpdateCallback: Boolean;
     FCanModify: Boolean;
     FCacheBlobs: Boolean;
-    FKeySize: Word;
+    FKeySize: integer;
     FUpdateCBBuf: PDELAYUPDCbDesc;
     FUpdateCallback: TPSQLBDECallBack;
     FKeyBuffers: array[TKeyIndex] of PKeyBuffer;
     FKeyBuffer: PKeyBuffer;
     FRecNoStatus: TRecNoStatus;
     FIndexFieldCount: Integer;
-    FRecordSize: Word;
-    FBookmarkOfs: Word;
-    FRecInfoOfs: Word;
-    FBlobCacheOfs: Word;
-    FRecBufSize: Word;
+    FRecordSize: integer;
+    FBookmarkOfs: integer;
+    FRecInfoOfs: integer;
+    FBlobCacheOfs: integer;
+    FRecBufSize: integer;
     FBlockBufOfs: Integer;
     FLastParentPos: Integer;
     FBlockReadBuf: PAnsiChar;
@@ -606,7 +605,7 @@ type
     function  GetLookupCursor(const KeyFields: string; CaseInsensitive: Boolean): HDBICur; Virtual;
     function  GetRecordCount: Integer; override;
     function  GetRecNo: Integer; override;
-    function  GetRecordSize: Word; override;
+    function  GetRecordSize: integer; reintroduce;
     {$IFNDEF FPC}
     function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; override;
     procedure GetObjectTypeNames(Fields: TFields);
@@ -719,14 +718,15 @@ type
     property DBHandle: HDBIDB read GetDBHandle;
     property Handle: HDBICur read GetHandle;
     property ExpIndex: Boolean read FExpIndex;
-    property KeySize: Word read FKeySize;
+    property KeySize: integer read FKeySize;
     property UpdateObject: TPSQLSQLUpdateObject read FUpdateObject write SetUpdateObject;
     property UpdatesPending: Boolean read GetUpdatesPending;
     {$IFNDEF FPC}
     property UpdateRecordTypes: TUpdateRecordTypes read GetUpdateRecordSet write SetUpdateRecordSet;
     {$ENDIF}
     procedure PopulateFieldsOrigin();
-    procedure SortBy(FieldNames : string);
+    procedure SortBy(FieldNames : string; Compare : TPSQLDatasetSortCompare); overload;
+    procedure SortBy(FieldNames : string); overload;
     property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;
   published
     property About : TPSQLDACAbout read FAbout write FAbout;
@@ -994,7 +994,7 @@ type
       procedure DefineProperties(Filer: TFiler); override;
       procedure Disconnect; override;
       function GetDataSource: TDataSource; override;
-      function GetParamsCount: Word;
+      function GetParamsCount: integer;
       function SetDBFlag(Flag: Integer; Value: Boolean): Boolean; override;
       procedure SetOptions(const Value: TPSQLDatasetOptions); override;
       procedure GetStatementHandle(SQLText: PChar); virtual;
@@ -1013,7 +1013,7 @@ type
       procedure Prepare;
       procedure UnPrepare;
       property Prepared: Boolean read FPrepared write SetPrepare;
-      property ParamCount: Word read GetParamsCount;
+      property ParamCount: integer read GetParamsCount;
       property Local: Boolean read FLocal;
       property Text: string read FText;
       property RowsAffected: Integer read GetRowsAffected;
@@ -1202,7 +1202,7 @@ end;
 
 function GetIntProp(Engine : TPSQLEngine; const Handle: Pointer; PropName: Integer): Integer;
 Var
-  Length : Word;
+  Length : integer;
   Value  : Integer;
 begin
   Value := 0;
@@ -1477,7 +1477,7 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
 
 var
   StmtHandle : HDBIStmt;
-  Len        : Word;
+  Len        : integer;
 begin
   StmtHandle := nil;
   Result := 0;
@@ -1495,7 +1495,7 @@ begin
   else
     Check(Engine, Engine.QExecDirect(Handle, SQL, Cursor, Result));
   if Result = 0 then
-     if (Cursor = nil) and (Engine.GetEngProp(hDBIObj(StmtHandle), stmtROWCOUNT,@Result, SizeOf(Result),Len) <> 0) then
+     if (Cursor = nil) and (Engine.GetEngProp(hDBIObj(StmtHandle), stmtROWCOUNT,@Result, SizeOf(Result), Len) <> 0) then
         Result := 0;
 end;
 
@@ -1634,7 +1634,7 @@ end;
 
 procedure TPSQLDatabase.SetDatabaseFlags;
 var
-  Length: Word;
+  Length: integer;
   Buffer: DBINAME;
 begin
   Check(Engine, Engine.GetEngProp(HDBIOBJ(FHandle), dbDATABASETYPE, @Buffer, SizeOf(Buffer), Length));
@@ -2443,7 +2443,7 @@ end;
 {$IFNDEF FPC}
 procedure TPSQLDataSet.GetObjectTypeNames(Fields: TFields);
 var
-  Len: Word;
+  Len: integer;
   I: Integer;
   TypeDesc: ObjTypeDesc;
   ObjectField: TObjectField;
@@ -2710,7 +2710,7 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetRecordSize: Word;
+function TPSQLDataSet.GetRecordSize: integer;
 begin
   Result := FRecordSize;
 end;
@@ -2777,7 +2777,7 @@ procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Intege
   var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
 var
   FType: TFieldType;
-  FSize: Word;
+  FSize: integer;
   FRequired: Boolean;
   FPrecision, I: Integer;
   FieldName, FName: string;
@@ -3726,7 +3726,6 @@ begin
     Filter.Free;
   end;
 end;
-
 
 procedure TPSQLDataSet.SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
 begin
@@ -4889,7 +4888,7 @@ begin
   FParams.AssignValues(Value);
 end;
 
-function TPSQLQuery.GetParamsCount: Word;
+function TPSQLQuery.GetParamsCount: integer;
 begin
   Result := FParams.Count;
 end;
@@ -5153,7 +5152,7 @@ end;
 
 function TPSQLQuery.GetRowsAffected: Integer;
 var
-  Length: Word;
+  Length: integer;
 begin
   if Prepared then
     if Engine.GetEngProp(hDBIObj(FHandle), stmtROWCOUNT, @Result, SizeOf(Result), Length) <> 0 then
@@ -5249,7 +5248,7 @@ end;
 
 procedure TPSQLDataSet.SortBy(FieldNames: string);
 begin
-	if Active then
+	if Active and (RecordCount > 1) then
 	begin
    try
 		TNativeDataSet(FHandle).SortBy(FieldNames);
@@ -5260,6 +5259,16 @@ begin
     raise;
    end;
 	end;
+end;
+
+
+procedure TPSQLDataSet.SortBy(FieldNames: string; Compare: TPSQLDatasetSortCompare);
+begin
+  if Active and (RecordCount > 1) then
+  begin
+		TNativeDataSet(FHandle).SortBy(FieldNames, Compare);
+    TNativeDataset(Fhandle).SetRowPosition(-1, -1, ActiveBuffer);
+  end;
 end;
 
 procedure TPSQLDataSet.SetOptions(const Value: TPSQLDatasetOptions);
@@ -6087,7 +6096,7 @@ end;
 
 function TPSQLTable.GetBatchModify: Boolean;
 var
-  Len : Word;
+  Len : integer;
 begin
    if FHandle <> nil then
       Engine.GetEngProp(hDBIObj(FHandle), curAUTOREFETCH,@Result, SizeOf(Result),Len);

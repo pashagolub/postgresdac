@@ -215,6 +215,9 @@ type
   TPSQLDACAbout = class
   end;
 
+  TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
+      FieldIndex: integer): Integer;
+
 const
 
 //--generate_series analogue for < 8.0 versions
@@ -392,7 +395,7 @@ type
 
 
   MemPtr       = ^MemArray;
-  MemArray     = Array[0..$FFFE] of Byte;
+  MemArray     = array[0..MaxInt-1] of Byte;
 
   Oid = Cardinal;
   POid = ^Oid;
@@ -1198,16 +1201,16 @@ type
   pCURProps = ^CURProps;
   CURProps = packed record              { Virtual Table properties }
     szName          : DBITBLNAME;       { table name (no extension, if it can be derived) }
-    iFNameSize      : Word;             { Full file name size }
+    iFNameSize      : integer;             { Full file name size }
     szTableType     : DBINAME;          { Driver type }
-    iFields         : Word;             { No of fields in Table }
-    iRecSize        : Word;             { Record size (logical record) }
-    iRecBufSize     : Word;             { Record size (physical record) }
-    iKeySize        : Word;             { Key size }
-    iIndexes        : Word;             { Number of indexes }
-    iValChecks      : Word;             { Number of val checks }
-    iRefIntChecks   : Word;             { Number of Ref Integrity constraints }
-    iBookMarkSize   : Word;             { Bookmark size }
+    iFields         : integer;             { No of fields in Table }
+    iRecSize        : integer;             { Record size (logical record) }
+    iRecBufSize     : integer;             { Record size (physical record) }
+    iKeySize        : integer;             { Key size }
+    iIndexes        : integer;             { Number of indexes }
+    iValChecks      : integer;             { Number of val checks }
+    iRefIntChecks   : integer;             { Number of Ref Integrity constraints }
+    iBookMarkSize   : integer;             { Bookmark size }
     bBookMarkStable : WordBool;         { Stable book marks }
     eOpenMode       : DBIOpenMode;      { ReadOnly / RW }
     eShareMode      : DBIShareMode;     { Excl / Share }
@@ -1215,22 +1218,22 @@ type
     iSeqNums        : SmallInt;         { 1: Has Seqnums; 0: Has Record# }
     bSoftDeletes    : WordBool;         { Supports soft deletes }
     bDeletedOn      : WordBool;         { if above, deleted recs seen }
-    iRefRange       : Word;             { Not used }
+    iRefRange       : integer;             { Not used }
     exltMode        : XLTMode;          { Translate Mode }
-    iRestrVersion   : Word;             { Restructure version number }
+    iRestrVersion   : integer;             { Restructure version number }
     bUniDirectional : WordBool;         { Cursor is uni-directional }
-    eprvRights      : Word;             { Table  rights }
+    eprvRights      : integer;             { Table  rights }
     Dummy4          : Word;
-    iFmlRights      : Word;             { Family rights }
-    iPasswords      : Word;             { Number of Aux passwords }
-    iCodePage       : Word;             { Codepage (0 if unknown) }
+    iFmlRights      : integer;             { Family rights }
+    iPasswords      : integer;             { Number of Aux passwords }
+    iCodePage       : integer;             { Codepage (0 if unknown) }
     bProtected      : WordBool;         { Table is protected by password }
-    iTblLevel       : Word;             { Driver dependent table level }
+    iTblLevel       : integer;             { Driver dependent table level }
     szLangDriver    : DBINAME;          { Language driver name }
     bFieldMap       : WordBool;         { Field map active }
-    iBlockSize      : Word;             { Physical file blocksize in K }
+    iBlockSize      : integer;             { Physical file blocksize in K }
     bStrictRefInt   : WordBool;         { Strict referential integrity }
-    iFilters        : Word;             { Number of filters }
+    iFilters        : integer;             { Number of filters }
     bTempTable      : WordBool;         { Table is a temporary table }
     iUnUsed         : packed array [0..15] of Word;
   end;
@@ -1280,7 +1283,7 @@ type
   pIDXDesc = ^IDXDesc;
   IDXDesc = record               { Index description }
     szName          : DBINAME;       { Index name }
-    iIndexId        : Word;             { Index number }
+    iIndexId        : integer;             { Index number }
     szTagName       : DBINAME;          { Tag name (for dBASE) }
     szFormat        : string;          { Optional format (BTREE, HASH etc) }
     bPrimary        : WordBool;         { True, if primary index }
@@ -1289,17 +1292,17 @@ type
     bMaintained     : WordBool;         { True, if maintained index }
     bSubset         : WordBool;         { True, if subset index }
     bExpIdx         : WordBool;         { True, if expression index }
-    iCost           : Word;             { Not used }
-    iFldsInKey      : Word;             { Fields in the key (1 for Exp) }
-    iKeyLen         : Word;             { Phy Key length in bytes (Key only) }
+    iCost           : integer;             { Not used }
+    iFldsInKey      : integer;             { Fields in the key (1 for Exp) }
+    iKeyLen         : integer;             { Phy Key length in bytes (Key only) }
     bOutofDate      : WordBool;         { True, if index out of date }
-    iKeyExpType     : Word;             { Key type of Expression }
+    iKeyExpType     : integer;             { Key type of Expression }
     aiKeyFld        : DBIKEY;           { Array of field numbers in key }
     szKeyExp        : string;        { Key expression }
     szKeyCond       : string;        { Subset condition }
     bCaseInsensitive : WordBool;        { True, if case insensitive index }
-    iBlockSize      : Word;             { Block size in bytes }
-    iRestrNum       : Word;             { Restructure number }
+    iBlockSize      : integer;             { Block size in bytes }
+    iRestrNum       : integer;             { Restructure number }
     abDescending    : packed array [0..DBIMAXFLDSINKEY-1] of WordBool; { TRUE }
     iUnUsed         : packed array [0..15] of Word;
   end;
@@ -1419,19 +1422,19 @@ type
 
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
-    iFldNum         : Word;             { Field number (1..n) }
+    iFldNum         : integer;             { Field number (1..n) }
     szName          : string;          { Field name }
-    iFldType        : Word;             { Field type }
-    iSubType        : Word;             { Field subtype (if applicable) }
+    iFldType        : integer;             { Field type }
+    iSubType        : integer;             { Field subtype (if applicable) }
     iUnits1         : integer;         { Number of Chars, digits etc }
     iUnits2         : integer;         { Decimal places etc. }
-    iOffset         : Word;             { Offset in the record (computed) }
-    iLen            : Word;             { Length in bytes (computed) }
-    iNullOffset     : Word;          { For Null bits (computed) }
+    iOffset         : integer;             { Offset in the record (computed) }
+    iLen            : integer;             { Length in bytes (computed) }
+    iNullOffset     : integer;          { For Null bits (computed) }
     efldvVchk       : FLDVchk;          { Field Has vcheck (computed) }
     efldrRights     : FLDRights;        { Field Rights (computed) }
     bCalcField      : WordBool;         { Is Calculated field (computed) }
-    iUnUsed         : packed array [0..1] of Word;
+    iUnUsed         : packed array [0..1] of integer;
   end;
 
   TFLDDescList = array of FLDDesc;
@@ -2104,7 +2107,7 @@ function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSyst
 function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 
 procedure GetToken(var Buffer, Token: string);
-procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : Word;
+procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : integer;
                                         var RecBuff : FLDDesc;
                                         var ValChk : VCHKDesc;
                                         var LocArray : Boolean);
@@ -2122,8 +2125,8 @@ function MaskSearch(const Str, Mask: string;
 
 function Search(Op1,Op2 : Variant; OEM, CaseSen : Boolean; PartLen: Integer):Boolean;
 function GetBDEErrorMessage(ErrorCode : Word):String;
-procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : Word;
-                        var BdeSubType : Word; var LogSize : Integer;
+procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : integer;
+                        var BdeSubType : integer; var LogSize : Integer;
                         var LocArray : Boolean);
 
 function UIntToStr(C: cardinal): string;
@@ -3167,8 +3170,8 @@ begin
   if E <> 0 then Result := DefVal;
 end;
 
-Procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : Word;
-                var BdeSubType : Word; var LogSize : Integer;
+Procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : integer;
+                var BdeSubType : integer; var LogSize : Integer;
                 var LocArray : Boolean);
 begin
   BdeType    := fldUNKNOWN;
@@ -3296,7 +3299,7 @@ begin
 end;
 
 Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO;
-      Count, Offset : Word;
+      Count, Offset : integer;
       var RecBuff : FLDDesc;
       var ValChk : VCHKDesc;
       var LocArray : Boolean);

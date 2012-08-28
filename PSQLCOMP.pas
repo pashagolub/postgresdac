@@ -624,6 +624,8 @@ procedure TPSQLQueryEditor.ExecuteVerb(Index: Integer);
 var
   SQL: string;
   TableName: string;
+  TableFunc: TGetTableNamesProc;
+  FieldFunc: TGetFieldNamesProc;
 begin
   case Index of
    0: ShowFieldsEditor(Designer, TDataSet(Component), GetDSDesignerClass);
@@ -634,8 +636,7 @@ begin
         SQL := TPSQLQuery(Component).SQL.Text;
         if SQL <> '' then
           TableName := GetTableNameFromSQL(SQL);
-        if EditSQL(SQL, GetTables, GetFields,
-           TableName) then
+        if EditSQL(SQL, GetTables, GetFields, TableName) then
           TPSQLQuery(Component).SQL.Text := SQL;
       finally
         FConnection := nil;
@@ -659,7 +660,7 @@ begin
                               [QuotedStr(Tablename)]);
   if not SystemFields then
    S := S + ' AND attnum > 0';
-  if Assigned(FConnection) then
+  if Assigned(FConnection) and FConnection.Connected then
    FConnection.SelectStrings(S, List);
 end;
 
@@ -667,7 +668,7 @@ procedure TPSQLQueryEditor.GetTables(List: TStrings;
   SystemTables: Boolean);
 begin
   List.Clear;
-  if Assigned(FConnection) then
+  if Assigned(FConnection) and FConnection.Connected then
     FConnection.GetTableNames('', SystemTables, List);
 end;
 

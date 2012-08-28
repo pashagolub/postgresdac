@@ -274,7 +274,7 @@ type
       function EndTran(hDb: hDBIDb; hXact: hDBIXact; eEnd : eXEnd): DBIResult;
       function GetTranInfo(hDb: hDBIDb;hXact: hDBIXact; pxInfo: pXInfo): DBIResult;
       function GetTranStatus(hDb: hDBIDb; var TranStatus: TTransactionStatusType): DBIResult;
-      function GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word): DBIResult;
+      function GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: integer; var iLen: integer): DBIResult;
       function SetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Longint): DBIResult;
       function GetVchkDesc(hCursor: hDBICur;iValSeqNo: Word; var pvalDesc: VCHKDesc): DBIResult;
       function GetCursorProps(hCursor: hDBICur;var curProps: CURProps): DBIResult;
@@ -328,7 +328,7 @@ type
       function ResetRange(hCursor : hDBICur) : DBIResult;
       function SwitchToIndex(hCursor : hDBICur; pszIndexName, pszTagName : string; iIndexId : Word; bCurrRec : Boolean) : DBIResult;
       function ExtractKey(hCursor: hDBICur;PRecord: Pointer;pKeyBuf: Pointer): DBIResult;
-      function GetRecordForKey(hCursor: hDBICur; bDirectKey: Boolean; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
+      function GetRecordForKey(hCursor: hDBICur; bDirectKey: Boolean; iFields: integer; iLen: integer; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
       function AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;var IdxDesc: IDXDesc;pszKeyviolName: string): DBIResult;
       function DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;pszIndexName: string;pszIndexTagName: string;iIndexId: Word): DBIResult;
       function GetIndexDesc(hCursor: hDBICur;iIndexSeqNo: Word;var idxDesc: IDXDesc): DBIResult;
@@ -337,7 +337,7 @@ type
       function TableExists(hDb: hDBIDb; pszTableName: string): DBIResult;
       function CreateTable(hDb: hDBIDb; bOverWrite: Boolean; var crTblDsc: CRTblDesc): DBIResult;
       function AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
-      function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Boolean;iFields: Word;iLen: Word;pBuff: Pointer): DBIResult;
+      function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Boolean;iFields: integer;iLen: integer;pBuff: Pointer): DBIResult;
       function CloneCursor(hCurSrc: hDBICur;bReadOnly: Boolean;bUniDirectional: Boolean;var   hCurNew: hDBICur): DBIResult;
       function SetToCursor(hDest, hSrc : hDBICur) : DBIResult;
       function OpenPGNotify(hDb: hDBIDb; var hNotify: hDBIObj): DBIResult;
@@ -409,10 +409,10 @@ type
       FStatus    : PFieldStatus;
       FArray     : Boolean;
       FNativeBLOBType: TNativeBLOBType;
-      function GetLocalSize : Word;
-      procedure SetLocalSize(S : Word);
-      function GetLocalType : Word;
-      procedure SetLocalType(S : Word);
+      function GetLocalSize : integer;
+      procedure SetLocalSize(S : integer);
+      function GetLocalType : integer;
+      procedure SetLocalType(S : integer);
       function GetFieldName : String;
       procedure SetFieldName(Const Value : String);
       procedure SetBuffer(PRecord : Pointer);
@@ -425,30 +425,30 @@ type
       function GetNativeDataset: TNativeDataSet;
       function GetNativeConnect: TNativeConnect;
     public
-      constructor CreateField(Owner : TCollection; P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
+      constructor CreateField(Owner : TCollection; P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean);
 
       function FieldValue: PAnsiChar;
       function FieldValueAsStr: string; //this will be used in SQLs;
 
       Property Buffer : Pointer Read FBuffer Write SetBuffer;
       Property Data : Pointer Read FData;
-      Property DataOffset : Word Read  FDesc.iOffset Write  FDesc.iOffset;
+      Property DataOffset : integer Read  FDesc.iOffset Write  FDesc.iOffset;
       Property Description : FLDDesc Read FDesc Write FDesc;
       Property ValCheck : VCHKDesc Read FValCheck Write FValCheck;
       Property FieldChanged : Boolean Read GetChanged Write SetChanged;
       Property FieldNull : Boolean Read GetNull Write SetNull;
       Property FieldStatus : PFieldStatus Read FStatus;
-      Property NullOffset : Word Read FDesc.iNullOffset Write FDesc.iNullOffset;
-      Property FieldNumber : Word Read FDesc.iFldNum Write FDesc.iFldNum;
+      Property NullOffset : integer Read FDesc.iNullOffset Write FDesc.iNullOffset;
+      Property FieldNumber : integer Read FDesc.iFldNum Write FDesc.iFldNum;
       Property FieldName : String Read GetFieldName Write SetFieldName;
-      Property FieldType : Word Read   FDesc.iFldType Write  FDesc.iFldType;
-      Property FieldSubType : Word Read   FDesc.iSubType Write  FDesc.iSubType;
+      Property FieldType : integer Read   FDesc.iFldType Write  FDesc.iFldType;
+      Property FieldSubType : integer Read   FDesc.iSubType Write  FDesc.iSubType;
       Property FieldUnits1 : integer Read   FDesc.iUnits1 Write  FDesc.iUnits1;
       Property FieldUnits2 : integer Read   FDesc.iUnits2 Write  FDesc.iUnits2;
-      Property FieldLength : Word Read   FDesc.iLen Write  FDesc.iLen;
+      Property FieldLength : integer Read   FDesc.iLen Write  FDesc.iLen;
       property FieldDefault: string read GetFieldDefault write SetFieldDefault;//mi
-      property NativeType : Word Read   GetLocalType Write  SetLocalType;
-      property NativeSize : Word Read   GetLocalSize Write  SetLocalSize;
+      property NativeType : integer Read   GetLocalType Write  SetLocalType;
+      property NativeSize : integer Read   GetLocalSize Write  SetLocalSize;
       property FieldArray : Boolean Read  FArray write FArray;
       property NativeBLOBType: TNativeBLOBType read FNativeBLOBType
                 write FNativeBlobType;
@@ -464,10 +464,10 @@ type
     private
       FTable : TNativeDataSet;
       function GetField(Index : Integer) : TPSQLField;
-    function GetNativeConnect: TNativeConnect;
-    Public
+      function GetNativeConnect: TNativeConnect;
+    public
       Constructor Create(Table : TNativeDataSet);
-      function AddField(P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean): TPSQLField;
+      function AddField(P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean): TPSQLField;
       Property Field[Index : Integer] : TPSQLField Read  GetField; Default;
       procedure SetFields(PRecord : Pointer);
       function FieldNumberFromName(SearchName : PChar) : Integer;
@@ -483,20 +483,20 @@ type
   TPSQLIndex = Class(TCollectionItem)
     private
       FDesc      : IDXDesc;
-    function GetIndexName: string;
-    procedure SetIndexName(const Value: string);
+      function GetIndexName: string;
+      procedure SetIndexName(const Value: string);
     Public
       Constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
       Property Description : IDXDesc Read FDesc Write FDesc;
     Published
-      Property IndexNumber : Word Read FDesc.iIndexID Write FDesc.iIndexID;
+      Property IndexNumber : integer Read FDesc.iIndexID Write FDesc.iIndexID;
       Property IndexName   : string Read GetIndexName Write SetIndexName;
       Property Primary     : WordBool Read FDesc.bPrimary Write FDesc.bPrimary;
       Property Unique      : WordBool Read FDesc.bUnique Write FDesc.bUnique;
       Property Descending  : WordBool Read FDesc.bDescending Write FDesc.bDescending;
-      Property FldsInKey   : Word Read FDesc.iFldsInKey Write  FDesc.iFldsInKey;
-      Property KeyLen      : Word Read FDesc.iKeyLen Write FDesc.iKeyLen;
-      Property BlockSize   : Word Read FDesc.iBlockSize Write FDesc.iBlockSize;
+      Property FldsInKey   : integer Read FDesc.iFldsInKey Write  FDesc.iFldsInKey;
+      Property KeyLen      : integer Read FDesc.iKeyLen Write FDesc.iKeyLen;
+      Property BlockSize   : integer Read FDesc.iBlockSize Write FDesc.iBlockSize;
   end;
 
   //////////////////////////////////////////////////////////
@@ -645,6 +645,7 @@ type
       FSortingIndex   : array of integer; //filled with SortBy method
       FSortingFields  : string; //"fieldname" ASC|DESC, ...
       FOptions        : TPSQLDatasetOptions;
+      FCustomCompareFunc: TPSQLDatasetSortCompare;
       //////////////////////////////////////////////////////////
       //            PROTECTED METHODS                         //
       //////////////////////////////////////////////////////////
@@ -654,7 +655,7 @@ type
       procedure SetCurrentBuffer(PRecord : Pointer);
       procedure SetBufferAddress(P : Pointer);
       procedure SetKeyNumber(newValue: SmallInt);
-      function FieldOffset(iField: Integer): Word;
+      function FieldOffset(iField: Integer): integer;
       function GetBookMarkSize: Integer;
       function GetIndexCount: Integer;
       procedure SetBufBookmark;
@@ -708,11 +709,11 @@ type
       function FieldBuffer(FieldNum: Integer): PAnsiChar;
       function FieldByName(FieldName: String): string;
       function  GetSQLClause: string;
-      function GetBufferSize : Word; Virtual;
-      function GetWorkBufferSize : Word; virtual;
-      procedure GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1: VCHKDesc; Var LocType, LocSize : Word; var LocArray: Boolean);
-      procedure NativeToDelphi(P: TPSQLField;PRecord: Pointer; pDest: Pointer; var bBlank: Boolean);
-      procedure DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
+      function GetBufferSize : integer; Virtual;
+      function GetWorkBufferSize : integer; virtual;
+      procedure GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1: VCHKDesc; Var LocType, LocSize : Integer; var LocArray: Boolean);
+      procedure NativeToDelphi(P: TPSQLField; PRecord: Pointer; pDest: Pointer; var bBlank: Boolean);
+      procedure DelphiToNative(P: TPSQLField; PRecord: Pointer;pSrc: Pointer);
       procedure CheckParam(Exp : Boolean;BDECODE : Word);
       function GetRecordSize: Integer;
       function GetFieldInfo(Index : Integer) : TPGFIELD_INFO;
@@ -737,11 +738,11 @@ type
       function BlobValue(P : Pointer; Fld: TPSQLField; NeedEscape: boolean = True): string; overload;
       function BlobValue(MS: TStream; isBytea: boolean; NeedEscape: Boolean = True): string; overload;
       procedure ReadBlock(var iRecords: Integer; pBuf: Pointer);
-    Public
+    public
       SQLQuery : String;
       ROWID    : OID;
       isQuery  : boolean;
-      Constructor Create(PSQL : TNativeConnect;
+      constructor Create(PSQL : TNativeConnect;
                          Container : TContainer;
                          AnOptions: TPSQLDatasetOptions;
                          AName, IndexName : string;
@@ -770,7 +771,7 @@ type
       procedure DropFilter(hFilter: hDBIFilter);
       procedure ActivateFilter(hFilter : hDBIFilter);
       procedure DeactivateFilter(hFilter : hDBIFilter);
-      procedure GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
+      procedure GetProp(iProp: Longint;PropValue: Pointer; iMaxLen: integer; var iLen: integer);
       procedure SetProp(iProp: Longint; PropValue : Longint);
       procedure SetToBegin; Virtual;
       procedure SetToEnd;
@@ -794,7 +795,7 @@ type
       procedure StoredProcGetParams(Params: TParams);
       procedure RelRecordLock(bAll: Boolean);
       procedure ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
-      procedure GetRecordForKey(bDirectKey: Boolean; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False);
+      procedure GetRecordForKey(bDirectKey: Boolean; iFields: integer; iLen: integer; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False);
       function findrows(const Fields: array of Integer; const SearchFields:array of String; ACaseSen : Boolean; APartLen : Integer; AStrictConformity: boolean = False):int64;
       function SetRowPosition(iFields : Integer; LID : Int64; pRecBuffer : Pointer):Boolean;
       procedure GetIndexDesc(iIndexSeqNo : Word; var idxDesc : IDXDesc);
@@ -825,9 +826,10 @@ type
 
       property IsLocked: boolean read FIsLocked write FIsLocked;
       property LastOperationTime: cardinal read FLastOperationTime;
-      function CheckCanLive : boolean; //pasha_golub 14.07.06
+      function CheckCanLive: boolean; //pasha_golub 14.07.06
       function HasFieldTimeZone(const FldNum: integer):boolean;
- 		  procedure SortBy(FieldNames : string);
+ 		  procedure SortBy(FieldNames: string); overload;
+      procedure SortBY(FieldNames: string; Compare: TPSQLDatasetSortCompare); overload;
       function IsSortedLocally: boolean;
 
     //mi:2008-08-27 flag to prevent record buffer storing while reading BLOB field data
@@ -841,16 +843,16 @@ end;
  TIndexList = Class(TNativeDataSet)
  private
     Descs     : TIDXDescList;
-    Items     : Word;
-    Position  : Word;
+    Items     : integer;
+    Position  : integer;
  Public
-    constructor Create(PSQL : TNativeConnect; D : TIDXDescList; TotalCount : Word);
+    constructor Create(PSQL : TNativeConnect; D : TIDXDescList; TotalCount : integer);
     destructor Destroy; Override;
     procedure SetToBegin; Override;
     procedure GetNextRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps); override;
     procedure GetIdxDesc(Precord: PIdxDesc);
-    function GetBufferSize : Word; Override;
-    function GetWorkBufferSize : Word; Override;
+    function GetBufferSize : integer; Override;
+    function GetWorkBufferSize : integer; Override;
     procedure SetToBookmark(P : Pointer); override;
     procedure GetRecordCount(Var iRecCount : Longint); override;
  end;
@@ -858,16 +860,16 @@ end;
  TFieldList = Class(TNativeDataSet)
  private
     Descs   : TFLDDescList;
-    Items     : Word;
-    Position  : Word;
+    Items     : integer;
+    Position  : integer;
  public
-    constructor Create(PSQL : TNativeConnect; D : TFLDDescList; TotalCount : Word);
+    constructor Create(PSQL : TNativeConnect; D : TFLDDescList; TotalCount : integer);
     destructor Destroy; Override;
     procedure SetToBegin; Override;
-    function GetBufferSize : Word; Override;
+    function GetBufferSize : integer; Override;
     procedure GetNextRecord(eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps); override;
     procedure GetFLDDesc(PRecord: pFLDDesc);
-    function GetWorkBufferSize : Word; Override;
+    function GetWorkBufferSize : integer; Override;
     procedure SetToBookmark(P : Pointer); override;
     procedure GetRecordCount(Var iRecCount : Longint); override;
  end;
@@ -2916,7 +2918,7 @@ var
 procedure ProcessTable;
 var
     Props : CURProps;
-    Items : Word;
+    Items : integer;
     Descs : TFLDDescList;
 begin
     P.GetCursorProps(Props);
@@ -3142,7 +3144,7 @@ end;
 //              LType: Word
 //              LSize: Word
 //////////////////////////////////////////////////////////
-Constructor TPSQLField.CreateField(Owner : TCollection; P : FldDesc; P1 : VCHKDesc; FNum, LType, LSize : Word; isArray : Boolean);
+Constructor TPSQLField.CreateField(Owner : TCollection; P : FldDesc; P1 : VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean);
 begin
   Create(Owner);
 
@@ -3238,22 +3240,22 @@ begin
   if FStatus <> nil then TFieldStatus(FStatus^).Changed := Flag;
 end;
 
-function TPSQLField.GetLocalSize : Word;
+function TPSQLField.GetLocalSize : integer;
 begin
   Result := FDesc.iUnused[1];
 end;
 
-procedure TPSQLField.SetLocalSize(S : Word);
+procedure TPSQLField.SetLocalSize(S : integer);
 begin
   FDesc.iUnused[1] := S;
 end;
 
-function TPSQLField.GetLocalType : Word;
+function TPSQLField.GetLocalType : integer;
 begin
   Result := FDesc.iUnused[0];
 end;
 
-procedure TPSQLField.SetLocalType(S : Word);
+procedure TPSQLField.SetLocalType(S : integer);
 begin
   FDesc.iUnused[0] := S;
 end;
@@ -3317,7 +3319,7 @@ end;
 //////////////////////////////////////////////////////////
 
 function TPSQLFields.AddField(P: FldDesc; P1: VCHKDesc; FNum, LType,
-  LSize: Word; isArray: Boolean): TPSQLField;
+  LSize: integer; isArray: Boolean): TPSQLField;
 begin
  Result := Add as TPSQLField;
  Result.Description := P;
@@ -3343,8 +3345,8 @@ end;
 
 function TPSQLFields.GetField(Index : Integer) : TPSQLField;
 var
-  LocType : Word;
-  LocSize : Word;
+  LocType : Integer;
+  LocSize : Integer;
   LocArray : Boolean;
   Desc    : FldDesc;
   ValCheck : VCHKDesc;
@@ -3366,7 +3368,7 @@ end;
 
 procedure TPSQLFields.SetFields(PRecord : Pointer);
 var
-  i : Word;
+  i : integer;
 begin
   For i := 1 to Count do
   begin
@@ -3441,7 +3443,7 @@ function TPSQLIndexes.SetIndex(Name,Fields : String;aPrimary,aUnique,aDesc : Boo
 var
   Item : TPSQLIndex;
   I,K,J : Integer;
-  FldLen : Word;
+  FldLen : integer;
   FieldList : TStrings;
 
   //this is used, because Postgres didn't delete dropped columns,
@@ -3997,7 +3999,7 @@ begin
   Result := FCurrentBuffer;
 end;
 
-function TNativeDataSet.FieldOffset(iField: Integer): Word;
+function TNativeDataSet.FieldOffset(iField: Integer): integer;
 var
    i: SmallInt;
 begin
@@ -4991,7 +4993,7 @@ begin
      Result := Item.FDesc;
 end;
 
-procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1 : VCHKDesc; Var LocType, LocSize : Word; var LocArray : Boolean);
+procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1 : VCHKDesc; Var LocType, LocSize : Integer; var LocArray : Boolean);
 var
   Fld : TPGFIELD_INFO;
 begin
@@ -5064,8 +5066,8 @@ var
   i         : Integer;
   FldInfo   : FLDDesc;
   ValCheck  : VCHKDesc;
-  LocalType, LocalSize : Word;
-  RecSize, NullOffset: Word;
+  LocalType, LocalSize : Integer;
+  RecSize, NullOffset: Integer;
   LocArray  : Boolean;
 begin
    Fields.Clear;
@@ -5086,13 +5088,13 @@ begin
    end;
 end;
 
-function TNativeDataSet.GetBufferSize : Word;
+function TNativeDataSet.GetBufferSize : integer;
 begin
   if FFieldDescs.Count = 0 then InitFieldDescs;
   Result := RecordSize;
 end;
 
-function TNativeDataSet.GetWorkBufferSize : Word;
+function TNativeDataSet.GetWorkBufferSize : integer;
 begin
   Result := GetBufferSize;
   Inc(Result, FFieldDescs.Count * SizeOf(TFieldStatus) + 1);
@@ -5100,7 +5102,7 @@ begin
   if FBookOfs > 0 then Inc(Result, BookMarkSize);
 end;
 
-procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word);
+procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: integer; var iLen: integer);
 begin
   iLen := 0;
   Case TPropRec( iProp ).Prop of
@@ -5300,7 +5302,7 @@ end;
 procedure TNativeDataSet.ReadBlock(var iRecords : Longint; pBuf : Pointer);
 var
   M     : MemPtr;
-  i     : Word;
+  i     : integer;
   Limit : longint;
 begin
   Limit     := iRecords;
@@ -5318,7 +5320,7 @@ begin
     if iRecords >= Limit then
       Break
     else
-      Inc(i,GetWorkBufferSize);
+      Inc(i, GetWorkBufferSize);
 
   until False;
 end;
@@ -6567,6 +6569,7 @@ begin
     CurrentRecord(RecNo);
 end;
 
+
 procedure TNativeDataSet.EmptyTable;
 var
   S : String;
@@ -6697,7 +6700,7 @@ end;
 //////////////////////////////////////////////////////////////////////
 //          TIndexList Object                                       //
 //////////////////////////////////////////////////////////////////////
-Constructor TIndexList.Create(PSQL: TNativeConnect; D : TIDXDescList; TotalCount : Word );
+Constructor TIndexList.Create(PSQL: TNativeConnect; D : TIDXDescList; TotalCount : integer );
 begin
   Inherited Create(PSQL, nil, [], '', '', 0, 0, 0);
   Items   := TotalCount;
@@ -6736,12 +6739,12 @@ begin
 end;
 
 
-function TIndexList.GetBufferSize : Word;
+function TIndexList.GetBufferSize : integer;
 begin
   Result := SizeOf(idxDESC);
 end;
 
-function TIndexList.GetWorkBufferSize : Word;
+function TIndexList.GetWorkBufferSize : integer;
 begin
   Result := GetBufferSize;
 end;
@@ -6757,7 +6760,7 @@ begin
 end;
 
 constructor TFieldList.Create(PSQL: TNativeConnect; D: TFLDDescList;
-  TotalCount: Word);
+  TotalCount: integer);
 begin
   Inherited Create(PSQL, nil, [], '', '', 0, 0, 0);
   Items   := TotalCount;
@@ -6776,7 +6779,7 @@ begin
   inherited Destroy;
 end;
 
-function TFieldList.GetBufferSize : Word;
+function TFieldList.GetBufferSize : integer;
 begin
   Result := SizeOf(FLDDesc);
 end;
@@ -7158,7 +7161,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: Word;var iLen: Word): DBIResult;
+function TPSQLEngine.GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: integer;var iLen: integer): DBIResult;
 begin
   iLen := 0;
   if Assigned( hObj ) then
@@ -7617,7 +7620,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetRecordForKey(hCursor: hDBICur; bDirectKey: Boolean; iFields: Word; iLen: Word; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
+function TPSQLEngine.GetRecordForKey(hCursor: hDBICur; bDirectKey: Boolean; iFields: integer; iLen: integer; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
 begin
    try
     TNativeDataSet(hCursor).GetRecordForKey(bDirectKey,iFields,iLen, pKey, pRecBuff, AStrictConformity);
@@ -7723,7 +7726,12 @@ begin
   end;
 end;
 
-function TPSQLEngine.SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Boolean;iFields: Word;iLen: Word;pBuff: Pointer): DBIResult;
+function TPSQLEngine.SetToKey(hCursor: hDBICur;
+          eSearchCond: DBISearchCond;
+          bDirectKey: Boolean;
+          iFields: integer;
+          iLen: integer;
+          pBuff: Pointer): DBIResult;
 begin
   try
     TNativeDataset(hCursor).SetToKey(eSearchCond, bDirectKey, iFields, iLen, pBuff);
@@ -8074,8 +8082,10 @@ begin
 end;
 
 
-procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean; iFields,
-  iLen: Word; pKey, pRecBuff: Pointer;  AStrictConformity: boolean = False);
+procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
+  iFields, iLen: integer;
+  pKey, pRecBuff: Pointer;
+  AStrictConformity: boolean = False);
 
 
     procedure SetToLookupKey;
@@ -8473,7 +8483,7 @@ var
    Sql : String;
    MinOIDSel: string;
    RES : PPGresult;
-   BdeType,BdeSubType: word;
+   BdeType, BdeSubType: integer;
    LogSize: integer;
    LocArray: boolean;
 
@@ -9222,6 +9232,17 @@ begin
   end;
 end;
 
+procedure TNativeDataSet.SortBy(FieldNames: string;
+  Compare: TPSQLDatasetSortCompare);
+begin
+  FCustomCompareFunc := Compare;
+  try
+    SortBy(FieldNames);
+  finally
+    FCustomCompareFunc := nil;
+  end;
+end;
+
 procedure TNativeDataSet.SortBy(FieldNames: string);
 var
 	a, cnt, i : integer;
@@ -9323,15 +9344,71 @@ procedure TNativeDataSet.InternalSortBy(const Fields: array of Integer;
 var aRecNum: integer;
     i: integer;
 
-    function CmpRecords(Index1, Index2: integer): integer;
+    function FVal(Index: integer): string;
+    begin
+      Result := FConnect.RawToString(PQGetValue(FStatement, FSortingIndex[Index], Fields[I]));
+    end;
+
+    function StringToVariant(S: string; NativeType: oid): variant;
+    begin
+         case NativeType of
+            FIELD_TYPE_INT2,
+            FIELD_TYPE_INT4,
+            FIELD_TYPE_INT8: Result := StrToInt64Def(S, 0);
+            FIELD_TYPE_FLOAT4,
+            FIELD_TYPE_FLOAT8,
+            FIELD_TYPE_NUMERIC:
+                             try
+                              Result := StrToFloat(S, PSQL_FS);
+                             except
+                              //D5 have no StrToFloatDef
+                              on E: EConvertError do
+                               Result := 0.0;
+                             end;
+
+            FIELD_TYPE_BOOL: Result := S[1] = 't';
+
+            FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
+                              Result := StrToInt64Def(S, InvalidOid)
+                            else
+                              Result := 0;
+            FIELD_TYPE_TEXT,
+            FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
+
+          else
+             //datetime fields will be compared here also
+             //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
+             Result := S;
+          end;
+
+    end;
+
+    function CustomCmpRecords(Index1, Index2: integer): integer;
+    var
+      V1, V2: Variant;
+      Idx1IsNull, Idx2IsNull, i: integer;
+    begin
+      Result := 0;
+      for i:= Low(Fields) to High(Fields) do
+       begin
+        Idx1IsNull := PQGetIsNull(FStatement, FSortingIndex[Index1], Fields[I]);
+        Idx2IsNull := PQGetIsNull(FStatement, FSortingIndex[Index2], Fields[I]);
+        if Idx1IsNull + Idx2IsNull = 2 then Exit; //no need to compare two NULLs
+        if Idx1IsNull = 1 then
+          V1 := Null
+        else
+          V1 := StringToVariant(FVal(Index1), PQFType(FStatement, Fields[I]));
+        if Idx2IsNull = 1 then
+          V2 := Null
+        else
+          V2 := StringToVariant(FVal(Index2), PQFType(FStatement, Fields[I]));
+        Result := FCustomCompareFunc(nil, V1, V2, Fields[I]);
+        if Result <> 0 then Break;
+       end;
+    end;
+
+    function DefaultCmpRecords(Index1, Index2: integer): integer;
     var i, Idx1IsNull, Idx2IsNull: integer;
-      s1, s2: string;
-
-      function FVal(Index: integer): string;
-      begin
-       Result := FConnect.RawToString(PQGetValue(FStatement,FSortingIndex[Index],Fields[I]));
-      end;
-
       {$IFDEF DELPHI_5}
       function Sign(const AValue: Double): integer;
       begin
@@ -9348,13 +9425,13 @@ var aRecNum: integer;
      Result := 0;
      for i:= Low(Fields) to High(Fields) do
       begin
-        Idx1IsNull := PQGetIsNull(FStatement,FSortingIndex[Index1],Fields[I]);
-        Idx2IsNull := PQGetIsNull(FStatement,FSortingIndex[Index2],Fields[I]);
+        Idx1IsNull := PQGetIsNull(FStatement, FSortingIndex[Index1], Fields[I]);
+        Idx2IsNull := PQGetIsNull(FStatement, FSortingIndex[Index2], Fields[I]);
         case Idx1IsNull + Idx2IsNull of
          2: Result := 0;
          1: Result := Idx1IsNull - Idx2IsNull;
         else
-         case PQFType(FStatement,Fields[I]) of
+         case PQFType(FStatement, Fields[I]) of
             FIELD_TYPE_INT2,
             FIELD_TYPE_INT4,
             FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
@@ -9364,10 +9441,8 @@ var aRecNum: integer;
             FIELD_TYPE_FLOAT8,
             FIELD_TYPE_NUMERIC:
                              try
-                              s1 := FVal(Index1);
-                              s2 := FVal(Index2);
-                              Result := Sign(StrToFloat(s1, PSQL_FS) -
-                                       StrToFloat(s2, PSQL_FS));
+                              Result := Sign(StrToFloat(FVal(Index1), PSQL_FS) -
+                                       StrToFloat(FVal(Index2), PSQL_FS));
                              except
                               //D5 have no StrToFloatDef
                               on E: EConvertError do
@@ -9405,6 +9480,14 @@ var aRecNum: integer;
       FSortingIndex[Index2] := T;
     end;
 
+    function CmpRecords(Index1, Index2: integer): integer;
+    begin
+      if not Assigned(FCustomCompareFunc) then
+        Result := DefaultCmpRecords(Index1, Index2)
+      else
+        Result := CustomCmpRecords(Index1, Index2);
+    end;
+
     procedure QuickSort(L, R: Integer);
     var
          I, J, P: Integer;
@@ -9438,9 +9521,9 @@ begin
   aRecNum := GetRecCount;
   if (High(Fields) = -1) or (aRecNum < 2) then
 		Exit;
-  SetLength(FSortingIndex,aRecNum);
+  SetLength(FSortingIndex, aRecNum);
 
-  for i:=0 to aRecNum-1 do //initialization
+  for i := 0 to aRecNum - 1 do //initialization
    FSortingIndex[i] := i;
 
   QuickSort(Low(FSortingIndex), High(FSortingIndex));
@@ -9862,7 +9945,7 @@ begin
    iRecCount := Items;
 end;
 
-function TFieldList.GetWorkBufferSize: Word;
+function TFieldList.GetWorkBufferSize: integer;
 begin
   Result := GetBufferSize;
 end;
