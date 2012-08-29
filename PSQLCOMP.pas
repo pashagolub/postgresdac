@@ -624,8 +624,6 @@ procedure TPSQLQueryEditor.ExecuteVerb(Index: Integer);
 var
   SQL: string;
   TableName: string;
-  TableFunc: TGetTableNamesProc;
-  FieldFunc: TGetFieldNamesProc;
 begin
   case Index of
    0: ShowFieldsEditor(Designer, TDataSet(Component), GetDSDesignerClass);
