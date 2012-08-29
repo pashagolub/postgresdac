@@ -573,13 +573,13 @@ type
       Options: TFilterOptions; Priority: Integer): HDBIFilter;
     function  CreateFuncFilter(FilterFunc: Pointer;
       Priority: Integer): HDBIFilter;
-    function  CreateHandle: HDBICur; Virtual;
+    function  CreateHandle: HDBICur; virtual;
     function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
     procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
     procedure DeactivateFilters;
-    procedure DestroyHandle; Virtual;
-    procedure DestroyLookupCursor; Virtual;
+    procedure DestroyHandle; virtual;
+    procedure DestroyLookupCursor; virtual;
     function  FindRecord(Restart, GoForward: Boolean): Boolean; override;
     function  ForceUpdateCallback: Boolean;
     procedure FreeKeyBuffers;
@@ -605,7 +605,7 @@ type
     function  GetLookupCursor(const KeyFields: string; CaseInsensitive: Boolean): HDBICur; Virtual;
     function  GetRecordCount: Integer; override;
     function  GetRecNo: Integer; override;
-    function  GetRecordSize: integer; reintroduce;
+    function  GetRecordSize: integer; reintroduce; virtual; 
     {$IFNDEF FPC}
     function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; override;
     procedure GetObjectTypeNames(Fields: TFields);
@@ -728,6 +728,7 @@ type
     procedure SortBy(FieldNames : string; Compare : TPSQLDatasetSortCompare); overload;
     procedure SortBy(FieldNames : string); overload;
     property SortFieldNames : string read GetSortFieldNames write SetSortFieldNames;
+    property RecordSize: integer read GetRecordSize;
   published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property AutoRefresh: Boolean read FAutoRefresh write SetAutoRefresh default FALSE;
@@ -2579,9 +2580,9 @@ end;
 procedure TPSQLDataSet.ClearCalcFields(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF});
 begin
  {$IFDEF DELPHI_12}
-  FillChar(Buffer[RecordSize], CalcFieldsSize, 0)
+  FillChar(Buffer[FRecordSize], CalcFieldsSize, 0)
  {$ELSE}
-  FillChar(Buffer[RecordSize], CalcFieldsSize, 0);
+  FillChar(Buffer[FRecordSize], CalcFieldsSize, 0);
  {$ENDIF}
 end;
 

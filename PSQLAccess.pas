@@ -9354,7 +9354,12 @@ var aRecNum: integer;
          case NativeType of
             FIELD_TYPE_INT2,
             FIELD_TYPE_INT4,
-            FIELD_TYPE_INT8: Result := StrToInt64Def(S, 0);
+            FIELD_TYPE_INT8:
+               {$IFDEF DELPHI_5}
+                Result := StrToIntDef(S, 0);
+               {$ELSE}
+                Result := StrToInt64Def(S, 0);
+               {$ENDIF}
             FIELD_TYPE_FLOAT4,
             FIELD_TYPE_FLOAT8,
             FIELD_TYPE_NUMERIC:
@@ -9369,7 +9374,11 @@ var aRecNum: integer;
             FIELD_TYPE_BOOL: Result := S[1] = 't';
 
             FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
+                           {$IFDEF DELPHI_5}
+                              Result := StrToIntDef(S, InvalidOid)
+                           {$ELSE}
                               Result := StrToInt64Def(S, InvalidOid)
+                           {$ENDIF}
                             else
                               Result := 0;
             FIELD_TYPE_TEXT,
