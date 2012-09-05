@@ -11,6 +11,7 @@ uses  SysUtils, Classes, Db,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
       {$IFDEF DELPHI_6}Variants,{$ENDIF}
       {$IFDEF FPC}Variants,{$ENDIF}
+      {$IFDEF DELPHI_17}System.Generics.Collections,{$ENDIF}
       PSQLAccess, PSQLTypes;
 
 const
@@ -315,7 +316,7 @@ type
       destructor Destroy; override;
 
       function  Engine : TPSQLEngine;
-      function Execute(const SQL: string; Params: TParams = nil; Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
+      function Execute(const SQL: string; Params: TParams = nil; Cache: Boolean = FALSE; Cursor: phDBICur = nil): Integer;
       function GetBackendPID: Integer;
 
       function SelectString(aSQL: string; var IsOk: boolean; aFieldName: string): string; overload;
@@ -539,7 +540,7 @@ type
     {$IFNDEF FPC}
     procedure PSEndTransaction(Commit: Boolean); override;
     function PSExecuteStatement(const ASQL: string; AParams: TParams;
-      ResultSet: Pointer = NIL): Integer; override;
+      ResultSet: Pointer = nil): Integer; override;
     procedure PSGetAttributes(List: TList); override;
     function PSGetQuoteChar: string; override;
     function PSInTransaction: Boolean; override;
@@ -659,7 +660,8 @@ type
     procedure SetKeyExclusive(Value: Boolean);
     procedure SetKeyFieldCount(Value: Integer);
     procedure SetKeyFields(KeyIndex: TKeyIndex; const Values: array of const);
-    procedure SetLinkRanges(MasterFields: TList);
+    procedure SetLinkRanges(MasterFields: TList); {$IFDEF DELPHI_17}overload;
+    procedure SetLinkRanges(MasterFields: TList<TField>); overload;{$ENDIF !DELPHI_17}
     {$IFNDEF FPC}
     procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); override;
     {$ENDIF}
@@ -1383,8 +1385,8 @@ begin
   end;
 end;                             
 
-function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
-  Cache: Boolean = FALSE; Cursor: phDBICur = NIL): Integer;
+function TPSQLDatabase.Execute(const SQL: string; Params: TParams = nil;
+  Cache: Boolean = FALSE; Cursor: phDBICur = nil): Integer;
 
   function GetStmtInfo(SQL: PChar): PStmtInfo;
 
@@ -1421,7 +1423,7 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
   begin
     if not Assigned(FStmtList) then
       FStmtList := TList.Create;
-    Result := NIL;
+    Result := nil;
     HashCode := GetHashCode(SQL);
     for i := 0 to FStmtList.Count - 1 do
     begin
@@ -1447,8 +1449,8 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = NIL;
     Info: PStmtInfo;
     Status: Word;
   begin
-    Info   := NIL;
-    Result := NIL;
+    Info   := nil;
+    Result := nil;
     if Cache then
     begin
       Info := GetStmtInfo(PChar(SQL));
@@ -2292,9 +2294,9 @@ begin
   if FBlockReadBuf <> nil then
   begin
     FreeMem(FBlockReadBuf);
-    FBlockReadBuf := NIL;
+    FBlockReadBuf := nil;
   end;
-  SetUpdateObject(NIL);
+  SetUpdateObject(nil);
 end;
 
 //////////////////////////////////////////////////////////
@@ -2499,8 +2501,8 @@ end;
 
 procedure TPSQLDataSet.InternalClose;
 begin
-  FFuncFilter := NIL;
-  FExprFilter := NIL;
+  FFuncFilter := nil;
+  FExprFilter := nil;
   FreeKeyBuffers;
   BindFields(FALSE);
   if DefaultFields then DestroyFields;
@@ -2641,7 +2643,7 @@ begin
   if not IsEmpty and (GetBookmarkFlag(ActiveBuffer) = bfCurrent) then
   begin
     UpdateCursorPos;
-    Result := (Engine.GetRecord(FHandle, dbiNoLock, Buffer, NIL) = DBIERR_NONE);
+    Result := (Engine.GetRecord(FHandle, dbiNoLock, Buffer, nil) = DBIERR_NONE);
   end else
     Result := FALSE;
 end;
@@ -2659,7 +2661,7 @@ begin
   finally
     SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, FALSE);
   end else
-    Result := NIL;
+    Result := nil;
 end;
 
 procedure TPSQLDataSet.FetchAll;
@@ -2982,7 +2984,7 @@ begin
     begin
       Inc(RecBuf, FRecordSize + Field.Offset);
       Result := Boolean(RecBuf[ 0 ]);
-      if Result and (Buffer <> NIL) then
+      if Result and (Buffer <> nil) then
         Move(RecBuf[1], Buffer^, Field.DataSize);
     end;
   end;
@@ -3082,7 +3084,7 @@ procedure TPSQLDataSet.InternalEdit;
 begin
   FOldBuffer := AllocRecordBuffer;
   Move(ActiveBuffer^,FOldBuffer[0],FRecBufSize);
-  Check(Engine, Engine.GetRecord(FHandle, {dbiNoLock}dbiWriteLock, ActiveBuffer, NIL)); //locking stuff need attention
+  Check(Engine, Engine.GetRecord(FHandle, {dbiNoLock}dbiWriteLock, ActiveBuffer, nil)); //locking stuff need attention
   ClearBlobCache(ActiveBuffer);
 end;
 
@@ -3210,10 +3212,10 @@ const
   RetCodes: array[Boolean, Boolean] of ShortInt = ((2,CMPLess),(CMPGtr,CMPEql));
 begin
   { Check for uninitialized bookmarks }
-  Result := RetCodes[Bookmark1 = NIL, Bookmark2 = NIL];
+  Result := RetCodes[Bookmark1 = nil, Bookmark2 = nil];
   if (Result = 2) then
   begin
-    if (Handle <> NIL) then
+    if (Handle <> nil) then
       Check(Engine, Engine.CompareBookmarks(Handle, Bookmark1, Bookmark2, Result));
     if (Result = CMPKeyEql) then
       Result := CMPEql;
@@ -3222,7 +3224,7 @@ end;
 
 function TPSQLDataSet.BookmarkValid(Bookmark: TBookmark): Boolean;
 begin
-  Result := (Handle <> NIL);
+  Result := (Handle <> nil);
   if Result then
   begin
     CursorPosChanged;
@@ -3449,7 +3451,7 @@ begin
         UseStartKey := Engine.ExtractKey(Handle, StartKey, IndexBuffer) = 0;
       end
       else
-        StartKey := NIL;
+        StartKey := nil;
       RangeEnd := FKeyBuffers[kiRangeEnd];
       if RangeEnd.Modified then
       begin
@@ -3457,13 +3459,13 @@ begin
         UseEndKey := (Engine.ExtractKey(Handle, EndKey, IndexBuffer + KeySize) = 0);
       end
       else
-        EndKey := NIL;
+        EndKey := nil;
       UseKey := UseStartKey and UseEndKey;
       if UseKey then
       begin
-        if (StartKey <> NIL) then
+        if (StartKey <> nil) then
           StartKey := IndexBuffer;
-        if (EndKey <> NIL) then
+        if (EndKey <> nil) then
           EndKey := IndexBuffer + KeySize;
       end;
       Check(Engine, Engine.SetRange(FHandle, UseKey,
@@ -3513,6 +3515,27 @@ begin
   Move(FKeyBuffers[kiRangeStart]^, FKeyBuffers[kiRangeEnd]^,
     SizeOf(TKeyBuffer) + FRecordSize);
 end;
+
+{$IFDEF DELPHI_17}
+procedure TPSQLDataSet.SetLinkRanges(MasterFields: TList<TField>);
+var
+  I: Integer;
+  SaveState: TDataSetState;
+begin
+  SaveState := SetTempState(dsSetKey);
+  try
+    FKeyBuffer := InitKeyBuffer(FKeyBuffers[kiRangeStart]);
+    FKeyBuffer^.Modified := TRUE;
+    for I := 0 to Pred(MasterFields.Count) do
+      GetIndexField(I).Assign(MasterFields[I]);
+    FKeyBuffer^.FieldCount := MasterFields.Count;
+  finally
+    RestoreState(SaveState);
+  end;
+  Move(FKeyBuffers[kiRangeStart]^, FKeyBuffers[kiRangeEnd]^,
+    SizeOf(TKeyBuffer) + FRecordSize);
+end;
+{$ENDIF !DELPHI_17}
 
 function TPSQLDataSet.GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
 begin
@@ -3679,9 +3702,9 @@ function TPSQLDataSet.CreateExprFilter(const Expr: string;
 var
   Parser: TExprParser;
 begin
-  Parser := TExprParser.Create(Self, Expr, Options, [], '', NIL, FldTypeMap);
+  Parser := TExprParser.Create(Self, Expr, Options, [], '', nil, FldTypeMap);
   try
-    Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Parser.FilterData), NIL, Result));
+    Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Parser.FilterData), nil, Result));
   finally
     Parser.Free;
   end;
@@ -3689,7 +3712,7 @@ end;
 
 function TPSQLDataSet.CreateFuncFilter(FilterFunc: Pointer;Priority: Integer): HDBIFilter;
 begin
-  Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, NIL, PFGENFilter(FilterFunc), Result));
+  Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, nil, PFGENFilter(FilterFunc), Result));
 end;
 
 function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
@@ -3706,7 +3729,7 @@ begin
     FilterOptions := [foNoPartialCompare, foCaseInsensitive]
   else
     FilterOptions := [foNoPartialCompare];
-  Filter := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
+  Filter := TFilterExpr.Create(Self, FilterOptions, [], '', nil, FldTypeMap);
   try
     if (Fields.Count = 1) and not VarIsArray(Values) then
     begin
@@ -3722,7 +3745,7 @@ begin
           Expr := Filter.NewNode(enOperator, coAND, Unassigned, Expr, Node);
       end;
     if loPartialKey in Options then Node^.FPartial := TRUE;
-    Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Filter.GetFilterData(Expr)), NIL, Result));
+    Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Filter.GetFilterData(Expr)), nil, Result));
   finally
     Filter.Free;
   end;
@@ -3735,9 +3758,9 @@ begin
     CursorPosChanged;
     DestroyLookupCursor;
     Engine.SetToBegin(FHandle);
-    if Filter <> NIL then Engine.DropFilter(FHandle, Filter);
+    if Filter <> nil then Engine.DropFilter(FHandle, Filter);
     Filter := Value;
-    if Filter <> NIL then Engine.ActivateFilter(FHandle, Filter);
+    if Filter <> nil then Engine.ActivateFilter(FHandle, Filter);
   end else
   begin
     if Filter <> nil then Engine.DropFilter(FHandle, Filter);
@@ -3756,7 +3779,7 @@ begin
     begin
       if Text <> '' then
         HFilter := CreateExprFilter(Text, Options, 0) else
-        HFilter := NIL;
+        HFilter := nil;
       SetFilterHandle(FExprFilter, HFilter);
     end;
   end;
@@ -3832,12 +3855,12 @@ begin
     if GoForward then
     begin
       if Restart then Check(Engine, Engine.SetToBegin(FHandle));
-      Status := Engine.GetNextRecord(FHandle, dbiNoLock, NIL, NIL);
+      Status := Engine.GetNextRecord(FHandle, dbiNoLock, nil, nil);
     end
     else
     begin
       if Restart then Check(Engine, Engine.SetToEnd(FHandle));
-      Status := Engine.GetPriorRecord(FHandle, dbiNoLock, NIL, NIL);
+      Status := Engine.GetPriorRecord(FHandle, dbiNoLock, nil, nil);
     end;
   finally
     if not Filtered then
@@ -4138,7 +4161,7 @@ begin
     GetFieldList(Fields, KeyFields);
     Check(Engine, Engine.SetToBegin(FHandle));
     FilterOptions := [foNoPartialCompare];
-    Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', NIL, FldTypeMap);
+    Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', nil, FldTypeMap);
     try
       if Fields.Count = 1 then
       begin
@@ -4154,7 +4177,7 @@ begin
             Expr := Filter1.NewNode(enOperator, coAND, Unassigned, Expr, Node);
         end;
       if loPartialKey in Options then Node^.FPartial := TRUE;
-      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), NIL,Filter));
+      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), nil,Filter));
     finally
       Filter1.Free;
     end;
@@ -4196,7 +4219,7 @@ end;
 
 function TPSQLDataSet.GetLookupCursor(const KeyFields: string; CaseInsensitive: Boolean): HDBICur;
 begin
-  Result := NIL;
+  Result := nil;
 end;
 
 procedure TPSQLDataSet.DestroyLookupCursor;
@@ -4292,7 +4315,7 @@ begin
     if Assigned(FUpdateCallback) then
     begin
       FUpdateCallback.Free;
-      FUpdateCallback := NIL;
+      FUpdateCallback := nil;
     end;
   end;
 end;
@@ -4416,14 +4439,14 @@ begin
   if (Value <> FUpdateObject) then
   begin
     if Assigned(FUpdateObject) and (FUpdateObject.DataSet = Self) then
-      FUpdateObject.DataSet := NIL;
+      FUpdateObject.DataSet := nil;
     FUpdateObject := Value;
     if Assigned(FUpdateObject) then
     begin
       { if another dataset already references this updateobject, then
         remove the reference }
       if Assigned(FUpdateObject.DataSet) and (FUpdateObject.DataSet <> Self) then
-        FUpdateObject.DataSet.UpdateObject := NIL;
+        FUpdateObject.DataSet.UpdateObject := nil;
       FUpdateObject.DataSet := Self;
     end;
   end;
@@ -4497,7 +4520,7 @@ end;
 procedure TPSQLDataSet.PSReset;
 begin
   inherited PSReset;
-  if Handle <> NIL then
+  if Handle <> nil then
     Engine.ForceReread(Handle);
 end;
 {$ENDIF}
@@ -4533,7 +4556,7 @@ begin
     Result := FDatabase.Handle;
   end
   else
-    Result := NIL;
+    Result := nil;
 end;
 
 procedure TPSQLDataSet.GetDatabaseNames(List : TStrings);
@@ -4594,7 +4617,7 @@ end;
 
 procedure TPSQLDataSet.SetUpdateMode(const Value: TUpdateMode);
 begin
-  if (FHandle <> NIL) and True and CanModify then
+  if (FHandle <> nil) and True and CanModify then
     Check(Engine, Engine.SetEngProp(hDbiObj(FHandle), curUPDLOCKMODE, Longint(Value)));
   FUpdateMode := Value;
 end;
@@ -4719,7 +4742,7 @@ begin
   end;
 end;
 
-function TPSQLDataSet.PSExecuteStatement(const ASQL : string; AParams: TParams; ResultSet: Pointer = NIL): Integer;
+function TPSQLDataSet.PSExecuteStatement(const ASQL : string; AParams: TParams; ResultSet: Pointer = nil): Integer;
 var
   InProvider: Boolean;
 //  Cursor: hDBICur;
@@ -4898,7 +4921,7 @@ procedure TPSQLQuery.DefineProperties(Filer: TFiler);
 
   function WriteData: Boolean;
   begin
-    if (Filer.Ancestor <> NIL) then
+    if (Filer.Ancestor <> nil) then
       Result := not FParams.IsEqual(TPSQLQuery(Filer.Ancestor).FParams)
     else
       Result := (FParams.Count > 0);
@@ -4906,7 +4929,7 @@ procedure TPSQLQuery.DefineProperties(Filer: TFiler);
 
 begin
   Inherited DefineProperties(Filer);
-  Filer.DefineBinaryproperty('Data', ReadBinaryData, WriteBinaryData, SQLBinary <> NIL);
+  Filer.DefineBinaryproperty('Data', ReadBinaryData, WriteBinaryData, SQLBinary <> nil);
   Filer.DefineProperty('ParamData', ReadParamData, WriteParamData, WriteData);
 end;
 
@@ -4945,7 +4968,7 @@ end;
 
 procedure TPSQLQuery.SetPrepared(Value: Boolean);
 begin
-  if (FHandle <> NIL) and Value then
+  if (FHandle <> nil) and Value then
     DatabaseError(SDataSetOpen, Self);
   if Value <> Prepared then
   begin
@@ -4971,10 +4994,10 @@ var
   I: Integer;
   DataSet: TDataSet;
 begin
-  if FDataLink.DataSource <> NIL then
+  if FDataLink.DataSource <> nil then
   begin
     DataSet := FDataLink.DataSource.DataSet;
-    if DataSet <> NIL then
+    if DataSet <> nil then
     begin
       DataSet.FieldDefs.Update;
       for I := 0 to FParams.Count - 1 do
@@ -4993,10 +5016,10 @@ var
 begin
   DisableControls;
   try
-    if FDataLink.DataSource <> NIL then
+    if FDataLink.DataSource <> nil then
     begin
       DataSet := FDataLink.DataSource.DataSet;
-      if DataSet <> NIL then
+      if DataSet <> nil then
         if DataSet.Active and (DataSet.State <> dsSetKey) then
         begin
           TNativeDataset(FHandle).CloseTable;
@@ -5028,15 +5051,15 @@ begin
     Finally
       FExecSQL := FALSE;
     end;
-    if FDataLink.DataSource <> NIL then SetParamsFromCursor;
+    if FDataLink.DataSource <> nil then SetParamsFromCursor;
     Result := GetQueryCursor(GenHandle);
   end
   else
   begin
     DatabaseError(SEmptySQLStatement, Self);
-    Result := NIL;
+    Result := nil;
   end;
-  FCheckRowsAffected := (Result = NIL);
+  FCheckRowsAffected := (Result = nil);
 end;
 
 
@@ -5069,10 +5092,10 @@ var
   PCursor: phDBICur;
   CanLive : boolean;
 begin
-  Result := NIL;
+  Result := nil;
   if GenHandle then
     PCursor := @Result else
-    PCursor := NIL;
+    PCursor := nil;
   if FParams.Count > 0 then
       Check(Engine,Engine.QuerySetParams(hDBIStmt(FHandle),Params,SQL.Text));
   Check(Engine, Engine.QExec(hDBIStmt(FHandle), PCursor, FRowsAffected));
@@ -5145,7 +5168,7 @@ begin
       {Retry};
   except
     Engine.QFree(hDBIStmt(FHandle));
-    FHandle := NIL;
+    FHandle := nil;
     raise;
   end;
 end;
@@ -5172,9 +5195,9 @@ procedure TPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields: TList);
     Field: TField;
   begin
     Field := DataSet.FindField(FieldName);
-    if (Field <> NIL) then
+    if (Field <> nil) then
       List.Add(Field);
-    Result := Field <> NIL;
+    Result := Field <> nil;
   end;
 
 var
@@ -5182,7 +5205,7 @@ var
 begin
   MasterFields.Clear;
   DetailFields.Clear;
-  if (DataSource <> NIL) and (DataSource.DataSet <> NIL) then
+  if (DataSource <> nil) and (DataSource.DataSet <> nil) then
     for i := 0 to Params.Count - 1 do
       if AddFieldToList(Params[i].Name, DataSource.DataSet, MasterFields) then
         AddFieldToList(Params[i].Name, Self, DetailFields);
@@ -5331,7 +5354,7 @@ var
   UpdateKind: TUpdateKind;
 begin
   if Assigned(FDataSet) and (FDataSet.UpdateObject = Self) then
-    FDataSet.UpdateObject := NIL;
+    FDataSet.UpdateObject := nil;
   for UpdateKind := Low(TUpdateKind) to High(TUpdateKind) do
     FSQLText[UpdateKind].Free;
   Inherited Destroy;
@@ -5527,7 +5550,7 @@ var
   end;
 
 begin
-  Result := NIL;
+  Result := nil;
   OpenMode := OpenModes[FReadOnly];
   if DefaultIndex then
     IndexID := 0  else IndexID := NODEFAULTINDEX;
@@ -5536,7 +5559,7 @@ begin
     DBH := DBHandle;
     RetCode := Engine.OpenTable(DBH, FTableName, '',
       IndexName, IndexTag, IndexID, OpenMode, ShareModes[FExclusive],
-      xltField, FALSE, NIL, Result, FOptions, FLimit, FOffset);
+      xltField, FALSE, nil, Result, FOptions, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
       OpenMode := dbiReadOnly    else
     FillAddonProps;
@@ -5594,7 +5617,7 @@ var
   FCursor: HDBICur;
   RequiredFields: TBits;
 begin
-  if FHandle <> NIL then
+  if FHandle <> nil then
      InternalInitFieldDefs else
   begin
     SetDBFlag(dbfFieldList, TRUE);
@@ -5607,7 +5630,7 @@ begin
           SetLength(FieldDescs, FldDescCount);
           { Create an array of field descriptors }
           for I := 0 to FldDescCount - 1 do
-            Check(Engine, Engine.GetNextRecord(FCursor, dbiNoLock, @FieldDescs[I], NIL));
+            Check(Engine, Engine.GetNextRecord(FCursor, dbiNoLock, @FieldDescs[I], nil));
           { Initialize list of required fields }
           RequiredFields := TBits.Create;
           try
@@ -5785,7 +5808,7 @@ begin
       EncodeIndexDesc(IndexDesc, Name, Fields, Options, DescFields);
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.AddIndex(DBHandle, NIL, FTableName, '', IndexDesc, ''));
+      Check(Engine, Engine.AddIndex(DBHandle, nil, FTableName, '', IndexDesc, ''));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -5808,7 +5831,7 @@ begin
     GetIndexParams(Name, FALSE, IndexName, IndexTag);
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.DeleteIndex(DBHandle, NIL, FTableName, '',
+      Check(Engine, Engine.DeleteIndex(DBHandle, nil, FTableName, '',
         IndexName, IndexTag, 0));
     finally
       SetDBFlag(dbfTable, FALSE);
@@ -5930,7 +5953,7 @@ var
   begin
     while not CheckOpen(Engine.OpenIndexList(DBHandle, FTableName, '', FCursor)) do {Retry};
     try
-        while Engine.GetNextRecord(FCursor, dbiNoLock, @IndexDesc, NIL) = 0 do
+        while Engine.GetNextRecord(FCursor, dbiNoLock, @IndexDesc, nil) = 0 do
           if IndexDesc.bMaintained then
           begin
             DecodeIndexDesc(IndexDesc, Src, IdxName, Flds, DescFlds, Opts);
@@ -6144,7 +6167,7 @@ begin
       else
       begin
         KeyIndex := IndexDefs.GetIndexForFields(KeyFields, CaseInsensitive);
-        if (KeyIndex <> NIL) and
+        if (KeyIndex <> nil) and
            (CaseInsensitive = (ixCaseInsensitive in KeyIndex.Options)) then
         begin
           KeyIndexName := KeyIndex.Name;
@@ -6167,10 +6190,10 @@ end;
 
 procedure TPSQLTable.DestroyLookupCursor;
 begin
-  if FLookupHandle <> NIL then
+  if FLookupHandle <> nil then
   begin
     Engine.CloseCursor(FLookupHandle);
-    FLookupHandle := NIL;
+    FLookupHandle := nil;
     FLookupKeyFields := '';
   end;
 end;
@@ -6195,9 +6218,9 @@ var
 begin
   MasterFields.Clear;     
   DetailFields.Clear;
-  if (MasterSource <> NIL) and (MasterSource.DataSet <> NIL) and (Self.MasterFields <> '') then
+  if (MasterSource <> nil) and (MasterSource.DataSet <> nil) and (Self.MasterFields <> '') then
   begin
-    Idx := NIL;
+    Idx := nil;
     MasterSource.DataSet.GetFieldList(MasterFields, Self.MasterFields);
     UpdateIndexDefs;
     if IndexName <> '' then
@@ -6212,7 +6235,7 @@ begin
             Idx := IndexDefs[i];
             break;
           end;
-    if Idx <> NIL then GetFieldList(DetailFields, Idx.Fields);
+    if Idx <> nil then GetFieldList(DetailFields, Idx.Fields);
   end;
 end;
 {$ENDIF}
@@ -6314,7 +6337,7 @@ begin
   begin
     SetDBFlag(dbfTable, TRUE);
     try
-      Check(Engine, Engine.EmptyTable(DBHandle, NIL, FTableName, ''));
+      Check(Engine, Engine.EmptyTable(DBHandle, nil, FTableName, ''));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -6444,23 +6467,27 @@ function TPSQLTable.PSGetDefaultOrder: TIndexDef;
   function GetIdx(IdxType : TIndexOption) : TIndexDef;
   var
     i: Integer;
+    L: TList;
   begin
-    Result := NIL;
+    Result := nil;
+    L := nil;
     for i := 0 to IndexDefs.Count - 1 do
       if IdxType in IndexDefs[i].Options then
       try
         Result := IndexDefs[ i ];
-        GetFieldList(NIL, Result.Fields);
+        GetFieldList(L, Result.Fields);
         break;
       except
-        Result := NIL;
+        Result := nil;
       end;
   end;
 
 var
   DefIdx: TIndexDef;
+  L: TList;
 begin
-  DefIdx := NIL;
+  DefIdx := nil;
+  L := nil;
   IndexDefs.Update;
   try
     if (IndexName <> '') then
@@ -6469,9 +6496,9 @@ begin
       if (IndexFieldNames <> '') then
         DefIdx := IndexDefs.FindIndexForFields(IndexFieldNames);
     if Assigned(DefIdx) then
-      GetFieldList(NIL, DefIdx.Fields);
+      GetFieldList(L, DefIdx.Fields);
   except
-    DefIdx := NIL;
+    DefIdx := nil;
   end;
   if not Assigned(DefIdx) then
     DefIdx := GetIdx(ixPrimary);
@@ -6479,11 +6506,11 @@ begin
     DefIdx := GetIdx(ixUnique);
   if Assigned(DefIdx) then
   begin
-    Result := TIndexDef.Create(NIL);
+    Result := TIndexDef.Create(nil);
     Result.Assign(DefIdx);
   end
   else
-    Result := NIL;
+    Result := nil;
 end;
 
 function TPSQLTable.PSGetIndexDefs(IndexTypes : TIndexOptions): TIndexDefs;
@@ -6552,7 +6579,7 @@ begin
           Pos := 1;
           while (Pos <= Length(Result)) do
           begin
-            IndexFound := (FindField(ExtractFieldName(Result, Pos)) <> NIL);
+            IndexFound := (FindField(ExtractFieldName(Result, Pos)) <> nil);
             if not IndexFound then
               Break;
           end;
@@ -6792,7 +6819,7 @@ var
 
 procedure InitDBTables;
 begin
-  if (SaveInitProc <> NIL) then
+  if (SaveInitProc <> nil) then
     TProcedure(SaveInitProc);
 end;
 
