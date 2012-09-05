@@ -334,7 +334,7 @@ end;
 
 function TPSQLTableFieldLinkProperty.GetIndexBased: Boolean;
 begin
-  Result := {$IFDEF DELPHI_4} not True{$ELSE}not IProviderSupport(FTable).PSIsSQLBased{$ENDIF};
+  Result := {$IFDEF DELPHI_4}False{$ELSE}True{$ENDIF};
 end;
 
 function TPSQLTableFieldLinkProperty.GetIndexDefs: TIndexDefs;
