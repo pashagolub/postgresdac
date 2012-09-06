@@ -2158,8 +2158,8 @@ function GetModuleName(Module: HMODULE): string;
 {$IFDEF MACOS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
-{$ENDIF}
 function GetTickCount: LongWord; //thanks to Indy project
+{$ENDIF}
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
 implementation
@@ -2408,18 +2408,12 @@ procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
 begin
   Move(Source^, Destination^, Length);
 end;
-{$ENDIF}
 
-function GetTickCount: LongWord;
-{$IFDEF DELPHI_12}inline;{$ENDIF}
+function GetTickCount: LongWord; inline;
 begin
-{$IFDEF MACOS}
   Result := AbsoluteToNanoseconds(UpTime) div 1000000;
-{$ENDIF}
-{$IFDEF MSWINDOWS}
-  Result := Windows.GetTickCount;
-{$ENDIF}
 end;
+{$ENDIF}
 
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 {$IFDEF DELPHI_12}inline;{$ENDIF}

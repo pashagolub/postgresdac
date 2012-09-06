@@ -6213,7 +6213,7 @@ var
   Param: TParam;
   i: integer;
   byName: boolean;
-  MS: TMemoryStream;
+  MS: {$IFDEF DELPHI_17}TBytesStream{$ELSE}TMemoryStream{$ENDIF};
 
   function GetDateTime: string;
   var ts: string;
@@ -6280,10 +6280,10 @@ begin
         case Param.DataType of
           ftADT: Value := 'DEFAULT';
           ftBLOB: begin
-                    MS := TMemoryStream.Create;
+                    MS := {$IFDEF DELPHI_17}TBytesStream{$ELSE}TMemoryStream{$ENDIF}.Create;
                     try
                      MS.SetSize(Param.GetDataSize);
-                     Param.GetData(MS.Memory);
+                     Param.GetData(MS.{$IFDEF DELPHI_17}Bytes{$ELSE}Memory{$ENDIF});
                      Value := BlobValue(MS, TPSQLParam(Param).DataTypeOID <> FIELD_TYPE_OID, True);
                     finally
                      MS.Free;
