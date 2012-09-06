@@ -32,11 +32,17 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+  //dataset options
+    procedure TestEmptyCharAsNullOption;
+  //TField.AsXXX
     procedure TestAsInteger;
     procedure TestAsFloat;
     procedure TestAsString;
     procedure TestAsBoolean;
-    procedure TestEmptyCharAsNullOption;
+  //RequestLive modifications
+    procedure TestInsert;
+    procedure TestUpdate;
+    procedure TestDelete;
   end;
 
 var
@@ -50,6 +56,7 @@ procedure TestTPSQLQuery.SetUp;
 begin
   FPSQLQuery := TPSQLQuery.Create(nil);
   FPSQLQuery.Database := QryDB;
+  FPSQLQuery.ParamCheck := False;
 end;
 
 procedure TestTPSQLQuery.TearDown;
@@ -85,26 +92,65 @@ end;
 
 procedure TestTPSQLQuery.TestAsString;
 begin
- FPSQLQuery.SQL.Text := 'SELECT cast(''foo'' as varchar(30))';
+ FPSQLQuery.SQL.Text := 'SELECT ''foo''::varchar(30)';
  FPSQLQuery.Open;
  Check(FPSQLQuery.Fields[0].AsString = 'foo', 'Field value AsString is incorrect');
  FPSQLQuery.Close;
 end;
 
+procedure TestTPSQLQuery.TestDelete;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  FPSQLQuery.Delete;
+  Check(FPSQLQuery.RecordCount = 0, 'TPSQLQuery.Delete failed');
+end;
+
 procedure TestTPSQLQuery.TestEmptyCharAsNullOption;
 begin
   FPSQLQuery.Options := [];
-  FPSQLQuery.SQL.Text := 'SELECT Cast('''' AS varchar(30)), Cast(''text'' AS varchar(30)) as col1';
+  FPSQLQuery.SQL.Text := 'SELECT ''''::varchar(30), ''text''::varchar(30) as col1';
   FPSQLQuery.Open;
   Check(not FPSQLQuery.Fields[0].IsNull, 'Field must be NOT NULL due to normal options');
   FPSQLQuery.Close;
 
   FPSQLQuery.Options := [dsoEmptyCharAsNull];
-  FPSQLQuery.SQL.Text := 'SELECT Cast('''' AS varchar(30)), Cast(''text'' AS varchar(30)) as col1';
+  FPSQLQuery.SQL.Text := 'SELECT ''''::varchar(30), ''text''::varchar(30) as col1';
   FPSQLQuery.Open;
   Check(FPSQLQuery.Fields[0].IsNull, 'IsNULL must be true due to dsoEmptyCharAsNull used');
   Check(FPSQLQuery.Fields.FieldByName('col1').AsWideString = 'text', 'Field must be not empty if dsoEmptyCharAsNull enabled');
   FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestInsert;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  FPSQLQuery.Insert;
+  FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt);
+  FPSQLQuery.FieldByName('string').AsString := 'test test';
+  FPSQLQuery.FieldByName('datum').AsDateTime := Now();
+  FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
+  FPSQLQuery.FieldByName('floatf').AsFloat := Random();
+  FPSQLQuery.Post;
+  Check(FPSQLQuery.RecordCount = 1, 'TPSQLQuery.Insert failed');
+end;
+
+procedure TestTPSQLQuery.TestUpdate;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  FPSQLQuery.Edit;
+  FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt);
+  FPSQLQuery.FieldByName('string').AsString := 'test test updated';
+  FPSQLQuery.FieldByName('datum').AsDateTime := Now();
+  FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
+  FPSQLQuery.FieldByName('floatf').AsFloat := Random();
+  FPSQLQuery.Post;
+  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'TPSQLQuery.Edit failed');
 end;
 
 { TDbSetup }
@@ -113,11 +159,24 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
+  QryDB.Execute('CREATE TABLE requestlive_test ' +
+                '(' +
+                '  id serial NOT NULL PRIMARY KEY,' +
+                '  intf integer,' +
+                '  string character varying(100),' +
+                '  datum timestamp without time zone,' +
+                '  notes text,' +
+                '  graphic oid,' +
+                '  b_graphic bytea,' +
+                '  b boolean,' +
+                '  floatf real' +
+                ')');
 end;
 
 procedure TDbSetup.TearDown;
 begin
   inherited;
+  QryDB.Execute('DROP TABLE requestlive_test');
   QryDB.Close;
   ComponentToFile(QryDB, 'PSQLQueryTest.conf');
   QryDB.Free;

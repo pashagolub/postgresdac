@@ -650,6 +650,9 @@ type
     procedure SetCachedUpdates(Value: Boolean);
     function  SetCursorRange: Boolean;
     procedure SetFieldData(Field: TField; Buffer: Pointer); override;
+    {$IFDEF DELPHI_17}
+    procedure SetFieldData(Field: TField; Buffer: TValueBuffer); override;
+    {$ENDIF}
     procedure SetFilterData(const Text: string; Options: TFilterOptions);
     procedure SetFilterHandle(var Filter: HDBIFilter; Value: HDBIFilter);
     procedure SetFiltered(Value: Boolean); override;
@@ -703,8 +706,11 @@ type
     {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
     {$ENDIF}
-    function GetFieldData(Field: TField; Buffer: Pointer): Boolean; overload; override;
+    function GetFieldData(Field: TField; Buffer: Pointer): Boolean; override;
     function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload;{$IFNDEF FPC}override;{$ENDIF}
+    {$IFDEF DELPHI_17}
+    function GetFieldData(Field: TField; Buffer: TValueBuffer): Boolean; override;
+    {$ENDIF}
     procedure GetIndexInfo;
     function  Locate(const KeyFields: string; const KeyValues: Variant;
       Options: TLocateOptions): Boolean; override;
@@ -2989,6 +2995,18 @@ begin
     end;
   end;
 end;
+
+{$IFDEF DELPHI_17}
+function TPSQLDataSet.GetFieldData(Field: TField; Buffer: TValueBuffer): Boolean;
+begin
+  Result := GetFieldData(Field, @Buffer[0]);
+end;
+
+procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: TValueBuffer);
+begin
+  SetFieldData(Field, @Buffer[0]);
+end;
+{$ENDIF}
 
 procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: Pointer);
 var
