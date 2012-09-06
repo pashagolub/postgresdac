@@ -32,6 +32,10 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+    procedure TestAsInteger;
+    procedure TestAsFloat;
+    procedure TestAsString;
+    procedure TestAsBoolean;
     procedure TestEmptyCharAsNullOption;
   end;
 
@@ -52,6 +56,39 @@ procedure TestTPSQLQuery.TearDown;
 begin
   FPSQLQuery.Free;
   FPSQLQuery := nil;
+end;
+
+procedure TestTPSQLQuery.TestAsBoolean;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT True, False';
+ FPSQLQuery.Open;
+ Check(FPSQLQuery.Fields[0].AsBoolean and not FPSQLQuery.Fields[1].AsBoolean, 'Field value AsBoolean is incorrect');
+ FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestAsFloat;
+const D: Double = 12.8;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT 12.8';
+ FPSQLQuery.Open;
+ Check(FPSQLQuery.Fields[0].AsFloat = D, 'Field value AsFloat is incorrect');
+ FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestAsInteger;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT 12345';
+ FPSQLQuery.Open;
+ Check(FPSQLQuery.Fields[0].AsInteger = 12345, 'Field value AsInteger is incorrect');
+ FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestAsString;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT cast(''foo'' as varchar(30))';
+ FPSQLQuery.Open;
+ Check(FPSQLQuery.Fields[0].AsString = 'foo', 'Field value AsString is incorrect');
+ FPSQLQuery.Close;
 end;
 
 procedure TestTPSQLQuery.TestEmptyCharAsNullOption;
