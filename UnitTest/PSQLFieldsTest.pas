@@ -1,4 +1,4 @@
-unit TestPSQLFields;
+unit PSQLFieldsTest;
 {
 
   Delphi DUnit Test Case
@@ -120,7 +120,7 @@ begin
   FldQry.SQL.Text := 'SELECT * FROM uuid_test_case_table';
   FldQry.Open;
   FldQry.Insert;
-  CreateGUID(G);
+  Check(CreateGUID(G) = 0, 'GUID generation failed');
   if FldQry.Fields[0] is TGUIDField then
    TGUIDField(FldQry.Fields[0]).AsGuid := G
   else

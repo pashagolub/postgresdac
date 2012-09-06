@@ -92,7 +92,7 @@
         <DCCReference Include="PSQLDatabaseTest.pas"/>
         <DCCReference Include="PSQLQueryTest.pas"/>
         <DCCReference Include="TestHelper.pas"/>
-        <DCCReference Include="TestPSQLFields.pas"/>
+        <DCCReference Include="PSQLFieldsTest.pas"/>
         <DCCReference Include="PSQLToolsTest.pas"/>
         <DCCReference Include="PSQLBlobsTest.pas"/>
         <DCCReference Include="PSQLDumpTest.pas"/>

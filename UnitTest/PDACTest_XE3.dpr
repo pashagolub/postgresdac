@@ -26,7 +26,7 @@ uses
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
   PSQLQueryTest in 'PSQLQueryTest.pas',
   TestHelper in 'TestHelper.pas',
-  TestPSQLFields in 'TestPSQLFields.pas',
+  PSQLFieldsTest in 'PSQLFieldsTest.pas',
   PSQLToolsTest in 'PSQLToolsTest.pas',
   PSQLBlobsTest in 'PSQLBlobsTest.pas',
   PSQLDumpTest in 'PSQLDumpTest.pas',
