@@ -6,9 +6,10 @@ unit PSQLNotify;
 interface
 
 {$DEFINE USE_THREAD_POLLING} //coment this directive to use TTimer instead of TThread
-//{$DEFINE FMX} //use this directive to use FireMonkey's TTimer instead of VCL's
+
 
 uses {$IFNDEF USE_THREAD_POLLING}{$IFDEF FMX}FMX.Types{$ELSE}ExtCtrls{$ENDIF},{$ENDIF}
+     {$IFDEF MSWINDOWS}Windows,{$ENDIF}
      Classes, PSQLTypes, PSQLAccess, PSQLDbTables;
 
 type
