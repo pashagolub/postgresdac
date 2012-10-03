@@ -11,7 +11,7 @@ uses  SysUtils, Classes, Db,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
       {$IFDEF DELPHI_6}Variants,{$ENDIF}
       {$IFDEF FPC}Variants,{$ENDIF}
-      {$IFDEF DELPHI_17}System.Generics.Collections,{$ENDIF}
+      {$IFDEF DELPHI_17}System.Types, System.Generics.Collections,{$ENDIF}
       PSQLAccess, PSQLTypes;
 
 const
@@ -663,8 +663,7 @@ type
     procedure SetKeyExclusive(Value: Boolean);
     procedure SetKeyFieldCount(Value: Integer);
     procedure SetKeyFields(KeyIndex: TKeyIndex; const Values: array of const);
-    procedure SetLinkRanges(MasterFields: TList); {$IFDEF DELPHI_17}overload;
-    procedure SetLinkRanges(MasterFields: TList<TField>); overload;{$ENDIF !DELPHI_17}
+    procedure SetLinkRanges(MasterFields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF});
     {$IFNDEF FPC}
     procedure SetStateFieldValue(State: TDataSetState; Field: TField; const Value: Variant); override;
     {$ENDIF}
@@ -907,7 +906,7 @@ type
     function FindKey(const KeyValues: array of const): Boolean;
     procedure FindNearest(const KeyValues: array of const);
     {$IFNDEF FPC}
-    procedure GetDetailLinkFields(MasterFields, DetailFields: TList); override;
+    procedure GetDetailLinkFields(MasterFields, DetailFields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF}); override;
     {$ENDIF}
     procedure GetIndexNames(List: TStrings);
     procedure GotoCurrent(Table: TPSQLTable);
@@ -3011,6 +3010,9 @@ end;
 procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: Pointer);
 var
   RecBuf: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
+{$IFDEF DELPHI_17}
+  AValueBuffer: TValueBuffer;
+{$ENDIF}
 begin
   with Field do
   begin
@@ -3025,7 +3027,12 @@ begin
       if (State = dsCalcFields) then DatabaseError(SNotEditing);
       if ReadOnly and not (State in [dsSetKey, dsFilter]) then
         DatabaseErrorFmt(SFieldReadOnly, [DisplayName]);
+    {$IFDEF DELPHI_17}
+      AValueBuffer := Buffer;
+      Validate(AValueBuffer);
+    {$ELSE}
       Validate(Buffer);
+    {$ENDIF}
       if FieldKind <> fkInternalCalc then
         Check(Engine, Engine.PutField(FHandle, FieldNo, RecBuf, Buffer));
     end
@@ -3515,7 +3522,7 @@ begin
   end;
 end;
 
-procedure TPSQLDataSet.SetLinkRanges(MasterFields: TList);
+procedure TPSQLDataSet.SetLinkRanges(MasterFields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF});
 var
   I: Integer;
   SaveState: TDataSetState;
@@ -3533,27 +3540,6 @@ begin
   Move(FKeyBuffers[kiRangeStart]^, FKeyBuffers[kiRangeEnd]^,
     SizeOf(TKeyBuffer) + FRecordSize);
 end;
-
-{$IFDEF DELPHI_17}
-procedure TPSQLDataSet.SetLinkRanges(MasterFields: TList<TField>);
-var
-  I: Integer;
-  SaveState: TDataSetState;
-begin
-  SaveState := SetTempState(dsSetKey);
-  try
-    FKeyBuffer := InitKeyBuffer(FKeyBuffers[kiRangeStart]);
-    FKeyBuffer^.Modified := TRUE;
-    for I := 0 to Pred(MasterFields.Count) do
-      GetIndexField(I).Assign(MasterFields[I]);
-    FKeyBuffer^.FieldCount := MasterFields.Count;
-  finally
-    RestoreState(SaveState);
-  end;
-  Move(FKeyBuffers[kiRangeStart]^, FKeyBuffers[kiRangeEnd]^,
-    SizeOf(TKeyBuffer) + FRecordSize);
-end;
-{$ENDIF !DELPHI_17}
 
 function TPSQLDataSet.GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
 begin
@@ -3991,7 +3977,7 @@ function TPSQLDataSet.LocateRecord(const KeyFields: string;
                                     Options: TLocateOptions;
                                     SyncCursor: Boolean): Boolean;
 var
-  Fields: TList;
+  Fields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
   CaseInsensitive: boolean;
   Flds  : array of integer;
   SFlds : array of string;
@@ -4013,7 +3999,7 @@ begin
 
     Result := False;
 
-    Fields := TList.Create;
+    Fields := TList{$IFDEF DELPHI_17}<TField>{$ENDIF}.Create;
     try
       GetFieldList(Fields, KeyFields);
       CaseInsensitive := loCaseInsensitive in Options;
@@ -4070,7 +4056,7 @@ function TPSQLDataSet.LocateFilteredRecord(const KeyFields: string;
                                             Options: TLocateOptions;
                                             SyncCursor: Boolean): Word;
 var
-  Fields: TList;
+  Fields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
   Filter: HDBIFilter;
   Status: DBIResult;
   I: Integer;
@@ -4085,8 +4071,7 @@ begin
 
   pos := TNativeDataSet(FHandle).RecordNumber;
 
-  Fields := TList.Create();
-
+  Fields := TList{$IFDEF DELPHI_17}<TField>{$ENDIF}.Create();
   try
     GetFieldList(Fields, KeyFields);
     Check(Engine, Engine.SetToBegin(FHandle));
@@ -4160,7 +4145,7 @@ end;
 function TPSQLDataSet.LocateNearestRecord(const KeyFields: string;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Word;
 var
   Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
-  Fields: TList;
+  Fields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
   Filter: HDBIFilter;
   Status: DBIResult;
   I: Integer;
@@ -4174,7 +4159,7 @@ begin
   CheckBrowseMode;
   CursorPosChanged;
   Buffer := TempBuffer;
-  Fields := TList.Create;
+  Fields := TList{$IFDEF DELPHI_17}<TField>{$ENDIF}.Create;
   try
     GetFieldList(Fields, KeyFields);
     Check(Engine, Engine.SetToBegin(FHandle));
@@ -6229,12 +6214,12 @@ begin
 end;
 
 {$IFNDEF FPC}
-procedure TPSQLTable.GetDetailLinkFields(MasterFields, DetailFields: TList);
+procedure TPSQLTable.GetDetailLinkFields(MasterFields, DetailFields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF});
 var
   i: Integer;
   Idx: TIndexDef;
 begin
-  MasterFields.Clear;     
+  MasterFields.Clear;
   DetailFields.Clear;
   if (MasterSource <> nil) and (MasterSource.DataSet <> nil) and (Self.MasterFields <> '') then
   begin
@@ -6485,7 +6470,7 @@ function TPSQLTable.PSGetDefaultOrder: TIndexDef;
   function GetIdx(IdxType : TIndexOption) : TIndexDef;
   var
     i: Integer;
-    L: TList;
+    L: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
   begin
     Result := nil;
     L := nil;
@@ -6502,7 +6487,7 @@ function TPSQLTable.PSGetDefaultOrder: TIndexDef;
 
 var
   DefIdx: TIndexDef;
-  L: TList;
+  L: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
 begin
   DefIdx := nil;
   L := nil;

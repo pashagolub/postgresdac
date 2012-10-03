@@ -8,7 +8,8 @@ interface
 uses
   SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF}{$IFDEF MSWINDOWS} Windows, Messages,{$ENDIF}
   Classes, PSQLAccess, DB, PSQLDbTables, PSQLTypes
-  {$IFDEF DELPHI_16}, System.SyncObjs{$ENDIF};
+  {$IFDEF DELPHI_16}, System.SyncObjs{$ENDIF}
+  {$IFDEF DELPHI_17}, System.Types{$ENDIF};
 
 const
   {$IFNDEF MSWINDOWS}

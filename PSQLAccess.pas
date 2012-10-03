@@ -9010,7 +9010,7 @@ begin
  AFNum := FieldIndex(AnsiQuotedStr(AFieldName, '"'));
  if AFNum = -1 then Exit;
  if FieldIsNull(AFNum) then
-  begin                                        
+  begin
    AParam.Value := Null;
    Exit;
   end;
@@ -9019,7 +9019,11 @@ begin
                    begin
                      FVal := PQUnescapeBytea(FieldBuffer(AFNum),Len);
                      try
+                  {$IFDEF DELPHI_17}
+                      AParam.SetBlobData(BytesOf(FVal[0]), Len);
+                  {$ELSE}
                       AParam.SetBlobData(FVal, Len);
+                  {$ENDIF}
                       TPSQLParam(AParam).DataTypeOID := FIELD_TYPE_BYTEA;
                      finally
                       PQFreeMem(FVal);
