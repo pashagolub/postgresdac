@@ -706,8 +706,9 @@ type
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
     {$ENDIF}
     function GetFieldData(Field: TField; Buffer: Pointer): Boolean; override;
-    function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; overload;{$IFNDEF FPC}override;{$ENDIF}
+    function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; {$IFNDEF FPC}override;{$ENDIF}
     {$IFDEF DELPHI_17}
+    function GetFieldData(FieldNo: Integer; Buffer: TValueBuffer): Boolean; override;
     function GetFieldData(Field: TField; Buffer: TValueBuffer): Boolean; override;
     {$ENDIF}
     procedure GetIndexInfo;
@@ -2997,13 +2998,77 @@ end;
 
 {$IFDEF DELPHI_17}
 function TPSQLDataSet.GetFieldData(Field: TField; Buffer: TValueBuffer): Boolean;
+var
+  RecBuf: PByte;
 begin
-  Result := GetFieldData(Field, @Buffer[0]);
+  if Field.FieldNo > 0 then
+    Result := GetFieldData(Field.FieldNo, Buffer)
+  else
+  begin
+    if State = dsBlockRead then
+    begin
+      RecBuf := @TempBuffer[0];
+      Result := True;
+    end else
+      Result := GetActiveRecBuf(RecBuf);
+    if Result and (State in [dsBrowse, dsEdit, dsInsert, dsCalcFields, dsBlockRead]) then
+    begin
+      Result := Boolean(RecBuf[FRecordSize + Field.Offset]);
+      if Result and (Buffer <> nil) then
+        Move(RecBuf[FRecordSize + Field.Offset + 1], Buffer[0], Field.DataSize);
+    end;
+  end;
 end;
 
-procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: TValueBuffer);
+function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: TValueBuffer): Boolean;
+var
+  IsBlank: Boolean;
+  RecBuf: PByte;
+  Status: DBIResult;
 begin
-  SetFieldData(Field, @Buffer[0]);
+  if BlockReadSize > 0 then
+  begin
+    { Optimized for speed.  If error, just return false }
+    Status := Engine.GetField(FHandle, FieldNo, PByte(FBlockReadBuf) +
+      (FBlockBufOfs * FRecordSize), Buffer, IsBlank);
+    Result := (Status = DBIERR_NONE) and not IsBlank;
+  end else
+  begin
+    Result := GetActiveRecBuf(RecBuf);
+    if Result then
+    begin
+      Check(Engine, Engine.GetField(FHandle, FieldNo, RecBuf, Buffer, IsBlank));
+      Result := not IsBlank;
+    end
+  end;
+end;
+{$ENDIF}
+
+{$IFDEF DELPHI_17}
+procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: TValueBuffer);
+var
+  RecBuf: PByte;
+begin
+  if not (State in dsWriteModes) then DatabaseError(SNotEditing, Self);
+  if (State = dsSetKey) and ((Field.FieldNo < 0) or (FIndexFieldCount > 0) and
+    not Field.IsIndexField) then DatabaseErrorFmt(SNotIndexField, [Field.DisplayName]);
+  GetActiveRecBuf(RecBuf);
+  if Field.FieldNo > 0 then
+  begin
+    if State = dsCalcFields then DatabaseError(SNotEditing, Self);
+    if Field.ReadOnly and not (State in [dsSetKey, dsFilter]) then
+      DatabaseErrorFmt(SFieldReadOnly, [Field.DisplayName]);
+    Field.Validate(Buffer);
+    if Field.FieldKind <> fkInternalCalc then
+      Check(Engine, Engine.PutField(FHandle, Field.FieldNo, RecBuf, @Buffer[0]));
+  end
+  else {fkCalculated, fkLookup}
+  begin
+    Boolean(RecBuf[FRecordSize + Field.Offset]) := LongBool(Buffer);
+    if Boolean(RecBuf[FRecordSize + Field.Offset]) then Move(Buffer[0], RecBuf[1], Field.DataSize);
+  end;
+  if not (State in [dsCalcFields, dsFilter, dsNewValue]) then
+    DataEvent(deFieldChange, Longint(Field));
 end;
 {$ENDIF}
 

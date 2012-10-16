@@ -2207,8 +2207,8 @@ var
      TimeStamp: TTimeStamp;
 begin
   ZeroMemory(Dest, iField.NativeSize);
-  PAnsiChar(Dest)^:=#1;
-  Inc(PAnsiChar(Dest),1);
+  PAnsiChar(Dest)^ := #1;
+  Inc(PAnsiChar(Dest), 1);
   Result:=0;
 
   case iField.NativeType of
@@ -4300,7 +4300,8 @@ begin
   CheckParam(PRecord = nil, DBIERR_INVALIDPARAM);
   P.Buffer := PRecord;
   bBlank   := P.FieldNull;
-  if not bBlank and (pDest <> nil) then AdjustNativeField(P,P.FieldValue,pDest,bBlank);
+  if not bBlank and Assigned(pDest) then
+    AdjustNativeField(P, P.FieldValue, pDest, bBlank);
 end;
 
 procedure TNativeDataSet.DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
@@ -4598,7 +4599,7 @@ procedure TNativeDataSet.GetField(FieldNo: Word;PRecord: Pointer;pDest: Pointer;
 var
   T    : TPSQLField;
 begin
-  CheckParam(PRecord=nil,DBIERR_INVALIDPARAM);
+  CheckParam(PRecord = nil, DBIERR_INVALIDPARAM);
   T := FFieldDescs[FieldNo];
   T.Buffer := PRecord;
   if Assigned(pDest) then
@@ -4779,9 +4780,10 @@ begin
 
       FIELD_TYPE_INT8:  Result := SizeOf(Int64);
 
-      FIELD_TYPE_DATE:  Result := Sizeof(TTimeStamp);
+      FIELD_TYPE_DATE:  Result := Sizeof(Integer); //pg: 04.10.2012 was TimeStamp causing AV
 
-      FIELD_TYPE_TIME,
+      FIELD_TYPE_TIME:  Result := SizeOf(Integer);  //pg: 04.10.2012 was TDateTime causing AV
+
       FIELD_TYPE_TIMESTAMP: Result := SizeOf(TDateTime);
 
       FIELD_TYPE_FLOAT4,
@@ -5247,15 +5249,9 @@ begin
                                    SmallInt(Data^) := SmallInt(0);
                FIELD_TYPE_INT4: LongInt(Data^) := LongInt(StrToint(FldValue));
                FIELD_TYPE_INT8: Int64(Data^) := StrToInt64(FldValue);
-               FIELD_TYPE_DATE:   TDateTime(Data^) := SQLDateToDateTime(FldValue,False);
-               FIELD_TYPE_TIME:   TDateTime(Data^) := SQLDateToDateTime(FldValue,True);
-               FIELD_TYPE_TIMESTAMP: if FldValue = 'infinity' then
-                                       TDateTime(Data^) := MaxDateTime
-                                     else
-                                       if FldValue = '-infinity' then
-                                         TDateTime(Data^) := MinDateTime
-                                       else
-                                         TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
+               FIELD_TYPE_DATE:   TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
+               FIELD_TYPE_TIME:   TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
+               FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
                FIELD_TYPE_FLOAT4,
                FIELD_TYPE_FLOAT8,
                FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
@@ -7469,31 +7465,15 @@ begin
 end;
 
 function TPSQLEngine.CheckError : DBIResult;
-
-    {$IFDEF DELPHI_5}
-    function AcquireExceptionObject: Pointer;
-    type
-      PRaiseFrame = ^TRaiseFrame;
-      TRaiseFrame = record
-        NextRaise: PRaiseFrame;
-        ExceptAddr: Pointer;
-        ExceptObject: TObject;
-        ExceptionRecord: PExceptionRecord;
-      end;
-    begin
-      if RaiseList <> nil then
-      begin
-        Result := PRaiseFrame(RaiseList)^.ExceptObject;
-        PRaiseFrame(RaiseList)^.ExceptObject := nil;
-      end
-      else
-        Result := nil;
-    end;
-    {$ENDIF DELPHI_5}
-
-var ExceptionPtr : Pointer;
+var
+  ExceptionPtr : Pointer;
 begin
-  ExceptionPtr := AcquireExceptionObject;
+  Result := DBIERR_NONE;
+
+  ExceptionPtr := ExceptObject;
+
+  if not Assigned(ExceptionPtr) then Exit;
+
   if TObject(ExceptionPtr) is EPSQLException then
    begin
      if EPSQLException(ExceptionPtr).BDEErrors then
@@ -8189,75 +8169,19 @@ var
 
     function Compare1(const S1: String; const S2 : String; FldType : integer):Integer;
 
-        function CompWithLen(const S1,S2 : PChar):Integer;
-        var
-          I : Integer;
-          P1,P2 : PChar;
+        function CompWithLen(const P1, P2 : string): Integer;
         begin
-          Result := 0;
-          P1 := S1;
-          P2 := S2;
-          if (StrLen(P1) < StrLen(P2)) then
-            Result := -1 else
-
-            if (StrLen(P1) > StrLen(P2)) then
-              Result := 1 else
-
-              begin
-                for I :=0 to Min(StrLen(P1),StrLen(P2)) do
-                  begin
-                    if P1^ > P2^ then
-                      begin
-                        Result := 1;
-                        Break;
-                      end else
-
-                      if P1^ < P2^ then
-                        begin
-                          Result := -1;
-                          Break;
-                        end;
-                      Inc(P1); Inc(P2);
-                  end;
-              end;
+          Result := Length(P1) - Length(P2);
+          if Result = 0 then
+            Result := CompareStr(P1, P2);
         end;
 
-        function CompWithoutLen(const S1,S2 : PChar):Integer;
-        var
-          I : Integer;
-          P1,P2 : PChar;
-          Len : Integer;
+        function CompWithoutLen(const P1, P2 : string): Integer;
         begin
-          Result := 0;
-          P1 := S1;
-          P2 := S2;
-          if (StrLen(P1) < StrLen(P2)) then
-             Result := -1 else
-             if (StrLen(P1) > StrLen(P2)) then
-                Result := 1;
-          Len := Min(StrLen(P1),StrLen(P2));
-          for I :=0 to Len-1 do
-            begin
-              if P1^ > P2^ then
-              begin
-                 Result := 1;
-                 Break;
-              end else
-              if P1^ < P2^ then
-              begin
-                 Result := -1;
-                 Break;
-              end else
-              if P1^ = P2^ then
-              begin
-                 if MaskSearch(string(S2),string(S1)+'%') then
-                 begin
-                    Result := 0;
-                    Break;
-                 end;
-              end;
-              Inc(P1); Inc(P2);
-            end;
+          if StartsStr(P2, P1) then
+            Result := 0
+          else
+            Result := CompareStr(P1, P2);
         end;
 
         function SqlDateToBDEDateTime(const Value: string): string;
@@ -8279,7 +8203,7 @@ var
             Result := Result + ' ' + Temp;
         end;
 
-    var BoolChar: char;
+    var BoolChar: string;
 
     begin
         case FldType of
@@ -8287,40 +8211,42 @@ var
           FIELD_TYPE_INT4,
           FIELD_TYPE_INT8,
           FIELD_TYPE_OIDVECTOR,
-          FIELD_TYPE_OID: Result := CompWithLen(PChar(S1), PChar(S2));
+          FIELD_TYPE_OID: Result :=  CompWithLen(S1, S2);
 
           FIELD_TYPE_FLOAT4,
           FIELD_TYPE_FLOAT8,
           FIELD_TYPE_NUMERIC: if AStrictConformity then
-                                  Result := CompWithLen(PChar(StringReplace(S1, PSQL_FS.DecimalSeparator,
-                                                                '.', [rfReplaceAll])),
-                                            PChar(S2))
+                                  Result := CompWithLen(StringReplace(S1, PSQL_FS.DecimalSeparator,
+                                                                '.', [rfReplaceAll]),
+                                            S2)
                               else
                                   Result := CompWithoutLen(
-                                            PChar(StringReplace(S1, PSQL_FS.DecimalSeparator,
-                                                                '.', [rfReplaceAll])),
-                                            PChar(S2));
+                                            StringReplace(S1, PSQL_FS.DecimalSeparator,
+                                                                '.', [rfReplaceAll]),
+                                            S2);
 
-          FIELD_TYPE_DATE,
+          FIELD_TYPE_DATE:
+                              if AStrictConformity then
+                                Result := CompWithLen(S1, DateTimeToStr(SqlDateToDateTime(S2, False), PSQL_FS))
+                              else
+                                Result := CompWithoutLen(S1, DateTimeToStr(SqlDateToDateTime(S2, False), PSQL_FS));
           FIELD_TYPE_TIMESTAMP,
-          FIELD_TYPE_TIMESTAMPTZ: if AStrictConformity then
-                                    Result := CompWithLen(PChar(S1), PChar(SqlDateToBDEDateTime(S2)))
+          FIELD_TYPE_TIMESTAMPTZ:
+                                  if AStrictConformity then
+                                    Result := CompWithLen(S1, DateTimeToStr(SQLTimestampToDateTime(S2), PSQL_FS))
                                   else
-                                    Result := CompWithoutLen(PChar(S1), PChar(SqlDateToBDEDateTime(S2)));
+                                    Result := CompWithoutLen(S1, DateTimeToStr(SQLTimestampToDateTime(S2), PSQL_FS));
 
           FIELD_TYPE_BOOL: begin
-                            if S1 = '' then
-                             BoolChar := 'F'
-                            else
-                             BoolChar := 'T';
-                            Result := ord(boolchar) - ord(UpCase(S2[1]));
+                            BoolChar := IfThen(S1 = '', 'F', 'T');
+                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[1]));
                            end
 
           else
                             if AStrictConformity then
-                              Result := CompWithLen(PChar(S1), PChar(S2))
+                              Result := CompWithLen(S1, S2)
                              else
-                              Result := CompWithoutLen(PChar(S1), PChar(S2))
+                              Result := CompWithoutLen(S1, S2)
         end
     end;
 
@@ -8328,7 +8254,7 @@ var
     begin
       if IsSorted then CurRow := FSortingIndex[CurRow]; //05.05.2008
       if (aIndex > -1) and (aIndex <= FieldCount-1) then //are we in range?
-        Result := FConnect.RawToString(PQGetValue(Fstatement,CurRow,aIndex))
+        Result := FConnect.RawToString(PQGetValue(FStatement, CurRow, aIndex))
       else
         Result := '';
     end;
@@ -8340,7 +8266,7 @@ Begin
  try
   Cmp := -1;
   IsSorted := IsSortedLocally;
-  for I := 0 to GetRecCount-1 do
+  for I := 0 to GetRecCount - 1 do
     begin
       Cmp := 0;
       for K := 0 to High(Fields) do
@@ -8354,13 +8280,14 @@ Begin
               P1 := SearchFields[K];
               P2 := FldVal(I, Fields[K]);
             end;
-            Cmp := Cmp+Compare1(P1, P2, FieldType(Fields[K]));
+            Cmp := Cmp + Compare1(P1, P2, FieldType(Fields[K]));
             if Cmp <> 0 then Break;
         end;
       if Cmp = 0 then Break;
     end;
   if Cmp = 0 then
-    Result := I else
+    Result := I
+  else
     Result := -1;
   except
     Result := -1;
@@ -8499,16 +8426,20 @@ const
                           '   p.proargtypes[g.s] = t.oid AND '+
                           '   p.oid = %d';
 
-  sqlShowParameters810  = 'SELECT NULLIF(proargnames[g.s],''''),   '+
-                          '       COALESCE(proargtypes[g.s-1], proallargtypes[g.s]),'+
-                          '       COALESCE(proargmodes[g.s], ''i'') '+
-                          ' FROM                      '+
-                          '     			pg_proc p,      '+
-                          '           pg_type t JOIN pg_namespace nsp ON t.typnamespace = nsp.oid ,   '+
-                          '     			generate_series(1,%d) as g(s)'+
-                          ' WHERE                     '+
-                          '   COALESCE(p.proargtypes[g.s-1],proallargtypes[g.s]) = t.oid AND '+
-                          '   p.oid = %d '+
+  sqlShowParameters810  = 'SELECT NULLIF(proargnames[g.s],''''),'+
+                          ' CASE WHEN t.typtype = ''d''::char THEN' +
+                          '  t.typbasetype' +
+                          ' ELSE' +
+                          '  t.oid' +
+                          ' END,'+
+                          ' COALESCE(proargmodes[g.s], ''i'') '+
+                          ' FROM'+
+                          ' pg_proc p,'+
+                          ' pg_type t,'+
+                          ' generate_series(1,%d) as g(s)'+
+                          ' WHERE'+
+                          '  COALESCE(p.proargtypes[g.s-1],proallargtypes[g.s]) = t.oid AND'+
+                          '  p.oid = %d'+
                           ' ORDER BY g.s ';
 begin
   InternalConnect;
@@ -8554,7 +8485,7 @@ begin
    begin
     ArgNum := StrToInt(RawToString(PQgetvalue(RES,0,0)));
     if ProcOID = 0 then
-      ProcOID := StrToInt(RawToString(PQgetvalue(RES,0,1)));
+      ProcOID := StrToIntDef(RawToString(PQgetvalue(RES,0,1)), InvalidOID);
    end;
   PQclear(Res);
 
@@ -8580,7 +8511,7 @@ begin
             N := RawToString(PQgetvalue(RES,I,0));
           PDesc^.szName := N;
           PDesc^.uParamNum := I;
-          FieldMapping(StrToInt(RawToString(PQgetvalue(RES,I,1))), 0, BdeType, BdeSubType, LogSize, LocArray);
+          FieldMapping(StrToIntDef(RawToString(PQgetvalue(RES,I,1)), InvalidOID), 0, BdeType, BdeSubType, LogSize, LocArray);
           PDesc^.uFldType := BdeType;
           PDesc^.uSubType := BdeSubType;
           N := RawToString(PQgetvalue(RES,I,2));

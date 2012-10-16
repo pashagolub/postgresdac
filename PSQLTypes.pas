@@ -2971,10 +2971,10 @@ var
   Year, Month, Day, Hour, Min, Sec, MSec: Integer;
 begin
   if value = 'infinity' then
-      Result := 1.7e+308	//EncodeDate(9999, 12, 31) + EncodeTime(0, 0, 0, 0)
+      Result := MaxDateTime	//EncodeDate(9999, 12, 31) + EncodeTime(0, 0, 0, 0)
   else
    if value = '-infinity' then
-      Result := -5.0e+324  //EncodeDate(0, 1, 1) + EncodeTime(0, 0, 0, 0)
+      Result := MinDateTime  //EncodeDate(0, 1, 1) + EncodeTime(0, 0, 0, 0)
    else
     begin
       Year  := Max(1, StrToIntDef(Copy(Value, 1, 4), 1));
