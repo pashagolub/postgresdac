@@ -5025,12 +5025,12 @@ begin
  if not Assigned(SL) then Exit;
  if IsQuery and (FOMode = dbiReadOnly) then Exit;
  sql := 'SELECT ad.adnum, '+
-        ' c.oid, '+                      // AS col_number_in_source_table
-        ' pg_get_expr(ad.adbin, ad.adrelid) '+                      // AS column_default
+        ' c.oid, '+ // AS col_number_in_source_table
+        ' pg_get_expr(ad.adbin, ad.adrelid) '+ // AS column_default
         ' FROM  pg_attrdef ad, '+
         ' pg_class c'+
         ' WHERE ad.adrelid = c.oid AND '+
-        ' (%s) ';                          //c.oid = %d AND ad.adnum = %d OR ...
+        ' (%s) '; //c.oid = %d AND ad.adnum = %d OR ...
 
  if not isQuery then
    inS := ' c.oid = ' + IntToStr(FieldTable(0))
@@ -5047,13 +5047,13 @@ begin
     end;
  if inS > '' then
   begin
-    sql := Format(sql,[inS]);
+    sql := Format(sql, [inS]);
     Res := PQExec(FConnect.Handle, PAnsiChar(AnsiString(sql)));
     if Assigned(RES) then
      try
       FConnect.CheckResult;
-      for i:=0 to PQntuples(RES)-1 do
-       for j:=0 to FieldCount-1 do
+      for i := 0 to PQntuples(RES) - 1 do
+       for j := 0 to FieldCount - 1 do
          if (IntToStr(FieldTable(j)) = FConnect.RawToString(PQGetValue(Res,i,1))) and
             (IntToStr(FieldPosInTable(j)) = FConnect.RawToString(PQGetValue(Res,i,0))) then
          SL.AddObject(FConnect.RawToString(PQgetvalue(RES,i,2)), TObject(j));

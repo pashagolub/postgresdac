@@ -71,7 +71,7 @@ var
 begin
   SQL := 'SELECT version()';
   ReturnValue := FPSQLDatabase.Execute(SQL);
-  Check(ReturnValue = 0);
+  Check(ReturnValue = 1);
 end;
 
 procedure TestTPSQLDatabase.TestGetBackendPID;

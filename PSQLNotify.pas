@@ -126,7 +126,7 @@ begin
     Sleep(LoopDelayStep); //for quick reaction if termination needed
     if (GetTickCount() - Start > FInterval) and FActive then
     begin
-       Synchronize(FOwner.CheckEvents);
+       FOwner.CheckEvents;
        Start := GetTickCount();
     end;
   until Terminated;
