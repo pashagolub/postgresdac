@@ -539,8 +539,14 @@ type
     { IProviderSupport }
     {$IFNDEF FPC}
     procedure PSEndTransaction(Commit: Boolean); override;
+{$IFDEF DELPHI_17}
+    function PSExecuteStatement(const ASQL: string; AParams: TParams): Integer; override;
+    function PSExecuteStatement(const ASQL: string; AParams: TParams;
+      var ResultSet: TDataSet): Integer; override;
+{$ELSE}
     function PSExecuteStatement(const ASQL: string; AParams: TParams;
       ResultSet: Pointer = nil): Integer; override;
+{$ENDIF DELPHI_17}
     procedure PSGetAttributes(List: TList); override;
     function PSGetQuoteChar: string; override;
     function PSInTransaction: Boolean; override;
@@ -4810,17 +4816,53 @@ begin
   end;
 end;
 
+{$IFDEF DELPHI_17}
+function TPSQLDataSet.PSExecuteStatement(const ASQL: string;
+  AParams: TParams): Integer;
+var
+  InProvider: Boolean;
+begin
+  InProvider := SetDBFlag(dbfProvider, True);
+  try
+    Result := Database.Execute(ASQL, AParams);
+  finally
+    SetDBFlag(dbfProvider, InProvider);
+  end;
+end;
+
+function TPSQLDataSet.PSExecuteStatement(const ASQL: string; AParams: TParams;
+  var ResultSet: TDataSet): Integer;
+var
+  InProvider: Boolean;
+begin
+  Result := 0; //make compiler happy
+  InProvider := SetDBFlag(dbfProvider, TRUE);
+  try
+    ResultSet := TPSQLQuery.Create(nil);
+    try
+      TPSQLQuery(ResultSet).Database := Database;
+      TPSQLQuery(ResultSet).SQL.Text := ASQL;
+      TPSQLQuery(ResultSet).Params.Assign(AParams);
+      TPSQLQuery(ResultSet).Open;
+      Result := Max(TPSQLQuery(ResultSet).RowsAffected, TPSQLQuery(ResultSet).RecordCount);
+    except
+      FreeAndNil(ResultSet);
+      raise;
+    end;
+  finally
+    SetDBFlag(dbfProvider, InProvider);
+  end;
+end;
+{$ELSE}
 function TPSQLDataSet.PSExecuteStatement(const ASQL : string; AParams: TParams; ResultSet: Pointer = nil): Integer;
 var
   InProvider: Boolean;
-//  Cursor: hDBICur;
   Q: TPSQLQuery;
 begin
   InProvider := SetDBFlag(dbfProvider, TRUE);
   try
     if Assigned(ResultSet) or Assigned(AParams) then
     begin
-      // >> PaGo 06.06.2007
       Q := TPSQLQuery.Create(nil);
       try
         Q.Database := Database;
@@ -4838,7 +4880,6 @@ begin
        else
          Q.Free;
       end;
-      // << PaGo 06.06.2007
     end
     else
       Result := Database.Execute(ASQL);
@@ -4846,7 +4887,8 @@ begin
     SetDBFlag(dbfProvider, InProvider);
   end;
 end;
-{$ENDIF}
+{$ENDIF DELPHI_17}
+{$ENDIF FPC}
 
 /////////////////////////////////////////////////////////////////
 //                    TPSQLQuery                                //
