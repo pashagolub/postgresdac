@@ -8169,13 +8169,6 @@ var
 
     function Compare1(const S1: String; const S2 : String; FldType : integer):Integer;
 
-        {$IFDEF DELPHI_5}
-        function StartsStr(const ASubText, AText: string): Boolean;
-        begin
-          Result := AnsiSameStr(ASubText, Copy(AText, 1, Length(ASubText)));
-        end;
-        {$ENDIF DELPHI_5}
-
         function CompWithLen(const P1, P2 : string): Integer;
         begin
           Result := Length(P1) - Length(P2);
@@ -8185,7 +8178,7 @@ var
 
         function CompWithoutLen(const P1, P2 : string): Integer;
         begin
-          if StartsStr(P2, P1) then
+          if AnsiSameStr(P2, Copy(P1, 1, Length(P2))) then
             Result := 0
           else
             Result := CompareStr(P1, P2);
