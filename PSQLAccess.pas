@@ -8169,6 +8169,13 @@ var
 
     function Compare1(const S1: String; const S2 : String; FldType : integer):Integer;
 
+        {$IFDEF DELPHI_5}
+        function StartsStr(const ASubText, AText: string): Boolean;
+        begin
+          Result := AnsiSameStr(ASubText, Copy(AText, 1, Length(ASubText)));
+        end;
+        {$ENDIF DELPHI_5}
+
         function CompWithLen(const P1, P2 : string): Integer;
         begin
           Result := Length(P1) - Length(P2);
@@ -8227,15 +8234,15 @@ var
 
           FIELD_TYPE_DATE:
                               if AStrictConformity then
-                                Result := CompWithLen(S1, DateTimeToStr(SqlDateToDateTime(S2, False), PSQL_FS))
+                                Result := CompWithLen(S1, DateTimeToStr(SqlDateToDateTime(S2, False){$IFDEF DELPHI_7}, PSQL_FS{$ENDIF}))
                               else
-                                Result := CompWithoutLen(S1, DateTimeToStr(SqlDateToDateTime(S2, False), PSQL_FS));
+                                Result := CompWithoutLen(S1, DateTimeToStr(SqlDateToDateTime(S2, False){$IFDEF DELPHI_7}, PSQL_FS{$ENDIF}));
           FIELD_TYPE_TIMESTAMP,
           FIELD_TYPE_TIMESTAMPTZ:
                                   if AStrictConformity then
-                                    Result := CompWithLen(S1, DateTimeToStr(SQLTimestampToDateTime(S2), PSQL_FS))
+                                    Result := CompWithLen(S1, DateTimeToStr(SQLTimestampToDateTime(S2){$IFDEF DELPHI_7}, PSQL_FS{$ENDIF}))
                                   else
-                                    Result := CompWithoutLen(S1, DateTimeToStr(SQLTimestampToDateTime(S2), PSQL_FS));
+                                    Result := CompWithoutLen(S1, DateTimeToStr(SQLTimestampToDateTime(S2){$IFDEF DELPHI_7}, PSQL_FS{$ENDIF}));
 
           FIELD_TYPE_BOOL: begin
                             BoolChar := IfThen(S1 = '', 'F', 'T');

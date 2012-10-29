@@ -4863,7 +4863,9 @@ begin
   try
     if Assigned(ResultSet) or Assigned(AParams) then
     begin
+      {$WARNINGS OFF} //make D5 compiler happy
       Q := TPSQLQuery.Create(nil);
+      {$WARNINGS ON}
       try
         Q.Database := Database;
         Q.SQL.Text := ASQL;

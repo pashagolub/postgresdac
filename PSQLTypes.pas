@@ -2969,6 +2969,11 @@ begin
 function SQLTimestampToDateTime(Value: string): TDateTime;
 var
   Year, Month, Day, Hour, Min, Sec, MSec: Integer;
+{$IFDEF DELPHI_5}
+const
+  MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }
+  MaxDateTime: TDateTime =  2958465.99999; { 12/31/9999 11:59:59.999 PM }
+{$ENDIF}
 begin
   if value = 'infinity' then
       Result := MaxDateTime	//EncodeDate(9999, 12, 31) + EncodeTime(0, 0, 0, 0)
