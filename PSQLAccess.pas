@@ -689,7 +689,6 @@ type
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
       function GetInsertSQL(Table: string; PRecord: Pointer; ReturnUpdated: boolean = False): string;
       function GetUpdateSQL(Table: string; OldRecord, PRecord: Pointer; ReturnUpdated: boolean = False): String;
-      procedure FreeBlobStreams(PRecord: Pointer);
       function FieldVal(FieldNo: Integer; FieldPtr : Pointer):String;
       //////////////////////////////////////////////////////////
       //            PSQL FIELD PARAMS                        //
@@ -789,6 +788,7 @@ type
       procedure GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
       procedure PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
       procedure TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
+      procedure FreeBlobStreams(PRecord: Pointer);
       //<--blob stuff
       procedure QuerySetParams(Params : TParams; SQLText : String);
       procedure StoredProcSetParams(Params: TParams);
@@ -6166,7 +6166,7 @@ begin
   end;
 end;
 
-procedure TNativeDataSet.PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
+procedure TNativeDataSet.PutBlob(PRecord: Pointer; FieldNo: Word; iOffSet: Longint; iLen: Longint; pSrc : Pointer);
 var
   Field : TPSQLField;
 
@@ -6184,7 +6184,8 @@ var
     begin
       Blob.Seek(Offset, 0);
       if Length > 0 then
-        Blob.Write(pSrc^, Length) else
+        Blob.Write(pSrc^, Length)
+      else
         if Offset = 0 then Blob.Clear;
     end;
   end;
@@ -9671,7 +9672,8 @@ begin
          end;
        end
       else
-       Result := string(Buffer);
+        Result := string(Buffer);
+      FreeMem(Buffer, SZ+1);
     end
   else    //nbtOID in other case
     begin

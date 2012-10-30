@@ -440,9 +440,9 @@ type
 
   TPSQLSQLUpdateObject = class(TComponent)
   protected
-     function GetDataSet: TPSQLDataSet; Virtual; Abstract;
-     procedure SetDataSet(ADataSet: TPSQLDataSet); Virtual; Abstract;
-     procedure Apply(UpdateKind: TUpdateKind); Virtual; Abstract;
+     function GetDataSet: TPSQLDataSet; virtual; abstract;
+     procedure SetDataSet(ADataSet: TPSQLDataSet); virtual; abstract;
+     procedure Apply(UpdateKind: TUpdateKind); virtual; abstract;
      function GetSQL(UpdateKind: TUpdateKind): TStrings; virtual; abstract;
      property DataSet: TPSQLDataSet read GetDataSet write SetDataSet;
   end;
@@ -5481,6 +5481,7 @@ begin
     ExecSQL;
     if Assigned(FDataSet) then
     begin
+       TNativeDataset(FDataset.Handle).FreeBlobStreams(FDataset.ActiveBuffer); //30.10.2012
        RN := TNativeDataset(FDataset.Handle).RecordNumber;
        TNativeDataset(FDataset.Handle).OpenTable;
        TNativeDataset(FDataset.Handle).RecordState := tsPos;

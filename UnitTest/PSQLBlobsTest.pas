@@ -109,7 +109,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLBlobs.conf');
-  QryDB.Execute('CREATE TABLE blobs_test_case_table(' +
+  QryDB.Execute('CREATE TABLE IF NOT EXISTS blobs_test_case_table(' +
                 'id SERIAL NOT NULL PRIMARY KEY,'  +
                 'byteaf bytea,' +
                 'oidf oid,'  +
