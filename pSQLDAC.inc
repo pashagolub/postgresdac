@@ -4,8 +4,9 @@
                   //don't do this until you exactly know what you are doing
 
 {$IFDEF M_DEBUG}
-{$D+} {$L+}
-{$HINTS ON}
+  {$D+} {$L+}
+  {$HINTS ON}
+  {$WARNINGS ON}
 {$ENDIF}
 
 //---------------------------
