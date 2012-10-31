@@ -2138,17 +2138,15 @@ begin
 end;
 
 function AdjustNativeField(iField :TPSQLField; Src,Dest: Pointer; Var Blank : Boolean): Word;
-//var l: integer;
 begin
-  ZeroMemory(Dest, iField.NativeSize);
+  //ZeroMemory(Dest, iField.NativeSize);
   Result := 0;
   if PAnsiChar(Src)^ = #0 then
   begin
     Blank  := True;
     Exit;
   end;
-
-  Inc(PAnsiChar(Src));
+                                                                   Inc(PAnsiChar(Src));
   Case iField.NativeType of
     FIELD_TYPE_BOOL:     SmallInt(Dest^) := SmallInt(Src^);
     FIELD_TYPE_INT2:     SmallInt(Dest^) := SmallInt(Src^);
@@ -2189,16 +2187,8 @@ begin
     FIELD_TYPE_OID,
     FIELD_TYPE_TEXT: Result := 1; //29.09.2008
   else
-(*    {$IFDEF DELPHI_12}
-    if iField.NativeDataset.FConnect.IsUnicodeUsed then
-      CopyMemory(Dest, Src, iField.NativeSize)
-    else
-    {$ENDIF}
-      StrLCopy(PAnsiChar(Dest), PAnsiChar(Src), iField.NativeSize); *)
-//   l := StrLen(PChar(Src));
-   StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1); //minus null byte
+    StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1); //minus null byte
   end;
-
   Blank := Result <> 0;
 end;
 
@@ -4780,10 +4770,8 @@ begin
 
       FIELD_TYPE_INT8:  Result := SizeOf(Int64);
 
-      FIELD_TYPE_DATE:  Result := Sizeof(Integer); //pg: 04.10.2012 was TimeStamp causing AV
-
-      FIELD_TYPE_TIME:  Result := SizeOf(Integer);  //pg: 04.10.2012 was TDateTime causing AV
-
+      FIELD_TYPE_DATE,
+      FIELD_TYPE_TIME,
       FIELD_TYPE_TIMESTAMP: Result := SizeOf(TDateTime);
 
       FIELD_TYPE_FLOAT4,

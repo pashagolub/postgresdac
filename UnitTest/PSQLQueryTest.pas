@@ -39,6 +39,9 @@ type
     procedure TestAsFloat;
     procedure TestAsString;
     procedure TestAsBoolean;
+    procedure TestAsTime;
+    procedure TestAsDate;
+    procedure TestAsTimestamp;
   //RequestLive modifications
     procedure TestInsert;
     procedure TestUpdate;
@@ -50,7 +53,7 @@ var
 
 implementation
 
-uses TestHelper;
+uses TestHelper, DateUtils;
 
 procedure TestTPSQLQuery.SetUp;
 begin
@@ -71,6 +74,14 @@ begin
  FPSQLQuery.Open;
  Check(FPSQLQuery.Fields[0].AsBoolean and not FPSQLQuery.Fields[1].AsBoolean, 'Field value AsBoolean is incorrect');
  FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestAsDate;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT current_date';
+ FPSQLQuery.Open;
+ Check(IsToday(FPSQLQuery.Fields[0].AsDateTime), 'Field value AsDate is incorrect');
+ FPSQLQuery.Close
 end;
 
 procedure TestTPSQLQuery.TestAsFloat;
@@ -96,6 +107,25 @@ begin
  FPSQLQuery.Open;
  Check(FPSQLQuery.Fields[0].AsString = 'foo', 'Field value AsString is incorrect');
  FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestAsTime;
+var ClientTime, ServerTime: TTime;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT LOCALTIME';
+ FPSQLQuery.Open;
+ ClientTime := Time();
+ ServerTime := TimeOf(FPSQLQuery.Fields[0].AsDateTime);
+ Check(MinutesBetween(ClientTime, ServerTime) < 1, 'Field value AsTime is incorrect');
+ FPSQLQuery.Close
+end;
+
+procedure TestTPSQLQuery.TestAsTimestamp;
+begin
+ FPSQLQuery.SQL.Text := 'SELECT LOCALTIMESTAMP';
+ FPSQLQuery.Open;
+ Check(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 1, 'Field value AsTimestamp is incorrect');
+ FPSQLQuery.Close
 end;
 
 procedure TestTPSQLQuery.TestDelete;
@@ -159,7 +189,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Execute('CREATE TABLE requestlive_test ' +
+  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' +
                 '  intf integer,' +
