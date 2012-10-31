@@ -96,7 +96,9 @@ constructor TPSQLTools.Create(AOwner: TComponent);
 var I: integer;
 begin
   inherited Create(AOwner);
+  {$WARNINGS OFF} //make D5 compiler happy
   FQuery := TPSQLQuery.Create(nil);
+  {$WARNINGS ON}
   FColumnList := TStringList.Create;
   FVacuumOptions := [];
   if (csDesigning in ComponentState) and Assigned(Owner) then
