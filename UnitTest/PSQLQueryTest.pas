@@ -46,6 +46,8 @@ type
     procedure TestInsert;
     procedure TestUpdate;
     procedure TestDelete;
+  //bookmarks
+    procedure TestBookmarks;
   end;
 
 var
@@ -126,6 +128,23 @@ begin
  FPSQLQuery.Open;
  Check(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 1, 'Field value AsTimestamp is incorrect');
  FPSQLQuery.Close
+end;
+
+procedure TestTPSQLQuery.TestBookmarks;
+var
+   B: TBookmark;
+   BookmarkedPos: longint;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM generate_series(1, 10)';
+  FPSQLQuery.Open;
+  FPSQLQuery.MoveBy(5);
+  B := FPSQLQuery.GetBookmark;
+  BookmarkedPos := FPSQLQuery.RecNo;
+  FPSQLQuery.First;
+  FPSQLQuery.GotoBookmark(B);
+  Check(FPSQLQuery.RecNo = BookmarkedPos, 'GotoBookmark failed');
+  Check(FPSQLQuery.BookmarkValid(B), 'BookmarkValid failed');
+
 end;
 
 procedure TestTPSQLQuery.TestDelete;
