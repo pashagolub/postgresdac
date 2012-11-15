@@ -592,6 +592,9 @@ type
     procedure FreeKeyBuffers;
     procedure FreeRecordBuffer(var Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
     procedure GetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); override;
+    {$IFDEF DELPHI_17}
+    procedure GetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark); override;
+    {$ENDIF DELPHI_17}
     function  GetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}): TBookmarkFlag; override;
     function  GetRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
     procedure InitRecord(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}); override;
@@ -652,6 +655,9 @@ type
     function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
     function  ResetCursorRange: Boolean;
     procedure SetBookmarkData(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data: Pointer); override;
+    {$IFDEF DELPHI_17}
+    procedure SetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark); override;
+    {$ENDIF DELPHI_17}
     procedure SetBookmarkFlag(Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value: TBookmarkFlag); override;
     procedure SetCachedUpdates(Value: Boolean);
     function  SetCursorRange: Boolean;
@@ -3295,13 +3301,27 @@ end;
 
 procedure TPSQLDataSet.GetBookmarkData(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data : Pointer);
 begin
-  Move(Buffer[ FBookmarkOfs ], Data^, BookmarkSize);
+  Move(Buffer[FBookmarkOfs], Data^, BookmarkSize);
 end;
+
+{$IFDEF DELPHI_17}
+procedure TPSQLDataSet.GetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark);
+begin
+  Move(Buffer[FBookmarkOfs], Data[0], BookmarkSize);
+end;
+{$ENDIF DELPHI_17}
 
 procedure TPSQLDataSet.SetBookmarkData(Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Data : Pointer);
 begin
-  Move(Data^, Buffer[ FBookmarkOfs ], BookmarkSize);
+  Move(Data^, Buffer[FBookmarkOfs], BookmarkSize);
 end;
+
+{$IFDEF DELPHI_17}
+procedure TPSQLDataSet.SetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark);
+begin
+  Move(Data[0], Buffer[FBookmarkOfs], BookmarkSize);
+end;
+{$ENDIF DELPHI_17}
 
 function TPSQLDataSet.CompareBookmarks(Bookmark1, Bookmark2 : TBookmark) : Integer;
 const
