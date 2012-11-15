@@ -649,7 +649,6 @@ type
                                             SyncCursor: Boolean): Word;
     function  LocateNearestRecord(const KeyFields: string; const KeyValues: Variant;
       Options: TLocateOptions; SyncCursor: Boolean): Word;
-    function  MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
     procedure PostKeyBuffer(Commit: Boolean);
     procedure PrepareCursor; Virtual;
     function  ProcessUpdates(UpdCmd: DBIDelayedUpdCmd): Word;
@@ -3275,8 +3274,8 @@ end;
 procedure TPSQLDataSet.InternalAddRecord(Buffer: Pointer; Append: Boolean);
 begin
   if Append then
-    Check(Engine,Engine.AppendRecord(FHandle,Buffer))  else
-    Check(Engine,Engine.InsertRecord(FHandle,dbiNoLock,Buffer));
+    Check(Engine, Engine.AppendRecord(FHandle, Buffer))  else
+    Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, Buffer));
 end;
 
 procedure TPSQLDataSet.InternalGotoBookmark(Bookmark : Pointer);
@@ -3731,29 +3730,6 @@ begin
         end;
 end;
 
-function TPSQLDataSet.MapsToIndex(Fields: TList; CaseInsensitive: Boolean): Boolean;
-var
-  I: Integer;
-  HasStr : Boolean;
-begin
-  Result := FALSE;
-  HasStr := FALSE;
-  For i := 0 to Fields.Count - 1 do
-  begin
-    HasStr := TField(Fields[I]).DataType in [ftString, ftFixedChar, ftWideString];
-    if HasStr then
-      break;
-  end;
-  if (CaseInsensitive <> FCaseInsIndex) and HasStr then
-    Exit;
-  if (Fields.Count > FIndexFieldCount) then
-    Exit;
-  for I := 0 to Pred(Fields.Count) do
-    if TField(Fields[I]).FieldNo <> Integer(FIndexFieldMap[I]) then
-      Exit;
-  Result := TRUE;
-end;
-
 procedure TPSQLDataSet.Notification(AComponent: TComponent; Operation: TOperation);
 begin
   Inherited Notification(AComponent, Operation);
@@ -3989,80 +3965,6 @@ begin
   Result := Ord(Accept);
 end;
 
-(*function TPSQLDataSet.LocateRecord(const KeyFields: string;const KeyValues: Variant;Options: TLocateOptions;SyncCursor: Boolean): Boolean;
-var
-  I, FieldCount, PartialLength: Integer;
-  Buffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
-  Fields: TList;
-  LookupCursor: HDBICur;
-  Filter: HDBIFilter;
-  Status: DBIResult;
-  CaseInsensitive: Boolean;
-
-  procedure SetFieldValue(const Fld : TField; const VarValue : Variant);
-  begin
-  {$IFDEF DELPHI_5}
-    if (Fld is TLargeIntField) then
-      TIntegerField(Fld).Value := VarValue
-    else
-  {$ENDIF}
-      Fld.Value := VarValue;
-  end;
-
-
-begin
-  CheckBrowseMode;
-  CursorPosChanged;
-  Buffer := TempBuffer;
-  Fields := TList.Create;
-  try
-    GetFieldList(Fields, KeyFields);
-    CaseInsensitive := loCaseInsensitive in Options;
-    if MapsToIndex(Fields, CaseInsensitive){ or IsLongintFld}
-       then
-        LookupCursor := FHandle else
-        LookupCursor := GetLookupCursor(KeyFields, CaseInsensitive);
-    if (LookupCursor <> nil) then
-    begin
-      SetTempState(dsFilter);
-      FFilterBuffer := Buffer;
-      try
-        Engine.InitRecord(LookupCursor, Buffer);
-        FieldCount := Fields.Count;
-        if FieldCount = 1 then
-        begin
-            if VarIsArray(KeyValues) then
-               SetFieldValue(TField(Fields.First), KeyValues[0]) else
-               SetFieldValue(TField(Fields.First), KeyValues);
-        end else
-            for I := 0 to FieldCount - 1 do
-                SetFieldValue(TField(Fields[I]), KeyValues[I]);
-        PartialLength := 0;
-        if (loPartialKey in Options) and
-          (TField(Fields.Last).DataType = ftString) then
-        begin
-          Dec(FieldCount);
-          PartialLength := Length(TField(Fields.Last).AsString);
-        end;
-        Status := Engine.GetRecordForKey(LookupCursor, False, FieldCount,PartialLength, Buffer, Buffer);
-      finally
-        RestoreState(dsBrowse);
-      end;
-      if (Status = DBIERR_NONE) and SyncCursor and(LookupCursor <> FHandle) then
-        Status := Engine.SetToCursor(FHandle, LookupCursor);
-    end else
-    begin
-      Check(Engine,Engine.SetToBegin(FHandle));
-      Filter := CreateLookupFilter(Fields, KeyValues, Options, 2);
-      Engine.ActivateFilter(FHandle, Filter);
-      Status := Engine.GetNextRecord(FHandle, dbiNoLock, Buffer, nil);
-      Engine.DropFilter(FHandle, Filter);
-    end;
-  finally
-    Fields.Free;
-  end;
-  Result := Status = DBIERR_NONE;
-end;                             *)
 function TPSQLDataSet.LocateRecord(const KeyFields: string;
                                     const KeyValues: Variant;
                                     Options: TLocateOptions;
