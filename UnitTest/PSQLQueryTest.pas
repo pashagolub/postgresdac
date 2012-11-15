@@ -144,7 +144,6 @@ begin
   FPSQLQuery.GotoBookmark(B);
   Check(FPSQLQuery.RecNo = BookmarkedPos, 'GotoBookmark failed');
   Check(FPSQLQuery.BookmarkValid(B), 'BookmarkValid failed');
-
 end;
 
 procedure TestTPSQLQuery.TestDelete;

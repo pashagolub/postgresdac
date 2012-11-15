@@ -1090,28 +1090,31 @@ type
 
   { TPSQLBlobStream }
   TPSQLBlobStream = Class(TStream)
-    Private
-      FField: TBlobField;
-      FDataSet: TPSQLDataSet;
-      FBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
-      FMode: TBlobStreamMode;
-      FFieldNo: Integer;
-      FOpened: Boolean;
-      FModified: Boolean;
-      FPosition: Longint;
-      FBlobData: TBlobData;
-      FCached: Boolean;
-      FCacheSize: Longint;
-      function GetBlobSize: Longint;
-    Public
-      constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
-      destructor Destroy; override;
-      function Engine : TPSQLEngine;
-      function PositionDataset: Boolean;
-      function Read(var Buffer; Count: Longint): Longint; override;
-      function Write(const Buffer; Count: Longint): Longint; override;
-      function Seek(Offset: Longint; Origin: Word): Longint; override;
-      procedure Truncate;
+  private
+    FField: TBlobField;
+    FDataSet: TPSQLDataSet;
+    FBuffer: {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
+    FMode: TBlobStreamMode;
+    FFieldNo: Integer;
+    FOpened: Boolean;
+    FModified: Boolean;
+    FPosition: Longint;
+    FBlobData: TBlobData;
+    FCached: Boolean;
+    FCacheSize: Longint;
+    function GetBlobSize: Longint;
+  public
+    constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
+    destructor Destroy; override;
+    function Engine : TPSQLEngine;
+    function PositionDataset: Boolean;
+    {$IFDEF DELPHI_17}
+    function Read(Buffer: TBytes; Offset, Count: Longint): Longint; override;
+    {$ENDIF DELPHI_17}
+    function Read(var Buffer; Count: Longint): Longint; override;
+    function Write(const Buffer; Count: Longint): Longint; override;
+    function Seek(Offset: Longint; Origin: Word): Longint; override;
+    procedure Truncate;
   end;
 
 
@@ -6712,6 +6715,13 @@ function TPSQLBlobStream.PositionDataset: Boolean;
 begin
    Result := True;
 end;
+
+{$IFDEF DELPHI_17}
+function TPSQLBlobStream.Read(Buffer: TBytes; Offset, Count: Longint): Longint;
+begin
+  Result := Read(Buffer, Offset, Count);
+end;
+{$ENDIF DELPHI_17}
 
 function TPSQLBlobStream.Read(var Buffer; Count: Longint): Longint;
 var
