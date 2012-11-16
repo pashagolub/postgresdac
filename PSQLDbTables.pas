@@ -3986,65 +3986,60 @@ begin
     //mi:2009-07-31 we have to respect filters
     Status := LocateFilteredRecord(KeyFields, KeyValues, Options, SyncCursor);
     Result := Status = DBIERR_NONE;
-  end
-  else
-  begin
-    CheckBrowseMode();
-    CursorPosChanged();
-    DoBeforeScroll();
-
-    Result := False;
-
-    Fields := TList{$IFDEF DELPHI_17}<TField>{$ENDIF}.Create;
-    try
-      GetFieldList(Fields, KeyFields);
-      CaseInsensitive := loCaseInsensitive in Options;
-
-      FieldCount := Fields.Count;
-
-      SetLength(Flds, FieldCount);
-      SetLength(SFlds, FieldCount);
-
-      if FieldCount = 1 then
-      begin
-        Flds[0] := TField(Fields.First).FieldNo - 1;
-
-        if VarIsArray(KeyValues) then
-          SFlds[0] := VarToStr(KeyValues[0])  //mi:2009-12-22 #1270 thanks to Matija Vidmar
-        else
-          SFlds[0] := VarToStr(KeyValues);
-      end
-      else
-      begin
-        for i := 0 to FieldCount - 1 do
-        begin
-          Flds[i] := TField(Fields[i]).FieldNo - 1;
-          SFlds[i] := VarToStr(KeyValues[i])
-        end;
-      end;
-
-      aPartial := (loPartialKey in Options)
-                  and ((TField(Fields.Last).DataType = ftString)
-                       or (TField(Fields.Last).DataType = ftWideString));
-
-      R := TNativeDataSet(FHandle).FindRows(Flds, SFlds, not CaseInsensitive, 0, not aPartial);
-
-      if R <> -1 then
-      begin
-        Result := True;
-
-        if SyncCursor then
-        begin
-          TNativeDataSet(FHandle).InitRecord(ActiveBuffer);
-          TNativeDataSet(FHandle).SetToRecord(R);
-          Resync([rmExact, rmCenter]);
-          DoAfterScroll();
-        end;
-      end;
-    finally
-      Fields.Free();
-    end;
+    Exit;
   end;
+
+  CheckBrowseMode();
+  CursorPosChanged();
+  DoBeforeScroll();
+
+  Result := False;
+
+  Fields := TList{$IFDEF DELPHI_17}<TField>{$ENDIF}.Create;
+  try
+    GetFieldList(Fields, KeyFields);
+    CaseInsensitive := loCaseInsensitive in Options;
+
+    FieldCount := Fields.Count;
+
+    SetLength(Flds, FieldCount);
+    SetLength(SFlds, FieldCount);
+
+    if FieldCount = 1 then
+    begin
+      Flds[0] := TField(Fields.First).FieldNo - 1;
+      if VarIsArray(KeyValues) then
+        SFlds[0] := VarToStr(KeyValues[0])  //mi:2009-12-22 #1270 thanks to Matija Vidmar
+      else
+        SFlds[0] := VarToStr(KeyValues);
+    end
+    else
+      for i := 0 to FieldCount - 1 do
+      begin
+        Flds[i] := TField(Fields[i]).FieldNo - 1;
+        SFlds[i] := VarToStr(KeyValues[i])
+      end;
+
+    aPartial := (loPartialKey in Options) and (TField(Fields.Last).DataType in [ftString, ftWideString]);
+
+    R := TNativeDataSet(FHandle).FindRows(Flds, SFlds, not CaseInsensitive, 0, not aPartial);
+
+    if R <> -1 then
+    begin
+      Result := True;
+
+      if SyncCursor then
+      begin
+        TNativeDataSet(FHandle).InitRecord(ActiveBuffer);
+        TNativeDataSet(FHandle).SetToRecord(R);
+        Resync([rmExact, rmCenter]);
+        DoAfterScroll();
+      end;
+    end;
+  finally
+    Fields.Free();
+  end;
+
 end;
 
 function TPSQLDataSet.LocateFilteredRecord(const KeyFields: string;

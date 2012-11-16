@@ -48,6 +48,9 @@ type
     procedure TestDelete;
   //bookmarks
     procedure TestBookmarks;
+  //locate
+    procedure TestLocateStr;
+    procedure TestLocateInt;
   end;
 
 var
@@ -184,6 +187,43 @@ begin
   FPSQLQuery.FieldByName('floatf').AsFloat := Random();
   FPSQLQuery.Post;
   Check(FPSQLQuery.RecordCount = 1, 'TPSQLQuery.Insert failed');
+end;
+
+procedure TestTPSQLQuery.TestLocateInt;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT col1 FROM generate_series(11, 16) AS c(col1)';
+  FPSQLQuery.Open;
+  Check(FPSQLQuery.Locate('col1', '12', []), 'Locate failed with default options');
+  Check(FPSQLQuery.RecNo = 2, 'Locate positioning failed with default options');
+
+  Check(FPSQLQuery.Locate('col1', '13', [loPartialKey]), 'Locate failed with loPartialKey option');
+  Check(FPSQLQuery.RecNo = 3, 'Locate positioning failed with loPartialKey option');
+
+  Check(FPSQLQuery.Locate('col1', '14', [loCaseInsensitive]), 'Locate failed with loCaseInsensitive option');
+  Check(FPSQLQuery.RecNo = 4, 'Locate positioning failed with loCaseInsensitive option');
+
+  Check(FPSQLQuery.Locate('col1', '15', [loCaseInsensitive, loPartialKey]), 'Locate failed with full options');
+  Check(FPSQLQuery.RecNo = 5, 'Locate positioning failed with full options');
+end;
+
+procedure TestTPSQLQuery.TestLocateStr;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT col1, cash_words(col1::money)::varchar(50) AS col2 FROM generate_series(1, 6) AS g(col1)';
+  FPSQLQuery.Open;
+//single column
+  Check(FPSQLQuery.Locate('col2', 'Two dollars and zero cents', []) and (FPSQLQuery.RecNo = 2),
+          'Locate failed with default options');
+  Check(FPSQLQuery.Locate('col2', 'Thr', [loPartialKey]) and (FPSQLQuery.RecNo = 3),
+          'Locate failed with loPartialKey option');
+  Check(FPSQLQuery.Locate('col2', 'FiV', [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
+          'Locate failed with full options');
+//multicolumn
+  Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([2, 'Two dollars and zero cents']), []) and (FPSQLQuery.RecNo = 2),
+          'Multicolumn Locate failed with default options');
+  Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([3, 'Thr']), [loPartialKey]) and (FPSQLQuery.RecNo = 3),
+          'Multicolumn Locate failed with loPartialKey option');
+  Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([5, 'FiV']), [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
+          'Multicolumn Locate failed with full options');
 end;
 
 procedure TestTPSQLQuery.TestUpdate;

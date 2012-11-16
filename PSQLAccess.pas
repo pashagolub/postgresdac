@@ -8167,10 +8167,10 @@ var
 
         function CompWithoutLen(const P1, P2 : string): Integer;
         begin
-          if AnsiSameStr(P2, Copy(P1, 1, Length(P2))) then
+          if AnsiSameStr(P1, Copy(P2, 1, Length(P1))) then
             Result := 0
           else
-            Result := CompareStr(P1, P2);
+            Result := -1;//CompareStr(P1, P2);
         end;
 
         function SqlDateToBDEDateTime(const Value: string): string;
@@ -8260,17 +8260,15 @@ Begin
       Cmp := 0;
       for K := 0 to High(Fields) do
         begin
-          if ACaseSen then
+          P1 := SearchFields[K];
+          P2 := FldVal(I, Fields[K]);
+          if not ACaseSen then
             begin
-              P1 := AnsiUpperCase(SearchFields[K]);
-              P2 := AnsiUpperCase(FldVal(I, Fields[K]));
-            end else
-            begin
-              P1 := SearchFields[K];
-              P2 := FldVal(I, Fields[K]);
+              P1 := AnsiUpperCase(P1);
+              P2 := AnsiUpperCase(P2);
             end;
-            Cmp := Cmp + Compare1(P1, P2, FieldType(Fields[K]));
-            if Cmp <> 0 then Break;
+          Cmp := Cmp + Compare1(P1, P2, FieldType(Fields[K]));
+          if Cmp <> 0 then Break;
         end;
       if Cmp = 0 then Break;
     end;
