@@ -9266,11 +9266,6 @@ procedure TNativeDataSet.InternalSortBy(const Fields: array of Integer;
 var aRecNum: integer;
     i: integer;
 
-    function FVal(Index: integer): string;
-    begin
-      Result := FConnect.RawToString(PQGetValue(FStatement, FSortingIndex[Index], Fields[I]));
-    end;
-
     function StringToVariant(S: string; NativeType: oid): variant;
     begin
          case NativeType of
@@ -9328,11 +9323,13 @@ var aRecNum: integer;
         if Idx1IsNull = 1 then
           V1 := Null
         else
-          V1 := StringToVariant(FVal(Index1), PQFType(FStatement, Fields[I]));
+          V1 := StringToVariant(FConnect.RawToString(PQGetValue(FStatement, FSortingIndex[Index1], Fields[I])),
+                                  PQFType(FStatement, Fields[I]));
         if Idx2IsNull = 1 then
           V2 := Null
         else
-          V2 := StringToVariant(FVal(Index2), PQFType(FStatement, Fields[I]));
+          V2 := StringToVariant(FConnect.RawToString(PQGetValue(FStatement, FSortingIndex[Index2], Fields[I])),
+                                  PQFType(FStatement, Fields[I]));
         Result := FCustomCompareFunc(nil, V1, V2, Fields[I]);
         if Result <> 0 then Break;
        end;
@@ -9340,18 +9337,7 @@ var aRecNum: integer;
 
     function DefaultCmpRecords(Index1, Index2: integer): integer;
     var i, Idx1IsNull, Idx2IsNull: integer;
-      {$IFDEF DELPHI_5}
-      function Sign(const AValue: Double): integer;
-      begin
-        if ((PInt64(@AValue)^ and $7FFFFFFFFFFFFFFF) = $0000000000000000) then
-          Result := 0
-        else if ((PInt64(@AValue)^ and $8000000000000000) = $8000000000000000) then
-          Result := -1
-        else
-          Result := 1;
-      end;
-      {$ENDIF}
-
+        FVal1, FVal2: string;
     begin
      Result := 0;
      for i:= Low(Fields) to High(Fields) do
@@ -9359,43 +9345,47 @@ var aRecNum: integer;
         Idx1IsNull := PQGetIsNull(FStatement, FSortingIndex[Index1], Fields[I]);
         Idx2IsNull := PQGetIsNull(FStatement, FSortingIndex[Index2], Fields[I]);
         case Idx1IsNull + Idx2IsNull of
-         2: Result := 0;
-         1: Result := Idx1IsNull - Idx2IsNull;
+          2: Result := 0;
+          1: Result := Idx1IsNull - Idx2IsNull;
         else
-         case PQFType(FStatement, Fields[I]) of
-            FIELD_TYPE_INT2,
-            FIELD_TYPE_INT4,
-            FIELD_TYPE_INT8: Result := StrToInt64Def(FVal(Index1),0) -
-                                       StrToInt64Def(FVal(Index2),0);
+         begin
+           FVal1 := FConnect.RawToString(PQGetValue(FStatement, FSortingIndex[Index1], Fields[I]));
+           FVal2 := FConnect.RawToString(PQGetValue(FStatement, FSortingIndex[Index2], Fields[I]));
+           case PQFType(FStatement, Fields[I]) of
+             FIELD_TYPE_INT2,
+             FIELD_TYPE_INT4,
+             FIELD_TYPE_INT8: Result := StrToInt64Def(FVal1, 0) -
+                                        StrToInt64Def(FVal2, 0);
 
-            FIELD_TYPE_FLOAT4,
-            FIELD_TYPE_FLOAT8,
-            FIELD_TYPE_NUMERIC:
-                             try
-                              Result := Sign(StrToFloat(FVal(Index1), PSQL_FS) -
-                                       StrToFloat(FVal(Index2), PSQL_FS));
-                             except
-                              //D5 have no StrToFloatDef
-                              on E: EConvertError do
+             FIELD_TYPE_FLOAT4,
+             FIELD_TYPE_FLOAT8,
+             FIELD_TYPE_NUMERIC:
+                              try
+                               Result := Sign(StrToFloat(FVal1, PSQL_FS) -
+                                        StrToFloat(FVal2, PSQL_FS));
+                              except
+                               //D5 have no StrToFloatDef
+                               on E: EConvertError do
+                                Result := 0;
+                              end;
+
+             FIELD_TYPE_BOOL: Result :=  ord(FVal1[1]) -
+                                         ord(FVal2[1]);
+
+             FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
+                               Result := StrToIntDef(FVal1, InvalidOid) -
+                                         StrToIntDef(FVal2, InvalidOid)
+                             else
                                Result := 0;
-                             end;
+             FIELD_TYPE_TEXT,
+             FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
 
-            FIELD_TYPE_BOOL: Result :=  ord(FVal(Index1)[1]) -
-                                        ord(FVal(Index2)[1]);
-
-            FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
-                              Result := StrToIntDef(FVal(Index1),InvalidOid) -
-                                        StrToIntDef(FVal(Index2),InvalidOid)
-                            else
-                              Result := 0;
-            FIELD_TYPE_TEXT,
-            FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
-
-          else
-             //datetime fields will be compared here also
-             //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
-             Result := AnsiStrComp(PChar(FVal(Index1)),PChar(FVal(Index2)));
-          end;
+           else
+              //datetime fields will be compared here also
+              //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
+              Result := AnsiCompareStr(FVal1, FVal2);
+           end;
+         end;
         end;
         if IsReverseOrder[i] then
           Result := -Result;

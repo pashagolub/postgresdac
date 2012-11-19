@@ -2151,6 +2151,7 @@ type
 
 {$IFDEF DELPHI_5}
 function GetModuleName(Module: HMODULE): string;
+function Sign(const AValue: Double): integer;
 {$ENDIF}
 
 
@@ -2432,6 +2433,16 @@ var
   ModName: array[0..MAX_PATH] of Char;
 begin
   SetString(Result, ModName, GetModuleFileName(Module, ModName, SizeOf(ModName)));
+end;
+
+function Sign(const AValue: Double): integer;
+begin
+  if ((PInt64(@AValue)^ and $7FFFFFFFFFFFFFFF) = $0000000000000000) then
+    Result := 0
+  else if ((PInt64(@AValue)^ and $8000000000000000) = $8000000000000000) then
+    Result := -1
+  else
+    Result := 1;
 end;
 {$ENDIF}
 
