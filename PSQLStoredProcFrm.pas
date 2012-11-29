@@ -222,7 +222,9 @@ begin
     Screen.Cursor := crSQLWait;
     Application.ProcessMessages; //added to defroze
     FStoredProc.Database.GetStoredProcNames('',SL);
+    {$WARNINGS OFF}  //make D5 compiler happy
     Q := TPSQLQuery.Create(nil);
+    {$WARNINGS ON}
     try
       Q.Database := FStoredProc.Database;
       Q.RequestLive := False;

@@ -27,20 +27,8 @@ package dclPostgresDAC12;
 {$IMPLICITBUILD ON}
 
 requires
-  rtl,
   PostgresDAC12,
-  vcl,
-  designide,
-  xmlrtl,
-  vclactnband,
-  vclx,
-  dbrtl,
-  dcldb,
-  vcldesigner,
-  dclstd,
-  vclimg,
-  vcldb,
-  bdertl;
+  dcldb;
 
 contains
   PSQLupdsqled in 'PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},

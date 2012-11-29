@@ -27,17 +27,7 @@ package dclPostgresDAC11;
 {$IMPLICITBUILD OFF}
 
 requires
-  rtl,
-  designide,
-  vcl,
-  dbrtl,
-  vclactnband,
-  vclx,
-  bdertl,
   dcldb,
-  vcldesigner,
-  dclstd,
-  vcldb,
   PostgresDAC11;
 
 contains

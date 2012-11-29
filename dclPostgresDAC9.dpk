@@ -27,18 +27,8 @@ package dclPostgresDAC9;
 {$IMPLICITBUILD OFF}
 
 requires
-  rtl,
-  designide,
   PostgresDAC9,
-  vcl,
-  dbrtl,
-  vclactnband,
-  vclx,
-  bdertl,
-  dcldb,
-  vcldesigner,
-  dclstd,
-  vcldb;
+  dcldb;
 
 contains
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},

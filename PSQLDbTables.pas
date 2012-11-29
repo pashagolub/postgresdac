@@ -3078,7 +3078,7 @@ begin
   end
   else {fkCalculated, fkLookup}
   begin
-    Boolean(RecBuf[FRecordSize + Field.Offset]) := LongBool(Buffer);
+    Boolean(RecBuf[FRecordSize + Field.Offset]) := NativeUInt(Buffer) > 0; //was LongBool(Buffer)
     if Boolean(RecBuf[FRecordSize + Field.Offset]) then Move(Buffer[0], RecBuf[1], Field.DataSize);
   end;
   if not (State in [dsCalcFields, dsFilter, dsNewValue]) then

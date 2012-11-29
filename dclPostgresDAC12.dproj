@@ -49,20 +49,8 @@
 			<DelphiCompile Include="dclPostgresDAC12.dpk">
 				<MainSource>MainSource</MainSource>
 			</DelphiCompile>
-			<DCCReference Include="rtl.dcp"/>
 			<DCCReference Include="PostgresDAC12.dcp"/>
-			<DCCReference Include="vcl.dcp"/>
-			<DCCReference Include="designide.dcp"/>
-			<DCCReference Include="xmlrtl.dcp"/>
-			<DCCReference Include="vclactnband.dcp"/>
-			<DCCReference Include="vclx.dcp"/>
-			<DCCReference Include="dbrtl.dcp"/>
 			<DCCReference Include="dcldb.dcp"/>
-			<DCCReference Include="vcldesigner.dcp"/>
-			<DCCReference Include="dclstd.dcp"/>
-			<DCCReference Include="vclimg.dcp"/>
-			<DCCReference Include="vcldb.dcp"/>
-			<DCCReference Include="bdertl.dcp"/>
 			<DCCReference Include="PSQLupdsqled.pas">
 				<Form>PSQLUpdateSQLEditForm</Form>
 			</DCCReference>

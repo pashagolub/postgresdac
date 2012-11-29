@@ -69,11 +69,7 @@
     <DelphiCompile Include="dclPostgresDAC10.dpk">
       <MainSource>MainSource</MainSource>
     </DelphiCompile>
-    <DCCReference Include="bdertl.dcp" />
-    <DCCReference Include="dbrtl.dcp" />
     <DCCReference Include="dcldb.dcp" />
-    <DCCReference Include="dclstd.dcp" />
-    <DCCReference Include="designide.dcp" />
     <DCCReference Include="PostgresDAC10.dcp" />
     <DCCReference Include="PSQLCOMP.pas" />
     <DCCReference Include="PSQLConnFrm.pas">

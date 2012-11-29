@@ -6,7 +6,8 @@ unit PSQLfldlinks;
 interface
 
 uses SysUtils, Windows, Messages, Classes, Graphics, Controls, Forms,
-  StdCtrls, ExtCtrls, DB, Buttons, {$IFNDEF DELPHI_6}DsgnIntf{$ELSE}DesignIntf,DesignEditors{$ENDIF};
+  StdCtrls, ExtCtrls, DB, Buttons,
+  {$IFNDEF DELPHI_6}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF};
 
 type
 
@@ -92,11 +93,16 @@ type
 
 function EditMasterFields(ADataSet: TDataSet; ADataSetProxy: TPSQLFieldLinkProperty): Boolean;
 
+resourcestring
+  SPrimary = 'Primary';
+  SMissingDataSet = 'Missing DataSet property';
+  SLinkDesigner 	= 'Field ''%s'', from the Detail Fields list, must be linked';
+
 implementation
 
 {$R *.DFM}
 
-uses Dialogs, DBConsts, LibHelp, TypInfo,{$IFDEF DELPHI_4}BDEConst{$ELSE}DsnDBCst{$ENDIF};
+uses Dialogs, DBConsts, LibHelp, TypInfo;
 
 { Utility Functions }
 
@@ -262,7 +268,7 @@ begin
   IndexDefs := DataSetProxy.IndexDefs;
   if Assigned(IndexDefs) then IndexDefs.Update;
   if not Assigned(Value.DataSource) or not Assigned(Value.DataSource.DataSet) then
-    DatabaseError({$IFDEF DELPHI_4}SMissingDataSet{$ELSE}SMissingDataSource{$ENDIF}, Value);
+    DatabaseError(SMissingDataSet, Value);
   Value.DataSource.DataSet.FieldDefs.Update;
   FDataSet := Value;
   FMasterDataSet := Value.DataSource.DataSet;

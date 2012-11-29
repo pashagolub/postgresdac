@@ -30,19 +30,7 @@ package dclPostgresDAC17;
 {$IMPLICITBUILD ON}
 
 requires
-  rtl,
-  vcl,
-  designide,
-  xmlrtl,
-  vclactnband,
-  vclx,
-  dbrtl,
   dcldb,
-  vcldesigner,
-  dclstd,
-  vclimg,
-  vcldb,
-  bdertl,
   PostgresDAC17;
 
 contains

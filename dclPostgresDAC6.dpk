@@ -27,17 +27,8 @@ package dclPostgresDAC6;
 {$IMPLICITBUILD OFF}
 
 requires
-  rtl,
-  designide,
   PostgresDAC6,
-  vcl,
-  dbrtl,
-  vclx,
-  bdertl,
-  dcldb,
-  designdgm,
-  dclstd,
-  vcldb;
+  dcldb;
 
 contains
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},

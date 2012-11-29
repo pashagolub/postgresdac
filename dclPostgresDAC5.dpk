@@ -27,7 +27,6 @@ package dclPostgresDAC5;
 {$IMPLICITBUILD OFF}
 
 requires
-  vcl50,
   PostgresDAC5,
   dcldb50;
 

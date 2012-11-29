@@ -302,7 +302,9 @@ var
   Table: TPSQLTable;
 begin
   Table := DataSet as TPSQLTable;
+  {$WARNINGS OFF} //make D5 happy
   FTable := TPSQLTable.Create(nil);
+  {$WARNINGS ON} //make D5 happy
   try
     FTable.Database := Table.Database;
     FTable.TableName := Table.TableName;

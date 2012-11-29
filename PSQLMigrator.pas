@@ -4,7 +4,7 @@ unit PSQLMigrator;
 {SVN revision: $Id$}
 
 interface
-uses Classes, DB, PSQLDBTables, PSQLMacroQuery, Forms, SysUtils, DBTables, PSQLTypes;
+uses Classes, DB, PSQLDBTables, PSQLMacroQuery, Forms, SysUtils, PSQLTypes;
 
 type
 
@@ -349,7 +349,7 @@ begin
   try
     FillComponents(List, TDataset);
     for i := List.Count-1 downto 0 do
-     if TDataset(List[i]) is TNestedTable then
+     if SameText(TDataset(List[i]).ClassName, 'TNestedTable') then
        List.Delete(I)
      else
        CheckDataset(TDataset(List[i]));
@@ -413,7 +413,9 @@ begin
      OldDataSet.ClassNameIs('TADOQuery') and (convADO in FConvertComponents) or
      OldDataSet.ClassNameIs('TADODataset') and (convADO in FConvertComponents) or
      OldDataSet.ClassNameIs('TMySQLQuery') and (convMySQLDAC in FConvertComponents) then
+       {$WARNINGS OFF} //make D5 happy
             aDataSet := TPSQLQuery.Create(OldDataSet.Owner)
+       {$WARNINGS ON} //make D5 happy
 
   else
 
@@ -422,7 +424,9 @@ begin
      OldDataSet.ClassNameIs('TSQLTable') and (convDBX in FConvertComponents) or
      OldDataSet.ClassNameIs('TADOTable') and (convADO in FConvertComponents) or
      OldDataSet.ClassNameIs('TMySQLTable') and (convMySQLDAC in FConvertComponents) then
+       {$WARNINGS OFF} //make D5 happy
             aDataSet := TPSQLTable.Create(OldDataSet.Owner)
+       {$WARNINGS ON} //make D5 happy
 
   else
 
@@ -431,11 +435,15 @@ begin
      OldDataSet.ClassNameIs('TSQLStoredProc') and (convDBX in FConvertComponents) or
      OldDataSet.ClassNameIs('TADOStoredProc') and (convADO in FConvertComponents) or
      OldDataSet.ClassNameIs('TMySQLStoredProc') and (convMySQLDAC in FConvertComponents)then
+       {$WARNINGS OFF} //make D5 happy
             aDataSet := TPSQLStoredProc.Create(OldDataSet.Owner)
+       {$WARNINGS ON} //make D5 happy
   else
 
   if OldDataSet.ClassNameIs('TMySQLMacroQuery') and (convMySQLDAC in FConvertComponents) then
+    {$WARNINGS OFF} //make D5 happy
             aDataSet := TPSQLMacroQuery.Create(OldDataSet.Owner);
+    {$WARNINGS ON} //make D5 happy
 
   if Assigned(aDataset) then
     begin
