@@ -2133,6 +2133,8 @@ function UIntToStr(C: cardinal): string;
 function StrToUInt(S: string): cardinal;
 function StrToUIntDef(S: string; DefVal: cardinal = 0): cardinal;
 
+function DeBracketedStr(const Value: string; ALeftBracket: char = '('; ARightBracket: char = ')'): string;
+
 {$IFNDEF DELPHI_12}
 type
  TCharSet = set of char;
@@ -3180,7 +3182,17 @@ begin
   if E <> 0 then Result := DefVal;
 end;
 
-Procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : integer;
+function DeBracketedStr(const Value: string; ALeftBracket, ARightBracket: char): string;
+var I, L: integer;
+begin
+  L := length(Value);
+  for I := 1 to L div 2 do
+    if (Value[i] <> ALeftBracket) OR (Value[L - i + 1] <> ARightBracket) then
+      Break;
+  Result := Copy(Value, I, L - 2 * (I - 1));
+end;
+
+procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : integer;
                 var BdeSubType : integer; var LogSize : Integer;
                 var LocArray : Boolean);
 begin
