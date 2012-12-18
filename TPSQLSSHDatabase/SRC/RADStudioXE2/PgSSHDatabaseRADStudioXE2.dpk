@@ -31,7 +31,7 @@ requires
   bdertl,
   vcldb,
   wodSSHTunnel,
-  PostgresDAC15;
+  PostgresDAC16;
 
 contains
   PgSSHDatabase in '..\PgSSHDatabase.pas';

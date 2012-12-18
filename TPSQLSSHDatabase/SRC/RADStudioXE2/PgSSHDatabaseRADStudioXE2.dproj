@@ -66,7 +66,7 @@
 			<DCCReference Include="bdertl.dcp"/>
 			<DCCReference Include="vcldb.dcp"/>
 			<DCCReference Include="wodSSHTunnel.dcp"/>
-			<DCCReference Include="PostgresDAC15.dcp"/>
+			<DCCReference Include="PostgresDAC16.dcp"/>
 			<DCCReference Include="..\PgSSHDatabase.pas"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>
