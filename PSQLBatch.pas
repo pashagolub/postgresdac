@@ -1,4 +1,4 @@
-unit psqlBatch;
+unit PSQLBatch;
 
 interface
 
