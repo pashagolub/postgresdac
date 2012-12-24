@@ -15,7 +15,7 @@ uses  SysUtils, Classes, Db,
       PSQLAccess, PSQLTypes;
 
 const
-    VERSION : string = '2.9.1';
+    VERSION : string = '2.9.2-DEV';
     {$IFDEF MICROOLAP_BUSINESS_LICENSE}
     LICENSETYPE : string = 'Business License';
     {$ELSE}
@@ -6713,8 +6713,51 @@ end;
 
 {$IFDEF DELPHI_17}
 function TPSQLBlobStream.Read(Buffer: TBytes; Offset, Count: Longint): Longint;
+var
+  Status: DBIResult;
 begin
-  Result := Read(Buffer, Offset, Count);
+  Result := 0;
+  if FOpened then
+  begin
+    if FCached then
+    begin
+      if Count > Size - FPosition then
+        Result := Size - FPosition else
+        Result := Count;
+      if Result > 0 then
+      begin
+        Move(TRecordBuffer(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer[0], Result);
+        Inc(FPosition, Result);
+      end;
+    end else
+    begin
+      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, Buffer, Result);
+      case Status of
+        DBIERR_NONE, DBIERR_ENDOFBLOB:
+          begin
+            if FDataset.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
+              (FMode = bmRead) and not FField.Modified and (FPosition = FCacheSize) then
+            begin
+              FCacheSize := FPosition + Result;
+              SetLength(FBlobData, FCacheSize);
+              Move(Buffer[0], FBlobData[FPosition], Result);
+              if FCacheSize = Size then
+              begin
+                FDataSet.SetBlobData(FField, FBuffer, FBlobData);
+                SetLength(FBlobData, 0);
+                FCached := True;
+                Engine.FreeBlob(FDataSet.Handle, FBuffer, FFieldNo);;
+              end;
+            end;
+            Inc(FPosition, Result);
+          end;
+        DBIERR_INVALIDBLOBOFFSET:
+          {Nothing};
+      else
+        TDbiError(Engine, Status);
+      end;
+    end;
+  end;
 end;
 {$ENDIF DELPHI_17}
 
