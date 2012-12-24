@@ -33,7 +33,7 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
-    procedure TestQueryInsert;
+    procedure TestQueryInsertAndRead;
     procedure TestUpdateObjInsert;
   end;
 
@@ -57,7 +57,7 @@ begin
   FPSQLQuery := nil;
 end;
 
-procedure TestTPSQLBlobs.TestQueryInsert;
+procedure TestTPSQLBlobs.TestQueryInsertAndRead;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
   FPSQLQuery.RequestLive := True;
@@ -70,10 +70,17 @@ begin
   (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromFile('TestData\test.bmp');
   (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := 'test-test';
   FPSQLQuery.Post;
+
   FPSQLQuery.First;
   Check(not FPSQLQuery.FieldByName('byteaf').IsNull, 'byteaf field must be NOT NULL');
   Check(not FPSQLQuery.FieldByName('oidf').IsNull, 'oidf field must be NOT NULL');
   Check(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL');
+
+  (FPSQLQuery.FieldByName('byteaf') as TBlobField).SaveToFile('TestOutput\test.bmp');
+  (FPSQLQuery.FieldByName('oidf') as TBlobField).SaveToFile('TestOutput\test.bmp');
+  Check(FileExists('TestOutput\test.bmp'), 'byteaf cannot save file to disk');
+  Check(FileExists('TestOutput\test.bmp'), 'oidf cannot save file to disk');
+  Check(FPSQLQuery.FieldByName('memof').AsString = 'test-test', 'Failed to read memof field');
   FPSQLQuery.Close;
 end;
 

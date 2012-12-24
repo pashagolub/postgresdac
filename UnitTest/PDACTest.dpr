@@ -15,7 +15,6 @@ program PDACTest;
 {$ENDIF}
 
 uses
-  ExceptionLog,
   Forms,
   TestFramework,
   GUITestRunner,
