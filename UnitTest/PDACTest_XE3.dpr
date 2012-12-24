@@ -15,9 +15,6 @@ program PDACTest_XE3;
 {$ENDIF}
 
 uses
-  {$IFNDEF VER240}
-  ExceptionLog,
-  {$ENDIF}
   Forms,
   TestFramework,
   GUITestRunner,
