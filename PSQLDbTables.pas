@@ -1812,9 +1812,15 @@ begin
     if FCheckIfActiveOnParamChange then
         CheckInactive; //SSH tunneling
     if IsValidIP(Value) then
-      FParams.Values['hostaddr'] := Value
+     begin
+      FParams.Values['hostaddr'] := Value;
+      FParams.Values['host'] := '';
+     end
     else
+     begin
+      FParams.Values['hostaddr'] := '';
       FParams.Values['host'] := Value;
+     end;
 end;
 
 procedure TPSQLDatabase.SetUseSSL(Reader: TReader);
