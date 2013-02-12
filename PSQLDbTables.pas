@@ -1,4 +1,4 @@
-{$I pSQLDAC.inc}
+{$I PSQLDAC.inc}
 unit PSQLDbTables;
 
 {SVN revision: $Id$}
@@ -1717,7 +1717,8 @@ begin
   ChangeOldParameter('Port', 'port');
   ChangeOldParameter('SSLMode', 'sslmode');
   ChangeOldParameter('Host', 'host');
-  SetHost(FParams.Values['host']); //make sure correct keyword used depending on IP or host name
+  if FParams.Values['host'] > '' then
+    SetHost(FParams.Values['host']); //make sure correct keyword used depending on IP or host name
 end;
 
 procedure TPSQLDatabase.Notification(AComponent : TComponent; Operation : TOperation);
@@ -4097,7 +4098,7 @@ begin
       begin
         for i := 0 to Fields.Count - 1 do
         begin
-          Node := Filter1.NewCompareNode(TField(Fields[I]), coGE, KeyValues[I]);
+          Node := Filter1.NewCompareNode(TField(Fields[I]), coEQ, KeyValues[I]);
 
           if I = 0 then
             Expr := Node

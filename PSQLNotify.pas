@@ -20,6 +20,8 @@ type
     FOwner : TPSQLNotify;
     FInterval : cardinal;
     FActive : boolean;
+    procedure CheckEvents;
+    procedure FireEvents;
   public
     constructor Create(Owner : TPSQLNotify);
     procedure Execute; override;
@@ -31,6 +33,8 @@ type
 
   TPSQLNotify = class (TComponent)
   private
+    _Notify, _Payload : string;
+    _Pid    : Integer;
     FHandle : hDBIObj;
     FActive : Boolean;
     FAutoOpen: Boolean;
@@ -88,6 +92,12 @@ uses SysUtils, DB;
 
 const LoopDelayStep = 50;
 
+procedure TNotifyThread.CheckEvents;
+begin
+  with FOwner do
+    Check(Engine, Engine.CheckEvents(FHandle, _Pid, _Notify, _Payload));
+end;
+
 constructor TNotifyThread.Create(Owner: TPSQLNotify);
 begin
    inherited Create(False);
@@ -96,26 +106,6 @@ begin
    FActive := False;
    FreeOnTerminate := True;
 end;
-
-(*
-{$IFDEF DELPHI_15}
-procedure TNotifyThread.Execute;
-var
-  StopWatch: TStopWatch;
-begin
-  StopWatch.Reset;
-  repeat
-    Self.Sleep(LoopDelayStep); //for quick reaction if termination needed
-    StopWatch.Start;
-    if (StopWatch.ElapsedMilliseconds > int64(FInterval)) and FActive then
-    begin
-       //StopWatch.Stop;
-       Synchronize(FOwner.CheckEvents);
-       StopWatch.Reset;
-    end;
-  until Terminated;
-end;
-{$ELSE}*)
 
 procedure TNotifyThread.Execute;
 var
@@ -126,12 +116,24 @@ begin
     Sleep(LoopDelayStep); //for quick reaction if termination needed
     if (GetTickCount() - Start > FInterval) and FActive then
     begin
-       FOwner.CheckEvents;
-       Start := GetTickCount();
+      Synchronize(CheckEvents);
+      if FOwner._Notify > '' then Synchronize(FireEvents);
+      Start := GetTickCount();
     end;
   until Terminated;
 end;
-// {$ENDIF}
+
+
+procedure TNotifyThread.FireEvents;
+begin
+  with FOwner do
+  begin
+    if Assigned(FNotifyFired) then
+      FNotifyFired(Self, _Notify, _Pid);
+    if Assigned(FNotifyFiredEx) then
+      FNotifyFiredEx(Self, _Notify, _Payload, _Pid);
+  end;
+end;
 
 constructor TPSQLNotify.Create(AOwner: TComponent);
 var I: integer;
@@ -416,17 +418,14 @@ begin
 end;
 
 procedure TPSQLNotify.CheckEvents;
-var
-  Notify, Payload : string;
-  Pid    : Integer;
 begin
   CheckActive;
   while True do
   begin
-    Check(Engine,Engine.CheckEvents(FHandle, Pid, Notify, Payload));
-    if Notify = '' then Break;
-    if Assigned(FNotifyFired) then FNotifyFired(Self, Notify, Pid);
-    if Assigned(FNotifyFiredEx) then FNotifyFiredEx(Self, Notify, Payload, Pid);
+    Check(Engine,Engine.CheckEvents(FHandle, _Pid, _Notify, _Payload));
+    if _Notify = '' then Break;
+    if Assigned(FNotifyFired) then FNotifyFired(Self, _Notify, _Pid);
+    if Assigned(FNotifyFiredEx) then FNotifyFiredEx(Self, _Notify, _Payload, _Pid);
   end;
 end;
 

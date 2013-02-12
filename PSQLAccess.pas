@@ -905,7 +905,7 @@ function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: 
 
 {$IFDEF M_DEBUG}
 function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
-procedure LogDebugMessage(const MsgType, Msg: string);
+procedure LogDebugMessage(MsgType, Msg: string);
 
 var SessionStart: cardinal;
 {$ENDIF}
@@ -944,40 +944,42 @@ end;
 var F: TextFile;
     DebugFileOpened: boolean = False;
 
-procedure LogDebugMessage(const MsgType, Msg: string);
+procedure LogDebugMessage(MsgType, Msg: string);
 begin
- if DebugFileOpened and (Msg > EmptyStr) then
-  WriteLn(F,'<TR><TD>',GetTickCount() - SessionStart,'&nbsp;ms</TD><TD><b>',MsgType,'</b></TD><TD><PRE>',Msg,'</PRE></TD><TR>');
+  if not DebugFileOpened or (Msg = EmptyStr) then Exit;
+  Msg := ReplaceStr(Msg, '<','&lt;');
+  Msg := ReplaceStr(Msg, '>','&gt;');
+  WriteLn(F,'<TR><TD>',GetTickCount() - SessionStart,'&nbsp;ms</TD><TD><b>', MsgType, '</b></TD><TD><PRE>',Msg,'</PRE></TD><TR>');
 end;
 
 function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
 begin
- Result := PSQLTypes.PQConnectDB(ConnInfo);
- LogDebugMessage('CONN', String(ConnInfo));
+  Result := PSQLTypes.PQConnectDB(ConnInfo);
+  LogDebugMessage('CONN', String(ConnInfo));
 end;
 
 function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
 begin
- Result := PSQLTypes.PQexec(Handle,AQuery);
- LogDebugMessage('EXEC', String(AQuery));
+  Result := PSQLTypes.PQexec(Handle,AQuery);
+  LogDebugMessage('EXEC', String(AQuery));
 end;
 
 function lo_creat(Handle: PPGconn; mode: Integer): Oid;
 begin
- Result := PSQLTypes.lo_creat(Handle,mode);
- LogDebugMessage('loCr', 'LO OID = '+inttostr(Result));
+  Result := PSQLTypes.lo_creat(Handle,mode);
+  LogDebugMessage('loCr', 'LO OID = '+inttostr(Result));
 end;
 
 function lo_open(Handle: PPGconn; lobjId: Oid; mode: Integer): Integer;
 begin
- Result := PSQLTypes.lo_open(Handle,lobjId,mode);
- LogDebugMessage('loOp', 'oid = '+inttostr(lobjId)+'; fd = '+inttostr(Result));
+  Result := PSQLTypes.lo_open(Handle,lobjId,mode);
+  LogDebugMessage('loOp', 'oid = '+inttostr(lobjId)+'; fd = '+inttostr(Result));
 end;
 
 function lo_close(Handle: PPGconn; fd: Integer): Integer;
 begin
- Result := PSQLTypes.lo_close(Handle,fd);
- LogDebugMessage('loCl', 'fd = '+inttostr(fd));
+  Result := PSQLTypes.lo_close(Handle,fd);
+  LogDebugMessage('loCl', 'fd = '+inttostr(fd));
 end;
 
 function PQerrorMessage(Handle: PPGconn): PAnsiChar;

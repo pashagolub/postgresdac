@@ -2129,7 +2129,9 @@ procedure FieldMapping(FieldType : cardinal; phSize : Integer; var BdeType : int
                         var BdeSubType : integer; var LogSize : Integer;
                         var LocArray : Boolean);
 
+{$IFNDEF DELPHI_17}
 function UIntToStr(C: cardinal): string;
+{$ENDIF}
 function StrToUInt(S: string): cardinal;
 function StrToUIntDef(S: string; DefVal: cardinal = 0): cardinal;
 
@@ -3163,10 +3165,12 @@ begin
    end;
 end;
 
+{$IFNDEF DELPHI_17}
 function UIntToStr(C: cardinal): string;
 begin
   Result := IntToStr(C);
 end;
+{$ENDIF}
 
 function StrToUInt(S: string): cardinal;
 var E: integer;
