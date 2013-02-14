@@ -175,12 +175,10 @@ type
                         var Owner, Comment, Tablespace: string;
                         var HasOIDs: boolean;
                         var TableOid: cardinal);
-//    procedure ResetConnection; for future use
     procedure EmptyTable(hCursor : hDBICur; pszTableName : string);
     procedure TableExists(pszTableName : string);
     procedure AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
     procedure DeleteIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string; iIndexId: Word);
-    procedure CreateTable(bOverWrite: Boolean; var crTblDsc: CRTblDesc);
 
     property IsolationLevel : eXILType Read FTransLevel;
     property Handle : PPGconn read FHandle write FHandle;
@@ -195,7 +193,6 @@ type
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
     function SelectStringsDirect(pszQuery : string; aList : TStrings; aFieldNumber : integer):string; overload;
     function SelectStringsDirect(pszQuery : string; aList : TStrings; pszFieldName : string):string; overload;
-
 
     function IsUnicodeUsed: boolean;
     function IsSSLUsed: boolean;
@@ -334,7 +331,6 @@ type
       function GetIndexDescs(hCursor: hDBICur; idxDescs: TIDXDescList): DBIResult;
       function TranslateRecordStructure(pszSrcDriverType: PChar; iFlds: Word; pfldsSrc: pFLDDesc; pszDstDriverType: PChar; pszLangDriver: PChar;pfldsDst: pFLDDesc; bCreatable: Boolean): DBIResult;
       function TableExists(hDb: hDBIDb; pszTableName: string): DBIResult;
-      function CreateTable(hDb: hDBIDb; bOverWrite: Boolean; var crTblDsc: CRTblDesc): DBIResult;
       function AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
       function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Boolean;iFields: integer;iLen: integer;pBuff: Pointer): DBIResult;
       function CloneCursor(hCurSrc: hDBICur;bReadOnly: Boolean;bUniDirectional: Boolean;var   hCurNew: hDBICur): DBIResult;
@@ -3027,73 +3023,6 @@ begin
    end;
    if not Found then
       Raise EPSQLException.CreateBDEMsg(DBIERR_NOSUCHTABLE, pszTableName);
-end;
-
-procedure TNativeConnect.CreateTable(bOverWrite: Boolean; var crTblDsc: CRTblDesc);
-
-{      function CreateSQLForCreateTable:String;
-      var
-        Fld : String;
-        I : Integer;
-        VCHK : pVCHKDesc;
-        PSQLFlds : TPSQLFields;
-        PSQLIdxs : TPSQLIndexes;
-      begin
-        PSQLFlds := TPSQLFields.Create(nil);
-        try
-          PSQLIdxs := TPSQLIndexes.Create(nil);
-          try
-            for I := 1 to crTblDsc.iFldCount do
-            begin
-               if (crTblDsc.iValChkCount > 0) and (crTblDsc.iValChkCount >= I) then
-                begin
-                   VCHK := crTblDsc.pvchkDesc;
-                   if VCHK.iFldNum <> I then VCHK := nil;
-                end else VCHK := nil;
-                TPSQLField.CreateField(PSQLFlds, crTblDsc.pfldDesc^, VCHK^, i, 0, 0,False);
-                Inc(crTblDsc.pfldDesc);
-                if crTblDsc.iValChkCount > 0 then
-                   if crTblDsc.iValChkCount > I then
-                      Inc(CrTblDsc.pvchkDesc);
-            end;
-            for I := 1 to crTblDsc.iIdxCount do
-            begin
-                TPSQLIndex.CreateIndex(PSQLIdxs,crTblDsc.pidxDesc);
-                Inc(crTblDsc.pidxDesc);
-            end;
-            Result := Format('CREATE TABLE %s ( ',[crTblDsc.szTblName]);
-            for I := 1 to PSQLFlds.Count do
-            begin
-               Fld := BDETOPSQLStr(PSQLFlds[I]);
-                Result := Result + Fld;
-                if I < PSQLFlds.Count then Result := Result+', ';
-            end;
-            Result := Result+');';
-            //indexes
-            for I := 1 to PSQLIdxs.Count do
-            begin
-               Fld := SQLCreateIdxStr(PSQLIdxs[I],string(crTblDsc.szTblName),PSQLFlds);
-               Result := Result + #13#10 + Fld;
-            end;
-          finally
-            PSQLIdxs.Free;
-          end;
-        finally
-         PSQLFlds.Free;
-        end;
-      end;
-
-var Res: PPGresult;    }
-
-begin
-(*
-      Res := PQExec(FHandle,PAnsiChar(ansistring(CreateSQLForCreateTable)));
-      try
-        CheckResult;
-      finally
-        PQclear(RES);
-      end;
-*)
 end;
 
 procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
@@ -7655,17 +7584,6 @@ begin
    try
      Database := hDb;
      TNativeConnect(hDb).TableExists(pszTableName);
-     Result := DBIERR_NONE;
-  except
-     Result := CheckError;
-  end;
-end;
-
-function TPSQLEngine.CreateTable(hDb: hDBIDb; bOverWrite: Boolean; var crTblDsc: CRTblDesc): DBIResult;
-begin
-   try
-     Database := hDb;
-     TNativeConnect(hDb).CreateTable(bOverwrite, crTblDsc);
      Result := DBIERR_NONE;
   except
      Result := CheckError;

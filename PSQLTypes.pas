@@ -1368,55 +1368,6 @@ type
     keySEARCHGEQ                        { >= }
   );
 
-
-//============================================================================//
-//                      Create/Restructure descriptor                         //
-//============================================================================//
-type
-  pCROpType          = ^CROpType;
-  CROpType = (                          { Create/Restruct Operation type }
-    crNOOP,
-    crADD,                              { Add a new element. }
-    crCOPY,                             { Copy an existing element. }
-    crMODIFY,                           { Modify an element. }
-    crDROP,                             { Removes an element. }
-    crREDO,                             { Reconstruct an element. }
-    crTABLE,                            { Not used }
-    crGROUP,                            { Not used }
-    crFAMILY,                           { Not used }
-    crDONE,                             { Used internally }
-    crDROPADD                           { Used internally }
-  );
-
-  pCRTblDesc         = ^CRTblDesc;
-  CRTblDesc = packed record             { Create/Restruct Table descr }
-    szTblName       : string;       { TableName incl. optional path & ext }
-    //szTblType       : DBINAME;          { Driver type (optional) }
-    //szErrTblName    : DBIPATH;          { Error Table name (optional) }
-    //szUserName      : DBINAME;          { User name (if applicable) }
-    //szPassword      : DBINAME;          { Password (optional) }
-    //bProtected      : WordBool;         { Master password supplied in szPassword }
-    //bPack           : WordBool;         { Pack table (restructure only) }
-    iFldCount       : Word;             { Number of field defs supplied }
-    pecrFldOp       : pCROpType;        { Array of field ops }
-    pfldDesc        : pFLDDesc;         { Array of field descriptors }
-    iIdxCount       : Word;             { Number of index defs supplied }
-    pecrIdxOp       : pCROpType;        { Array of index ops }
-    pidxDesc        : PIDXDesc;         { Array of index descriptors }
-    iSecRecCount    : Word;             { Number of security defs supplied }
-    pecrSecOp       : pCROpType;        { Array of security ops }
-    psecDesc        : pSECDesc;         { Array of security descriptors }
-    iValChkCount    : Word;             { Number of val checks }
-    pecrValChkOp    : pCROpType;        { Array of val check ops }
-    pvchkDesc       : pVCHKDesc;        { Array of val check descs }
-    iRintCount      : Word;             { Number of ref int specs }
-    pecrRintOp      : pCROpType;        { Array of ref int ops }
-    printDesc       : pRINTDesc;        { Array of ref int specs }
-    iOptParams      : Word;             { Number of optional parameters }
-    pfldOptParams   : pFLDDesc;         { Array of field descriptors }
-    pOptData        : Pointer;          { Optional parameters }
-  end;
-
 //============================================================================//
 //                    Filter description                                      //
 //============================================================================//
