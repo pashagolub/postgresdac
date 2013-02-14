@@ -912,14 +912,6 @@ type
     paramRET                            { Procedure (or function) return }
   );
 
-  STMTParamFormat = (
-    paramfmtUNKNOWN,                    { UNKNOWN (Error) }
-    paramfmtNUMBER,                     { Numbered parameter markers of the form ? or :n }
-    paramfmtNAME                        { Named parameters markers of the form :name }
-  );
-
-
-
 //============================================================================//
 //                   General properties  DbiGetProp/DbiSetProp                //
 //============================================================================//
