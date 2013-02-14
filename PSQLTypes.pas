@@ -904,16 +904,6 @@ Type
 {============================================================================}
 
 type
-  eINDValues = TypedEnum;
-const
-    indTRUNC     = -2;                   { Value has been truncated }
-    indNULL      = -1;                   { Value is NULL }
-    indVALUE     = 1;
-
-const
-  INDLEN             = sizeof(Word);
-
-type
   STMTParamType = (
     paramUNKNOWN,                       { UNKNOWN (Error) }
     paramIN,                            { Input parameter }
