@@ -1546,23 +1546,6 @@ type
     wantSPEED                           { Let query manager decide, find out afterwards }
   );
 
-//============================================================================//
-//                    Table descriptor                                        //
-//============================================================================//
-type
-  pTBLBaseDesc = ^TBLBaseDesc;
-  TBLBaseDesc = packed record           { Table description (Base) }
-    szName          : DBITBLNAME;       { Table name(No extension or Dir) }
-    szFileName      : DBITBLNAME;       { File name }
-    szExt           : DBIEXT;           { File extension }
-    szType          : DBINAME;          { Driver type }
-    dtDate          : DBIDATE;          { Date on the table }
-    tmTime          : Time;             { Time on the table }
-    iSize           : Longint;          { Size in bytes }
-    bView           : WordBool;         { if this a view }
-    bSynonym        : WordBool;         { if this is a synonym }
-  end;
-
 {======================================================================}
 {            Stored Procedure and Stored Procedure Param descriptor    }
 {======================================================================}
