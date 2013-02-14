@@ -303,10 +303,10 @@ type
       function GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszError: PChar): DBIResult;
       function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
       function QExecDirect(hDb: hDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
-      function QAlloc(hDb: hDBIDb;eQryLang: DBIQryLang;var hStmt: hDBIStmt): DBIResult;
-      function QPrepare(hStmt: hDBIStmt;pszQuery: String): DBIResult;
+      function QAlloc(hDb: hDBIDb;var hStmt: hDBIStmt): DBIResult;
+      function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
       function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
-      function QPrepareExt(hDb: hDBIDb;eQryLang: DBIQryLang;pszQuery: PChar;propBits: Word;var hStmt: hDBIStmt): DBIResult;
+      function QPrepareExt(hDb: hDBIDb; pszQuery: PChar;propBits: Word;var hStmt: hDBIStmt): DBIResult;
       function QFree(var hStmt: hDBIStmt): DBIResult;
       function QPrepareProc (hDb: hDBIDb; pszProc: PChar; hParams: pointer; var hStmt: hDBIStmt): DBIResult;
       function QSetProcParams (hStmt: hDBIStmt; Params: TParams): DBIResult;
@@ -7375,7 +7375,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.QAlloc(hDb: hDBIDb; eQryLang: DBIQryLang;var hStmt: hDBIStmt): DBIResult;
+function TPSQLEngine.QAlloc(hDb: hDBIDb; var hStmt: hDBIStmt): DBIResult;
 begin
   try
     Database := hDb;
@@ -7425,7 +7425,6 @@ end;
 
 function TPSQLEngine.QPrepareExt (                             { Prepare a query }
            hDb           : hDBIDb;                          { Database handle }
-           eQryLang      : DBIQryLang;                      { Query language }
            pszQuery      : PChar;                           { Query }
            propBits      : Word;                            { properties for Prepare, e.g. qprepFORUPDATE }
            var hStmt     : hDBIStmt                         { Returned statment handle }
@@ -8544,7 +8543,7 @@ var SQLText,ParStr: string;
 begin
   try
     aParams := TPSQLParams(hParams);
-    QAlloc(hDb,qryLangSQL,hStmt);
+    QAlloc(hDb, hStmt);
     SQLText := 'SELECT * FROM '+pszProc+'(%s)';
     if (aParams.Count > 0) and (aParams[0].ParamType in [ptInput,ptInputOutput]) then
       ParStr := ':' + AnsiQuotedStr(aParams[0].Name, '"')

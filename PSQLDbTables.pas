@@ -1478,7 +1478,7 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = nil;
     end;
     if not Assigned(Result) then
      begin
-      Check(Engine, Engine.QAlloc(Handle, qrylangSQL, Result));
+      Check(Engine, Engine.QAlloc(Handle, Result));
       if Cursor <> nil then
         Check(Engine, Engine.SetEngProp(hDbiObj(Result), stmtLIVENESS, Ord(wantCanned)));
       SetBoolProp(Engine, Result, stmtUNIDIRECTIONAL, TRUE);
@@ -5190,7 +5190,7 @@ var
   DBh : HDBIDB;
 begin
   DBh := DBHandle;
-  Check(Engine,Engine.QAlloc(DBH, qrylangSQL, hDBIStmt(FHandle)));
+  Check(Engine,Engine.QAlloc(DBH, hDBIStmt(FHandle)));
   try
     TNativeDataset(FHandle).Options := Options;
     if not FExecSQL then

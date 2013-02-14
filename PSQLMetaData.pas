@@ -186,7 +186,7 @@ Var Q:string;
 begin
  DBh := DBHandle;
 // hStmt := StmtHandle;
- Check(Engine,Engine.QAlloc(DBh, qrylangSQL, hDBIStmt(FHandle)));
+ Check(Engine,Engine.QAlloc(DBh, hDBIStmt(FHandle)));
 // StmtHandle := hStmt;
  try
   Q := StringReplace(sqlPrivStmts[FObjectsType],'%s',FUserName,[rfReplaceAll]);
