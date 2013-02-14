@@ -9129,7 +9129,7 @@ begin
     s := Format('SELECT %u::regclass || ''.'' || quote_ident(attname) '+
                 'FROM pg_attribute WHERE attrelid = %u AND attnum = %d',
                     [TabOid, TabOid, ColNum]);
-    Result := FConnect.SelectStringDirect(PChar(s), IsOK, 0);
+    Result := FConnect.SelectStringDirect(s, IsOK, 0);
    end;
 end;
 
