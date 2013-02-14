@@ -1549,15 +1549,6 @@ type
 {======================================================================}
 {            Stored Procedure and Stored Procedure Param descriptor    }
 {======================================================================}
-
-type
-  pSPDesc = ^SPDesc;
-  SPDesc = packed record
-    szName          : DBISPNAME;
-    dtDate          : DBIDATE;
-    tmTime          : Time;
-  end;
-
   pSPParamDesc = ^SPParamDesc;
   SPParamDesc = packed record
     uParamNum       : Word;
@@ -1571,7 +1562,6 @@ type
     uLen            : Word;
     uNullOffset     : Word;
   end;
-
 
 //============================================================================//
 //                                Call Backs                                  //
