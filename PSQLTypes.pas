@@ -1099,19 +1099,6 @@ type
   end;
 
 //============================================================================//
-//                    Blob parameter descriptor                               //
-//============================================================================//
-
-type
-  pBLOBParamDesc = ^BLOBParamDesc;
-  BLOBParamDesc = packed record
-    pBlobBuffer     : Pointer;          { Blob buffer (client) }
-    ulBlobLen       : Integer;          { Length of the blob }
-    iUnUsed         : packed array[0..3] of Word;
-  end;
-
-
-//============================================================================//
 //                    Index descriptor                                        //
 //============================================================================//
 
