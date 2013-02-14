@@ -278,7 +278,6 @@ type
       function SetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Longint): DBIResult;
       function GetVchkDesc(hCursor: hDBICur;iValSeqNo: Word; var pvalDesc: VCHKDesc): DBIResult;
       function GetCursorProps(hCursor: hDBICur;var curProps: CURProps): DBIResult;
-      function GetObjFromObj(Source: hDBIObj; eObjType: DBIOBJType; var hObj: hDBIObj): DBIResult;
       function GetFieldDescs(hCursor: hDBICur; var pfldDesc: TFLDDescList): DBIResult;
       function SetToBegin(hCursor: hDBICur): DBIResult;
       function SetToEnd(hCursor: hDBICur): DBIResult;
@@ -7282,19 +7281,6 @@ begin
     Result := DBIERR_NONE;
   except
     Result := CheckError;
-  end;
-end;
-
-function TPSQLEngine.GetObjFromObj( Source : hDBIObj; eObjType : DBIOBJType; var hObj : hDBIObj ) : DBIResult;
-begin
-  if ( eObjType = objSESSION ) then
-  begin
-    Result := DBIERR_NONE;
-  end
-  else
-  begin
-    hObj   := nil;
-    Result := DBIERR_INVALIDPARAM;
   end;
 end;
 

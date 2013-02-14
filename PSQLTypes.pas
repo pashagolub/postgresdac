@@ -958,9 +958,6 @@ const
   stmtAUXTBLS        = $00060026;       { rw BOOL        True if QBE to create CHANGED, etc. }
   stmtCANNEDREADONLY = $00060042;       { rw BOOL canned answers are readonly }
 
-
-
-
 //============================================================================//
 //                    Transactions                                            //
 //============================================================================//
@@ -994,25 +991,6 @@ type
 //============================================================================//
 
 type
-  DBIOBJType = (
-    objFILLER,                          { Filler to make next start at 1 }
-    objSYSTEM,                          { System object }
-    objSESSION,                         { Session object }
-    objDRIVER,                          { Driver object }
-    objDATABASE,                        { Database object }
-    objCURSOR,                          { Cursor object }
-    objSTATEMENT,                       { Statement object }
-    objCLIENT,                          { Client object }
-    objDBSEC,                           { DbSystem object (dBASE only) }
-    objREPOSITORY                       { Data Repository object }
-  );
-
-  pObjAttrDesc = ^ObjAttrDesc;
-  ObjAttrDesc = packed record
-    iFldNum    : Word;                  { Field id }
-    pszAttributeName : PAnsiChar;           { Object attribute name }
-  end;
-
   pObjTypeDesc = ^ObjTypeDesc;
   ObjTypeDesc = packed record
     iFldNum    : Word;                  { Field id }
