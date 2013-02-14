@@ -1058,7 +1058,6 @@ type
     exltMode        : XLTMode;          { Translate Mode }
     iRestrVersion   : integer;             { Restructure version number }
     bUniDirectional : WordBool;         { Cursor is uni-directional }
-    eprvRights      : integer;             { Table  rights }
     Dummy4          : Word;
     iFmlRights      : integer;             { Family rights }
     iPasswords      : integer;             { Number of Aux passwords }
@@ -1312,26 +1311,6 @@ type
     iFldCount       : Word;             { Fields in foreign key }
     aiThisTabFld    : DBIKEY;           { Fields in this table }
     aiOthTabFld     : DBIKEY;           { Fields in other table }
-  end;
-
-
-//============================================================================//
-//                    Security descriptor                                     //
-//============================================================================//
-type
-  PRVType = TypedEnum;
-const
-    prvUNKNOWN   = $FF;                 { Unknown }
-
-type
-  pSECDesc = ^SECDesc;
-  SECDesc = packed record               { Security description }
-    iSecNum         : Word;             { Nbr to identify desc }
-    eprvTable       : PrvType;          { Table privileges }
-    iFamRights      : Word;             { Family rights }
-    szPassword      : DBINAME;          { Null terminated string }
-    aprvFld         : packed array [0..DBIMAXFLDSINSEC-1] of PrvType;
-                     { Field level privileges (prvNONE/prvREADONLY/prvFULL) }
   end;
 
 //============================================================================//

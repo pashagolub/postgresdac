@@ -4579,7 +4579,6 @@ begin
     iSeqNums        := 1;                                 { 1: Has Seqnums; 0: Has Record# }
     exltMode        := xltNONE;                           { Translate Mode }
     bUniDirectional := True;                              { Cursor is uni-directional }
-    eprvRights      := prvUNKNOWN;                        { Table  rights }
     iFilters        := FFilters.Count;                    { Number of Filters }
     if isQuery then
     begin
