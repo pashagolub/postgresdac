@@ -1652,7 +1652,7 @@ type
 //                        TPgSQLFilter TYPES AND CONST                     //
 /////////////////////////////////////////////////////////////////////////////
 type
-  TFldType=(FT_UNK,FT_INT,FT_DATETIME,FT_DATE,FT_TIME, FT_CURRENCY,FT_FLOAT,FT_STRING,FT_BOOL);
+  TFldType = (FT_UNK, FT_INT, FT_DATETIME, FT_DATE, FT_TIME, FT_CURRENCY, FT_FLOAT, FT_STRING, FT_BOOL);
 
   StrRec = record
      allocSiz : Longint;
@@ -1707,7 +1707,7 @@ const
   SSLOpts: array[0..3] of string = ('sslcert', 'sslkey', 'sslrootcert', 'sslcrl');                                          
 
 type
-  TDBOptions = record
+ TDBOptions = record
     User             : String;
     Password         : String;
     DatabaseName     : String;
@@ -1726,6 +1726,7 @@ type
      FieldSize    : Integer;
      FieldMaxSize : Integer;
      FieldDefault : String;
+     FieldNotNull : boolean;
   end;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -3065,6 +3066,7 @@ begin
     efldvVchk := fldvUNKNOWN;
     if Info.FieldDefault <> '' then ValChk.bHasDefVal := True;
     ValChk.aDefVal := Info.FieldDefault;
+    ValChk.bRequired := Info.FieldNotNull;
     szName := Info.FieldName;
   end;
 end;

@@ -51,6 +51,8 @@ type
   //locate
     procedure TestLocateStr;
     procedure TestLocateInt;
+  //TFieldDef properties populated
+    procedure TestRequired;
   end;
 
 var
@@ -226,6 +228,36 @@ begin
           'Multicolumn Locate failed with full options');
 end;
 
+procedure TestTPSQLQuery.TestRequired;
+var
+  FieldDef: TFieldDef;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test'; //single table query
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  Check(not FPSQLQuery.FieldDefs[0].Required, 'SERIAL should be not Required field');
+  Check(FPSQLQuery.FieldDefs[1].Required, 'NOT NULL should be Required field');
+  Check(not FPSQLQuery.FieldDefs[2].Required, 'NOT NULL + DEFAULT should be not Required field');
+  Check(not FPSQLQuery.FieldDefs[3].Required, 'Simple definition should be not Required field');    
+  Check(not FPSQLQuery.FieldDefs[4].Required, 'Simple definition should be not Required field'); 
+  FPSQLQuery.Close;
+  FPSQLQuery.SQL.Text := 'SELECT r1.id, r1.intf, r1.string, r1.datum, ' +
+                         'r2.id, r2.intf, r2.string, r2.datum ' +
+                         'FROM requestlive_test r1, required_test r2'; //multi table query
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  Check(not FPSQLQuery.FieldDefs[0].Required, 'SERIAL should be not Required field');
+  Check(FPSQLQuery.FieldDefs[1].Required, 'NOT NULL should be Required field');
+  Check(not FPSQLQuery.FieldDefs[2].Required, 'NOT NULL + DEFAULT should be not Required field');
+  Check(not FPSQLQuery.FieldDefs[3].Required, 'Simple definition should be not Required field');    
+  Check(not FPSQLQuery.FieldDefs[4+0].Required, 'SERIAL should be not Required field');
+  Check(FPSQLQuery.FieldDefs[4+1].Required, 'NOT NULL should be Required field');
+  Check(not FPSQLQuery.FieldDefs[4+2].Required, 'NOT NULL + DEFAULT should be not Required field');
+  Check(not FPSQLQuery.FieldDefs[4+3].Required, 'Simple definition should be not Required field');    
+  FPSQLQuery.Close;
+   
+end;
+
 procedure TestTPSQLQuery.TestUpdate;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
@@ -249,16 +281,22 @@ begin
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
   QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
-                '  id serial NOT NULL PRIMARY KEY,' +
-                '  intf integer,' +
-                '  string character varying(100),' +
-                '  datum timestamp without time zone,' +
+                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
+                '  intf integer NOT NULL,' + //NotNull ->Required
+                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
+                '  datum timestamp without time zone,' + //not Required etc.
                 '  notes text,' +
                 '  graphic oid,' +
                 '  b_graphic bytea,' +
                 '  b boolean,' +
                 '  floatf real' +
                 ')');
+  QryDB.Execute('CREATE TABLE IF NOT EXISTS required_test ' +
+                '(' +
+                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
+                '  intf integer NOT NULL,' + //NotNull ->Required
+                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
+                '  datum timestamp without time zone)'); //not Required.  
 end;
 
 procedure TDbSetup.TearDown;

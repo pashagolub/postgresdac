@@ -567,6 +567,7 @@ type
       Property NativeSize    : Integer Read FDesc.FieldSize Write FDesc.FieldSize;
       Property NativeMaxSize : Integer Read FDesc.FieldMaxSize Write FDesc.FieldMaxSize;
       Property NativeDefault : String Read FDesc.FieldDefault Write  FDesc.FieldDefault;
+      property NativeNotNull: boolean read FDesc.FieldNotNull write FDesc.FieldNotNull;
   end;
 
   //////////////////////////////////////////////////////////
@@ -580,7 +581,7 @@ type
     Public
       Constructor Create(Table : TNativeDataSet);
       Property Field_Info[Index : Integer] : TPSQLNative Read  GetNative; Default;
-      procedure SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer; aDefault : String);
+      procedure SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer);
   end;
 
   //////////////////////////////////////////////////////////
@@ -657,7 +658,6 @@ type
       procedure SetRecordNumber(RecNom : Longint);
       function GetRecordNumber : Longint;
       function GetRecCount: LongInt;
-      procedure FillDefs(SL: TStrings);
       procedure InitFieldDescs;
       procedure CheckFilter(PRecord : Pointer);
       procedure InternalCommit;
@@ -3468,7 +3468,7 @@ begin
   if ( Count >= Index ) and ( Index > 0 ) then Result := TPSQLNative(Items[Index-1]);
 end;
 
-procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType, aSize, aMaxSize : Integer; aDefault : String);
+procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType, aSize, aMaxSize : Integer);
 var
   Item : TPSQLNative;
 begin
@@ -3478,7 +3478,6 @@ begin
   Item.NativeType := aType;
   Item.NativeSize := aSize;
   Item.NativeMaxSize := aMaxSize;
-  Item.NativeDefault := aDefault;
 end;
 
 
@@ -4876,42 +4875,6 @@ begin
   Result := PQgetvalue(FStatement, GetRecNo, FieldNum);
 end;
 
-function TNativeDataSet.GetFieldInfo(Index : Integer) : TPGFIELD_INFO;
-var
-   Item : TPSQLNative;
-   I : Integer;
-   DefSL: TStrings;
-
-   function GetDefault(const FieldNum: integer): string;
-    var j: integer;
-   begin
-     Result := '';
-     for j:=0 to DefSL.Count-1 do
-      if integer(DefSL.Objects[j]) = FieldNum then
-       begin
-        Result := DefSL[j];
-        DefSL.Delete(j);
-        Break;
-       end;
-   end;
-
-begin
-  if FNativeDescs.Count = 0 then
-  begin
-     DefSL := TStringList.Create;
-    try
-     FillDefs(DefSL);
-     for I := 0 to FieldCount -1 do
-       FNativeDescs.SetNative(I, FieldName(I), FieldType(I), FieldMaxSizeInBytes(I), FieldMaxSize(I), GetDefault(I));
-    finally
-     DefSL.Free;
-    end;
-  end;
-  Item := TPSQLNative(FNativeDescs.Items[Index]);
-  if Item <> nil then
-     Result := Item.FDesc;
-end;
-
 procedure TNativeDataSet.GetNativeDesc(FieldNo : Integer; var P : FldDesc; var P1 : VCHKDesc; Var LocType, LocSize : Integer; var LocArray : Boolean);
 var
   Fld : TPGFIELD_INFO;
@@ -4929,55 +4892,79 @@ begin
   end;
 end;
 
-procedure TNativeDataSet.FillDefs(SL: TStrings);
-Var inS: String;
-    i, j, fPos: integer;
-    tabOID: cardinal;
-    RES: PPGresult;
-    sql: String;
-const
-      tS = ' c.oid = %d AND ad.adnum = %d ';
+function TNativeDataSet.GetFieldInfo(Index : Integer) : TPGFIELD_INFO;
+var
+   Item : TPSQLNative;
+   I : Integer;
+
+    procedure FillDefsAndNotNulls();
+    Var inS: String;
+        i, j, fPos: integer;
+        tabOID: cardinal;
+        RES: PPGresult;
+        sql: String;
+    const
+          tS = ' c.oid = %d AND a.attnum = %d ';
+
+    begin
+     if IsQuery and (FOMode = dbiReadOnly) then Exit;
+     sql := 'SELECT a.attnum, '#13#10 +
+            ' c.oid, '#13#10 +
+            'CASE WHEN a.attnotnull OR t.typtype = ''d''::"char" AND t.typnotnull '#13#10 +
+            ' THEN FALSE ELSE TRUE END AS is_nullable, '#13#10+
+            'pg_get_expr(ad.adbin, ad.adrelid) '#13#10 +
+            'FROM  pg_attribute a LEFT JOIN pg_attrdef ad ON a.attrelid = ad.adrelid AND a.attnum = ad.adnum, '#13#10 +
+            'pg_class c, pg_type t '#13#10 +
+            'WHERE  a.atttypid = t.oid AND a.attrelid = c.oid '#13#10 +
+            'AND a.attnum > 0 AND not a.attisdropped '#13#10 +
+            'AND (%s) '#13#10 +
+            'ORDER BY a.attnum';
+
+     if not isQuery then
+       inS := ' c.oid = ' + IntToStr(FieldTable(0))
+     else
+       for i:=0 to FieldCount-1 do
+        begin
+         tabOID := FieldTable(I);
+         fPos := FieldPosInTable(I);
+         if (tabOID > InvalidOid) and (fPos > -1) then
+           if inS > '' then
+              inS := inS + 'OR' + Format(ts,[tabOID,fPos])
+           else
+              inS := Format(ts,[tabOID,fPos]);
+        end;
+     if inS > '' then
+      begin
+        sql := Format(sql, [inS]);
+        Res := PQExec(FConnect.Handle, PAnsiChar(AnsiString(sql)));
+        if Assigned(RES) then
+         try
+          FConnect.CheckResult;
+          for i := 0 to PQntuples(RES) - 1 do
+           for j := 0 to FieldCount - 1 do
+             if (IntToStr(FieldTable(j)) = FConnect.RawToString(PQGetValue(Res, i, 1))) and
+                (IntToStr(FieldPosInTable(j)) = FConnect.RawToString(PQGetValue(Res, i, 0))) then
+                with TPSQLNative(FNativeDescs.Items[j]) do
+                 begin
+                   NativeNotNull := FConnect.RawToString(PQgetvalue(RES, i, 2)) = 'f';
+                   NativeDefault := FConnect.RawToString(PQgetvalue(RES, i, 3));
+                 end;
+         finally
+          PQclear(RES);
+         end;
+      end;
+    end;
 
 begin
- if not Assigned(SL) then Exit;
- if IsQuery and (FOMode = dbiReadOnly) then Exit;
- sql := 'SELECT ad.adnum, '+
-        ' c.oid, '+ // AS col_number_in_source_table
-        ' pg_get_expr(ad.adbin, ad.adrelid) '+ // AS column_default
-        ' FROM  pg_attrdef ad, '+
-        ' pg_class c'+
-        ' WHERE ad.adrelid = c.oid AND '+
-        ' (%s) '; //c.oid = %d AND ad.adnum = %d OR ...
-
- if not isQuery then
-   inS := ' c.oid = ' + IntToStr(FieldTable(0))
- else
-   for i:=0 to FieldCount-1 do
-    begin
-     tabOID := FieldTable(I);
-     fPos := FieldPosInTable(I);
-     if (tabOID > InvalidOid) and (fPos > -1) then
-       if inS > '' then
-          inS := inS + 'OR' + Format(ts,[tabOID,fPos])
-       else
-          inS := Format(ts,[tabOID,fPos]);
-    end;
- if inS > '' then
-  begin
-    sql := Format(sql, [inS]);
-    Res := PQExec(FConnect.Handle, PAnsiChar(AnsiString(sql)));
-    if Assigned(RES) then
-     try
-      FConnect.CheckResult;
-      for i := 0 to PQntuples(RES) - 1 do
-       for j := 0 to FieldCount - 1 do
-         if (IntToStr(FieldTable(j)) = FConnect.RawToString(PQGetValue(Res,i,1))) and
-            (IntToStr(FieldPosInTable(j)) = FConnect.RawToString(PQGetValue(Res,i,0))) then
-         SL.AddObject(FConnect.RawToString(PQgetvalue(RES,i,2)), TObject(j));
-     finally
-      PQclear(RES);
-     end;
-  end;
+  if FNativeDescs.Count = 0 then
+   begin
+    for I := 0 to FieldCount - 1 do
+      FNativeDescs.SetNative(I, FieldName(I), FieldType(I), FieldMaxSizeInBytes(I), FieldMaxSize(I));
+    FillDefsAndNotNulls();
+   end;
+  Item := TPSQLNative(FNativeDescs.Items[Index]);
+  if Item <> nil then
+    Result := Item.FDesc;
 end;
 
 procedure TNativeDataSet.InitFieldDescs;

@@ -2455,7 +2455,7 @@ begin
     FieldDefs.Clear;
     while I < FldDescCount do
      begin
-      FieldID := FieldDescs[I].iFldNum + 1;
+      FieldID := FieldDescs[I].iFldNum;
       AddFieldDesc(FieldDescs, I, FieldID, RequiredFields, FieldDefs);
      end;
     if FieldDefs.HiddenFields then
@@ -2817,7 +2817,7 @@ begin
   Inc(DescNo);
   with FieldDesc do
   begin
-    FieldName := szName; //TNativeToAnsi(Engine, szName, FieldName);
+    FieldName := szName;
     I := 0;
     FName := FieldName;
     while FieldDefs.IndexOf(string(FName)) >= 0 do
@@ -2921,7 +2921,6 @@ begin
           begin
             I := FieldID;
             FieldDescs[DescNo].szName := FieldDesc.szName + '[0]';
-            //StrCat(StrCopy(FieldDescs[DescNo].szName, FieldDesc.szName),'[0]');
             AddFieldDesc(FieldDescs, DescNo, I, RequiredFields, {$IFNDEF FPC}ChildDefs{$ELSE}nil{$ENDIF});
             Inc(FieldID, iUnits2);
           end;
