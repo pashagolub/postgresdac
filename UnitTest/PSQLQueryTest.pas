@@ -28,6 +28,7 @@ type
   TestTPSQLQuery = class(TTestCase)
   strict private
     FPSQLQuery: TPSQLQuery;
+
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -53,6 +54,10 @@ type
     procedure TestLocateInt;
   //TFieldDef properties populated
     procedure TestRequired;
+  //date and time checks
+    procedure TestTimeValues;
+    procedure TestDateValues;
+    procedure TestTimestampValues;
   end;
 
 var
@@ -151,6 +156,24 @@ begin
   Check(FPSQLQuery.BookmarkValid(B), 'BookmarkValid failed');
 end;
 
+procedure TestTPSQLQuery.TestDateValues;
+  procedure CheckTime(ATime: TDateTime);
+  begin
+    FPSQLQuery.Edit;
+    FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt); //not null field
+    FPSQLQuery.FieldByName('datef').AsDateTime := ATime;
+    FPSQLQuery.Post;
+    Check(FPSQLQuery.FieldByName('datef').AsDateTime = ATime, 'Cannot set DATE field to ' + DateTimeToStr(ATime));
+  end;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  CheckTime(EncodeDate(1899, 12, 30));
+  CheckTime(Today());
+  CheckTime(EncodeDate(1623, 6, 19)); //Blaise Pascal was born this day
+end;
+
 procedure TestTPSQLQuery.TestDelete;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
@@ -229,8 +252,6 @@ begin
 end;
 
 procedure TestTPSQLQuery.TestRequired;
-var
-  FieldDef: TFieldDef;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test'; //single table query
   FPSQLQuery.RequestLive := True;
@@ -256,6 +277,47 @@ begin
   Check(not FPSQLQuery.FieldDefs[4+3].Required, 'Simple definition should be not Required field');    
   FPSQLQuery.Close;
    
+end;
+
+procedure TestTPSQLQuery.TestTimestampValues;
+  procedure CheckTimestamp(ATime: TDateTime);
+  begin
+    FPSQLQuery.Edit;
+    FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt); //not null field
+    FPSQLQuery.FieldByName('datum').AsDateTime := ATime;
+    FPSQLQuery.Post;
+    Check(FPSQLQuery.FieldByName('datum').AsDateTime = ATime, 'Cannot set TIMESTAMP field to ' + DateTimeToStr(ATime));
+  end;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  CheckTimestamp(Yesterday() + EncodeTime(0, 0, 0, 0));
+  CheckTimestamp(Tomorrow() + EncodeTime(12, 0, 0, 0));
+  CheckTimestamp(EncodeDate(1899, 12, 30) + EncodeTime(0, 0, 0, 0));
+  CheckTimestamp(EncodeDate(1899, 12, 30) + EncodeTime(0, 0, 0, 100));
+  CheckTimestamp(EncodeDate(1899, 12, 30) + EncodeTime(0, 0, 0, 1));
+  CheckTimestamp(EncodeDate(1899, 12, 30) + EncodeTime(23, 59, 59, 999));
+  CheckTimestamp(EncodeDateTime(1623, 6, 19, 12, 00, 00, 20)); //Blaise Pascal was born this day
+end;
+
+procedure TestTPSQLQuery.TestTimeValues;
+  procedure CheckTime(ATime: TDateTime);
+  begin
+    FPSQLQuery.Edit;
+    FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt); //not null field
+    FPSQLQuery.FieldByName('timef').AsDateTime := ATime;
+    FPSQLQuery.Post;
+    Check(FPSQLQuery.FieldByName('timef').AsDateTime = ATime, 'Cannot set TIME field to ' + DateTimeToStr(ATime));
+  end;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  CheckTime(EncodeTime(0, 0, 0, 0));
+  CheckTime(EncodeTime(0, 0, 0, 1));
+  CheckTime(EncodeTime(0, 0, 0, 100));
+  CheckTime(EncodeTime(23, 59, 59, 999));
 end;
 
 procedure TestTPSQLQuery.TestUpdate;
@@ -289,7 +351,9 @@ begin
                 '  graphic oid,' +
                 '  b_graphic bytea,' +
                 '  b boolean,' +
-                '  floatf real' +
+                '  floatf real,' +
+                '  datef date,' +
+                '  timef time' +
                 ')');
   QryDB.Execute('CREATE TABLE IF NOT EXISTS required_test ' +
                 '(' +

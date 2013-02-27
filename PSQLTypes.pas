@@ -2665,25 +2665,11 @@ function DateTimeToSqlDate(Value: TDateTime; Mode: Integer): string;
 begin
   Result := '';
   case Mode of
-     TIMESTAMP_MODE:
-        begin
-           if Trunc(Value) <> 0 then Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
-           if Frac(Value) <> 0 then
-           begin
-              if Result <> '' then Result := Result + ' ';
-              Result := Result + FormatDateTime('hh:nn:ss.z', Value, PSQL_FS);
-           end;
-        end;
-
-     DATE_MODE:
-        if Trunc(Value) <> 0 then
-          Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
-
-     TIME_MODE:
-           if Frac(Value) <> 0 then
-              Result := Result + FormatDateTime('hh:nn:ss.z', Value, PSQL_FS);
-           end;
-        end;
+     TIMESTAMP_MODE: Result := FormatDateTime('mm-dd-yyyy hh:nn:ss.zzz', Value, PSQL_FS);
+     DATE_MODE: Result := FormatDateTime('mm-dd-yyyy', Value, PSQL_FS);
+     TIME_MODE: Result := FormatDateTime('hh:nn:ss.zzz', Value, PSQL_FS);
+   end;
+end;
 
 function SQLTimestampToDateTime(Value: string): TDateTime;
 var
@@ -2708,7 +2694,11 @@ begin
       Min  := StrToIntDef(Copy(Value, 15, 2), 0);
       Sec  := StrToIntDef(Copy(Value, 18, 2), 0);
       Msec := StrToIntDef(Copy(Copy(Value, 21, 3) + '000',1,3), 0); //19.05.2008: for cases when trailing 0 are missing
-      Result := EncodeDate(Year, Month, Day) + EncodeTime(Hour, Min, Sec, MSec);
+      Result := EncodeDate(Year, Month, Day);
+      if Result >= 0 then
+        Result := Result + EncodeTime(Hour, Min, Sec, MSec)
+      else
+        Result := Result - EncodeTime(Hour, Min, Sec, MSec);
     end;
 end;
 

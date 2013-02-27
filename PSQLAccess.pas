@@ -2136,41 +2136,21 @@ end;
 
 function AdjustNativeField(iField :TPSQLField; Src,Dest: Pointer; Var Blank : Boolean): Word;
 begin
-  //ZeroMemory(Dest, iField.NativeSize);
   Result := 0;
-  if PAnsiChar(Src)^ = #0 then
-  begin
-    Blank  := True;
-    Exit;
-  end;
-                                                                   Inc(PAnsiChar(Src));
-  Case iField.NativeType of
-    FIELD_TYPE_BOOL:     SmallInt(Dest^) := SmallInt(Src^);
-    FIELD_TYPE_INT2:     SmallInt(Dest^) := SmallInt(Src^);
-    FIELD_TYPE_INT4:     LongInt(Dest^) := LongInt(Src^);
-    FIELD_TYPE_INT8:     Int64(Dest^) := Int64(Src^);
-    FIELD_TYPE_DATE:   begin
-                          try
-                            LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Date;
-                          except
-                            Result := 1;
-                          end;
-                       end;
-    FIELD_TYPE_TIME:   begin
-                          try
-                            LongInt(Dest^) := MSecsToTimeStamp(TDateTime(Src^)* MSecsPerDay).Time;
-                          except
-                            Result := 1;
-                          end;
-                       end;
-    FIELD_TYPE_TIMESTAMP:
-                          begin
-                            try
-                              TDateTime(Dest^):= TimeStampToMSecs(DateTimeToTimeStamp(TDateTime(Src^)));
-                            except
-                              Result:=1;
-                            end;
-                         end;
+  Blank :=  PAnsiChar(Src)^ = #0;
+  if Blank then Exit;
+  Inc(PAnsiChar(Src));
+  case iField.NativeType of
+    FIELD_TYPE_BOOL:   SmallInt(Dest^) := SmallInt(Src^);
+
+    FIELD_TYPE_INT2:   SmallInt(Dest^) := SmallInt(Src^);
+    FIELD_TYPE_INT4:   LongInt(Dest^) := LongInt(Src^);
+    FIELD_TYPE_INT8:   Int64(Dest^) := Int64(Src^);
+
+    FIELD_TYPE_DATE:   LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Date;
+    FIELD_TYPE_TIME:   LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Time;
+    FIELD_TYPE_TIMESTAMP: TDateTime(Dest^):= TDateTime(Src^);
+
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
@@ -5064,138 +5044,86 @@ var
   i, size: Integer;
   null: boolean; //temp var used for work with dsoEmptyCharAsNull
   MaxSize, tMS : Integer;
-  aFType: integer;
   T: TPSQLField;
   origBuffer: Pointer;
   FldValue : String;
   Data : pointer;
-  _CharSize: integer;
-{$IFDEF DELPHI_5}
-const
-  MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }
-  MaxDateTime: TDateTime =  2958465.99999; { 12/31/9999 11:59:59.999 PM }
-{$ENDIF}
-
 begin
-//   T := nil;
-   if assigned(FCurrentBuffer) then
+   if Assigned(FCurrentBuffer) then
    begin
-       MaxSize := 0;
-       if FConnect.IsUnicodeUsed then
-          _CharSize := SizeOf(Char)
+     MaxSize := 0;
+     for i := 0 to FieldCount - 1 do
+       case FieldType(I) of
+         FIELD_TYPE_OID, FIELD_TYPE_TEXT, FIELD_TYPE_BYTEA: //ignore
        else
-          _CharSize := SizeOf(AnsiChar);
-       for i:=0 to FieldCount-1 do
-       begin
-           aFType := FieldType(I);
-           if (aFType <> FIELD_TYPE_OID) and
-              (aFType <> FIELD_TYPE_TEXT) and
-              (aFType <> FIELD_TYPE_BYTEA) then
-           begin
-             case aFType of
-              FIELD_TYPE_TIMESTAMPTZ:
-                 if TIMESTAMPTZLEN * _CharSize > MaxSize then MaxSize := TIMESTAMPTZLEN * _CharSize;
-              FIELD_TYPE_TIMETZ:
-                 if TIMETZLEN * _CharSize > MaxSize then MaxSize := TIMETZLEN * _CharSize;
-              FIELD_TYPE_NAME:
-                 if NAMEDATALEN * _CharSize > MaxSize then MaxSize := NAMEDATALEN * _CharSize;
-              FIELD_TYPE_DATE,
-              FIELD_TYPE_TIME,
-              FIELD_TYPE_TIMESTAMP:
-                 if SizeOf(TDateTime) > MaxSize then MaxSize := SizeOf(TDateTime);
-              FIELD_TYPE_INT4:
-                 if SizeOf(Integer) > MaxSize then MaxSize := SizeOf(Integer);
-              FIELD_TYPE_INT8:
-                 if SizeOf(Int64) > MaxSize then MaxSize := SizeOf(Int64);
-              FIELD_TYPE_FLOAT4,
-              FIELD_TYPE_FLOAT8,
-              FIELD_TYPE_NUMERIC:
-                 if SizeOf(Double) > MaxSize then MaxSize := SizeOf(Double);
-              FIELD_TYPE_POINT:
-                 if SizeOf(TPSQLPoint) > MaxSize then MaxSize := SizeOf(TPSQLPoint);
-              FIELD_TYPE_CIRCLE:
-                 if SizeOf(TPSQLCircle) > MaxSize then MaxSize := SizeOf(TPSQLCircle);
-              FIELD_TYPE_BOX:
-                 if SizeOf(TPSQLBox) > MaxSize then MaxSize := SizeOf(TPSQLBox);
-              FIELD_TYPE_LSEG:
-                 if SizeOf(TPSQLLSeg) > MaxSize then MaxSize := SizeOf(TPSQLLSeg);
+         begin
+           tMS := FieldMaxSizeInBytes(I);
+           if tMS > MaxSize then MaxSize := tMS;
+         end;
+       end;
+     GetMem(Data, MaxSize + 1);
+     origBuffer := FCurrentBuffer;
+     for i := 0 to FieldCount - 1 do
+     begin
+        T := Fields[i+1];
+        T.Buffer  := origBuffer;
+        T.FieldChanged := FALSE;
+        null := FieldIsNull(I);
+        T.FieldNull := null;
+        size := T.NativeSize; //FieldLength
+        if null then
+            ZeroMemory(FCurrentBuffer,size)
+        else
+          begin
+           if (T.NativeType <> FIELD_TYPE_OID) and
+              (T.NativeType <> FIELD_TYPE_TEXT) and
+              (T.NativeType <> FIELD_TYPE_BYTEA)
+             then
+               FldValue := FConnect.RawToString(FieldBuffer(i));
+           case T.NativeType of
+             FIELD_TYPE_INT2: SmallInt(Data^) := SmallInt(StrToint(FldValue));
+             FIELD_TYPE_BOOL:    if FldValue = 't' then SmallInt(Data^) := 1 else SmallInt(Data^) := 0;
+             FIELD_TYPE_INT4:    LongInt(Data^) := LongInt(StrToint(FldValue));
+             FIELD_TYPE_INT8:    Int64(Data^) := StrToInt64(FldValue);
+             FIELD_TYPE_DATE:    TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
+             FIELD_TYPE_TIME:    TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
+             FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
+             FIELD_TYPE_FLOAT4,
+             FIELD_TYPE_FLOAT8,
+             FIELD_TYPE_NUMERIC: Double(Data^) := StrToSQLFloat(FldValue);
+             FIELD_TYPE_POINT:   TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
+             FIELD_TYPE_CIRCLE:  TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
+             FIELD_TYPE_BOX:     TPSQLBox(Data^) := SQLBoxToBox(FldValue);
+             FIELD_TYPE_LSEG:    TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
+             FIELD_TYPE_OID,
+             FIELD_TYPE_TEXT,
+             FIELD_TYPE_BYTEA:     begin
+                                      size := SizeOf(TBlobItem);
+                                      ZeroMemory(FCurrentBuffer, Size);
+                                      Inc(PAnsiChar(FCurrentBuffer)); //Null byte allocate
+                                      Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
+                                      continue;
+                                  end;
+             FIELD_TYPE_UUID: StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
+           else
+             if dsoTrimCharFields in FOptions then
+               FldValue := TrimRight(FldValue);
+             if FConnect.IsUnicodeUsed then
+             {$IFDEF DELPHI_12}
+               StrCopy(PWideChar(Data), PWideChar(FldValue))
+             {$ELSE}
+               StrCopy(PAnsiChar(Data), PAnsiChar(FldValue))
+             {$ENDIF}
              else
-              tMS := FieldMaxSizeInBytes(I);
-             if tMS > MaxSize then MaxSize := tMS;
-             end;
+              StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
            end;
-       end;
-       GetMem(Data, MaxSize+1);
-       origBuffer := FCurrentBuffer;
-       for i:=0 to FieldCount-1 do
-       begin
-
-          T := Fields[i+1];
-          T.Buffer  := origBuffer;
-          T.FieldChanged := FALSE;
-          null := FieldIsNull(I);
-          T.FieldNull    := null;
-
-          size := T.NativeSize; //FieldLength
-          if null then
-              ZeroMemory(FCurrentBuffer,size)
-          else
-            begin
-             if (T.NativeType <> FIELD_TYPE_OID) and
-                (T.NativeType <> FIELD_TYPE_TEXT) and
-                (T.NativeType <> FIELD_TYPE_BYTEA)
-               then
-                 FldValue := FConnect.RawToString(FieldBuffer(i));
-             case T.NativeType of
-               FIELD_TYPE_INT2: SmallInt(Data^) := SmallInt(StrToint(FldValue));
-               FIELD_TYPE_BOOL: if FldValue = 't' then
-                                   SmallInt(Data^) := SmallInt(1) else
-                                   SmallInt(Data^) := SmallInt(0);
-               FIELD_TYPE_INT4: LongInt(Data^) := LongInt(StrToint(FldValue));
-               FIELD_TYPE_INT8: Int64(Data^) := StrToInt64(FldValue);
-               FIELD_TYPE_DATE:   TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
-               FIELD_TYPE_TIME:   TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
-               FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
-               FIELD_TYPE_FLOAT4,
-               FIELD_TYPE_FLOAT8,
-               FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
-               FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
-               FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
-               FIELD_TYPE_BOX:       TPSQLBox(Data^) := SQLBoxToBox(FldValue);
-               FIELD_TYPE_LSEG:      TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
-               FIELD_TYPE_OID,
-               FIELD_TYPE_TEXT,
-               FIELD_TYPE_BYTEA:     begin
-                                        size := SizeOf(TBlobItem);
-                                        ZeroMemory(FCurrentBuffer, Size);
-                                        Inc(PAnsiChar(FCurrentBuffer)); //Null byte allocate
-                                        Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
-                                        continue;
-                                    end;
-               FIELD_TYPE_UUID: StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
-             else
-              // if (T.NativeType = FIELD_TYPE_UUID) then
-              //   FldValue := string(BadGuidToGuid(AnsiString(FldValue)));
-
-               if dsoTrimCharFields in FOptions then
-                 FldValue := TrimRight(FldValue);
-
-               if FConnect.IsUnicodeUsed then
-               {$IFDEF DELPHI_12}
-                 StrCopy(PWideChar(Data), PWideChar(FldValue))
-               {$ELSE}
-                 StrCopy(PAnsiChar(Data), PAnsiChar(FldValue))
-               {$ENDIF}
-               else
-                StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
-             end;
-             move(Data^, (PAnsiChar(FCurrentBuffer)+1)^, Size);
-             PAnsiChar(FCurrentBuffer)^ := #1; {null indicator 1=Data 0=null}
-          end;
-          Inc(PAnsiChar(FCurrentBuffer), Size+1); {plus 1 for null byte}
-       end;
-       FreeMem(Data,MaxSize+1);
-       FCurrentBuffer:=nil;
+           Move(Data^, (PAnsiChar(FCurrentBuffer) + 1)^, Size);
+           PAnsiChar(FCurrentBuffer)^ := #1; {null indicator 1=Data 0=null}
+        end;
+        Inc(PAnsiChar(FCurrentBuffer), Size + 1); {plus 1 for null byte}
+     end;
+     FreeMem(Data, MaxSize + 1);
+     FCurrentBuffer := nil;
    end;
 end;
 
