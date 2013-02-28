@@ -2239,12 +2239,12 @@ end;
 
 procedure PSQLException(PSQL : TNativeConnect);
 begin
-  Raise EPSQLException.Create(PSQL);
+  raise EPSQLException.Create(PSQL);
 end;
 
 procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
 begin
-  Raise EPSQLException.CreateMsg(PSQL, ErrorMsg );
+  raise EPSQLException.CreateMsg(PSQL, ErrorMsg );
 end;
 
 function BDETOPSQLStr(Field : TFieldDef): String;
@@ -3002,7 +3002,7 @@ begin
      List.Free;
    end;
    if not Found then
-      Raise EPSQLException.CreateBDEMsg(DBIERR_NOSUCHTABLE, pszTableName);
+      raise EPSQLException.CreateBDEMsg(DBIERR_NOSUCHTABLE, pszTableName);
 end;
 
 procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
@@ -3903,7 +3903,7 @@ var
    i: SmallInt;
 begin
    Result:=0;
-   if not ((iField>=1) or (iField<=FieldCount)) then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
+   if not ((iField>=1) or (iField<=FieldCount)) then raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
    Dec(iField);
    Dec(iField);
    for i:=0 to iField do
@@ -4210,7 +4210,7 @@ end;
 
 procedure TNativeDataSet.CheckParam(Exp : Boolean;BDECODE : Word);
 begin
-   if Exp then Raise EPSQLException.CreateBDE(BDECODE);
+   if Exp then raise EPSQLException.CreateBDE(BDECODE);
 end;
 
 /////////////////////////////////////////////////////////////////////
@@ -4237,7 +4237,7 @@ begin
             else
             begin
               if eLock = dbiWRITELOCK then FIsLocked := FALSE;
-              Raise;
+              raise;
             end;
           end;
         end;
@@ -4247,8 +4247,8 @@ begin
             pRecProps^.iSeqNum := RecNo+1;
          end;
       end;
-    tsFirst: Raise EPSQLException.CreateBDE(DBIERR_EOF);
-    tsLast: Raise EPSQLException.CreateBDE(DBIERR_BOF);
+    tsFirst: raise EPSQLException.CreateBDE(DBIERR_EOF);
+    tsLast: raise EPSQLException.CreateBDE(DBIERR_BOF);
     tsEmpty:
       begin
         try
@@ -4268,7 +4268,7 @@ begin
           end;
         end;
       end;
-    else Raise EPSQLException.CreateBDE(DBIERR_NOCURRREC);
+    else raise EPSQLException.CreateBDE(DBIERR_NOCURRREC);
   end;
 end;
 
@@ -4281,7 +4281,7 @@ begin
     tsEmpty: NextRecord;
     tsFirst,
     tsNoPos: FirstRecord;
-  else Raise EPSQLException.CreateBDE(DBIERR_EOF);
+  else raise EPSQLException.CreateBDE(DBIERR_EOF);
   end;
   CheckFilter(PRecord);
   if eLock <> dbiNOLOCK then GetRecord(eLock, PRecord, pRecProps);
@@ -4302,7 +4302,7 @@ begin
     tsEmpty: PrevRecord;
     tsLast,
     tsNoPos: LastRecord;
-  else Raise EPSQLException.CreateBDE(DBIERR_BOF);
+  else raise EPSQLException.CreateBDE(DBIERR_BOF);
   end;
   CheckFilter(PRecord);
   if eLock <> dbiNOLOCK then GetRecord(eLock, PRecord, pRecProps);
@@ -4415,7 +4415,7 @@ var
          if StandartClause.Count > 0  then
           sql_stmt := GetSQLClause
          else
-          Raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
+          raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := Trim(SQLQuery);
        FStatement := _PQExecute(FConnect, sql_stmt);
@@ -4427,7 +4427,7 @@ var
           except
             MonitorHook.SQLExecute(Self, False);
             CloseTable;
-            Raise;
+            raise;
           end;
           FOpen := True;
           if FFieldDescs.Count = 0 then
@@ -5135,21 +5135,16 @@ var
 begin
   Limit     := iRecords;
   iRecords  := 0;
-
   CheckParam(pBuf = nil, DBIERR_INVALIDPARAM);
-
   M := pBuf;
   i := 0;
-
   repeat
     GetNextRecord(dbiNOLOCK, @M^[ i ], NIL);
     Inc(iRecords);
-
     if iRecords >= Limit then
       Break
     else
       Inc(i, GetWorkBufferSize);
-
   until False;
 end;
 
@@ -5171,22 +5166,20 @@ procedure TNativeDataSet.CompareBookMarks( pBookMark1, pBookMark2 : Pointer; var
 
   function cmp2Values(val1, val2: LongInt): CmpBkmkRslt;
   begin
-     if val1=val2 then result:=CMPEql else
-     if val1 < val2 then result:=CMPLess else
-        result:=CMPGtr;
+     if val1 = val2 then result := CMPEql else if val1 < val2 then result := CMPLess else result := CMPGtr;
   end;
 
 begin
-  CheckParam(pBookMark1=nil,DBIERR_INVALIDPARAM);
-  CheckParam(pBookMark2=nil,DBIERR_INVALIDPARAM);
+  CheckParam(pBookMark1 = nil,DBIERR_INVALIDPARAM);
+  CheckParam(pBookMark2 = nil,DBIERR_INVALIDPARAM);
   if (TPSQLBookMark(pBookMark1^).Position <> 0) then
-    CmpBkMkResult:=cmp2Values( TPSQLBookMark(pBookMark1^).Position, TPSQLBookMark(pBookMark2^).Position) else
+    CmpBkMkResult := cmp2Values( TPSQLBookMark(pBookMark1^).Position, TPSQLBookMark(pBookMark2^).Position) else
     CmpBkMkResult := CMPGtr;
 end;
 
 procedure TNativeDataSet.InitRecord(PRecord : Pointer);
 begin
-  if PRecord = nil then Raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
+  if PRecord = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
   ZeroMemory(PRecord, GetWorkBufferSize);
   FFieldDescs.SetFields(PRecord);
   CurrentBuffer := PRecord;
@@ -6635,7 +6628,7 @@ end;
 
 procedure TPSQLEngine.SetDatabase( H : hDBIDb );
 begin
-  if H = nil then  Raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
+  if H = nil then  raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
   FDatabase := H;
 end;
 
@@ -7620,7 +7613,7 @@ begin
     hNotify := nil;
     Database := hDB;
     ANotify := TNativePGNotify.Create(TNativeConnect(Database));
-    if ANotify = nil then Raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
+    if ANotify = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
     hNotify := hDBIObj(ANotify);
     Result := DBIERR_NONE;
   except
