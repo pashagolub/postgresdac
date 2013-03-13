@@ -148,6 +148,9 @@ const
   OIDNAMELEN       = 36;
   INV_WRITE        = $00020000;
   INV_READ         = $00040000;
+  SEEK_SET         =	0;	// Seek from beginning of file
+  SEEK_CUR         =	1;	// Seek from current position
+  SEEK_END         = 	2;	// Seek from end of file
   DELIMITERS       : string = ' .:;,+-<>/*%^=()[]|&~@#$\`{}!?'#10#13;
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
