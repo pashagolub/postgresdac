@@ -5097,9 +5097,9 @@ begin
   if SQL.Count > 0 then
   begin
     FExecSQL := not GenHandle;
-    Try
+    try
        SetPrepared(TRUE);
-    Finally
+    finally
       FExecSQL := FALSE;
     end;
     if FDataLink.DataSource <> nil then SetParamsFromCursor;

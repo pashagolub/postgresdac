@@ -5782,40 +5782,26 @@ Var
   Field : TPSQLField;
 
     function BlobSize(columnNumber: Integer; buff :Pointer): LongInt;
-    var
-      N, L: LongInt;
-      Buffer : PAnsiChar;
-    const
-      MAX_PART_SIZE = 1024;
     begin
       Result := 0;
       if Field.FieldSubType = fldstMemo then
-      begin
-         if FieldBuffer(ColumnNumber-1) <> nil then
-         if FConnect.IsUnicodeUsed then
-         {$IFDEF DELPHI_12}
-            Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
-         {$ELSE}
-            Result := Length(UTF8ToString(FieldBuffer(ColumnNumber-1)))
-         {$ENDIF}
-          else
-            Result := FieldSize(ColumnNumber-1);
-     end else
-      begin
-        if FBlobOpen then
         begin
-         L := 0;
-         Buffer := AllocMem(1);
-         repeat
-          ReallocMem(Buffer, L + MAX_PART_SIZE);
-          N  := lo_read(FConnect.Handle, FLocalBHandle, Buffer+L, MAX_PART_SIZE);
-          Inc(L, N);
-         until N < MAX_PART_SIZE;
-         FreeMem(Buffer, L);
-         lo_lseek(FConnect.Handle, FLocalBHandle, 0, 0);
-         Result := L;
+         if Assigned(FieldBuffer(ColumnNumber - 1)) then
+           if FConnect.IsUnicodeUsed then
+           {$IFDEF DELPHI_12}
+              Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
+           {$ELSE}
+              Result := Length(UTF8ToString(FieldBuffer(ColumnNumber-1)))
+           {$ENDIF}
+           else
+              Result := FieldSize(ColumnNumber-1);
+        end
+     else
+       if FBlobOpen then
+        begin
+         Result := lo_lseek(FConnect.Handle, FLocalBHandle, 0, SEEK_END);
+         lo_lseek(FConnect.Handle, FLocalBHandle, 0, SEEK_SET);
         end;
-      end;
     end;
 
     function ByteaSize(ColumnNumber: Integer):integer;
@@ -5938,7 +5924,7 @@ var
         begin
          if FBlobOpen then
          begin
-          lo_lseek(FConnect.Handle, FLocalBHandle, Offset, 0);
+          lo_lseek(FConnect.Handle, FLocalBHandle, Offset, SEEK_SET);
           L := 0;
           Len := ALength;
           if ALength > MAX_BLOB_SIZE then
@@ -6105,7 +6091,8 @@ begin
                     MS := {$IFDEF DELPHI_17}TBytesStream{$ELSE}TMemoryStream{$ENDIF}.Create;
                     try
                      MS.SetSize(Param.GetDataSize);
-                     Param.GetData(MS.{$IFDEF DELPHI_17}Bytes{$ELSE}Memory{$ENDIF});
+                     if MS.Size > 0 then
+                       Param.GetData(MS.{$IFDEF DELPHI_17}Bytes{$ELSE}Memory{$ENDIF});
                      Value := BlobValue(MS, TPSQLParam(Param).DataTypeOID <> FIELD_TYPE_OID, True);
                     finally
                      MS.Free;
@@ -9442,7 +9429,27 @@ var
    Off, BlSZ: Integer;
 begin
   Result := '0';
-  if not Assigned(MS) or (MS.Size = 0) then Exit;
+  if not Assigned(MS) then Exit;
+
+  if MS.Size = 0 then
+   begin
+    if isBytea then
+      if NeedEscape then Result := '''''' else Result := ''
+    else
+      begin
+       FConnect.BeginBLOBTran;
+       try
+         FBlobHandle := lo_creat(FConnect.Handle, INV_WRITE or INV_READ);
+         if FBLobHandle = 0 then
+           raise EPSQLException.CreateMsg(FConnect,'Can''t create BLOB! lo_creat operation failed!');
+         Result := UIntToStr(FBlobHandle);
+       finally
+         FConnect.CommitBLOBTran;
+       end;
+      end;
+    Exit;
+   end;
+
   SZ := MS.Size;
   GetMem(Buffer, SZ + 1);
   ZeroMemory(Buffer, SZ + 1);
@@ -9465,7 +9472,7 @@ begin
     end
   else    //nbtOID in other case
     begin
-      FConnect.BeginBLOBTran;  //BLOB Trans
+      FConnect.BeginBLOBTran;
       FBlobHandle := lo_creat(FConnect.Handle,INV_WRITE or INV_READ);
       if FBlobHandle = 0 then
         begin
@@ -9474,24 +9481,22 @@ begin
         end;
       FLocalBHandle := lo_open(FConnect.Handle, FBlobHandle, INV_WRITE);
       try
-      Off := 0;
-      repeat
-        BlSZ := Min(MAX_BLOB_SIZE, SZ - off);
-        Res  := lo_write(FConnect.Handle, FLocalBHandle, Buffer + off, BLSZ);
-        if Res < 0 then
-          raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
-        else
-          Inc(Off, Res);
-      until (off >= SZ);
-      FreeMem(Buffer, SZ+1);
-     except
+        Off := 0;
+        repeat
+          BlSZ := Min(MAX_BLOB_SIZE, SZ - off);
+          Res  := lo_write(FConnect.Handle, FLocalBHandle, Buffer + off, BLSZ);
+          if Res < 0 then
+            raise EPSQLException.CreateMsg(FConnect,'BLOB operation failed!')
+          else
+            Inc(Off, Res);
+        until (off >= SZ);
+        FreeMem(Buffer, SZ+1);
+      except
+        lo_close(FConnect.Handle,FlocalBHandle);
+        FConnect.RollbackBLOBTran;
+        raise;
+      end;
       lo_close(FConnect.Handle,FlocalBHandle);
-      //BLOB Trans
-      FConnect.RollbackBLOBTran;
-      raise;
-     end;
-      lo_close(FConnect.Handle,FlocalBHandle);
-      //BLOB Trans
       FConnect.CommitBLOBTran;
       Result := UIntToStr(FBlobHandle);
     end;

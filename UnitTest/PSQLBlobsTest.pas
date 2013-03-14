@@ -35,6 +35,7 @@ type
   published
     procedure TestQueryInsertAndRead;
     procedure TestUpdateObjInsert;
+    procedure TestEmptyBLOBsInsertAsParams;
   end;
 
 var
@@ -56,6 +57,39 @@ begin
   FPSQLQuery.Free;
   FPSQLQuery := nil;
 end;
+
+procedure TestTPSQLBlobs.TestEmptyBLOBsInsertAsParams;
+var MS: TMemoryStream;
+begin
+  FPSQLQuery.SQL.Text := 'INSERT INTO blobs_test_case_table VALUES (DEFAULT, :b, :o, :m)';
+  MS := TMemoryStream.Create;
+  try
+    FPSQLQuery.ParamByName('b').LoadFromStream(MS, ftBlob);
+    FPSQLQuery.ParamByName('o').DataTypeOID := FIELD_TYPE_OID;
+    FPSQLQuery.ParamByName('o').LoadFromStream(MS, ftBlob);
+    FPSQLQuery.ParamByName('m').LoadFromStream(MS, ftBlob);
+    FPSQLQuery.ExecSQL;
+    FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
+    FPSQLQuery.Open;
+    FPSQLQuery.First;
+    Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = 0, 'byteaf field must be empty');
+    Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = 0, 'oidf field must be empty');
+    Check((FPSQLQuery.FieldByName('memof') as TBlobField).AsString = '', 'memof field must be empty');
+  finally
+    MS.Free;
+    FPSQLQuery.Close;
+  end;
+end;
+
+  function FileSize(const aFilename: String): Int64;
+  var
+    info: TWin32FileAttributeData;
+  begin
+    result := -1;
+    if NOT GetFileAttributesEx(PWideChar(aFileName), GetFileExInfoStandard, @info) then
+      EXIT;
+    result := info.nFileSizeLow or (info.nFileSizeHigh shl 32);
+  end;
 
 procedure TestTPSQLBlobs.TestQueryInsertAndRead;
 begin
@@ -80,6 +114,7 @@ begin
   (FPSQLQuery.FieldByName('oidf') as TBlobField).SaveToFile('TestOutput\test.bmp');
   Check(FileExists('TestOutput\test.bmp'), 'byteaf cannot save file to disk');
   Check(FileExists('TestOutput\test.bmp'), 'oidf cannot save file to disk');
+  Check(FileSize('TestData\test.bmp') = FileSize('TestOutput\test.bmp'));
   Check(FPSQLQuery.FieldByName('memof').AsString = 'test-test', 'Failed to read memof field');
   FPSQLQuery.Close;
 end;
