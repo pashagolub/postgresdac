@@ -585,7 +585,9 @@ type
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
     {$IFDEF DELPHI_17}
     procedure DataConvert(Field: TField; Source, Dest: TValueBuffer; ToNative: Boolean); override;
-    {$ENDIF DELPHI_17}
+    {$ELSE}
+    procedure DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean); override;
+    {$ENDIF}
     procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; virtual;
@@ -4474,6 +4476,14 @@ procedure TPSQLDataSet.DataConvert(Field: TField; Source, Dest: TValueBuffer; To
 begin
   if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
     Move(Source[0], Dest[0], SizeOf(TDateTime))
+  else
+   inherited;
+end;
+{$ELSE}
+procedure TPSQLDataSet.DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean);
+begin
+  if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
+    TDateTime(Dest^) := TDateTime(Source^)
   else
    inherited;
 end;
