@@ -5799,8 +5799,8 @@ Var
      else
        if FBlobOpen then
         begin
-         Result := lo_lseek(FConnect.Handle, FLocalBHandle, 0, SEEK_END);
-         lo_lseek(FConnect.Handle, FLocalBHandle, 0, SEEK_SET);
+         Result := lo_lseek(FConnect.Handle, FLocalBHandle, 0, PG_SEEK_END);
+         lo_lseek(FConnect.Handle, FLocalBHandle, 0, PG_SEEK_SET);
         end;
     end;
 
@@ -5924,7 +5924,7 @@ var
         begin
          if FBlobOpen then
          begin
-          lo_lseek(FConnect.Handle, FLocalBHandle, Offset, SEEK_SET);
+          lo_lseek(FConnect.Handle, FLocalBHandle, Offset, PG_SEEK_SET);
           L := 0;
           Len := ALength;
           if ALength > MAX_BLOB_SIZE then
