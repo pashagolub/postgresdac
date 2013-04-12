@@ -50,6 +50,7 @@ type
     procedure TestRollback;
     procedure TestPing;
     procedure TestPingEx;
+    procedure TestIsThreadSafe;
   end;
 
 var
@@ -302,6 +303,11 @@ begin
   finally
     aList.Free;
   end;
+end;
+
+procedure TestTPSQLDatabase.TestIsThreadSafe;
+begin
+  Check(PSQLTypes.PQIsThreadSafe() = 1, 'Library loaded is thread unsafe');
 end;
 
 procedure TestTPSQLDatabase.TestPing;
