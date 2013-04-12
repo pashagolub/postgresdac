@@ -322,54 +322,7 @@ begin
   Result[37] := HexUpperCase[C^];
 end;
 
-{function GUIDToBadGUID(const AStr: AnsiString): AnsiString;
-var
-  C: PAnsiChar;
-begin
-  Result := '00000000-0000-0000-0000-000000000000';
-  if AStr = '' then Exit;
-
-  C := PAnsiChar(AStr);
-  Inc(C); // skip {
-
-  Result[1] := HexLowerCase[C^]; Inc(C);
-  Result[2] := HexLowerCase[C^]; Inc(C);
-  Result[3] := HexLowerCase[C^]; Inc(C);
-  Result[4] := HexLowerCase[C^]; Inc(C);
-  Result[5] := HexLowerCase[C^]; Inc(C);
-  Result[6] := HexLowerCase[C^]; Inc(C);
-  Result[7] := HexLowerCase[C^]; Inc(C);
-  Result[8] := HexLowerCase[C^]; Inc(C);
-  Inc(C); // skip -
-  Result[10] := HexLowerCase[C^]; Inc(C);
-  Result[11] := HexLowerCase[C^]; Inc(C);
-  Result[12] := HexLowerCase[C^]; Inc(C);
-  Result[13] := HexLowerCase[C^]; Inc(C);
-  Inc(C); // skip -
-  Result[15] := HexLowerCase[C^]; Inc(C);
-  Result[16] := HexLowerCase[C^]; Inc(C);
-  Result[17] := HexLowerCase[C^]; Inc(C);
-  Result[18] := HexLowerCase[C^]; Inc(C);
-  Inc(C); // skip -
-  Result[20] := HexLowerCase[C^]; Inc(C);
-  Result[21] := HexLowerCase[C^]; Inc(C);
-  Result[22] := HexLowerCase[C^]; Inc(C);
-  Result[23] := HexLowerCase[C^]; Inc(C);
-  Inc(C); // skip -
-  Result[25] := HexLowerCase[C^]; Inc(C);
-  Result[26] := HexLowerCase[C^]; Inc(C);
-  Result[27] := HexLowerCase[C^]; Inc(C);
-  Result[28] := HexLowerCase[C^]; Inc(C);
-  Result[29] := HexLowerCase[C^]; Inc(C);
-  Result[30] := HexLowerCase[C^]; Inc(C);
-  Result[31] := HexLowerCase[C^]; Inc(C);
-  Result[32] := HexLowerCase[C^]; Inc(C);
-  Result[33] := HexLowerCase[C^]; Inc(C);
-  Result[34] := HexLowerCase[C^]; Inc(C);
-  Result[35] := HexLowerCase[C^]; Inc(C);
-  Result[36] := HexLowerCase[C^];
-end;}
-
+{$IFNDEF FPC}
 function GUIDToString(const AGUID: TGUID): AnsiString;
 var
   P: Cardinal absolute Result;
@@ -399,6 +352,7 @@ begin
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).FF]; Inc(P, SizeOf(Word));
   PByte(P)^ := Ord('}');
 end;
+{$ENDIF}
 
 function StringToGUID(const AStr: AnsiString): TGUID;
 begin
