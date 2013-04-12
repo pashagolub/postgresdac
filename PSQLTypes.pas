@@ -534,6 +534,7 @@ type
 //////////////////////////////////////////////////////////////////
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
+  TPQisthreadsafe  = function(): Integer; cdecl;
   TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //blocking manner
   TPQconnectStart  = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //non-blocking manner
   TPQconnectdbParams = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): PPGconn; cdecl; //blocking manner
@@ -688,6 +689,7 @@ type
 //////////////////////////////////////////////////////////////////
 
 var
+  PQisthreadsafe:  TPQisthreadsafe;
   PQconnectdb:     TPQconnectdb;
   PQconnectdbParams: TPQconnectdbParams;
   PQconnectStart:  TPQconnectStart;
@@ -3083,6 +3085,7 @@ begin
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
+         @PQisthreadsafe := GetPSQLProc('PQisthreadsafe');
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
          @PQconnectdbParams := GetPSQLProc('PQconnectdbParams');
          @PQping         := GetPSQLProc('PQping');
