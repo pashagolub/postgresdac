@@ -85,7 +85,7 @@ type
 implementation
 
 uses
-  DB, {$IFNDEF FPC}DBConsts,{$ENDIF} PSQLAccess;
+  DB, PSQLAccess;
 
 { TPSQLCustomDirectQuery }
 

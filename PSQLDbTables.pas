@@ -121,6 +121,13 @@ type
   TPSQLLockType = (ltAccessShare, ltRowShare, ltRowExclusive, ltShareUpdateExclusive,
                    ltShare, ltShareRowExclusive, ltExclusive, ltAccessExclusive);
   
+  //used for DataEvent handlers
+  TDataEventInfo =
+  {$IFDEF FPC}Ptrint{$ELSE}
+         {$IFDEF DELPHI_16}NativeInt
+         {$ELSE}LongInt
+         {$ENDIF}
+  {$ENDIF};
 
   { Forward declarations }
   TPSQLDatabase      = Class;
@@ -588,7 +595,7 @@ type
     {$ELSE}
     procedure DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean); override;
     {$ENDIF}
-    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
+    procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; virtual;
     procedure DestroyLookupCursor; virtual;
@@ -879,7 +886,7 @@ type
     procedure PSSetParams(AParams: TParams); override;
     {$ENDIF}
     function CreateHandle: HDBICur; override;
-    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
+    procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     {$IFNDEF FPC}
     procedure DefChanged(Sender: TObject); override;
     {$ENDIF}
@@ -1148,7 +1155,7 @@ type
     {$ENDIF}
     function CreateHandle: HDBICur;override;
     function CreateCursor(IsExecProc : boolean): HDBICur;
-    procedure DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF}); override;
+    procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure CloseCursor; override;
     procedure SetProcedureName(const Value: string);
     function GetParamsList: TPSQLParams;
@@ -1184,7 +1191,7 @@ var
 implementation
 
 uses
-  DBConsts,
+  {$IFDEF FPC}PSQLDBConsts{$ELSE}DBConsts{$ENDIF},
   {$IFDEF DELPHI_10}DBClient, {$ENDIF}
   PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
 
@@ -4488,7 +4495,8 @@ begin
    inherited;
 end;
 {$ENDIF}
-procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF});
+
+procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: TDataEventInfo);
 
   procedure CheckIfParentScrolled;
   var
@@ -6439,7 +6447,7 @@ begin
   end;
 end;
 
-procedure TPSQLTable.DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF});
+procedure TPSQLTable.DataEvent(Event: TDataEvent; Info: TDataEventInfo);
 begin
   if Event = depropertyChange then
      IndexDefs.Updated := FALSE;
@@ -7033,7 +7041,7 @@ begin
 	 Result := HDBICur(CreateCursor(false));
 end;
 
-procedure TPSQLStoredProc.DataEvent(Event: TDataEvent; Info: {$IFDEF DELPHI_16}NativeInt{$ELSE}LongInt{$ENDIF});
+procedure TPSQLStoredProc.DataEvent(Event: TDataEvent; Info: TDataEventInfo);
 var
   F: TField;
   i: integer;
