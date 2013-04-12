@@ -206,21 +206,3 @@
     </ProjectExtensions>
     <Import Condition="Exists('$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj')" Project="$(APPDATA)\Embarcadero\$(BDSAPPDATABASEDIR)\$(PRODUCTVERSION)\UserTools.proj"/>
 </Project>
-
-<!-- EurekaLog First Line
-[Exception Log]
-EurekaLog Version=7001
-Activate=1
-atVCL=1
-DeleteMapAfterCompile=1
-dpJCL=1
-Encrypt Password=""
-idEurekaLog=1
-idEurekaLogDetailed=1
-idMSClassic=1
-idStepsToReproduce=1
-InjectCode=1
-InjectInfo=1
-InjectOptions=1
-sndShowFailureMsg=1
-EurekaLog Last Line -->
