@@ -36,6 +36,8 @@ type
     procedure TestQueryInsertAndRead;
     procedure TestUpdateObjInsert;
     procedure TestEmptyBLOBsInsertAsParams;
+    procedure TestBlobSizeAnsi;
+    procedure TestBlobSizeUnicode;
   end;
 
 var
@@ -44,6 +46,16 @@ var
 implementation
 
 uses TestHelper;
+
+  function FileSize(const aFilename: String): Int64;
+  var
+    info: TWin32FileAttributeData;
+  begin
+    result := -1;
+    if NOT GetFileAttributesEx(PWideChar(aFileName), GetFileExInfoStandard, @info) then
+      EXIT;
+    result := info.nFileSizeLow or (info.nFileSizeHigh shl 32);
+  end;
 
 procedure TestTPSQLBlobs.SetUp;
 begin
@@ -56,6 +68,46 @@ procedure TestTPSQLBlobs.TearDown;
 begin
   FPSQLQuery.Free;
   FPSQLQuery := nil;
+end;
+
+procedure TestTPSQLBlobs.TestBlobSizeAnsi;
+begin
+  QryDB.CharSet := 'SQL_ASCII';
+  FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  FPSQLQuery.Insert;
+  (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
+  (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromFile('TestData\test.bmp');
+  (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := 'test-test';
+  FPSQLQuery.Post;
+
+  FPSQLQuery.First;
+
+  Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
+  Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
+  Check((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(AnsiChar), 'Failed to read memof.BlobSize');
+  FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLBlobs.TestBlobSizeUnicode;
+begin
+  QryDB.CharSet := 'UNICODE';
+  FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  FPSQLQuery.Insert;
+  (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
+  (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromFile('TestData\test.bmp');
+  (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := 'test-test';
+  FPSQLQuery.Post;
+
+  FPSQLQuery.First;
+
+  Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
+  Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
+  Check((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(Char), 'Failed to read memof.BlobSize');
+  FPSQLQuery.Close;
 end;
 
 procedure TestTPSQLBlobs.TestEmptyBLOBsInsertAsParams;
@@ -80,16 +132,6 @@ begin
     FPSQLQuery.Close;
   end;
 end;
-
-  function FileSize(const aFilename: String): Int64;
-  var
-    info: TWin32FileAttributeData;
-  begin
-    result := -1;
-    if NOT GetFileAttributesEx(PWideChar(aFileName), GetFileExInfoStandard, @info) then
-      EXIT;
-    result := info.nFileSizeLow or (info.nFileSizeHigh shl 32);
-  end;
 
 procedure TestTPSQLBlobs.TestQueryInsertAndRead;
 begin

@@ -45,6 +45,8 @@
 			<DCC_DebugInformation>false</DCC_DebugInformation>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2)'!=''">
+			<DCC_RangeChecking>true</DCC_RangeChecking>
+			<DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
 			<DCC_MapFile>3</DCC_MapFile>
 			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 			<BRCC_IncludePath>..\;$(BRCC_IncludePath)</BRCC_IncludePath>
@@ -140,8 +142,10 @@ CompatibilityMode=1
 csoAllowedRenderMethods=64
 csoDisabledRenderMethods=-2
 csoShowWindowsThreads=1
+DeleteMapAfterCompile=1
 Email Address=""
 Email Object=""
+Encrypt Password=""
 Errors Number=32
 Errors Terminate=3
 Foreground Tab=0
