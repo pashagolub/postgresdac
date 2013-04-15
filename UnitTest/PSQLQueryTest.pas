@@ -26,7 +26,7 @@ type
 
   // Test methods for class TPSQLQuery
   TestTPSQLQuery = class(TTestCase)
-  strict private
+  private
     FPSQLQuery: TPSQLQuery;
 
   public
@@ -195,7 +195,9 @@ begin
   FPSQLQuery.SQL.Text := 'SELECT ''''::varchar(30), ''text''::varchar(30) as col1';
   FPSQLQuery.Open;
   Check(FPSQLQuery.Fields[0].IsNull, 'IsNULL must be true due to dsoEmptyCharAsNull used');
+  {$IFDEF DELPHI_12}
   Check(FPSQLQuery.Fields.FieldByName('col1').AsWideString = 'text', 'Field must be not empty if dsoEmptyCharAsNull enabled');
+  {$ENDIF}
   FPSQLQuery.Close;
 end;
 
@@ -209,7 +211,7 @@ begin
   FPSQLQuery.FieldByName('string').AsString := 'test test';
   FPSQLQuery.FieldByName('datum').AsDateTime := Now();
   FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
-  FPSQLQuery.FieldByName('floatf').AsFloat := Random();
+  FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
   FPSQLQuery.Post;
   Check(FPSQLQuery.RecordCount = 1, 'TPSQLQuery.Insert failed');
 end;
@@ -330,7 +332,7 @@ begin
   FPSQLQuery.FieldByName('string').AsString := 'test test updated';
   FPSQLQuery.FieldByName('datum').AsDateTime := Now();
   FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
-  FPSQLQuery.FieldByName('floatf').AsFloat := Random();
+  FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
   FPSQLQuery.Post;
   Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'TPSQLQuery.Edit failed');
 end;

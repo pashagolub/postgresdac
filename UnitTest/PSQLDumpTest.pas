@@ -25,7 +25,7 @@ type
 
   // Test methods for class TPSQLDump
   TestTPSQLDump = class(TTestCase)
-  strict private
+  private
     FPSQLDump: TPSQLDump;
   public
     procedure SetUp; override;
@@ -46,7 +46,7 @@ type
 
   // Test methods for class TPSQLRestore
   TestTPSQLRestore = class(TTestCase)
-  strict private
+  private
     FPSQLRestore: TPSQLRestore;
   public
     procedure SetUp; override;

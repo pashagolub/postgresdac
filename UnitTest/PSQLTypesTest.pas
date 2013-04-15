@@ -22,16 +22,16 @@ implementation
 
 procedure TestPSQLTypes.CheckIsValidIP;
 var SL: TStrings;
-    S: string;
+    i: integer;
 begin
  SL := TStringList.Create;
  try
    SL.LoadFromFile('TestData\correct_ips.txt');
-   for S in SL do
-     Check(IsValidIP(S), 'correct ' + S);
+   for i := 0 to SL.Count - 1 do
+     Check(IsValidIP(SL[i]), 'correct ' + SL[i]);
    SL.LoadFromFile('TestData\incorrect_ips.txt');
-   for S in SL do
-     Check(not IsValidIP(S), 'incorrect ' + S);
+   for i := 0 to SL.Count - 1 do
+     Check(IsValidIP(SL[i]), 'incorrect ' + SL[i]);
  finally
    SL.Free;
  end;

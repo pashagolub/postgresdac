@@ -33,7 +33,9 @@ uses
 {$R *.RES}
 
 begin
+  {$IFDEF DELPHI_12}
   ReportMemoryLeaksOnShutdown := True;
+  {$ENDIF}
   Application.Initialize;
   if IsConsole then
     with TextTestRunner.RunRegisteredTests do

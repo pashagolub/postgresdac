@@ -28,7 +28,7 @@ type
 
   // Test methods for class TPSQLNotify
   TestTPSQLNotify = class(TTestCase)
-  strict private
+  private
     FPSQLNotify: TPSQLNotify;
   public
     procedure SetUp; override;

@@ -26,7 +26,7 @@ type
 
   // Test methods for class TPSQLQuery
   TestTPSQLBlobs = class(TTestCase)
-  strict private
+  private
     FPSQLQuery: TPSQLQuery;
     FPSQLUpdate: TPSQLUpdateSQL;
   public
@@ -52,7 +52,7 @@ uses TestHelper;
     info: TWin32FileAttributeData;
   begin
     result := -1;
-    if NOT GetFileAttributesEx(PWideChar(aFileName), GetFileExInfoStandard, @info) then
+    if NOT GetFileAttributesEx(PChar(aFileName), GetFileExInfoStandard, @info) then
       EXIT;
     result := info.nFileSizeLow or (info.nFileSizeHigh shl 32);
   end;
