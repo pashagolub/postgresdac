@@ -1,5 +1,5 @@
 {$I pSQLDAC.inc}
-                                      
+
 unit PSQLAccess;
 
 {SVN revision: $Id$}
@@ -13,7 +13,7 @@ uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
      {$IFDEF FPC}Variants,{$ENDIF}
      SysUtils;
-type             
+type
   {Forward declaration}
   TNativeConnect = class;
 
@@ -24,7 +24,7 @@ type
     private
       FPSQL : TNativeConnect;
       FPSQLErrorCode : Word;
-      FBDEErrorCode : Word;                
+      FBDEErrorCode : Word;
       FBDE          : Boolean;
       FPSQLErrorMsg : String;
       FPSQLErrorPos : String;
@@ -3385,9 +3385,9 @@ begin
        else
          I := I; //dropped columns will make problems here
                  //however, handling this in < 7.4.0 is too complex
-                 
+
        if I = 0 then //we have index built on expressions.
-         begin   
+         begin
           Item.Free;
           Exit;
          end;
@@ -3530,7 +3530,7 @@ begin
   i := CANExpr(FExpression^).iLiteralStart + AOffset;
   Result := @MemPtr(FExpression)^[i];
 end;
-    
+
 function TPSQLFilter.GetNodeByOffset(AOffSet : Integer) : PCanNode;
 begin
     Result := pCanNode(Integer(FExpression)+AOffset);
@@ -4074,7 +4074,7 @@ end;
 procedure TNativeDataSet.FirstRecord;
 begin
   if Assigned(FStatement) then
-  begin                               
+  begin
     RecNo := 0;
     if RecNo >= RecordCount then
        raise EPSQLException.CreateBDE(DBIERR_EOF);
@@ -4824,7 +4824,7 @@ begin
       or
       (Result = FIELD_TYPE_XML) then
          Result := FIELD_TYPE_TEXT; //added to deal with varchar without length specifier
-  end;       
+  end;
 end;
 
 function TNativeDataSet.Field(FieldNum: Integer): string;
@@ -5788,20 +5788,16 @@ Var
         begin
          if Assigned(FieldBuffer(ColumnNumber - 1)) then
            if FConnect.IsUnicodeUsed then
-           {$IFDEF DELPHI_12}
               Result := Length(FConnect.RawToString(FieldBuffer(ColumnNumber-1))) * SizeOf(Char)
-           {$ELSE}
-              Result := Length(UTF8ToString(FieldBuffer(ColumnNumber-1)))
-           {$ENDIF}
            else
               Result := FieldSize(ColumnNumber-1);
         end
-     else
+      else
        if FBlobOpen then
-        begin
-         Result := lo_lseek(FConnect.Handle, FLocalBHandle, 0, PG_SEEK_END);
-         lo_lseek(FConnect.Handle, FLocalBHandle, 0, PG_SEEK_SET);
-        end;
+         begin
+          Result := lo_lseek(FConnect.Handle, FLocalBHandle, 0, PG_SEEK_END);
+          lo_lseek(FConnect.Handle, FLocalBHandle, 0, PG_SEEK_SET);
+         end;
     end;
 
     function ByteaSize(ColumnNumber: Integer):integer;
@@ -5870,95 +5866,81 @@ var
 
     function CachedBlobGet(Offset, Length: longint; buff, Dest: pointer): longint;
     begin
-     if PAnsiChar(buff)^=#1 then
+     if PAnsiChar(buff)^ = #1 then
       begin
         Inc(PAnsiChar(buff));
         with TBlobItem(buff^) do
         begin
            Blob.Seek(Offset, 0);
-           Result:=Blob.Read(Dest^, Length)
+           Result := Blob.Read(Dest^, Length)
         end;
       end
      else
       Result := 0;
     end;
 
-    function BlobGet(ColumnNumber: Integer; Offset, ALength : LongInt; buff, Dest :Pointer)  : LongInt;
-    var
-      L,N : integer;
-      Len : LongInt;
-     {$IFNDEF DELPHI_12}
-      S: string;
-     {$ENDIF}
-    begin
-     Result := CachedBlobGet(Offset, ALength, buff, Dest);
-     if Result = 0 then
+  function BlobGet(columnNumber: integer; Offset, ALength: LongInt;
+      Buff, Dest: Pointer): LongInt;
+  var
+    L, N: integer;
+    Len: LongInt;
+    S: string;
+  begin
+    Result := CachedBlobGet(Offset, ALength, Buff, Dest);
+    if Result = 0 then
       if Field.FieldSubType = fldstMemo then
-        begin
-           if FConnect.IsUnicodeUsed then
-        {$IFDEF DELPHI_12}
-            begin
-              Utf8ToUnicode(Dest, ALength, PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset), Cardinal(-1));
-              Len := StrLen(PChar(Dest)) *  SizeOf(Char);
-            end
-        {$ELSE}
-            begin
-              S := UTF8ToString(FieldBuffer(ColumnNumber - 1));
-              Move(PAnsiChar(PAnsiChar(S) + Offset)^, Dest^, ALength);
-              Len := Length(S);
-            end
-        {$ENDIF}
-           else
-            begin
-              Move(PAnsiChar(FieldBuffer(ColumnNumber - 1) + Offset)^, Dest^, ALength);
-              Len := StrLen(FieldBuffer(ColumnNumber - 1));
-            end;
-
-
-           if (Offset + ALength >= Len) then
-            Result := Len - Offset
-           else
-            Result := ALength;
-        end
+      begin
+        S := FConnect.RawToString(FieldBuffer(columnNumber - 1));
+        Move(PChar(PChar(S) + Offset)^, Dest^, ALength);
+        Len := Length(S) * SizeOf(Char);
+        if (Offset + ALength >= Len) then
+          Result := Len - Offset
+        else
+          Result := ALength;
+      end
       else
+      begin
+        if FBlobOpen then
         begin
-         if FBlobOpen then
-         begin
-          lo_lseek(FConnect.Handle, FLocalBHandle, Offset, PG_SEEK_SET);
+          lo_lseek(FConnect.Handle, FlocalBHandle, Offset, PG_SEEK_SET);
           L := 0;
           Len := ALength;
           if ALength > MAX_BLOB_SIZE then
           begin
-           repeat
-            if Len > MAX_BLOB_SIZE then
-               N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, MAX_BLOB_SIZE)
-            else
-               N  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest) + L, Len);
-            Dec(Len, MAX_BLOB_SIZE);
-            Inc(L, N);
-           until N < MAX_BLOB_SIZE;
-           Result := L;
-          end else
-             Result  := lo_read(FConnect.Handle, FLocalBHandle, PAnsiChar(Dest), ALength);
-         end;
+            repeat
+              if Len > MAX_BLOB_SIZE then
+                N := lo_read(FConnect.Handle, FlocalBHandle,
+                  PAnsiChar(Dest) + L, MAX_BLOB_SIZE)
+              else
+                N := lo_read(FConnect.Handle, FlocalBHandle,
+                  PAnsiChar(Dest) + L, Len);
+              Dec(Len, MAX_BLOB_SIZE);
+              Inc(L, N);
+            until N < MAX_BLOB_SIZE;
+            Result := L;
+          end
+          else
+            Result := lo_read(FConnect.Handle, FlocalBHandle,
+              PAnsiChar(Dest), ALength);
         end;
-       end;
+      end;
+    end;
 
    function ByteaBlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
    var P: PAnsiChar;
        Len: integer;
    begin
-    Result := CachedBlobGet(Offset, Length, buff, Dest);
-
-    if (Result = 0) and Assigned(PAnsiChar(FieldBuffer(ColumnNumber-1)+Offset)) then
+     Result := CachedBlobGet(Offset, Length, Buff, Dest);
+     if (Result = 0) and
+       Assigned(PAnsiChar(FieldBuffer(columnNumber - 1) + Offset)) then
      begin
-      P := PQUnescapeBytea(FieldBuffer(ColumnNumber-1), Len);
-     try
-      Move((P+Offset)^, Dest^, Length);
-      Result := Length;
-     finally
-      PQFreeMem(P);
-     end;
+       P := PQUnescapeBytea(FieldBuffer(columnNumber - 1), Len);
+       try
+         Move((P + Offset)^, Dest^, Length);
+         Result := Length;
+       finally
+         PQFreeMem(P);
+       end;
      end;
    end;
 
@@ -5971,7 +5953,7 @@ begin
     Field.Buffer := PRecord;
     if not Field.FieldNull then
       if (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
-        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
+        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 , pDest)
       else
         iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
   end;
@@ -9251,12 +9233,12 @@ end;
 
 function TNativeDataSet.GetRecNo: integer;
 var
-  nGetRecCount: Integer; 
+  nGetRecCount: Integer;
 begin
   Result := RecNo;
-  nGetRecCount := GetRecCount();  
-  if nGetRecCount > 0 then 
-    if (High(FSortingIndex) = nGetRecCount-1) then Result := FSortingIndex[RecNo]; 
+  nGetRecCount := GetRecCount();
+  if nGetRecCount > 0 then
+    if (High(FSortingIndex) = nGetRecCount-1) then Result := FSortingIndex[RecNo];
 end;
 
 function TNativeDataSet.IsSortedLocally: boolean;

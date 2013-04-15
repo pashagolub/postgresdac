@@ -6750,61 +6750,18 @@ end;
 
 {$IFDEF DELPHI_17}
 function TPSQLBlobStream.Read(Buffer: TBytes; Offset, Count: Longint): Longint;
-var
-  Status: DBIResult;
 begin
-  Result := 0;
-  if FOpened then
-  begin
-    if FCached then
-    begin
-      if Count > Size - FPosition then
-        Result := Size - FPosition else
-        Result := Count;
-      if Result > 0 then
-      begin
-        Move(TRecordBuffer(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer[0], Result);
-        Inc(FPosition, Result);
-      end;
-    end else
-    begin
-      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, Buffer, Result);
-      case Status of
-        DBIERR_NONE, DBIERR_ENDOFBLOB:
-          begin
-            if FDataset.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
-              (FMode = bmRead) and not FField.Modified and (FPosition = FCacheSize) then
-            begin
-              FCacheSize := FPosition + Result;
-              SetLength(FBlobData, FCacheSize);
-              Move(Buffer[0], FBlobData[FPosition], Result);
-              if FCacheSize = Size then
-              begin
-                FDataSet.SetBlobData(FField, FBuffer, FBlobData);
-                SetLength(FBlobData, 0);
-                FCached := True;
-                Engine.FreeBlob(FDataSet.Handle, FBuffer, FFieldNo);;
-              end;
-            end;
-            Inc(FPosition, Result);
-          end;
-        DBIERR_INVALIDBLOBOFFSET:
-          {Nothing};
-      else
-        TDbiError(Engine, Status);
-      end;
-    end;
-  end;
+  Result := Read(Buffer[0], Count);
 end;
 {$ENDIF DELPHI_17}
 
 function TPSQLBlobStream.Read(var Buffer; Count: Longint): Longint;
 var
   Status: DBIResult;
-  P: Pointer;
+//  P: Pointer;
 begin
   Result := 0;
-  P := @Buffer;
+  //P := @Buffer;
   if FOpened then
   begin
     if FCached then
@@ -6819,7 +6776,7 @@ begin
       end;
     end else
     begin
-      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, P, Result);
+      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer, Result);
       case Status of
         DBIERR_NONE, DBIERR_ENDOFBLOB:
           begin
