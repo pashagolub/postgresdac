@@ -13,7 +13,7 @@ interface
 
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, Variants, Graphics, StdVCL, TestExtensions,
+  PSQLTypes, SysUtils, DbCommon, Graphics, StdVCL, TestExtensions,
   Forms, PSQLConnFrm;
 
 type

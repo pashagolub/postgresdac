@@ -100,6 +100,10 @@ const
 procedure Register;
 
 function BadGUIDToGUID(const AStr: AnsiString): AnsiString;
+{$IFDEF DELPHI_5}
+function StringToGUID(const AStr: AnsiString): TGUID;
+function IsEqualGUID(const guid1, guid2: TGUID): Boolean;
+{$ENDIF}
 
 implementation
 

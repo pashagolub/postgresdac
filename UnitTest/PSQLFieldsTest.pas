@@ -1,4 +1,5 @@
 unit PSQLFieldsTest;
+{$I PSQLDAC.inc}
 {
 
   Delphi DUnit Test Case
@@ -13,7 +14,7 @@ interface
 
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, Variants, Graphics, StdVCL, TestExtensions,
+  PSQLTypes, SysUtils, DbCommon, Graphics, StdVCL, TestExtensions,
   Forms, PSQLConnFrm, PSQLFields;
 
 type
@@ -53,6 +54,15 @@ var
 implementation
 
 uses TestHelper;
+
+{$IFDEF DELPHI_5}
+function CoCreateGuid(out guid: TGUID): HResult; stdcall; external 'ole32.dll' name 'CoCreateGuid';
+
+function CreateGUID(out Guid: TGUID): HResult;
+begin
+  Result := CoCreateGuid(Guid);
+end;
+{$ENDIF}
 
 procedure TestTPSQLGuidField.SetUp;
 begin

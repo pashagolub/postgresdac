@@ -1,4 +1,5 @@
 unit PSQLDatabaseTest;
+{$I PSQLDAC.inc}
 {
 
   Delphi DUnit Test Case
@@ -13,7 +14,7 @@ interface
 
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, Variants, Graphics, StdVCL, TestExtensions,
+  PSQLTypes, SysUtils, DbCommon, {$IFNDEF DELPHI_5}Variants,{$ENDIF} Graphics, StdVCL, TestExtensions,
   Forms, PSQLConnFrm;
 
 type
@@ -94,7 +95,7 @@ begin
   aFieldName := 'column1';
   ReturnValue := FPSQLDatabase.SelectString(aSQL, IsOk, aFieldName);
   Check(IsOk);
-  CheckEquals('12345', ReturnValue);
+  CheckEqualsString('12345', ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectString1;
@@ -108,7 +109,7 @@ begin
   aFieldNumber := 0;
   ReturnValue := FPSQLDatabase.SelectString(aSQL, IsOk, aFieldNumber);
   Check(IsOk);
-  CheckEquals('12345', ReturnValue);
+  CheckEqualsString('12345', ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef;
@@ -121,12 +122,12 @@ begin
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'column1';
   ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  CheckEquals('12345', ReturnValue);
+  CheckEqualsString('12345', ReturnValue);
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'WRONG_COL_NAME';
   aDefaultValue := 'MyDefaultValue';
   ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  CheckEquals(aDefaultValue, ReturnValue);
+  CheckEqualsString(aDefaultValue, ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef1;
@@ -139,12 +140,12 @@ begin
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := 0;
   ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  CheckEquals('12345', ReturnValue);
+  CheckEqualsString('12345', ReturnValue);
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := -1234214;
   aDefaultValue := 'MyDefaultValue';
   ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  CheckEquals(aDefaultValue, ReturnValue);
+  CheckEqualsString(aDefaultValue, ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStrings;

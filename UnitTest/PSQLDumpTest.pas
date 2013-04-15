@@ -13,7 +13,7 @@ interface
 
 uses
   TestFramework, Db, PSQLDump, PSQLTypes, Classes, SysUtils, PSQLDbTables,
-  Variants, Windows, Math, PSQLAboutFrm, TestExtensions;
+  Windows, Math, PSQLAboutFrm, TestExtensions;
 
 type
   //Setup decorator

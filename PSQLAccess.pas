@@ -5891,7 +5891,11 @@ var
       if Field.FieldSubType = fldstMemo then
       begin
         S := FConnect.RawToString(FieldBuffer(columnNumber - 1));
-        Move(PChar(PChar(S) + Offset)^, Dest^, ALength);
+        {$IFDEF DELPHI_12}
+        Move((PByte(S) + Offset)^, Dest^, ALength);
+        {$ELSE}
+        Move(Pointer(Integer(PByte(S)) + Offset)^, Dest^, ALength);
+        {$ENDIF}
         Len := Length(S) * SizeOf(Char);
         if (Offset + ALength >= Len) then
           Result := Len - Offset

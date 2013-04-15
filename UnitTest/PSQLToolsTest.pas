@@ -1,4 +1,5 @@
 unit PSQLToolsTest;
+{$I PSQLDAC.inc}
 {
 
   Delphi DUnit Test Case
@@ -13,7 +14,7 @@ interface
 
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, Variants, Graphics, StdVCL, TestExtensions,
+  PSQLTypes, SysUtils, DbCommon, Graphics, StdVCL, TestExtensions,
   Forms, PSQLConnFrm, PSQLTools;
 
 type
@@ -38,7 +39,7 @@ type
   end;
 
 var
-  DB: TPSQLDatabase;
+  toolsDB: TPSQLDatabase;
   Tools: TPSQLTools;
 
 implementation
@@ -103,29 +104,29 @@ procedure TDbSetup.SetUp;
 var i: integer;
 begin
   inherited;
-  SetUpTestDatabase(DB, 'PSQLToolsTest.conf');
+  SetUpTestDatabase(toolsDB, 'PSQLToolsTest.conf');
   Tools := TPSQLTools.Create(nil);
-  Tools.Database := DB;
+  Tools.Database := toolsDB;
   Tools.Verbose := True;
-  DB.Execute('CREATE TABLE tools_test_case_table(' +
+  toolsDB.Execute('CREATE TABLE tools_test_case_table(' +
                 'id SERIAL NOT NULL PRIMARY KEY,'  +
                 'sfield TEXT DEFAULT now()::text,' +
                 'tfield timestamp DEFAULT now(),'  +
                 'rfield real DEFAULT random())');
-  DB.Execute('CREATE INDEX rfield_idx ON tools_test_case_table (rfield)');
+  toolsDB.Execute('CREATE INDEX rfield_idx ON tools_test_case_table (rfield)');
   for i := 0 to 100 do
-    DB.Execute('INSERT INTO tools_test_case_table DEFAULT VALUES');
+    toolsDB.Execute('INSERT INTO tools_test_case_table DEFAULT VALUES');
 end;
 
 procedure TDbSetup.TearDown;
 begin
   inherited;
 
-  DB.Execute('DROP TABLE tools_test_case_table CASCADE');
-  DB.Close;
-  ComponentToFile(DB, 'PSQLToolsTest.conf');
+  toolsDB.Execute('DROP TABLE tools_test_case_table CASCADE');
+  toolsDB.Close;
+  ComponentToFile(toolsDB, 'PSQLToolsTest.conf');
   Tools.Free;
-  DB.Free;
+  toolsDB.Free;
 end;
 
 initialization

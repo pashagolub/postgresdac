@@ -1,4 +1,5 @@
 unit PSQLQueryTest;
+{$I PSQLDAC.inc}
 {
 
   Delphi DUnit Test Case
@@ -13,7 +14,7 @@ interface
 
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, Variants, Graphics, StdVCL, TestExtensions,
+  PSQLTypes, SysUtils, DbCommon, {$IFNDEF DELPHI_5}Variants,{$ENDIF} Graphics, StdVCL, TestExtensions,
   Forms, PSQLConnFrm;
 
 type
@@ -65,7 +66,124 @@ var
 
 implementation
 
-uses TestHelper, DateUtils;
+uses TestHelper{$IFNDEF DELPHI_5}, DateUtils{$ENDIF};
+
+{$IFDEF DELPHI_5}
+const
+  HoursPerDay   = 24;
+  MinsPerHour   = 60;
+  SecsPerMin    = 60;
+  MSecsPerSec   = 1000;
+  MinsPerDay    = HoursPerDay * MinsPerHour;
+  SecsPerDay    = MinsPerDay * SecsPerMin;
+  SecsPerHour   = SecsPerMin * MinsPerHour;
+  MSecsPerDay   = SecsPerDay * MSecsPerSec;
+  
+function Today: TDateTime;
+begin
+  Result := Date;
+end;
+
+function Yesterday: TDateTime;
+begin
+  Result := Date - 1;
+end;
+
+function Tomorrow: TDateTime;
+begin
+  Result := Date + 1;
+end;
+
+function IsSameDay(const AValue, ABasis: TDateTime): Boolean;
+begin
+  Result := (AValue >= Trunc(ABasis)) and
+            (AValue < Trunc(ABasis) + 1);
+end;
+
+function IsToday(const AValue: TDateTime): Boolean;
+begin
+  Result := IsSameDay(AValue, Date);
+end;
+
+function TimeOf(const AValue: TDateTime): TDateTime;
+begin
+  Result := Frac(AValue);
+end;
+
+function DateTimeToMilliseconds(const ADateTime: TDateTime): Int64;
+var
+  LTimeStamp: TTimeStamp;
+begin
+  LTimeStamp := DateTimeToTimeStamp(ADateTime);
+  Result := LTimeStamp.Date;
+  Result := (Result * MSecsPerDay) + LTimeStamp.Time;
+end;
+
+function MinutesBetween(const ANow, AThen: TDateTime): Int64;
+begin
+  Result := Abs(DateTimeToMilliseconds(ANow) - DateTimeToMilliseconds(AThen))
+    div (MSecsPerSec * SecsPerMin);
+end;
+
+function TryEncodeDate(Year, Month, Day: Word; out Date: TDateTime): Boolean;
+var
+  I: Integer;
+  DayTable: PDayTable;
+begin
+  Result := False;
+  DayTable := @MonthDays[IsLeapYear(Year)];
+  if (Year >= 1) and (Year <= 9999) and (Month >= 1) and (Month <= 12) and
+    (Day >= 1) and (Day <= DayTable^[Month]) then
+  begin
+    for I := 1 to Month - 1 do Inc(Day, DayTable^[I]);
+    I := Year - 1;
+    Date := I * 365 + I div 4 - I div 100 + I div 400 + Day - DateDelta;
+    Result := True;
+  end;
+end;
+
+function TryEncodeTime(Hour, Min, Sec, MSec: Word; out Time: TDateTime): Boolean;
+var
+  TS: TTimeStamp;
+begin
+  Result := False;
+  if (Hour < HoursPerDay) and (Min < MinsPerHour) and (Sec < SecsPerMin) and (MSec < MSecsPerSec) then
+  begin
+    TS.Time :=  (Hour * (MinsPerHour * SecsPerMin * MSecsPerSec))
+              + (Min * SecsPerMin * MSecsPerSec)
+              + (Sec * MSecsPerSec)
+              +  MSec;
+    TS.Date := DateDelta; // This is the "zero" day for a TTimeStamp, days between 1/1/0001 and 12/30/1899 including the latter date
+    Time := TimeStampToDateTime(TS);
+    Result := True;
+  end;
+end;
+
+function TryEncodeDateTime(const AYear, AMonth, ADay, AHour, AMinute, ASecond,
+  AMilliSecond: Word; out AValue: TDateTime): Boolean;
+var
+  LTime: TDateTime;
+begin
+  Result := TryEncodeDate(AYear, AMonth, ADay, AValue);
+  if Result then
+  begin
+    Result := TryEncodeTime(AHour, AMinute, ASecond, AMilliSecond, LTime);
+    if Result then
+      if AValue >= 0 then
+        AValue := AValue + LTime
+      else
+        AValue := AValue - LTime
+  end;
+end;
+
+function EncodeDateTime(const AYear, AMonth, ADay, AHour, AMinute, ASecond,
+  AMilliSecond: Word): TDateTime;
+begin
+  if not TryEncodeDateTime(AYear, AMonth, ADay,
+                           AHour, AMinute, ASecond, AMilliSecond, Result) then
+    raise EConvertError.Create('Cannot encode date');
+end;
+{$ENDIF}
 
 procedure TestTPSQLQuery.SetUp;
 begin
@@ -170,7 +288,7 @@ begin
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
   CheckTime(EncodeDate(1899, 12, 30));
-  CheckTime(Today());
+  CheckTime(Date());
   CheckTime(EncodeDate(1623, 6, 19)); //Blaise Pascal was born this day
 end;
 
