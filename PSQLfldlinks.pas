@@ -7,7 +7,11 @@ interface
 
 uses SysUtils, Windows, Messages, Classes, Graphics, Controls, Forms,
   StdCtrls, ExtCtrls, DB, Buttons,
-  {$IFNDEF DELPHI_6}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF};
+  {$IFDEF FPC}
+          PropEdits
+  {$ELSE}
+         {$IFNDEF DELPHI_6}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF}
+  {$ENDIF FPC};
 
 type
 
@@ -102,7 +106,7 @@ implementation
 
 {$R *.DFM}
 
-uses Dialogs, DBConsts, LibHelp, TypInfo;
+uses Dialogs, {$IFNDEF FPC}DBConsts, LibHelp,{$ENDIF} TypInfo;
 
 { Utility Functions }
 
@@ -236,7 +240,9 @@ procedure TPSQLLinkFields.FormCreate(Sender: TObject);
 begin
   OrderedDetailList := TStringList.Create;
   OrderedMasterList := TStringList.Create;
+  {$IFNDEF FPC}
   HelpContext := hcDFieldLinksDesign;
+  {$ENDIF}
 end;
 
 procedure TPSQLLinkFields.FormDestroy(Sender: TObject);

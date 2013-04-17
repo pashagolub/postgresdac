@@ -115,7 +115,7 @@ implementation
 
 {$R *.DFM}
 
-uses Dialogs, LibHelp, TypInfo, PSQLTypes;
+uses Dialogs, {$IFNDEF FPC}LibHelp,{$ENDIF} TypInfo, PSQLTypes;
 
 { Global Interface functions }
 
@@ -823,7 +823,9 @@ end;
 
 procedure TPSQLUpdateSQLEditForm.FormCreate(Sender: TObject);
 begin
+  {$IFNDEF FPC}
   HelpContext := hcDUpdateSQL;
+  {$ENDIF}
   {$WARNINGS OFF} //make D5 happy
   FTempTable := TPSQLTable.Create(Self);
   {$WARNINGS ON}
