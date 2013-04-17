@@ -5,7 +5,7 @@ unit MainFrm;
 interface
 
 uses
-  LCLIntf, LCLType, LMessages, Messages, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+  LCLIntf, LCLType, SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
   StdCtrls, ExtCtrls, DBCtrls, Grids, DBGrids, Db, PSQLDbTables;
 
 type
@@ -69,7 +69,7 @@ end;
 
 procedure TForm1.Table1AfterScroll(DataSet: TDataSet);
 begin
-   Label1.Caption := Format('Row %d, Total %d',[Table1.RecNo, Table1.RecordCount])
+   Label1.Caption := Format('Row %d, Total %d',[DataSet.RecNo, DataSet.RecordCount])
 end;
 
 procedure TForm1.ClosebtnClick(Sender: TObject);

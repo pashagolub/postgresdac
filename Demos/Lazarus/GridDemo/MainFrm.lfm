@@ -1,126 +1,139 @@
 object Form1: TForm1
   Left = 245
+  Height = 480
   Top = 216
   Width = 696
-  Height = 480
   Caption = 'Grid Demo'
+  ClientHeight = 480
+  ClientWidth = 696
   Color = clBtnFace
-  Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
-  Font.Style = []
-  PixelsPerInch = 96
+  LCLVersion = '1.0.8.0'
   object DBGrid1: TDBGrid
     Left = 0
+    Height = 381
     Top = 33
-    Width = 688
-    Height = 347
+    Width = 696
     Align = alClient
+    Color = clWindow
+    Columns = <>
     DataSource = DataSource1
     TabOrder = 0
-    TitleFont.Charset = DEFAULT_CHARSET
     TitleFont.Color = clWindowText
     TitleFont.Height = -11
     TitleFont.Name = 'MS Sans Serif'
-    TitleFont.Style = []
   end
   object DBNavigator1: TDBNavigator
     Left = 0
-    Top = 380
-    Width = 688
     Height = 25
-    DataSource = DataSource1
+    Top = 414
+    Width = 696
     Align = alBottom
+    BevelOuter = bvNone
+    ChildSizing.EnlargeHorizontal = crsScaleChilds
+    ChildSizing.EnlargeVertical = crsScaleChilds
+    ChildSizing.ShrinkHorizontal = crsScaleChilds
+    ChildSizing.ShrinkVertical = crsScaleChilds
+    ChildSizing.Layout = cclLeftToRightThenTopToBottom
+    ChildSizing.ControlsPerLine = 100
+    ClientHeight = 25
+    ClientWidth = 696
+    DataSource = DataSource1
     Flat = True
+    Options = []
     TabOrder = 1
   end
   object Panel1: TPanel
     Left = 0
-    Top = 405
-    Width = 688
     Height = 41
+    Top = 439
+    Width = 696
     Align = alBottom
     BevelInner = bvRaised
     BevelOuter = bvLowered
+    ClientHeight = 41
+    ClientWidth = 696
     TabOrder = 2
     object Label1: TLabel
       Left = 6
+      Height = 14
       Top = 14
-      Width = 70
-      Height = 13
+      Width = 71
       Caption = 'Row 0, Total 0'
+      ParentColor = False
     end
     object Closebtn: TButton
       Left = 606
+      Height = 25
       Top = 6
       Width = 75
-      Height = 25
       Caption = 'Exit'
       ModalResult = 2
-      TabOrder = 0
       OnClick = ClosebtnClick
+      TabOrder = 0
     end
     object Connectbtn: TButton
       Left = 526
+      Height = 25
       Top = 6
       Width = 75
-      Height = 25
       Caption = 'Connect'
-      TabOrder = 1
       OnClick = ConnectbtnClick
+      TabOrder = 1
     end
   end
   object Panel2: TPanel
     Left = 0
-    Top = 0
-    Width = 688
     Height = 33
+    Top = 0
+    Width = 696
     Align = alTop
     BevelInner = bvRaised
     BevelOuter = bvLowered
+    ClientHeight = 33
+    ClientWidth = 696
     TabOrder = 3
     object StaticText1: TStaticText
-      Left = 0
-      Top = 0
-      Width = 684
+      Left = 2
       Height = 29
+      Top = 2
+      Width = 692
       Align = alClient
       BorderStyle = sbsSunken
-      Caption = 
-        'This demo shows how to bind dbAware Objects, and get Record Numb' +
-        'er and Record Count'
-      Font.Charset = DEFAULT_CHARSET
+      Caption = 'This demo shows how to bind dbAware Objects, and get Record Number and Record Count'
       Font.Color = clWindowText
       Font.Height = -13
       Font.Name = 'MS Sans Serif'
-      Font.Style = []
       ParentFont = False
       TabOrder = 0
     end
   end
   object Database1: TPSQLDatabase
-    DatabaseName = 'dbdemos'
-    UserName = 'postgres'
-    Host = '<Enter Your Host>'
+    LoginPrompt = False
     Params.Strings = (
-      'Port=5432'
-      'Host=<Enter Your Host>'
-      'DatabaseName=dbdemos'
-      'UID=postgres')
-    Left = 112
-    Top = 416
+      'user=postgres'
+      'dbname=dbdemos'
+      'port=5432'
+      'host=<Enter Your Host>'
+      'hostaddr='
+    )
+    left = 112
+    top = 416
   end
   object Table1: TPSQLTable
     Database = Database1
+    FilterOptions = []
+    Options = [dsoUseGUIDField]
     AfterScroll = Table1AfterScroll
     TableName = '"customer"'
-    Left = 144
-    Top = 416
+    left = 144
+    top = 416
   end
-  object DataSource1: TDataSource
+  object DataSource1: TDatasource
     DataSet = Table1
-    Left = 176
-    Top = 416
+    left = 176
+    top = 416
   end
 end
