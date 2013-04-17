@@ -85,7 +85,7 @@ type
 implementation
 
 uses
-  DB, PSQLAccess;
+  PSQLAccess;
 
 { TPSQLCustomDirectQuery }
 

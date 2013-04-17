@@ -12,21 +12,11 @@ unit PSQLEdit;
 
 interface
 
-uses Windows, Messages, ActiveX, SysUtils, Forms, Classes, Controls, Graphics,
+uses SysUtils, Forms, Classes, Controls, Graphics,
   StdCtrls, ExtCtrls;
 
 
 type
-
-  TExecuteEvent = procedure of Object;
-
-  TPopulateThread = class(TThread)
-  private
-    FExecuteEvent: TExecuteEvent;
-  public
-    constructor Create(ExecuteEvent: TExecuteEvent);
-    procedure Execute; override;
-  end;
 
   TGetTableNamesProc = procedure(List: TStrings; SystemTables: Boolean) of object;
   TGetFieldNamesProc = procedure(const TableName: string; List: TStrings; SystemTables: Boolean) of Object;
@@ -70,12 +60,11 @@ type
   private
     CharHeight: Integer;
     FQuoteChar: string;
-    FPopulateThread: TPopulateThread;
     FStartTable: string;
     GetTableNames: TGetTableNamesProc;
     GetFieldNames: TGetFieldNamesProc;
     SQLCanvas: TControlCanvas;
-    procedure InsertText(Text: string; AddComma: Boolean = True);
+    procedure InsertText(AText: string; AddComma: Boolean = True);
     procedure DrawCaretPosIndicator;
     procedure PopulateTableList;
     procedure PopulateFieldList;
@@ -155,12 +144,6 @@ end;
 
 procedure TSQLEditForm.FormDestroy(Sender: TObject);
 begin
-  if Assigned(FPopulateThread) then
-  begin
-    FPopulateThread.Terminate;
-    FPopulateThread.WaitFor;
-    FPopulateThread.Free;
-  end;
   SQLCanvas.Free;
 end;
 
@@ -190,8 +173,6 @@ begin
         end;
       end;
     end;
-    if Assigned(FPopulateThread) then
-      if FPopulateThread.Terminated then Exit;
     if (TableList.Items.Count > 0) and (TableList.ItemIndex = -1) then
     begin
       TableList.ItemIndex := 0;
@@ -234,7 +215,7 @@ begin
   PopulateFieldList;
 end;
 
-procedure TSQLEditForm.InsertText(Text: string; AddComma: Boolean = True);
+procedure TSQLEditForm.InsertText(AText: string; AddComma: Boolean = True);
 var
   StartSave: Integer;
   S: string;
@@ -242,15 +223,15 @@ begin
   S := SQLMemo.Text;
   StartSave := SQLMemo.SelStart;
   if (S <> '') and (StartSave > 0) and not CharInSet(S[StartSave], [' ','(']) and
-    not (Text[1] = ' ') then
+    not (AText[1] = ' ') then
   begin
     if AddComma and (S[StartSave] <> ',') then
-      Text := ', '+Text else
-      Text := ' ' + Text;
+      AText := ', ' + AText else
+      AText := ' ' + AText;
   end;
-  System.Insert(Text, S, StartSave+1);
+  System.Insert(AText, S, StartSave + 1);
   SQLMemo.Text := S;
-  SQLMemo.SelStart := StartSave + Length(Text);
+  SQLMemo.SelStart := StartSave + Length(AText);
   SQLMemo.Update;
   DrawCaretPosIndicator;
 end;
@@ -341,24 +322,6 @@ begin
     XPos := SQLCanvas.TextWidth(Copy(SQLMemo.Lines[Y], 1, X)) - 3 ;
     SQLCanvas.Draw(XPos ,YPos, Image1.Picture.Graphic);
   end;
-end;
-
-{ TPopulateThread }
-
-constructor TPopulateThread.Create(ExecuteEvent: TExecuteEvent);
-begin
-  FExecuteEvent := ExecuteEvent;
-  inherited Create(False);
-end;
-
-procedure TPopulateThread.Execute;
-begin
-  CoInitialize(nil);
-  try
-    FExecuteEvent;
-  except
-  end;
-  CoUninitialize;
 end;
 
 function DefaultReqQuoteChar( Name: string): Boolean;

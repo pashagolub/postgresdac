@@ -502,9 +502,11 @@ type
     FBlockBufOfs: Integer;
     FLastParentPos: Integer;
     FBlockReadBuf: PAnsiChar;
+    {$IFNDEF FPC}
     FBlockBufSize: Integer;
     FBlockBufCount: Integer;
     FBlockReadCount: Integer;
+    {$ENDIF}
     FOldBuffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF};
     FParentDataSet: TPSQLDataSet;
     FUpdateObject: TPSQLSQLUpdateObject;
@@ -1191,11 +1193,8 @@ var
 implementation
 
 uses
-  {$IFDEF FPC}PSQLDBConsts{$ELSE}DBConsts{$ENDIF},
   {$IFDEF DELPHI_10}DBClient, {$ENDIF}
   PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
-
-{$R DB.DCR}
 
 //NoticeProcessor callback function
 procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar);
@@ -5623,17 +5622,19 @@ begin
   Result := nil;
   OpenMode := OpenModes[FReadOnly];
   if DefaultIndex then
-    IndexID := 0  else IndexID := NODEFAULTINDEX;
+    IndexID := 0
+  else
+    IndexID := NODEFAULTINDEX;
   while TRUE do
   begin
     DBH := DBHandle;
-    RetCode := Engine.OpenTable(DBH, FTableName, '',
-      IndexName, IndexTag, IndexID, OpenMode, ShareModes[FExclusive],
-      xltField, FALSE, nil, Result, FOptions, FLimit, FOffset);
+    RetCode := Engine.OpenTable(DBH, FTableName, IndexName, IndexID, OpenMode, ShareModes[FExclusive],
+      Result, FOptions, FLimit, FOffset);
     if RetCode = DBIERR_TABLEREADONLY then
-      OpenMode := dbiReadOnly    else
-    FillAddonProps;
-    if CheckOpen(RetCode) then  Break;
+      OpenMode := dbiReadOnly
+    else
+      FillAddonProps();
+    if CheckOpen(RetCode) then Break;
   end;
 end;
 

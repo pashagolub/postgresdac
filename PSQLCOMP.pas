@@ -5,11 +5,17 @@ unit PSQLCOMP;
 
 interface
 
-Uses Windows,Messages,SysUtils,Classes, Graphics, Controls,Forms, Dialogs,
-     {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF},
-     Db, {$IFNDEF BCB}DsDesign,{$ENDIF} PSQLFldLinks, PSQLDbTables, PSQLupdsqled,
-     PSQLBatch, PSQLMacroQuery, PSQLMigrator, PSQLMonitor, PSQLTools, PSQLDump,
-     PSQLCopy, PSQLMetaData, PSQLDirectQuery, PSQLFields, PSQLNotify, ToolsAPI;
+Uses SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
+     {$IFNDEF FPC}
+        {$IFDEF DELPHI_5}DsgnIntf{$ELSE}DesignIntf, DesignEditors{$ENDIF},
+        {$IFNDEF BCB}DsDesign,{$ENDIF}
+        ToolsAPI, PSQLMigrator, PSQLDump, Windows,
+     {$ELSE}
+        PropEdits, ComponentEditors,
+     {$ENDIF FPC}
+     Db, PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
+     PSQLMonitor, PSQLTools, PSQLCopy, PSQLMetaData, PSQLDirectQuery, PSQLFields,
+     PSQLNotify;
 
 type
     TAboutProperty = class(TPropertyEditor)
@@ -19,12 +25,14 @@ type
       function  GetValue: string; override;
     end;
 
+{$IFNDEF FPC}
     TMigrateExecutePropertyEditor = class(TPropertyEditor)
     public
       procedure Edit; override;
       function GetAttributes: TPropertyAttributes; override;
       function GetValue: string; override;
     end;
+{$ENDIF}
 
     TPSQLTableNamePropertyEditor =  Class(TStringProperty)
     Public
@@ -108,6 +116,7 @@ type
     function GetVerbCount: Integer; override;
   end;
 
+{$IFNDEF FPC}
 {$IFNDEF BCB}
   TPSQLDSDesigner = class(TDSDesigner)
   public
@@ -126,6 +135,7 @@ type
     function GetVerb(Index: Integer): string; override;
     function GetVerbCount: Integer; override;
   end;
+{$ENDIF}
 {$ENDIF}
 
   TPSQLStoredProcEditor = class(TComponentEditor)
@@ -155,7 +165,7 @@ Procedure RegisterPropertyEditors;
 
 implementation
 
-uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes, DBCommon;
+uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes{$IFNDEF FPC}, DBCommon{$ENDIF};
 
 {$R DB.DCR}
 {$R DBPRO.DCR}
@@ -382,7 +392,11 @@ var
   J: Integer;
   DataSource: TDataSource;
 begin
-  DataSource := TDataSource( Designer.GetComponent(Value ) );
+  {$IFDEF FPC}
+  DataSource := TDataSource(PropertyHook.GetComponent(Value));
+  {$ELSE}
+  DataSource := TDataSource(Designer.GetComponent(Value ));
+  {$ENDIF}
   for J := 0 to Pred( PropCount ) do
     if TDataSet( GetComponent( J ) ).IsLinkedTo( DataSource ) then
       Exit;
@@ -434,7 +448,6 @@ end;
 Procedure RegisterPropertyEditors;
 begin
     RegisterPropertyEditor(TypeInfo(string), TPSQLDatabase, 'CharSet', TPSQLDatabaseCharsetPropertyEditor);
-    RegisterPropertyEditor(TypeInfo(string), TPSQLDump, 'Encoding', TPSQLDatabaseCharsetPropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLCopy, 'Encoding', TPSQLDatabaseCharsetPropertyEditor);
     RegisterPropertyEditor(TypeInfo(TFileName), TPSQLTable, 'TableName', TPSQLTableNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(cardinal), TPSQLParam, 'DataTypeOID', TPSQLParamOidPropertyEditor);
@@ -446,8 +459,18 @@ begin
     RegisterPropertyEditor(TypeInfo(TDataSource), TPSQLTable, 'MasterSource', TPSQLDataSourcePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLTable, 'MasterFields', TPSQLTableFieldLinkProperty);
     RegisterPropertyEditor(TypeInfo(TPSQLDACAbout), nil, '', TAboutProperty);
+    {$IFNDEF FPC}
     RegisterPropertyEditor(TypeInfo(Boolean), TBDE2PSQLDAC, 'Execute', TMigrateExecutePropertyEditor);
+    RegisterPropertyEditor(TypeInfo(string), TPSQLDump, 'Encoding', TPSQLDatabaseCharsetPropertyEditor);
+    {$ENDIF}
 end;
+
+{$IFDEF FPC}
+procedure RegisterFields(const FieldClasses: array of TPersistentClass);
+begin
+  RegisterClasses(FieldClasses);
+end;
+{$ENDIF}
 
 procedure Register;
 begin
@@ -456,8 +479,8 @@ begin
     begin
       ForceDemandLoadState(dlDisable);
       SplashScreenServices.AddPluginBitmap(Format('MicroOLAP PostgresDAC Component Suite %s', [PSQLDBTables.VERSION]),
-                LoadBitmap(FindResourceHInstance(HInstance), 'LOGO'),
-                false,
+                LoadBitmap(FindResourceHInstance(HInstance), 'PSQLLOGO'),
+                False,
                 PSQLDBTables.LICENSETYPE);
     end;
   {$ENDIF}
@@ -465,9 +488,9 @@ begin
   RegisterComponents('PostgresDAC',
       [TPSQLDatabase, TPSQLTable, TPSQLQuery, TPSQLStoredProc, TPSQLUpdateSQL, TPSQLNotify,
       TPSQLBatchExecute, TPSQLMacroQuery, TPSQLMonitor, TPSQLDirectQuery,
-      TPSQLTools, TPSQLCopy, TPSQLDump, TPSQLRestore, TPSQLUser, TBDE2PSQLDAC] );
+      TPSQLTools, TPSQLCopy, {$IFNDEF FPC}TPSQLDump, TPSQLRestore,{$ENDIF} TPSQLUser{$IFNDEF FPC}, TBDE2PSQLDAC{$ENDIF}] );
   RegisterComponentEditor(TPSQLDatabase, TPSQLDatabaseEditor);
-  {$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}
+  {$IFNDEF FPC}{$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}{$ENDIF}
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
   RegisterFields([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField]);
@@ -475,7 +498,7 @@ begin
 end;
 
 { TMigrateExecutePropertyEditor }
-
+{$IFNDEF FPC}
 procedure TMigrateExecutePropertyEditor.Edit;
 begin
    TBDE2PSQLDAC(GetComponent(0)).Migrate;
@@ -491,7 +514,7 @@ function TMigrateExecutePropertyEditor.GetValue: string;
 begin
    Result := 'Press to Migrate...';
 end;
-
+{$ENDIF}
 { TPSQLStoredProcNamePropertyEditor }
 
 function TPSQLStoredProcNamePropertyEditor.GetAttributes: TPropertyAttributes;
@@ -538,9 +561,11 @@ begin
   AComp := GetComponent(0);
   if AComp is TPSQLDatabase then
     DB := AComp as TPSQLDatabase
+{$IFNDEF FPC}
   else
     if (AComp is TPSQLDump) and Assigned((AComp as TPSQLDump).Database) then
       DB := (AComp as TPSQLDump).Database
+{$ENDIF}
     else
       if (AComp is TAbstractCopyObject) and Assigned((AComp as TAbstractCopyObject).Database) then
         DB := (AComp as TAbstractCopyObject).Database;
@@ -621,6 +646,7 @@ begin
 end;
 
 { TPSQLDataSetEditor }
+{$IFNDEF FPC}
 {$IFNDEF BCB}
 procedure TPSQLQueryEditor.ExecuteVerb(Index: Integer);
 var
@@ -703,9 +729,9 @@ begin
   end;
 end;
 {$ENDIF}
+{$ENDIF}
 
 { TPSQLParamOidPropertyEditor }
-
 function TPSQLParamOidPropertyEditor.GetAttributes: TPropertyAttributes;
 begin
   Result := [paValueList, paMultiSelect];
@@ -752,5 +778,3 @@ end;
 initialization
 
 end.
-
-

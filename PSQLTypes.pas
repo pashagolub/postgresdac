@@ -6,8 +6,9 @@ unit PSQLTypes;
 {$Z+,T-} //taken from MySQLDAC 
 interface
 
-uses {$IFDEF FPC}LCLIntf, dynlibs,{$ENDIF}
-     Classes, SysUtils, Math
+uses {$IFDEF FPC}LCLIntf,{$ENDIF}
+     Classes, SysUtils
+     {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
 
@@ -1872,7 +1873,6 @@ type
       Procedure Clear;
       Procedure Delete( Item : Pointer );
       Procedure DeleteAll;
-      Procedure Error( Code, Info : Integer );
       Procedure FreeAll;
       Procedure FreeItem( Item : pointer );
       Function Get( AIndex : integer ) : pointer;
@@ -1998,11 +1998,9 @@ function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
 implementation
 
-uses DB, PSQLDbTables, PSQLAccess{$IFDEF DELPHI_6}, StrUtils{$ENDIF};
-
-const
-  IPv4BitSize = SizeOf(Byte) * 4 * 8;
-  IPv6BitSize = SizeOf(Word) * 8 * 8;
+uses PSQLDbTables, PSQLAccess
+     {$IFDEF DELPHI_6}, StrUtils{$ENDIF}
+     {$IFDEF FPC}, StrUtils{$ENDIF};
 
 type
   T4 = 0..3;
@@ -2371,11 +2369,6 @@ end;
 Procedure TContainer.DeleteAll;
 begin
   FItems.Clear;
-end;
-
-Procedure TContainer.Error( Code, Info : integer );
-begin
-  Raise EListError.Create( 'Container index out of range' );
 end;
 
 Procedure TContainer.FreeAll;
@@ -3151,7 +3144,6 @@ Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO;
 var
   LogSize : Integer;
   dataLen : Integer;
-//  i       : Integer;
 begin
   ZeroMemory(@RecBuff, Sizeof(FLDDesc));
   ZeroMemory(@ValChk, SizeOf(VCHKDesc));

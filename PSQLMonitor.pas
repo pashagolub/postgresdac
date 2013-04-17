@@ -531,7 +531,7 @@ end;
 
 function  TPSQLMonitorHook.SQLString(k:integer):Byte;
 begin
-  Result:=127
+  Result := 127 + k - k;
 end;
 
 procedure TPSQLMonitorHook.DBConnect(db: TNativeConnect; const AExecOK: boolean);

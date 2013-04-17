@@ -7,7 +7,7 @@ interface
 
 Uses Classes, SysUtils, Db, PSQLTypes, Math,
      {$IFDEF DELPHI_6}Variants,{$ENDIF} PSQLDbTables,
-     PSQLConsts, DBConsts, PSQLAccess;
+     PSQLConsts, PSQLAccess;
 
 
 type

@@ -246,9 +246,9 @@ type
       function Ping(Params: TStrings; var PingResult: TPingStatus): DBIResult;
       function OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb: hDBIDb): DBIResult;
       function CloseDatabase(var hDb : hDBIDb) : DBIResult;
-      function OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string;
-               iIndexId: Word; eOpenMode: DBIOpenMode; eShareMode: DBIShareMode; exltMode: XLTMode; bUniDirectional : Boolean;
-               pOptParams: Pointer; var hCursor: hDBICur; AnOptions: TPSQLDatasetOptions; Limit, Offset : Integer): DBIResult;
+      function OpenTable(hDb: hDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word; eOpenMode: DBIOpenMode;
+                          eShareMode: DBIShareMode; var hCursor: hDBICur; AnOptions: TPSQLDatasetOptions;
+                          Limit, Offset : Integer): DBIResult;
       function OpenStoredProcParams(hDb: hDBIDb;pszPName: string; ProcOID:cardinal; List : TList): DBIResult;
       function OpenStoredProcList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
       function OpenTableList(hDb: hDBIDb; pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
@@ -302,7 +302,7 @@ type
       function QAlloc(hDb: hDBIDb;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
       function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
-      function QPrepareExt(hDb: hDBIDb; pszQuery: PChar;propBits: Word;var hStmt: hDBIStmt): DBIResult;
+      //function QPrepareExt(hDb: hDBIDb; pszQuery: PChar;propBits: Word;var hStmt: hDBIStmt): DBIResult;
       function QFree(var hStmt: hDBIStmt): DBIResult;
       function QPrepareProc (hDb: hDBIDb; pszProc: PChar; hParams: pointer; var hStmt: hDBIStmt): DBIResult;
       function QSetProcParams (hStmt: hDBIStmt; Params: TParams): DBIResult;
@@ -2204,7 +2204,7 @@ begin
 
       FIELD_TYPE_TIMESTAMP: begin
                               try
-                                TDateTime(Dest^):= TimeStampToDateTime(MSecsToTimeStamp(Double(Src^)));
+                                TDateTime(Dest^):= TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ELSE}Double{$ENDIF}(Src^)));
                               except
                                 Result:=1;
                               end;
@@ -3669,7 +3669,7 @@ begin
               end;
     fldTIMESTAMP : begin
                      DateD := PDouble(@Dest)^;
-                     Result := TimeStampToDateTime(MSecsToTimeStamp(DateD));
+                     Result := TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(DateD)));
                     end;
   else Result := NULL;
   end;
@@ -3787,7 +3787,7 @@ begin
 
       fldTIMESTAMP : begin
                        DateData := PDouble( Offs )^;
-                       Result := TimeStampToDateTime( MSecsToTimeStamp( DateData ) );
+                       Result := TimeStampToDateTime( MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF} (DateData) ) );
                        FldType := FT_DATETIME;
                      end;
       fldUINT16    : begin
@@ -6266,7 +6266,7 @@ begin
         fldINT16: FldVal := IntToStr(PSmallInt(@Buff)^);
         fldINT32: FldVal := IntToStr(PLongInt(@Buff)^);
         fldFLOAT: FldVal := SQLFloatToStr(PDouble(@Buff)^);
-        fldBOOL:  if PBoolean(@Buff)^ then FldVal := 'True' else FldVal := 'False';
+        fldBOOL:  if PBoolean(@Buff)^ {$IFDEF FPC} <> 0{$ENDIF} then FldVal := 'True' else FldVal := 'False';
         fldZSTRING: FldVal := StrValue(@Buff);
         fldUUID:  FldVal := UuidValue(@Buff);
         fldINT64: FldVal := IntToStr(PInt64(@Buff)^);
@@ -6281,7 +6281,7 @@ begin
                     TimeStamp.Time := PLongInt(@Buff)^;
                     FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),2) + '''';
                   end;
-        fldTIMESTAMP: FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(MSecsToTimeStamp(PDouble(@Buff)^)),0) + '''';
+        fldTIMESTAMP: FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(PDouble(@Buff)^))),0) + '''';
       end;
       WHERE := WHERE + Trim(FldVal);
       RangeClause.Add(WHERE);
@@ -6651,8 +6651,8 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenTable(hDb: hDBIDb; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName : string; iIndexId: Word;
-         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode;exltMode: XLTMode;bUniDirectional : Boolean;pOptParams: Pointer;var hCursor: hDBICur;
+function TPSQLEngine.OpenTable(hDb: hDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word;
+         eOpenMode: DBIOpenMode;eShareMode: DBIShareMode; var hCursor: hDBICur;
          AnOptions: TPSQLDatasetOptions; Limit, Offset : Integer): DBIResult;
 begin
   try
@@ -7213,21 +7213,6 @@ begin
         phCur^ := nil;
       Result := DBIERR_NONE;
     end;
-  except
-    Result := CheckError;
-  end;
-end;
-
-function TPSQLEngine.QPrepareExt (                             { Prepare a query }
-           hDb           : hDBIDb;                          { Database handle }
-           pszQuery      : PChar;                           { Query }
-           propBits      : Word;                            { properties for Prepare, e.g. qprepFORUPDATE }
-           var hStmt     : hDBIStmt                         { Returned statment handle }
-         ): DBIResult;
-begin
-  try
-    Database := hDb;
-    Result := DBIERR_NONE;
   except
     Result := CheckError;
   end;
@@ -7828,7 +7813,7 @@ begin
     fldTIMESTAMP :
               begin
                  DateD := PDouble(@Buff)^;
-                 Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp(DateD)), PSQL_FS);
+                 Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(DateD))), PSQL_FS);
               end;
    else
       Result := string(StrPas(PAnsiChar(@Buff)));
