@@ -7,7 +7,8 @@ unit dclPostgresDACL;
 interface
 
 uses
-  PSQLCOMP, LazarusPackageIntf;
+  PSQLCOMP, PSQLConnFrm, PSQLEdit, PSQLfldlinks, PSQLStoredProcFrm, 
+  PSQLupdsqled, psqlAboutFrm, LazarusPackageIntf;
 
 implementation
 

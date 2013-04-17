@@ -8,7 +8,7 @@
       <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
-        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\"/>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
       <Other>
         <CompilerMessages>
@@ -19,12 +19,68 @@
     </CompilerOptions>
     <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 8.x, 9.x/Pervasive Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL/Pervasive Postgres DB without BDE and ODBC."/>
     <Version Major="2" Minor="9" Release="4"/>
-    <Files Count="1">
+    <Files Count="15">
       <Item1>
         <Filename Value="PSQLCOMP.pas"/>
         <HasRegisterProc Value="True"/>
         <UnitName Value="PSQLCOMP"/>
       </Item1>
+      <Item2>
+        <Filename Value="PSQLConnFrm.dfm"/>
+        <Type Value="Text"/>
+      </Item2>
+      <Item3>
+        <Filename Value="PSQLConnFrm.pas"/>
+        <UnitName Value="PSQLConnFrm"/>
+      </Item3>
+      <Item4>
+        <Filename Value="PSQLEdit.dfm"/>
+        <Type Value="Text"/>
+      </Item4>
+      <Item5>
+        <Filename Value="PSQLEdit.pas"/>
+        <UnitName Value="PSQLEdit"/>
+      </Item5>
+      <Item6>
+        <Filename Value="PSQLfldlinks.dfm"/>
+        <Type Value="Text"/>
+      </Item6>
+      <Item7>
+        <Filename Value="PSQLfldlinks.pas"/>
+        <UnitName Value="PSQLfldlinks"/>
+      </Item7>
+      <Item8>
+        <Filename Value="PSQLStoredProcFrm.dfm"/>
+        <Type Value="Text"/>
+      </Item8>
+      <Item9>
+        <Filename Value="PSQLStoredProcFrm.pas"/>
+        <UnitName Value="PSQLStoredProcFrm"/>
+      </Item9>
+      <Item10>
+        <Filename Value="PSQLupdsqled.dfm"/>
+        <Type Value="Text"/>
+      </Item10>
+      <Item11>
+        <Filename Value="PSQLupdsqled.pas"/>
+        <UnitName Value="PSQLupdsqled"/>
+      </Item11>
+      <Item12>
+        <Filename Value="psqlAboutFrm.lfm"/>
+        <Type Value="LFM"/>
+      </Item12>
+      <Item13>
+        <Filename Value="psqlAboutFrm.lrs"/>
+        <Type Value="LRS"/>
+      </Item13>
+      <Item14>
+        <Filename Value="psqlAboutFrm.pas"/>
+        <UnitName Value="psqlAboutFrm"/>
+      </Item14>
+      <Item15>
+        <Filename Value="psqlAboutFrm.dfm"/>
+        <Type Value="Text"/>
+      </Item15>
     </Files>
     <Type Value="DesignTime"/>
     <RequiredPkgs Count="3">
