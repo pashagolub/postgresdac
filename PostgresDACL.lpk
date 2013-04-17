@@ -1,11 +1,12 @@
 <?xml version="1.0"?>
 <CONFIG>
-  <Package Version="3">
+  <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="PostgresDACL"/>
+    <AddToProjectUsesSection Value="True"/>
     <Author Value="MicroOLAP Technologies LTD."/>
     <CompilerOptions>
-      <Version Value="10"/>
+      <Version Value="11"/>
       <PathDelim Value="\"/>
       <SearchPaths>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
@@ -22,9 +23,9 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 7.x, 8.x/Pervasive Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL/Pervasive Postgres DB without BDE and ODBC."/>
-    <Version Major="2" Minor="6" Release="1"/>
-    <Files Count="14">
+    <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 8.x, 9.x/Pervasive Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL/Pervasive Postgres DB without BDE and ODBC."/>
+    <Version Major="2" Minor="9" Release="4"/>
+    <Files Count="13">
       <Item1>
         <Filename Value="PSQLTypes.pas"/>
         <UnitName Value="PSQLTypes"/>
@@ -74,13 +75,9 @@
         <UnitName Value="PSQLExtMask"/>
       </Item12>
       <Item13>
-        <Filename Value="psqlAboutFrm.pas"/>
-        <UnitName Value="psqlAboutFrm"/>
-      </Item13>
-      <Item14>
         <Filename Value="PSQLFields.pas"/>
         <UnitName Value="PSQLFields"/>
-      </Item14>
+      </Item13>
     </Files>
     <RequiredPkgs Count="1">
       <Item1>

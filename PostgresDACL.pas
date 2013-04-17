@@ -2,14 +2,14 @@
   This source is only used to compile and install the package.
  }
 
-unit PostgresDACL; 
+unit PostgresDACL;
 
 interface
 
 uses
   PSQLTypes, PSQLAccess, PSQLDbTables, PSQLBatch, PSQLMacroQuery, PSQLMonitor, 
   PSQLTools, PSQLConsts, PSQLCommon, PSQLCopy, PSQLDirectQuery, PSQLExtMask, 
-  psqlAboutFrm, PSQLFields;
+  PSQLFields;
 
 implementation
 
