@@ -27,4 +27,10 @@ del /Q /S *.ils > nul
 del /Q /S *.identcache > nul
 del /Q /S *.local > nul
 del /Q /S __history > nul
+
+del /Q /S *.ppu > nul
+del /Q /S *.compiled > nul
+del /Q /S *.o > nul
+del /Q /S *.obj > nul
+
 rmdir __history > nul
