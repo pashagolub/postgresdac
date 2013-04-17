@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<CONFIG>
+  <Package Version="4">
+    <PathDelim Value="\"/>
+    <Name Value="dclPostgresDACL"/>
+    <Author Value="MicroOLAP Technologies LTD."/>
+    <CompilerOptions>
+      <Version Value="11"/>
+      <PathDelim Value="\"/>
+      <SearchPaths>
+        <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)\"/>
+      </SearchPaths>
+      <Other>
+        <CompilerMessages>
+          <MsgFileName Value=""/>
+        </CompilerMessages>
+        <CompilerPath Value="$(CompPath)"/>
+      </Other>
+    </CompilerOptions>
+    <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 8.x, 9.x/Pervasive Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL/Pervasive Postgres DB without BDE and ODBC."/>
+    <Version Major="2" Minor="9" Release="4"/>
+    <Files Count="1">
+      <Item1>
+        <Filename Value="PSQLCOMP.pas"/>
+        <HasRegisterProc Value="True"/>
+        <UnitName Value="PSQLCOMP"/>
+      </Item1>
+    </Files>
+    <Type Value="DesignTime"/>
+    <RequiredPkgs Count="3">
+      <Item1>
+        <PackageName Value="IDEIntf"/>
+      </Item1>
+      <Item2>
+        <PackageName Value="PostgresDACL"/>
+      </Item2>
+      <Item3>
+        <PackageName Value="FCL"/>
+      </Item3>
+    </RequiredPkgs>
+    <UsageOptions>
+      <UnitPath Value="$(PkgOutDir)"/>
+    </UsageOptions>
+    <PublishOptions>
+      <Version Value="2"/>
+    </PublishOptions>
+  </Package>
+</CONFIG>
