@@ -31,7 +31,7 @@ begin
      Check(IsValidIP(SL[i]), 'correct ' + SL[i]);
    SL.LoadFromFile('TestData\incorrect_ips.txt');
    for i := 0 to SL.Count - 1 do
-     Check(IsValidIP(SL[i]), 'incorrect ' + SL[i]);
+     Check(not IsValidIP(SL[i]), 'incorrect ' + SL[i]);
  finally
    SL.Free;
  end;
