@@ -1969,6 +1969,7 @@ function DeBracketedStr(const Value: string; ALeftBracket: char = '('; ARightBra
 {$IFNDEF DELPHI_12}
 type
  TCharSet = set of char;
+ TRecordBuffer = PAnsiChar;
 
  function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
 {$ENDIF}

@@ -25,6 +25,23 @@
 //---------------------------
 // Delphi/Builder versions
 //---------------------------
+//DELPHI 18 (Delphi XE4)
+{$IFDEF VER250}
+  {$UNDEF NEXTGEN}
+  {$DEFINE FMX_AVAILABLE}
+  {$DEFINE DELPHI_18}
+  {$DEFINE DELPHI_17}
+  {$DEFINE DELPHI_16}
+  {$DEFINE DELPHI_15}
+  {$DEFINE DELPHI_14}
+  {$DEFINE DELPHI_12}
+  {$DEFINE DELPHI_11}
+  {$DEFINE DELPHI_10}
+  {$DEFINE DELPHI_9}
+  {$DEFINE DELPHI_7}
+  {$DEFINE DELPHI_6}
+{$ENDIF}
+
 //DELPHI 17 (Delphi XE3)
 {$IFDEF VER240}
   {$UNDEF NEXTGEN}

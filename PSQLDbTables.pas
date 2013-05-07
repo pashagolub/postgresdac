@@ -593,7 +593,7 @@ type
     function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
     {$IFDEF DELPHI_17}
-    procedure DataConvert(Field: TField; Source, Dest: TValueBuffer; ToNative: Boolean); override;
+    procedure DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean); override;
     {$ELSE}
     procedure DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean); override;
     {$ENDIF}
@@ -733,8 +733,8 @@ type
     function GetFieldData(Field: TField; Buffer: Pointer): Boolean; override;
     function GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean; {$IFNDEF FPC}override;{$ENDIF}
     {$IFDEF DELPHI_17}
-    function GetFieldData(FieldNo: Integer; Buffer: TValueBuffer): Boolean; override;
-    function GetFieldData(Field: TField; Buffer: TValueBuffer): Boolean; override;
+    function GetFieldData(FieldNo: Integer; {$IFDEF DELPHI_18}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
+    function GetFieldData(Field: TField; {$IFDEF DELPHI_18}var{$ENDIF} Buffer: TValueBuffer): Boolean; override;
     {$ENDIF}
     procedure GetIndexInfo;
     function  Locate(const KeyFields: string; const KeyValues: Variant;
@@ -2731,9 +2731,9 @@ var
 begin
   CheckActive;
   if (State = dsCalcFields) then
-    BufPtr := CalcBuffer
+    BufPtr := TRecordBuffer(CalcBuffer)
   else
-    BufPtr := ActiveBuffer;
+    BufPtr := TRecordBuffer(ActiveBuffer);
   Result := PRecInfo(BufPtr + FRecInfoOfs).RecordNumber;
 end;
 
@@ -2769,7 +2769,11 @@ begin
     dsBrowse: if IsEmpty then
                  RecBuf := nil
               else
-                 RecBuf := ActiveBuffer;
+                {$IFDEF DELPHI_12}
+                RecBuf := TRecordBuffer(ActiveBuffer);
+                {$ELSE}
+                RecBuf := ActiveBuffer;
+                {$ENDIF}
 
     dsEdit, dsInsert:
       {$IFDEF DELPHI_12}
@@ -2785,7 +2789,12 @@ begin
       RecBuf := PAnsiChar(FKeyBuffer) + SizeOf(TKeyBuffer);
       {$ENDIF}
 
-    dsCalcFields: RecBuf := CalcBuffer;
+    dsCalcFields:
+      {$IFDEF DELPHI_12}
+      RecBuf := TRecordBuffer(CalcBuffer);
+      {$ELSE}
+      RecBuf := CalcBuffer;
+      {$ENDIF}
 
     dsFilter:
       {$IFDEF DELPHI_12}
@@ -2797,7 +2806,11 @@ begin
     dsNewValue: if FInUpdateCallback then
                    RecBuf := FUpdateCBBuf.pNewRecBuf
                 else
-                   RecBuf := ActiveBuffer;
+                  {$IFDEF DELPHI_12}
+                  RecBuf := TRecordBuffer(ActiveBuffer);
+                  {$ELSE}
+                  RecBuf := ActiveBuffer;
+                  {$ENDIF}
 
     dsOldValue: if FInUpdateCallback then
                    RecBuf := FUpdateCBBuf.pOldRecBuf
@@ -3012,7 +3025,7 @@ begin
   begin
     if (State = dsBlockRead) then
     begin
-      RecBuf := TempBuffer;
+      RecBuf := TRecordBuffer(TempBuffer);
       Result := TRUE;
     end
     else
@@ -3028,7 +3041,7 @@ begin
 end;
 
 {$IFDEF DELPHI_17}
-function TPSQLDataSet.GetFieldData(Field: TField; Buffer: TValueBuffer): Boolean;
+function TPSQLDataSet.GetFieldData(Field: TField; {$IFDEF DELPHI_18}var{$ENDIF} Buffer: TValueBuffer): Boolean;
 var
   RecBuf: PByte;
 begin
@@ -3038,7 +3051,7 @@ begin
   begin
     if State = dsBlockRead then
     begin
-      RecBuf := @TempBuffer[0];
+      RecBuf := PByte(TempBuffer);
       Result := True;
     end else
       Result := GetActiveRecBuf(RecBuf);
@@ -3051,7 +3064,7 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: TValueBuffer): Boolean;
+function TPSQLDataSet.GetFieldData(FieldNo: Integer; {$IFDEF DELPHI_18}var{$ENDIF} Buffer: TValueBuffer): Boolean;
 var
   IsBlank: Boolean;
   RecBuf: PByte;
@@ -3152,13 +3165,13 @@ end;
 
 procedure TPSQLDataSet.SetBlobData(Field : TField; Buffer : {$IFDEF DELPHI_12}TRecordBuffer{$ELSE}PAnsiChar{$ENDIF}; Value : TBlobData);
 begin
-  if (Buffer = ActiveBuffer) then
+  if (Buffer = TRecordBuffer(ActiveBuffer)) then
     TBlobDataArray(PAnsiChar(Buffer) + FBlobCacheOfs)[ Field.Offset ] := Value;
 end;
 
 procedure TPSQLDataSet.CloseBlob(Field: TField);
 begin
-  Engine.FreeBlob(Handle, ActiveBuffer, Field.FieldNo);
+  Engine.FreeBlob(Handle, Pointer(ActiveBuffer), Field.FieldNo);
 end;
 
 {$IFNDEF FPC}
@@ -3205,9 +3218,9 @@ end;
 procedure TPSQLDataSet.InternalEdit;
 begin
   FOldBuffer := AllocRecordBuffer;
-  Move(ActiveBuffer^,FOldBuffer[0],FRecBufSize);
-  Check(Engine, Engine.GetRecord(FHandle, {dbiNoLock}dbiWriteLock, ActiveBuffer, nil)); //locking stuff need attention
-  ClearBlobCache(ActiveBuffer);
+  Move(Pointer(ActiveBuffer)^, FOldBuffer[0], FRecBufSize);
+  Check(Engine, Engine.GetRecord(FHandle, dbiWriteLock, Pointer(ActiveBuffer), nil));
+  ClearBlobCache(Pointer(ActiveBuffer));
 end;
 
 procedure TPSQLDataSet.InternalInsert;
@@ -3234,10 +3247,10 @@ begin
       {$ENDIF}//pasha_golub 10.08.06
       
       if State = dsEdit then
-        Check(Engine, Engine.ModifyRecord(FHandle,FOldBuffer, ActiveBuffer, TRUE,RecNo))
+        Check(Engine, Engine.ModifyRecord(FHandle,FOldBuffer, Pointer(ActiveBuffer), TRUE,RecNo))
       else
         if State = dsInsert then
-          Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, ActiveBuffer));
+          Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, Pointer(ActiveBuffer)));
     end; //else
   if assigned(fOldBuffer) then  FreeRecordBuffer(FOldBuffer);
 end;
@@ -3248,7 +3261,7 @@ var
 begin
   if not Assigned(FUpdateObject) then
    begin
-    Result := Engine.DeleteRecord(FHandle, ActiveBuffer);
+    Result := Engine.DeleteRecord(FHandle, Pointer(ActiveBuffer));
     if (Result <> DBIERR_NONE) then Check(Engine, Result);
    end
   else
@@ -4048,7 +4061,7 @@ begin
 
       if SyncCursor then
       begin
-        TNativeDataSet(FHandle).InitRecord(ActiveBuffer);
+        TNativeDataSet(FHandle).InitRecord(Pointer(ActiveBuffer));
         TNativeDataSet(FHandle).SetToRecord(R);
         Resync([rmExact, rmCenter]);
         DoAfterScroll();
@@ -4127,7 +4140,7 @@ begin
     end;
 
     Engine.ActivateFilter(FHandle, Filter);
-    Status := Engine.GetNextRecord(FHandle, dbiNoLock, ActiveBuffer, nil);
+    Status := Engine.GetNextRecord(FHandle, dbiNoLock, Pointer(ActiveBuffer), nil);
     Engine.DropFilter(FHandle, Filter);
   finally
     Fields.Free();
@@ -4167,7 +4180,7 @@ begin
   Node := nil; //make compiler happy
   CheckBrowseMode;
   CursorPosChanged;
-  Buffer := TempBuffer;
+  Buffer := Pointer(TempBuffer);
   Fields := TList{$IFDEF DELPHI_17}<TField>{$ENDIF}.Create;
   try
     GetFieldList(Fields, KeyFields);
@@ -4478,7 +4491,7 @@ begin
 end;
 
 {$IFDEF DELPHI_17}
-procedure TPSQLDataSet.DataConvert(Field: TField; Source, Dest: TValueBuffer; ToNative: Boolean);
+procedure TPSQLDataSet.DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean);
 begin
   if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
     Move(Source[0], Dest[0], SizeOf(TDateTime))
@@ -4505,7 +4518,7 @@ procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: TDataEventInfo);
     with FParentDataSet do
      if not IsEmpty then
        for I := 0 to BookmarkSize - 1 do
-         ParentPosition := ParentPosition + Byte(ActiveBuffer[FBookmarkOfs+I]);
+         ParentPosition := ParentPosition + Byte(TRecordBuffer(ActiveBuffer)[FBookmarkOfs+I]);
     if (FLastParentPos = 0) or (ParentPosition <> FLastParentPos) then
     begin
       First;
@@ -5344,7 +5357,7 @@ begin
 	begin
    try
 		TNativeDataSet(FHandle).SortBy(FieldNames);
-    TNativeDataset(Fhandle).SetRowPosition(-1, -1, ActiveBuffer);
+    TNativeDataset(Fhandle).SetRowPosition(-1, -1, Pointer(ActiveBuffer));
     Resync([]);
    except
     FSortFieldNames := '';
@@ -5359,7 +5372,7 @@ begin
   if Active and (RecordCount > 1) then
   begin
 		TNativeDataSet(FHandle).SortBy(FieldNames, Compare);
-    TNativeDataset(Fhandle).SetRowPosition(-1, -1, ActiveBuffer);
+    TNativeDataset(Fhandle).SetRowPosition(-1, -1, Pointer(ActiveBuffer));
   end;
 end;
 
@@ -5437,13 +5450,13 @@ begin
     ExecSQL;
     if Assigned(FDataSet) then
     begin
-       TNativeDataset(FDataset.Handle).FreeBlobStreams(FDataset.ActiveBuffer); //30.10.2012
+       TNativeDataset(FDataset.Handle).FreeBlobStreams(Pointer(FDataset.ActiveBuffer)); //30.10.2012
        RN := TNativeDataset(FDataset.Handle).RecordNumber;
        TNativeDataset(FDataset.Handle).OpenTable;
        TNativeDataset(FDataset.Handle).RecordState := tsPos;
        if UpdateKind <> ukDelete then
         begin
-         if not TNativeDataset(FDataset.Handle).SetRowPosition(-1, 0, FDataset.ActiveBuffer) then
+         if not TNativeDataset(FDataset.Handle).SetRowPosition(-1, 0, Pointer(FDataset.ActiveBuffer)) then
           try
            TNativeDataset(FDataset.Handle).SettoSeqNo(RN + 1);
           except
@@ -5556,7 +5569,7 @@ begin
       if Old then
         Check(FDataset.Engine,FDataset.Engine.GetFieldOldValue(FDataset.Handle, PName, Param))
       else
-        Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle, FDataset.ActiveBuffer, PName, Param, UpdateKind <> ukModify));
+        Check(FDataset.Engine,FDataset.Engine.GetFieldValueFromBuffer(FDataset.Handle, Pointer(FDataset.ActiveBuffer), PName, Param, UpdateKind <> ukModify));
       if Param.DataType = ftUnknown then
         Param.DataType := ftString;
     end;
@@ -6683,7 +6696,7 @@ begin
   begin
     if Mode = bmRead then
     begin
-      FCached := FDataSet.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
+      FCached := FDataSet.FCacheBlobs and (FBuffer = TRecordBuffer(FDataSet.ActiveBuffer)) and
                  (FField.IsNull or (FDataSet.GetBlobData(FField, FBuffer) <> {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF}));
       OpenMode := dbiReadOnly;
      end
@@ -6783,7 +6796,7 @@ begin
           begin
             {if FField.Transliterate then
               TNativeToAnsiBuf(Engine, @Buffer, @Buffer, Result);}
-            if FDataset.FCacheBlobs and (FBuffer = FDataSet.ActiveBuffer) and
+            if FDataset.FCacheBlobs and (FBuffer = TRecordBuffer(FDataSet.ActiveBuffer)) and
               (FMode = bmRead) and not FField.Modified and (FPosition = FCacheSize) then
             begin
               FCacheSize := FPosition + Result;
