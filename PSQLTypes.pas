@@ -1918,8 +1918,6 @@ const
 
 function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 function GetTable(const SQL: String; var Aliace : String): String;
-function CompareBegin(Str1, Str2: ansistring): Boolean;
-
 
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
@@ -2742,15 +2740,6 @@ begin
         end;
     until (CurSection <> stFrom) or (SQLToken in [stEnd, stTableName]);
   end;
-end;
-
-
-
-function CompareBegin(Str1, Str2: ansistring): Boolean;
-begin
-  if ((Str1 = '') or (Str2 = '')) and (Str1 <> Str2) then
-    Result := False  else
-    Result := (StrLIComp(PAnsiChar(Str1), PAnsiChar(Str2), Min(Length(Str1), Length(Str2))) = 0);
 end;
 
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;

@@ -922,6 +922,7 @@ uses PSQLDbTables, PSQLMonitor,
      {$IFNDEF DELPHI_5}StrUtils,{$ENDIF}
      {$IFDEF MSWINDOWS}Windows,{$ENDIF}
      {$IFNDEF FPC}DbConsts,{$ENDIF}
+     {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings,{$ENDIF}{$ENDIF}
      PSQLExtMask, PSQLFields;
 
 {**************************************************************************}
@@ -2012,7 +2013,7 @@ begin
     S := AnsiString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    StrPCopy(Q, S);
+    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
     Result := PQExec(AConnection.Handle, Q);
   finally
    FreeMem(Q);
@@ -2031,7 +2032,7 @@ begin
     S := AnsiString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    StrPCopy(Q, S);
+    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
@@ -2040,7 +2041,7 @@ begin
       else
         S := AnsiString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
-      StrPCopy(paramValues[i], S);
+      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(paramValues[i], S);
      end;
     try
       Result := PQexecParams(AConnection.Handle, Q, AParams.Count, nil, @paramValues[0], nil, nil, 0);
@@ -2065,14 +2066,14 @@ begin
    begin
      K := UTF8Encode(AParams.Names[i]); //since this is connection assume we'll use UTF8
      GetMem(ConnKeywords[i], Length(K) + 1);
-     StrPCopy(ConnKeywords[i], K);
+     {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(ConnKeywords[i], K);
      {$IFDEF DELPHI_7}
      V := UTF8Encode(AParams.ValueFromIndex[i]);
      {$ELSE}
      V := UTF8Encode(Copy(AParams[I], Length(K) + 2, MaxInt));
      {$ENDIF}
      GetMem(ConnValues[i], Length(V) + 1);
-     StrPCopy(ConnValues[i], V);
+     {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(ConnValues[i], V);
    end;
    try
      {$IFDEF M_DEBUG}
@@ -2227,7 +2228,7 @@ begin
       CopyMemory(Dest, Src, iField.NativeSize)
     else
     {$ENDIF}
-      StrLCopy(PAnsiChar(Dest), PAnsiChar(Src), iField.NativeSize);
+      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLCopy(PAnsiChar(Dest), PAnsiChar(Src), iField.NativeSize);
   end;
 
  if Result = 1 then
@@ -4654,7 +4655,7 @@ begin
     try
       Result := PQfnumber(FStatement, P);
     finally
-      StrDispose(P);
+      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
     end;
    end;
 end;
@@ -5104,7 +5105,7 @@ begin
                                       Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
                                       continue;
                                   end;
-             FIELD_TYPE_UUID: StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
+             FIELD_TYPE_UUID: {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
            else
              if dsoTrimCharFields in FOptions then
                FldValue := TrimRight(FldValue);
@@ -5115,7 +5116,7 @@ begin
                StrCopy(PAnsiChar(Data), PAnsiChar(FldValue))
              {$ENDIF}
              else
-              StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
+              {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
            end;
            Move(Data^, (PAnsiChar(FCurrentBuffer) + 1)^, Size);
            PAnsiChar(FCurrentBuffer)^ := #1; {null indicator 1=Data 0=null}
@@ -5807,7 +5808,7 @@ Var
       Result := 0;
       if FieldBuffer(ColumnNumber-1) = nil then Exit;
       P := FieldBuffer(ColumnNumber-1);
-      Len := StrLen(P);
+      Len := {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLen(P);
       Result := 0;
       case FConnect.NativeByteaFormat of
         nbfEscape:
@@ -7816,7 +7817,7 @@ begin
                  Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(DateD))), PSQL_FS);
               end;
    else
-      Result := string(StrPas(PAnsiChar(@Buff)));
+      Result := string(AnsiString(PAnsiChar(@Buff)));
    end;
 end;
 
@@ -8293,7 +8294,7 @@ begin
   {$ELSE}
   Result := StrAlloc(Length(S) + 1);
   {$ENDIF}
-  StrPCopy(Result, _S);
+  {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Result, _S);
 end;
 
 function TNativeConnect.StringToRawS(S: string): AnsiString;
@@ -9354,7 +9355,7 @@ begin
       Exit;
      end;
 
-    SZ := StrLen(AVal);
+    SZ := {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLen(AVal);
     GetMem(Buffer, 2*SZ+1);
     try
     ZeroMemory(Buffer, 2*SZ+1);
@@ -9616,7 +9617,7 @@ begin
       Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)));
     {else
       CheckResult;}
-    StrDispose(P);
+    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
   finally
    PQClear(Stmt);
   end;
@@ -9768,7 +9769,7 @@ begin
       end
     else
       CheckResult;
-    StrDispose(P);
+    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
   finally
    PQClear(Stmt);
   end;

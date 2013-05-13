@@ -85,6 +85,7 @@ type
 implementation
 
 uses
+  {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings,{$ENDIF}{$ENDIF}
   PSQLAccess;
 
 { TPSQLCustomDirectQuery }
@@ -133,7 +134,7 @@ begin
   try
    Result := PQfnumber(FStatement, P);
   finally
-   StrDispose(P);
+   {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
   end;
 end;
  

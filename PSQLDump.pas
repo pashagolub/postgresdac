@@ -444,7 +444,8 @@ begin
   begin
     s1 := PAnsiChar(UTF8Encode(FParams[i]));
     GetMem(s, Length(s1) + 1);
-    StrCopy(s, s1);
+    //StrCopy(s, s1);
+    Move(s1^, s^, (Length(s1) + 1) * SizeOf(AnsiChar));
     p^ := Integer(s);
     Inc(p);
   end;
