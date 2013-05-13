@@ -296,7 +296,6 @@ type
       function DropFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
-      function GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszError: PChar): DBIResult;
       function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
       function QExecDirect(hDb: hDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
       function QAlloc(hDb: hDBIDb;var hStmt: hDBIStmt): DBIResult;
@@ -7133,25 +7132,6 @@ begin
   except
     Result := CheckError;
   end;
-end;
-
-function TPSQLEngine.GetErrorEntry(uEntry: Word;var ulNativeError: Longint;pszError: PChar): DBIResult;
-Var
-  tmp        : String;
-
-  procedure AddMessage( P : pChar );
-  begin
-    if ( StrLen( P ) > 0 ) then
-      if ( Tmp <> '' ) then
-        Tmp := Tmp + #13#10 + StrPas( P ) else
-        Tmp := StrPas( P );
-  end;
-
-begin
-  ulNativeError := -100;
-  tmp := 'Error';
-  StrLCopy(pszError, pChar(tmp), SizeOf(DBIPATH)- 1);
-  Result := 0;
 end;
 
 function TPSQLEngine.GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
