@@ -2630,7 +2630,7 @@ procedure TPSQLDataSet.InitRecord(Buffer : TRecordBuffer);
 begin
   {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED OFF}{$ENDIF}
   Inherited InitRecord(Buffer);
-  {$WARN SYMBOL_DEPRECATED ON}
+  {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED ON}{$ENDIF}
   ClearBlobCache(Buffer);
   with PRecInfo(Buffer + FRecInfoOfs)^ do
   begin
@@ -2668,7 +2668,7 @@ begin
         ClearBlobCache(Buffer);
         {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED OFF}{$ENDIF}
         GetCalcFields(Buffer);
-        {$WARN SYMBOL_DEPRECATED ON}
+        {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED ON}{$ENDIF}
         Check(Engine, Engine.GetBookmark(FHandle, Buffer + FBookmarkOfs));
         Result := grOK;
       end;
