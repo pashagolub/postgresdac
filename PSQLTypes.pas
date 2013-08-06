@@ -348,6 +348,7 @@ const
     FIELD_TYPE_TSTZRANGE		= 3910;
     FIELD_TYPE_DATERANGE		= 3912;
     FIELD_TYPE_INT8RANGE		= 3926;
+    FIELD_TYPE_A_INT8RANGE  = 3927;
 
 
     PSEUDO_TYPE_VOID              = 2278;
@@ -364,7 +365,7 @@ const
     PSEUDO_OPAQUE                 = 2282;
     PSEUDO_ANY_ENUM               = 3500;
     
-    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_INT8RANGE; //pg: 04.04.2012 need to be changed if new built-in type appears
+    MAX_BUILTIN_TYPE_OID = FIELD_TYPE_A_INT8RANGE; //pg: 04.04.2012 need to be changed if new built-in type appears
 
 
     MAXARRFLDTYPES = 38;
