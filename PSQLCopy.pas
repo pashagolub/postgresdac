@@ -21,7 +21,7 @@ type
 
   EPSQLCopyException = class(Exception);
 
-  TCopyOption = (coUseOIDs, coBinary, coCSV, coHeader, coNULL, coDelimiter, coQuote, coEscape);
+  TCopyOption = (coUseOIDs, coBinary, coCSV, coHeader, coNULL, coDelimiter, coQuote, coEscape, coFreeze);
   TCopyOptions = set of TCopyOption;
 
   TAbstractCopyObject = class(TComponent)
@@ -396,6 +396,8 @@ function TCustomPSQLCopy.GetSQLStatement: string;
     begin
       Result := 'FORMAT ' + cFormat[GetDataFormat];
       if coUseOIDs in FOptions then Result := Result + ', OIDS true';
+      if coFreeze in FOptions then Result := Result + ', FREEZE true';
+
       if not (coBinary in FOptions) then
        begin
         if (coDelimiter in FOptions) and (FDelimiter > #0) then
