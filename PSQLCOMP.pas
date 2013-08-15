@@ -234,14 +234,14 @@ var
   DB: TPSQLDatabase;
   Cursor: TCursor;
 begin
-  If GetComponent(0) is TPSQLTable then
+  if GetComponent(0) is TPSQLTable then
     DB := (GetComponent(0) as TPSQLTable).Database
   else
-    If GetComponent(0) is TPSQLCopy then
+    if GetComponent(0) is TPSQLCopy then
       DB := (GetComponent(0) as TPSQLCopy).Database
     else
       DB := nil;
-   if Db = nil then raise EDatabaseError.Create('Database property is not set');
+  if Db = nil then raise EDatabaseError.Create('Database property is not set');
   Cursor := Screen.Cursor;
   try
    DB.GetTableNames('', False, List);
