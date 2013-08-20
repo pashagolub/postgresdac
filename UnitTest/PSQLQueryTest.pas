@@ -386,13 +386,13 @@ begin
 //multicolumn
   FPSQLQuery.SQL.Text := 'SELECT a, b, a*b AS res FROM generate_series(1,10) v(a), generate_series(1,10) w(b)';
   FPSQLQuery.Open;
-  a := Random(10); b := Random(10);
+  a := Random(10) + 1; b := Random(10) + 1;
   Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), b]), 'res') = a*b,
           'Multicolumn Lookup failed');
-  a := Random(10); b := Random(10);
+  a := Random(10) + 1; b := Random(10) + 1;
   Check(FPSQLQuery.Lookup('a;b', VarArrayOf([a, b]), 'res') = a*b,
           'Multicolumn Lookup failed');
-  a := Random(10); b := Random(10);
+  a := Random(10) + 1; b := Random(10) + 1;
   Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), IntToStr(b)]), 'res') = a*b,
           'Multicolumn Lookup failed');
 end;
