@@ -107,9 +107,6 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
-  type
-   EPGLibraryNotFoundException = class(Exception);
-
 {$IFDEF UNDER_DELPHI_6}
    type
     PBoolean      = ^Boolean;
@@ -184,6 +181,8 @@ var
   PSQL_DLL             : string =
                                 {$IFDEF MSWINDOWS}'libpq.dll'{$ENDIF}
                                 {$IFDEF MACOS}'libpq.dylib'{$ENDIF};
+
+
 
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
   OEMConv              : Boolean; //Global OEM->ANSI Variable
@@ -3183,6 +3182,9 @@ Procedure LoadPSQLLibrary(LibPQPath: string = '');
 
 begin
    if LibPQPath = EmptyStr then LibPQPath := PSQL_DLL;
+  {$IFDEF M_DEBUG}
+   LogDebugMessage('LIB', 'Trying load ' + LibPQPath);
+  {$ENDIF}
    if ( SQLLibraryHandle <= HINSTANCE_ERROR ) then
    begin
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
@@ -3298,7 +3300,7 @@ end;
 Procedure CheckLibraryLoaded;
 begin
   if SQLLibraryHandle <= HINSTANCE_ERROR then
-      raise EPGLibraryNotFoundException.CreateFmt('Error loading client library "%s"', [PSQL_DLL]);
+      RaiseLastOSError;
 end;
 
 function MaskSearch(const Str, Mask: string;
