@@ -2664,7 +2664,6 @@ end;
 
 procedure TNativeConnect.TableList(pszWild: string; SystemTables: Boolean; List: TStrings);
 var
-   CRec : string;
    I : LongInt;
    sql : String;
    RES : PPGresult;
@@ -2672,28 +2671,25 @@ begin
   InternalConnect;
   List.Clear;
 
-  Sql := 'SELECT c.oid :: regclass FROM pg_class as c, pg_namespace as ns'+
-         ' WHERE (c.relkind = ''r'' OR c.relkind = ''v'')'+
-         ' AND (ns.oid = c.relnamespace)';
+  Sql := 'SELECT c.oid :: regclass FROM pg_class as c, pg_namespace as ns' +
+         ' WHERE c.relkind IN (''r'', ''v'') AND (ns.oid = c.relnamespace)';
 
   if not SystemTables then
     Sql := SQL + ' AND (ns.nspname NOT LIKE ''pg_%'')'+
                  ' AND (ns.nspname NOT LIKE ''information_schema'')';
 
-  if pszWild <> '' then
+  if pszWild > '' then
     Sql := Sql + ' AND relname LIKE '''+ pszWild+ '''';
   Sql := Sql + ' ORDER BY 1';
   RES := _PQExecute(Self, Sql);
-  if Assigned(RES) then
-  begin
-     CheckResult;
-     for I := 0 to PQntuples(RES)-1 do
-     begin
-        CREC := RawToString(PQgetvalue(RES,I,0)); //'"'+RawToString(PQgetvalue(RES,I,1))+'"."'+RawToString(PQgetvalue(RES,I,0))+'"';
-        List.Add(CREC);
-     end;
+  try
+    CheckResult;
+    if Assigned(RES) then
+     for I := 0 to PQntuples(RES) - 1 do
+       List.Add(RawToString(PQgetvalue(RES,I,0)));
+  finally
+    PQclear(RES);
   end;
-  PQclear(RES);
 end;
 
 procedure TNativeConnect.UserList(pszWild : string; List : TStrings);
@@ -7221,7 +7217,7 @@ var
 begin
   Result := DBIERR_NONE;
 
-  ExceptionPtr := ExceptObject;
+  ExceptionPtr := AcquireExceptionObject; // ExceptObject;
 
   if not Assigned(ExceptionPtr) then Exit;
 
@@ -7247,6 +7243,8 @@ begin
      FNativeErrorsourcefile:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefile;
      FNativeErrorsourceline:= EPSQLException(ExceptionPtr).FPSQLErrorsourceline;
      FNativeErrorsourcefunc:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefunc;
+     TObject(ExceptionPtr).Free;
+     ReleaseExceptionObject;
    end
   else
    raise TObject(ExceptionPtr);
