@@ -53,6 +53,7 @@ type
   //locate
     procedure TestLocateStr;
     procedure TestLocateInt;
+    procedure TestLookup;
   //TFieldDef properties populated
     procedure TestRequired;
   //date and time checks
@@ -369,6 +370,31 @@ begin
           'Multicolumn Locate failed with loPartialKey option');
   Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([5, 'FiV']), [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
           'Multicolumn Locate failed with full options');
+end;
+
+procedure TestTPSQLQuery.TestLookup;
+var a, b: integer;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT col1, cash_words(col1::money)::varchar(50) AS col2 FROM generate_series(1, 6) AS g(col1)';
+  FPSQLQuery.Open;
+//single column
+  Check(FPSQLQuery.Lookup('col2', 'Two dollars and zero cents', 'col1') = 2,
+          'Lookup failed');
+  Check(FPSQLQuery.Lookup('col1', 2, 'col2') = 'Two dollars and zero cents',
+          'Locate failed');
+
+//multicolumn
+  FPSQLQuery.SQL.Text := 'SELECT a, b, a*b AS res FROM generate_series(1,10) v(a), generate_series(1,10) w(b)';
+  FPSQLQuery.Open;
+  a := Random(10); b := Random(10);
+  Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), b]), 'res') = a*b,
+          'Multicolumn Lookup failed');
+  a := Random(10); b := Random(10);
+  Check(FPSQLQuery.Lookup('a;b', VarArrayOf([a, b]), 'res') = a*b,
+          'Multicolumn Lookup failed');
+  a := Random(10); b := Random(10);
+  Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), IntToStr(b)]), 'res') = a*b,
+          'Multicolumn Lookup failed');
 end;
 
 procedure TestTPSQLQuery.TestRequired;
