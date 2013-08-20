@@ -15,7 +15,7 @@ uses  SysUtils, Classes, Db,
       PSQLAccess, PSQLTypes;
 
 const
-    VERSION : string = '2.9.6';
+    VERSION : string = '2.9.7-DEV';
     {$IFDEF MICROOLAP_BUSINESS_LICENSE}
     LICENSETYPE : string = 'Business License';
     {$ELSE}
@@ -175,6 +175,17 @@ type
   end;
 
   ENoResultSet = class(EDatabaseError);
+
+  TPSQLLookupList = class(TLookupList)
+  private
+    FList: TList;
+  public
+    constructor Create; override;
+    destructor Destroy; override;
+    procedure Add(const AKey, AValue: Variant); override;
+    procedure Clear; override;
+    function ValueOfKey(const AKey: Variant): Variant; override;
+  end;
 
   TParamClass = class of TParam;
 
@@ -436,13 +447,6 @@ type
       destructor Destroy; override;
   end;
 
-
-
-    { TLocale }
-
-  TLocale = Pointer;
-
-  
   TRecNoStatus = (rnDbase, rnParadox, rnNotSupported);
 
   TPSQLSQLUpdateObject = class(TComponent)
@@ -600,7 +604,6 @@ type
     procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; virtual;
-    procedure DestroyLookupCursor; virtual;
     function  FindRecord(Restart, GoForward: Boolean): Boolean; override;
     function  ForceUpdateCallback: Boolean;
     procedure FreeKeyBuffers;
@@ -620,13 +623,13 @@ type
     function  GetFieldFullName(Field: TField): string; override;
     {$ENDIF}
     function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
+    function GetLookupListClass(Field: TField): TLookupListClass; override;
     function  GetIndexField(Index: Integer): TField;
     function  GetIndexFieldCount: Integer;
     function  GetIsIndexField(Field: TField): Boolean; override;
     function  GetKeyBuffer(KeyIndex: TKeyIndex): PKeyBuffer;
     function  GetKeyExclusive: Boolean;
     function  GetKeyFieldCount: Integer;
-    function  GetLookupCursor(const KeyFields: string; CaseInsensitive: Boolean): HDBICur; Virtual;
     function  GetRecordCount: Integer; override;
     function  GetRecNo: Integer; override;
     function  GetRecordSize: integer; reintroduce; virtual; 
@@ -827,10 +830,7 @@ type
     FFieldsIndex: Boolean;
     FTableName: TFileName;
     FIndexName: TIndexName;
-    FLookupHandle: HDBICur;
-    FLookupKeyFields: string;
     FTableLevel: Integer;
-    FLookupCaseIns: Boolean;
     FNativeTableName: DBITBLNAME;
     FLimit : Integer;
     FOffset: Integer;
@@ -893,7 +893,6 @@ type
     procedure DefChanged(Sender: TObject); override;
     {$ENDIF}
     procedure DestroyHandle; override;
-    procedure DestroyLookupCursor; override;
     procedure DoOnNewRecord; override;
     procedure EncodeFieldDesc(var FieldDesc: FLDDesc;
       const Name: string; DataType: TFieldType; Size, Precision: Integer);
@@ -904,8 +903,6 @@ type
     function GetDataSource: TDataSource; override;
     function GetHandle(const IndexName, IndexTag: string): HDBICur;
     function GetLanguageDriverName: string;
-    function GetLookupCursor(const KeyFields: string;
-      CaseInsensitive: Boolean): HDBICur; override;
     procedure InitFieldDefs; override;
     function GetFileName: string;
     function GetTableType: TTableType;
@@ -1721,15 +1718,28 @@ procedure TPSQLDatabase.Loaded;
 begin
   inherited Loaded;
   if not StreamedConnected then InitEngine;
-  ChangeOldParameter('UID', 'user');
-  ChangeOldParameter('PWD', 'password');
-  ChangeOldParameter('DatabaseName', 'dbname');
-  ChangeOldParameter('ConnectionTimeout', 'connect_timeout');
-  ChangeOldParameter('Port', 'port');
-  ChangeOldParameter('SSLMode', 'sslmode');
-  ChangeOldParameter('Host', 'host');
-  if FParams.Values['host'] > '' then
-    SetHost(FParams.Values['host']); //make sure correct keyword used depending on IP or host name
+  TStringList(FParams).OnChanging := nil;
+  try
+    ChangeOldParameter('UID', 'user');
+    ChangeOldParameter('PWD', 'password');
+    ChangeOldParameter('DatabaseName', 'dbname');
+    ChangeOldParameter('ConnectionTimeout', 'connect_timeout');
+    ChangeOldParameter('Port', 'port');
+    ChangeOldParameter('SSLMode', 'sslmode');
+    ChangeOldParameter('Host', 'host');
+    if IsValidIP(FParams.Values['host']) then
+     begin
+      FParams.Values['hostaddr'] := FParams.Values['host'];
+      FParams.Values['host'] := '';
+     end
+    else
+     begin
+      FParams.Values['hostaddr'] := '';
+      FParams.Values['host'] := FParams.Values['host'];
+     end;
+  finally
+    TStringList(FParams).OnChanging := ParamsChanging;
+  end;
 end;
 
 procedure TPSQLDatabase.Notification(AComponent : TComponent; Operation : TOperation);
@@ -3628,7 +3638,6 @@ begin
         SizeOf(TKeyBuffer) + FRecordSize);
       Move(FKeyBuffers[kiRangeEnd]^, FKeyBuffers[kiCurRangeEnd]^,
         SizeOf(TKeyBuffer) + FRecordSize);
-      DestroyLookupCursor;
       Result := TRUE;
     finally
       FreeMem(IndexBuffer, KeySize * 2);
@@ -3645,7 +3654,6 @@ begin
     Check(Engine, Engine.ResetRange(FHandle));
     InitKeyBuffer(FKeyBuffers[kiCurRangeStart]);
     InitKeyBuffer(FKeyBuffers[kiCurRangeEnd]);
-    DestroyLookupCursor;
     Result := TRUE;
   end;
 end;
@@ -3865,7 +3873,6 @@ begin
   if Filtered then
   begin
     CursorPosChanged;
-    DestroyLookupCursor;
     Engine.SetToBegin(FHandle);
     if Filter <> nil then Engine.DropFilter(FHandle, Filter);
     Filter := Value;
@@ -3909,7 +3916,6 @@ begin
     CheckBrowseMode;
     if Filtered <> Value then
     begin
-      DestroyLookupCursor;
       Engine.SetToBegin(FHandle);
       if Value then
         ActivateFilters
@@ -4062,14 +4068,11 @@ begin
     if R <> -1 then
     begin
       Result := True;
-
+      TNativeDataSet(FHandle).InitRecord(Pointer(ActiveBuffer));
+      TNativeDataSet(FHandle).SetToRecord(R);
       if SyncCursor then
-      begin
-        TNativeDataSet(FHandle).InitRecord(Pointer(ActiveBuffer));
-        TNativeDataSet(FHandle).SetToRecord(R);
         Resync([rmExact, rmCenter]);
-        DoAfterScroll();
-      end;
+      DoAfterScroll();
     end;
   finally
     Fields.Free();
@@ -4219,23 +4222,42 @@ begin
   Result := Status;
 end;
 
+function IsSameVarArrays(A1, A2: variant): boolean;
+var I: integer;
+begin
+  Result := VarIsArray(A1) and VarIsArray(A2);
+  for I := VarArrayLowBound(A1, 1) to VarArrayHighBound(A2, 1) do
+    Result := Result AND (A1[i] = A2[i]);
+end;
+
 function TPSQLDataSet.Lookup(const KeyFields: string; const KeyValues: Variant;
   const ResultFields: string): Variant;
+var OldPos: integer;
+    FVal: variant;
 begin
   Result := Null;
-
-  if VarIsNull(KeyValues) then
-    Exit;
-  DoBeforeScroll();
-  if LocateRecord(KeyFields, KeyValues, [], True) then
-  begin
-    SetTempState(dsCalcFields);
-    try
-      CalculateFields(TempBuffer);
-      Result := FieldValues[ResultFields];
-    finally
-      RestoreState(dsBrowse);
+  if VarIsNull(KeyValues) then Exit;
+  OldPos := RecNo;
+  DisableControls;
+  try
+    First;
+    while not Eof do
+    begin
+      FVal := FieldValues[KeyFields];
+      if VarIsArray(FVal) and VarIsArray(KeyValues) then
+      begin
+        if IsSameVarArrays(FVal, KeyValues) then
+          Result := FieldValues[ResultFields]
+      end
+      else
+        if FVal = KeyValues then Result := FieldValues[ResultFields];
+      if not VarIsNull(Result) then Exit;
+      Next;
     end;
+  finally
+    if OldPos = 1 then First() else
+      if OldPos = RecordCount then Last() else RecNo := OldPos;
+    EnableControls;
   end;
 end;
 
@@ -4244,15 +4266,6 @@ function TPSQLDataSet.Locate(const KeyFields: string;
 begin
   DoBeforeScroll();
   Result := LocateRecord(KeyFields, KeyValues, Options, True);
-end;
-
-function TPSQLDataSet.GetLookupCursor(const KeyFields: string; CaseInsensitive: Boolean): HDBICur;
-begin
-  Result := nil;
-end;
-
-procedure TPSQLDataSet.DestroyLookupCursor;
-begin
 end;
 
 procedure TPSQLDataSet.AllocCachedUpdateBuffers(Allocate: Boolean);
@@ -5342,6 +5355,11 @@ begin
     Result := -1;
 end;
 
+function TPSQLDataSet.GetLookupListClass(Field: TField): TLookupListClass;
+begin
+  Result := TPSQLLookupList;
+end;
+
 function TPSQLDataSet.GetStmtHandle: HDBIStmt;
 begin
   Result := hDBIStmt(GetHandle());
@@ -5751,8 +5769,7 @@ end;
 
 procedure TPSQLTable.DestroyHandle;
 begin
-  DestroyLookupCursor;
-  Inherited DestroyHandle;
+  inherited DestroyHandle;
 end;
 
 procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
@@ -6223,67 +6240,6 @@ begin
          Check(Engine, Engine.SetEngProp(hDbiObj(FHandle),curAUTOREFETCH,LongInt(FALSE)));
          Refresh;
       end;
-end;
-
-
-function TPSQLTable.GetLookupCursor(const KeyFields: string;
-  CaseInsensitive: Boolean): HDBICur;
-var
-  IndexFound, FieldsIndex: Boolean;
-  KeyIndexName, IndexName, IndexTag: string;
-  KeyIndex: TIndexDef;
-begin
-  if (KeyFields <> FLookupKeyFields) or
-     (CaseInsensitive <> FLookupCaseIns) then
-  begin
-    DestroyLookupCursor;
-    IndexFound := FALSE;
-    FieldsIndex := FALSE;
-    { if a range is active, don't use a lookup cursor }
-    if not FKeyBuffers[kiCurRangeStart].Modified and
-       not FKeyBuffers[kiCurRangeEnd].Modified then
-    begin
-      if Database.FPseudoIndexes then
-      begin
-        if not CaseInsensitive then
-        begin
-          KeyIndexName := KeyFields;
-          FieldsIndex := TRUE;
-          IndexFound := TRUE;
-        end;
-      end
-      else
-      begin
-        KeyIndex := IndexDefs.GetIndexForFields(KeyFields, CaseInsensitive);
-        if (KeyIndex <> nil) and
-           (CaseInsensitive = (ixCaseInsensitive in KeyIndex.Options)) then
-        begin
-          KeyIndexName := KeyIndex.Name;
-          FieldsIndex := FALSE;
-          IndexFound := TRUE;
-        end;
-      end;
-      if IndexFound and (Length(KeyFields) < DBIMAXMSGLEN) then
-      begin
-        Check(Engine, Engine.CloneCursor(Handle, True, False, FLookupHandle));
-        GetIndexParams(KeyIndexName, FieldsIndex, IndexName, IndexTag);
-        Check(Engine, Engine.SwitchToIndex(FLookupHandle, IndexName, IndexTag, 0, FALSE));
-      end;
-      FLookupKeyFields := KeyFields;
-      FLookupCaseIns := CaseInsensitive;
-    end;
-  end;
-  Result := FLookupHandle;
-end;
-
-procedure TPSQLTable.DestroyLookupCursor;
-begin
-  if FLookupHandle <> nil then
-  begin
-    Engine.CloseCursor(FLookupHandle);
-    FLookupHandle := nil;
-    FLookupKeyFields := '';
-  end;
 end;
 
 procedure TPSQLTable.GotoCurrent(Table: TPSQLTable);
@@ -7404,6 +7360,63 @@ end;
 procedure TPSQLParam.SetDataTypeOID(const Value: cardinal);
 begin
   FDataTypeOID := Value;
+end;
+
+{ TPSQLLookupList }
+
+procedure TPSQLLookupList.Add(const AKey, AValue: Variant);
+var
+  ListEntry: PLookupListEntry;
+begin
+  New(ListEntry);
+  ListEntry.Key := AKey;
+  ListEntry.Value := AValue;
+  FList.Add(ListEntry);
+end;
+
+procedure TPSQLLookupList.Clear;
+var
+  I: Integer;
+begin
+  for I := 0 to FList.Count - 1 do
+    Dispose(PLookupListEntry(FList.Items[I]));
+  FList.Clear;
+end;
+
+constructor TPSQLLookupList.Create;
+begin
+  inherited;
+  FList := TList.Create;
+end;
+
+destructor TPSQLLookupList.Destroy;
+begin
+  if FList <> nil then Clear;
+  FList.Free;
+end;
+
+function TPSQLLookupList.ValueOfKey(const AKey: Variant): Variant;
+var
+  I: Integer;
+begin
+  Result := Null;
+  if VarIsNull(AKey) then Exit;
+  if VarIsArray(AKey) then
+  begin
+    for I := 0 to FList.Count - 1 do
+      if IsSameVarArrays(PLookupListEntry(FList.Items[I]).Key, AKey) then
+      begin
+        Result := PLookupListEntry(FList.Items[I]).Value;
+        Exit;
+      end;
+  end
+  else
+    for I := 0 to FList.Count - 1 do
+      if PLookupListEntry(FList.Items[I]).Key = AKey then
+      begin
+        Result := PLookupListEntry(FList.Items[I]).Value;
+        Break;
+      end;
 end;
 
 initialization
