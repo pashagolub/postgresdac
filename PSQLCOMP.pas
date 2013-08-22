@@ -165,7 +165,7 @@ Procedure RegisterPropertyEditors;
 
 implementation
 
-uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLEdit, PSQLTypes{$IFNDEF FPC}, DBCommon{$ENDIF};
+uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLQueryEdit, PSQLTypes{$IFNDEF FPC}, DBCommon{$ENDIF};
 
 {$R DB.DCR}
 {$R DBPRO.DCR}
@@ -413,20 +413,23 @@ end;
 procedure TPSQLDatabaseEditor.ExecuteVerb(Index: Integer);
 begin
   case Index of
-    0: if EditDatabase(TPSQLDatabase(Component)) then Designer.Modified;
+    0: EditDatabase(TPSQLDatabase(Component));
+    1: TPSQLDatabase(Component).Connected := not TPSQLDatabase(Component).Connected;
   end;
+  Designer.Modified;
 end;
 
 function TPSQLDatabaseEditor.GetVerb(Index: Integer): string;
 begin
   case Index of
-    0: Result := 'TPSQLDatabase Editor...';
+    0: Result := 'PSQLDatabase &Editor...';
+    1: if TPSQLDatabase(Component).Connected then Result := '&Disconnect from server' else Result := '&Connect to server';
   end;
 end;
 
 function TPSQLDatabaseEditor.GetVerbCount: Integer;
 begin
-  Result := 1;
+  Result := 2;
 end;
 
 procedure TPSQLUpdateSQLEditor.ExecuteVerb(Index: Integer);
@@ -667,9 +670,10 @@ begin
       finally
         FConnection := nil;
       end;
-   end;
- end;
- Designer.Modified;
+    end;
+   2: TPSQLQuery(Component).Active := not TPSQLQuery(Component).Active;
+  end;
+  Designer.Modified;
 end;
 
 function TPSQLQueryEditor.GetDSDesignerClass: TDSDesignerClass;
@@ -703,12 +707,13 @@ begin
   case Index of
    0: Result := 'Fields Editor...';
    1: Result := 'SQL Editor...';
+   2: if TPSQLQuery(Component).Active then Result := 'Close' else Result := 'Open';
   end;
 end;
 
 function TPSQLQueryEditor.GetVerbCount: Integer;
 begin
- Result := 2;
+ Result := 3;
 end;
 
 { TPSQLDSDesigner }

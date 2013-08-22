@@ -5,7 +5,7 @@
     <VERSION value="BCB.06.00"/>
     <PROJECT value="dclPostgresDACB6.bpl"/>
     <OBJFILES value="dclPostgresDACB6.obj PSQLupdsqled.obj PSQLCOMP.obj PSQLConnFrm.obj 
-      PSQLfldlinks.obj PSQLMigrator.obj PSQLStoredProcFrm.obj PSQLEdit.obj"/>
+      PSQLfldlinks.obj PSQLMigrator.obj PSQLStoredProcFrm.obj PSQLQueryEdit.obj"/>
     <RESFILES value="dclPostgresDACB6.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
@@ -64,7 +64,7 @@
       <FILE FILENAME="..\Lib\designide.bpi" FORMNAME="" UNITNAME="designide" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="..\Projects\Lib\PostgresDACB6.bpi" FORMNAME="" UNITNAME="PostgresDACB6" CONTAINERID="BPITool" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLupdsqled.pas" FORMNAME="PSQLUpdateSQLEditForm" UNITNAME="PSQLupdsqled" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
-      <FILE FILENAME="PSQLEdit.pas" FORMNAME="SQLEditForm" UNITNAME="PSQLEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
+      <FILE FILENAME="PSQLQueryEdit.pas" FORMNAME="SQLEditForm" UNITNAME="PSQLQueryEdit" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLCOMP.pas" FORMNAME="" UNITNAME="PSQLCOMP" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLConnFrm.pas" FORMNAME="PSQLConnForm" UNITNAME="PSQLConnFrm" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>
       <FILE FILENAME="PSQLfldlinks.pas" FORMNAME="PSQLLinkFields" UNITNAME="PSQLfldlinks" CONTAINERID="PascalCompiler" DESIGNCLASS="" LOCALCOMMAND=""/>

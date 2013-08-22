@@ -16,7 +16,7 @@ package dclPostgresDAC15;
 {$RANGECHECKS OFF}
 {$REFERENCEINFO OFF}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES OFF}
+{$STACKFRAMES ON}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
@@ -25,7 +25,7 @@ package dclPostgresDAC15;
 {$DESCRIPTION 'PostgreSQL Direct Access Components'}
 {$DESIGNONLY}
 {$IMPLICITBUILD ON}
-{$WARN SYMBOL_PLATFORM OFF}
+{$DEFINE DEBUG}
 
 requires
   dcldb,
@@ -38,7 +38,7 @@ contains
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
   PSQLMigrator in 'PSQLMigrator.pas',
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
-  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm},
+  PSQLQueryEdit in 'PSQLQueryEdit.pas' {SQLEditForm},
   psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp};
 
 end.

@@ -1,48 +1,36 @@
 object SQLEditForm: TSQLEditForm
-  Left = 244
-  Top = 113
-  Width = 532
-  Height = 357
+  Left = 297
+  Top = 131
   Caption = 'SQL Editor'
+  ClientHeight = 409
+  ClientWidth = 734
   Color = clBtnFace
   Constraints.MinHeight = 200
   Constraints.MinWidth = 300
   ParentFont = True
   OldCreateOrder = True
   Position = poScreenCenter
+  OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnShow = FormShow
   PixelsPerInch = 96
   TextHeight = 13
   object MetaInfoSQLSplitter: TSplitter
-    Left = 159
+    Left = 129
     Top = 19
-    Width = 3
-    Height = 265
-    Cursor = crHSplit
+    Height = 355
     MinSize = 100
     OnCanResize = MetaInfoSQLSplitterCanResize
     OnMoved = MetaInfoSQLSplitterMoved
   end
-  object SQLMemo: TMemo
-    Left = 162
-    Top = 19
-    Width = 354
-    Height = 265
-    Align = alClient
-    HideSelection = False
-    TabOrder = 2
-    OnEnter = SQLMemoEnter
-    OnExit = SQLMemoExit
-  end
   object TopPanel: TPanel
     Left = 0
     Top = 0
-    Width = 516
+    Width = 734
     Height = 19
     Align = alTop
     BevelOuter = bvNone
-    TabOrder = 3
+    TabOrder = 2
     object TableListLabel: TLabel
       Left = 3
       Top = 4
@@ -54,20 +42,22 @@ object SQLEditForm: TSQLEditForm
     object SQLLabel: TLabel
       Left = 166
       Top = 3
-      Width = 24
+      Width = 23
       Height = 13
       Caption = '&SQL:'
-      FocusControl = SQLMemo
     end
   end
   object ButtonPanel: TPanel
     Left = 0
-    Top = 284
-    Width = 516
+    Top = 374
+    Width = 734
     Height = 35
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
+    DesignSize = (
+      734
+      35)
     object Image1: TImage
       Left = 51
       Top = 16
@@ -85,7 +75,7 @@ object SQLEditForm: TSQLEditForm
       Visible = False
     end
     object OkButton: TButton
-      Left = 269
+      Left = 487
       Top = 5
       Width = 75
       Height = 25
@@ -96,7 +86,7 @@ object SQLEditForm: TSQLEditForm
       TabOrder = 0
     end
     object CancelButton: TButton
-      Left = 354
+      Left = 572
       Top = 5
       Width = 75
       Height = 25
@@ -107,7 +97,7 @@ object SQLEditForm: TSQLEditForm
       TabOrder = 1
     end
     object HelpButton: TButton
-      Left = 439
+      Left = 657
       Top = 5
       Width = 75
       Height = 25
@@ -129,15 +119,15 @@ object SQLEditForm: TSQLEditForm
   object MetaInfoPanel: TPanel
     Left = 0
     Top = 19
-    Width = 159
-    Height = 265
+    Width = 129
+    Height = 355
     Align = alLeft
     BevelOuter = bvNone
     TabOrder = 1
     object TableFieldsSplitter: TSplitter
       Left = 0
       Top = 115
-      Width = 159
+      Width = 129
       Height = 3
       Cursor = crVSplit
       Align = alTop
@@ -148,26 +138,30 @@ object SQLEditForm: TSQLEditForm
     object TableListPanel: TPanel
       Left = 0
       Top = 0
-      Width = 159
+      Width = 129
       Height = 115
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 0
+      DesignSize = (
+        129
+        115)
       object TableList: TListBox
         Left = 2
         Top = 0
-        Width = 158
+        Width = 128
         Height = 87
         Anchors = [akLeft, akTop, akRight, akBottom]
         ItemHeight = 13
         TabOrder = 0
         OnClick = TableListClick
         OnDblClick = AddTableButtonClick
+        OnEnter = SQLMemoExit
       end
       object AddTableButton: TButton
         Left = 2
         Top = 90
-        Width = 156
+        Width = 126
         Height = 22
         Anchors = [akLeft, akRight, akBottom]
         Caption = 'Add T&able to SQL'
@@ -178,15 +172,18 @@ object SQLEditForm: TSQLEditForm
     object FieldsPanel: TPanel
       Left = 0
       Top = 118
-      Width = 159
-      Height = 147
+      Width = 129
+      Height = 237
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
+      DesignSize = (
+        129
+        237)
       object FieldListLabel: TLabel
         Left = 3
         Top = 3
-        Width = 30
+        Width = 31
         Height = 13
         Caption = '&Fields:'
         FocusControl = FieldList
@@ -194,18 +191,19 @@ object SQLEditForm: TSQLEditForm
       object FieldList: TListBox
         Left = 0
         Top = 19
-        Width = 158
-        Height = 106
+        Width = 128
+        Height = 185
         Anchors = [akLeft, akTop, akRight, akBottom]
         ItemHeight = 13
         MultiSelect = True
         TabOrder = 0
         OnDblClick = AddFieldButtonClick
+        OnEnter = SQLMemoExit
       end
       object AddFieldButton: TButton
         Left = 2
-        Top = 128
-        Width = 156
+        Top = 210
+        Width = 126
         Height = 22
         Anchors = [akLeft, akRight, akBottom]
         Caption = 'Add F&ield to SQL'
@@ -213,5 +211,14 @@ object SQLEditForm: TSQLEditForm
         OnClick = AddFieldButtonClick
       end
     end
+  end
+  object SQLMemoPanel: TPanel
+    Left = 132
+    Top = 19
+    Width = 602
+    Height = 355
+    Align = alClient
+    BevelOuter = bvNone
+    TabOrder = 3
   end
 end

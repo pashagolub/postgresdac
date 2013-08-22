@@ -34,12 +34,12 @@
         <UnitName Value="PSQLConnFrm"/>
       </Item3>
       <Item4>
-        <Filename Value="PSQLEdit.dfm"/>
+        <Filename Value="PSQLQueryEdit.dfm"/>
         <Type Value="Text"/>
       </Item4>
       <Item5>
-        <Filename Value="PSQLEdit.pas"/>
-        <UnitName Value="PSQLEdit"/>
+        <Filename Value="PSQLQueryEdit.pas"/>
+        <UnitName Value="PSQLQueryEdit"/>
       </Item5>
       <Item6>
         <Filename Value="PSQLfldlinks.dfm"/>

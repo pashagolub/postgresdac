@@ -8,7 +8,7 @@ USEPACKAGE("dsnide50.bpi");
 USEFORMNS("PSQLupdsqled.pas", Psqlupdsqled, PSQLUpdateSQLEditForm);
 USEUNIT("PSQLCOMP.pas");
 USEFORMNS("PSQLConnFrm.pas", Psqlconnfrm, PSQLConnForm);
-USEFORMNS("PSQLEdit.pas", PSQLEdit, SQLEditForm);
+USEFORMNS("PSQLQueryEdit.pas", PSQLQueryEdit, SQLEditForm);
 USEFORMNS("PSQLfldlinks.pas", Psqlfldlinks, PSQLLinkFields);
 USEUNIT("PSQLMigrator.pas");
 USEFORMNS("PSQLStoredProcFrm.pas", Psqlstoredprocfrm, PSQLStoredProcProp);

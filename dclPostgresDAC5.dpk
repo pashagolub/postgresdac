@@ -38,6 +38,6 @@ contains
   PSQLConnFrm in 'PSQLConnFrm.pas' {PSQLConnForm},
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
   PSQLMigrator in 'PSQLMigrator.pas',
-  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm};
+  PSQLQueryEdit in 'PSQLQueryEdit.pas' {SQLEditForm};
 
 end.

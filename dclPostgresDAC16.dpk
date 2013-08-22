@@ -40,7 +40,7 @@ contains
   PSQLfldlinks in 'PSQLfldlinks.pas' {PSQLLinkFields},
   PSQLMigrator in 'PSQLMigrator.pas',
   PSQLStoredProcFrm in 'PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
-  PSQLEdit in 'PSQLEdit.pas' {SQLEditForm},
+  PSQLQueryEdit in 'PSQLQueryEdit.pas' {SQLEditForm},
   psqlAboutFrm in 'psqlAboutFrm.pas' {PSQLAboutComp};
 
 end.

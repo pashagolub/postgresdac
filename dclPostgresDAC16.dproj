@@ -114,7 +114,7 @@
 			<DCCReference Include="PSQLStoredProcFrm.pas">
 				<Form>PSQLStoredProcProp</Form>
 			</DCCReference>
-			<DCCReference Include="PSQLEdit.pas">
+			<DCCReference Include="PSQLQueryEdit.pas">
 				<Form>SQLEditForm</Form>
 			</DCCReference>
 			<DCCReference Include="psqlAboutFrm.pas">

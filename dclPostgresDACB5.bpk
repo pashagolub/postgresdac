@@ -5,7 +5,7 @@
     <VERSION value="BCB.05.03"/>
     <PROJECT value="dclPostgresDACB5.bpl"/>
     <OBJFILES value="PSQLupdsqled.obj PSQLCOMP.obj PSQLConnFrm.obj PSQLfldlinks.obj 
-      PSQLMigrator.obj PSQLStoredProcFrm.obj PSQLEdit.obj dclPostgresDACB5.obj"/>
+      PSQLMigrator.obj PSQLStoredProcFrm.obj PSQLQueryEdit.obj dclPostgresDACB5.obj"/>
     <RESFILES value="dclPostgresDACB5.res"/>
     <IDLFILES value=""/>
     <IDLGENFILES value=""/>
