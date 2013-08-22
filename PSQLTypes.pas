@@ -3300,7 +3300,11 @@ end;
 Procedure CheckLibraryLoaded;
 begin
   if SQLLibraryHandle <= HINSTANCE_ERROR then
+      {$IFDEF DELPHI_5}
+      RaiseLastWin32Error;
+      {$ELSE}
       RaiseLastOSError;
+      {$ENDIF}
 end;
 
 function MaskSearch(const Str, Mask: string;

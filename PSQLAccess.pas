@@ -7211,6 +7211,28 @@ begin
   end;
 end;
 
+{$IFDEF DELPHI_5}
+type
+  PRaiseFrame = ^TRaiseFrame;
+  TRaiseFrame = packed record
+    NextRaise: PRaiseFrame;
+    ExceptAddr: Pointer;
+    ExceptObject: TObject;
+    ExceptionRecord: PExceptionRecord;
+  end;
+
+function AcquireExceptionObject: Pointer;
+begin
+  if RaiseList <> nil then
+  begin
+    Result := PRaiseFrame(RaiseList)^.ExceptObject;
+    PRaiseFrame(RaiseList)^.ExceptObject := nil;
+  end
+  else
+    Result := nil;
+end;
+{$ENDIF}
+
 function TPSQLEngine.CheckError : DBIResult;
 var
   ExceptionPtr : Pointer;
@@ -7244,7 +7266,9 @@ begin
      FNativeErrorsourceline:= EPSQLException(ExceptionPtr).FPSQLErrorsourceline;
      FNativeErrorsourcefunc:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefunc;
      TObject(ExceptionPtr).Free;
+     {$IFDEF DELPHI_7}
      ReleaseExceptionObject;
+     {$ENDIF}
    end
   else
    raise TObject(ExceptionPtr);

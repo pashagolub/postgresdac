@@ -176,16 +176,18 @@ type
 
   ENoResultSet = class(EDatabaseError);
 
+{$IFDEF DELPHI_12}
   TPSQLLookupList = class(TLookupList)
   private
     FList: TList;
   public
-    constructor Create; override;
+    constructor Create;
     destructor Destroy; override;
     procedure Add(const AKey, AValue: Variant); override;
     procedure Clear; override;
     function ValueOfKey(const AKey: Variant): Variant; override;
   end;
+{$ENDIF}
 
   TParamClass = class of TParam;
 
@@ -623,7 +625,9 @@ type
     function  GetFieldFullName(Field: TField): string; override;
     {$ENDIF}
     function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
+    {$IFDEF DELPHI_12}
     function GetLookupListClass(Field: TField): TLookupListClass; override;
+    {$ENDIF}
     function  GetIndexField(Index: Integer): TField;
     function  GetIndexFieldCount: Integer;
     function  GetIsIndexField(Field: TField): Boolean; override;
@@ -5355,10 +5359,12 @@ begin
     Result := -1;
 end;
 
+{$IFDEF DELPHI_12}
 function TPSQLDataSet.GetLookupListClass(Field: TField): TLookupListClass;
 begin
   Result := TPSQLLookupList;
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetStmtHandle: HDBIStmt;
 begin
@@ -7362,6 +7368,7 @@ begin
   FDataTypeOID := Value;
 end;
 
+{$IFDEF DELPHI_12}
 { TPSQLLookupList }
 
 procedure TPSQLLookupList.Add(const AKey, AValue: Variant);
@@ -7418,6 +7425,7 @@ begin
         Break;
       end;
 end;
+{$ENDIF DELPHI_12}
 
 initialization
 
