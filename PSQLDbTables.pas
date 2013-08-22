@@ -181,7 +181,7 @@ type
   private
     FList: TList;
   public
-    constructor Create;
+    constructor Create; override;
     destructor Destroy; override;
     procedure Add(const AKey, AValue: Variant); override;
     procedure Clear; override;
