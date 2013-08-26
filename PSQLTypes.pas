@@ -2991,10 +2991,13 @@ begin
 end;
 
 function StrToUIntDef(S: string; DefVal: cardinal = 0): cardinal;
-var E: integer;
+var R: int64;
 begin
-  Val(S, Result, E);
-  if E <> 0 then Result := DefVal;
+  R := StrToInt64Def(S, DefVal);
+  if (R >= Low(Cardinal)) and (R <= High(Cardinal)) then
+    Result := R
+  else
+    Result := DefVal;
 end;
 
 function DeBracketedStr(const Value: string; ALeftBracket, ARightBracket: char): string;

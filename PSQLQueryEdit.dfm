@@ -1,9 +1,9 @@
 object SQLEditForm: TSQLEditForm
   Left = 297
   Top = 131
+  Width = 750
+  Height = 447
   Caption = 'SQL Editor'
-  ClientHeight = 409
-  ClientWidth = 734
   Color = clBtnFace
   Constraints.MinHeight = 200
   Constraints.MinWidth = 300
@@ -18,7 +18,9 @@ object SQLEditForm: TSQLEditForm
   object MetaInfoSQLSplitter: TSplitter
     Left = 129
     Top = 19
+    Width = 3
     Height = 355
+    Cursor = crHSplit
     MinSize = 100
     OnCanResize = MetaInfoSQLSplitterCanResize
     OnMoved = MetaInfoSQLSplitterMoved
@@ -42,7 +44,7 @@ object SQLEditForm: TSQLEditForm
     object SQLLabel: TLabel
       Left = 166
       Top = 3
-      Width = 23
+      Width = 24
       Height = 13
       Caption = '&SQL:'
     end
@@ -55,9 +57,6 @@ object SQLEditForm: TSQLEditForm
     Align = alBottom
     BevelOuter = bvNone
     TabOrder = 0
-    DesignSize = (
-      734
-      35)
     object Image1: TImage
       Left = 51
       Top = 16
@@ -143,9 +142,6 @@ object SQLEditForm: TSQLEditForm
       Align = alTop
       BevelOuter = bvNone
       TabOrder = 0
-      DesignSize = (
-        129
-        115)
       object TableList: TListBox
         Left = 2
         Top = 0
@@ -177,13 +173,10 @@ object SQLEditForm: TSQLEditForm
       Align = alClient
       BevelOuter = bvNone
       TabOrder = 1
-      DesignSize = (
-        129
-        237)
       object FieldListLabel: TLabel
         Left = 3
         Top = 3
-        Width = 31
+        Width = 30
         Height = 13
         Caption = '&Fields:'
         FocusControl = FieldList
