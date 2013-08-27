@@ -67,7 +67,7 @@ type
     property Macros: TParams read GetMacros write SetMacros;
   end;
 
-{ TMacroQueryThread }
+(*{ TMacroQueryThread }
   TRunQueryMode = (rqOpen, rqExecute, rqExecDirect);
 
   TPSQLMacroQueryThread = class(TThread)
@@ -85,7 +85,7 @@ type
   public
     constructor Create(Data: TPSQLDataSet; RunMode: TRunQueryMode;
       Prepare, CreateSuspended: Boolean);
-  end;
+  end;*)
 
 procedure CreateQueryParams(List: TParams; const Value: PChar; Macro: Boolean;
   SpecialChar: Char; Delims: TCharSet);
@@ -456,75 +456,6 @@ begin
   ExecSQL;
 end;
 {$ENDIF}
-
-{ TPSQLMacroQueryThread }
-constructor TPSQLMacroQueryThread.Create(Data: TPSQLDataSet; RunMode: TRunQueryMode;
-  Prepare, CreateSuspended: Boolean);
-begin
-  inherited Create(True);
-  FData := Data;
-  FMode := RunMode;
-  FPrepare := Prepare;
-  FreeOnTerminate := True;
-  FData.DisableControls;
-  if not CreateSuspended then Resume;
-end;
-
-procedure TPSQLMacroQueryThread.DoTerminate;
-begin
-  Synchronize(FData.EnableControls);
-  inherited DoTerminate;
-end;
-
-procedure TPSQLMacroQueryThread.ModeError;
-begin
-  SysUtils.Abort;
-end;
-
-procedure TPSQLMacroQueryThread.DoHandleException;
-begin
-  if (FException is Exception) and not (FException is EAbort) then
-    if Assigned(FData.Database) and Assigned(FData.Database.OnException)then
-      FData.Database.OnException(Self, Exception(FException));
-end;
-
-procedure TPSQLMacroQueryThread.HandleException;
-begin
-  FException := TObject(ExceptObject);
-  Synchronize(DoHandleException);
-end;
-
-procedure TPSQLMacroQueryThread.Execute;
-begin
-  try
-    if FPrepare and not (FMode in [rqExecDirect]) then
-    begin
-      if FData is TPSQLMacroQuery then
-         TPSQLMacroQuery(FData).Prepare else
-         if FData is TPSQLQuery then
-            TPSQLQuery(FData).Prepare;
-    end;
-    case FMode of
-      rqOpen:
-        FData.Open;
-      rqExecute:
-        begin
-          if FData is TPSQLMacroQuery then
-             TPSQLMacroQuery(FData).ExecSQL else
-             if FData is TPSQLQuery then
-                TPSQLQuery(FData).ExecSQL else
-                ModeError;
-        end;
-      rqExecDirect:
-        begin
-          if FData is TPSQLMacroQuery then TPSQLMacroQuery(FData).ExecDirect
-          else ModeError;
-        end;
-    end;
-  except
-    HandleException;
-  end;
-end;
 
 end.
 
