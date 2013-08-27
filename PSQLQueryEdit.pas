@@ -176,7 +176,7 @@ begin
   try
 {$IFDEF DELPHI_14}
     Result := False;
-    FClass := FindClass('TSynMemo');
+    FClass := GetClass('TSynMemo');
     SynMemoUsed := Assigned(FClass);
     if SynMemoUsed then
      try
