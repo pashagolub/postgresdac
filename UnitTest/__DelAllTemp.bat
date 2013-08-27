@@ -3,6 +3,7 @@
 del /Q /S TestOutput\*.* > nul
 del /Q /S *.~* > nul
 del /Q /S *.dcu > nul
+del /Q /S *.cfg > nul
 del /Q /S *.html > nul
 del /Q /S *.stat > nul
 del /Q /S *.dof > nul
