@@ -1,5 +1,4 @@
 unit PSQLDatabaseTest;
-{$I PSQLDAC.inc}
 {
 
   Delphi DUnit Test Case
