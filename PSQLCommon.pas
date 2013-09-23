@@ -1084,7 +1084,11 @@ var
   DateData: Double;
 begin
   if VarType(Value) = varString then
-    DateTime := StrToDateTime(string(TVarData(Value).VString)) else
+  begin
+      if not TryStrToDate(string(TVarData(Value).VString), DateTime) then
+        DateTime := VarToDateTime(Value);
+  end
+  else
     DateTime := VarToDateTime(Value);
   DateData := TimeStampToMSecs(DateTimeToTimeStamp(DateTime));
   Result := PutConstNode(ftDateTime, @DateData, 8);
