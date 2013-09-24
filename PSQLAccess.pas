@@ -27,56 +27,15 @@ type
       FBDEErrorCode : Word;
       FBDE          : Boolean;
       FPSQLErrorMsg : String;
-      FPSQLErrorPos : String;
-      FPSQLErrorContext: String;
-      FPSQLErrorseverity:string;
-      FPSQLErrorsqlstate:string;
-      FPSQLErrordetail:string;
-      FPSQLErrorprimary:string;
-      FPSQLErrorhint:string;
-      FPSQLErrorinternalpos:string;
-      FPSQLErrorinternalquery:string;
-      FPSQLErrorsourcefile:string;
-      FPSQLErrorsourceline:string;
-      FPSQLErrorsourcefunc:string;
-
-      function GetNativeErrorMsg : String;
-      function GetNativeErrorPos : String;
-      function GetNativeErrorContext : String;
-      function GetNativeErrorseverity : String;
-      function GetNativeErrorsqlstate  : String;
-      function GetNativeErrordetail    : String;
-      function GetNativeErrorprimary   : String;
-      function GetNativeErrorhint      : String;
-      function GetNativeErrorinternalpos     : String;
-      function GetNativeErrorinternalquery   : String;
-      function GetNativeErrorsourcefile      : String;
-      function GetNativeErrorsourceline      : String;
-      function GetNativeErrorsourcefunc      : String;
-
     public
-      Constructor CreateBDE(ECode : Word);
+      constructor CreateBDE(ECode : Word);
       constructor CreateBDEMsg(ECode : Word; Const EMessage : String);
-      Constructor Create(PSQL : TNativeConnect);
-      Constructor CreateMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
+      constructor Create(PSQL : TNativeConnect);
+      constructor CreateMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
       property PSQLErrorCode : word read FPSQLErrorCode;
-      property PSQLErrorMsg : String read GetNativeErrorMsg;
+      property PSQLErrorMsg : String read FPSQLErrorMsg;
       property BDEErrorCode : Word read FBDEErrorCode;
       property BDEErrors : Boolean read FBDE;
-      //error field properties added by Tony Caduto 5/17/2006
-      property PSQLErrorPos : String read GetNativeErrorPos;
-      property PSQLErrorContext : String read GetNativeErrorContext;
-      property PSQLErrorseverity: String read GetNativeErrorseverity;
-      property PSQLErrorsqlstate: String read GetNativeErrorsqlstate;
-      property PSQLErrordetail: String read GetNativeErrordetail;
-      property PSQLErrorprimary: String read GetNativeErrorprimary;
-      property PSQLErrorhint: String read GetNativeErrorhint;
-      property PSQLErrorinternalpos: String read GetNativeErrorinternalpos;
-      property PSQLErrorinternalquery: String read GetNativeErrorinternalquery;
-      property PSQLErrorsourcefile: String read GetNativeErrorsourcefile;
-      property PSQLErrorsourceline: String read GetNativeErrorsourceline;
-      property PSQLErrorsourcefunc: String read GetNativeErrorsourcefunc;
-
   end;
 
 {****************************************************************************}
@@ -91,7 +50,17 @@ type
     FServerVersion            : string;
     FIntServerVersion         : integer;
     FNativeByteaFormat        : TNativeByteaFormat;
-    FErrorpos                 : string;
+    FConnectString            : string;
+    FDirectConnectString      : string;
+    function GetBackendPID : integer;
+    function IsTransactionActive: boolean;
+    function GetTransactionStatus: TTransactionStatusType;
+  protected
+    FTransState : eXState;  { Transaction end control xsActive, xsInactive }
+    FTransLevel : eXILType;  { Transaction isolation levels }
+    function GetCommitOperation: Boolean; {Get commit operation}
+  public
+    FErrorPos                 : string;
     FErrorContext             : string;
     FErrorSeverity            : string;
     FErrorSQLState            : string;
@@ -103,17 +72,12 @@ type
     FErrorSourceFile          : string;
     FErrorSourceLine          : string;
     FErrorSourceFunc          : string;
-    FConnectString            : string;
-    FDirectConnectString      : string;
-    function GetBackendPID : integer;
-    function IsTransactionActive: boolean;
-    function GetTransactionStatus: TTransactionStatusType;
-  protected
-    FTransState : eXState;  { Transaction end control xsActive, xsInactive }
-    FTransLevel : eXILType;  { Transaction isolation levels }
-    function GetCommitOperation: Boolean; {Get commit operation}
-  public
-    Tables : TContainer; {List of Tables}
+    FErrorSchemaName          : string;
+    FErrorTableName           : string;
+    FErrorColumnName          : string;
+    FErrorDataTypeName        : string;
+    FErrorConstraintName      : string;
+
     FLoggin : Boolean; {Loggin flag}
     DBOptions : TDBOptions; {Connection parameters}
 
@@ -208,40 +172,14 @@ type
       FDatabase                : hDBIDb;
       FNativeStatus            : Integer;
       FNativeMsg               : string;
-      FNativeErrorPos          : string;
-      FNativeErrorContext      : string;
-      FNativeErrorseverity     : string;
-      FNativeErrorsqlstate     : string;
-      FNativeErrordetail       : string;
-      FNativeErrorprimary      : string;
-      FNativeErrorhint         : string;
-      FNativeErrorinternalpos  : string;
-      FNativeErrorinternalquery: string;
-      FNativeErrorsourcefile   : string;
-      FNativeErrorsourceline   : string;
-      FNativeErrorsourcefunc   : string;
       function GetDatabase: hDBIDb;
       procedure SetDatabase(H : hDBIDb);
     public
-      Constructor Create(P : TObject; Container : TContainer);
+      constructor Create(P : TObject; Container : TContainer);
       Destructor Destroy; Override;
-      Property Status: Integer Read  FNativeStatus;
-      Property MessageStatus : String read FNativeMsg;
-      property errorpos:string read FnativeErrorPos;
-      property errorcontext:string read FnativeErrorContext;
-
-      property Errorseverity:string read FnativeErrorseverity;
-      property Errorsqlstate:string read FnativeErrorsqlstate;
-      property Errordetail:string read FnativeErrordetail;
-      property Errorprimary:string read FnativeErrorprimary;
-      property Errorhint:string read FnativeErrorhint;
-      property Errorinternalpos:string read FnativeErrorinternalpos;
-      property Errorinternalquery:string read FnativeErrorinternalquery;
-      property Errorsourcefile:string read FnativeErrorsourcefile;
-      property Errorsourceline:string read FnativeErrorsourceline;
-      property Errorsourcefunc:string read FnativeErrorsourcefunc;
-
-      Property Database: hDBIDb Read  GetDatabase Write SetDatabase;
+      property Status: Integer Read  FNativeStatus;
+      property MessageStatus : String read FNativeMsg;
+      property Database: hDBIDb Read  GetDatabase Write SetDatabase;
       function IsSqlBased(hDb: hDBIDB): Boolean;
       function Ping(Params: TStrings; var PingResult: TPingStatus): DBIResult;
       function OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb: hDBIDb): DBIResult;
@@ -301,7 +239,6 @@ type
       function QAlloc(hDb: hDBIDb;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
       function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
-      //function QPrepareExt(hDb: hDBIDb; pszQuery: PChar;propBits: Word;var hStmt: hDBIStmt): DBIResult;
       function QFree(var hStmt: hDBIStmt): DBIResult;
       function QPrepareProc (hDb: hDBIDb; pszProc: PChar; hParams: pointer; var hStmt: hDBIStmt): DBIResult;
       function QSetProcParams (hStmt: hDBIStmt; Params: TParams): DBIResult;
@@ -424,22 +361,22 @@ type
       function FieldValue: PAnsiChar;
       function FieldValueAsStr: string; //this will be used in SQLs;
 
-      Property Buffer : Pointer Read FBuffer Write SetBuffer;
-      Property Data : Pointer Read FData;
-      Property DataOffset : integer Read  FDesc.iOffset Write  FDesc.iOffset;
-      Property Description : FLDDesc Read FDesc Write FDesc;
-      Property ValCheck : VCHKDesc Read FValCheck Write FValCheck;
-      Property FieldChanged : Boolean Read GetChanged Write SetChanged;
-      Property FieldNull : Boolean Read GetNull Write SetNull;
-      Property FieldStatus : PFieldStatus Read FStatus;
-      Property NullOffset : integer Read FDesc.iNullOffset Write FDesc.iNullOffset;
-      Property FieldNumber : integer Read FDesc.iFldNum Write FDesc.iFldNum;
-      Property FieldName : String Read GetFieldName Write SetFieldName;
-      Property FieldType : integer Read   FDesc.iFldType Write  FDesc.iFldType;
-      Property FieldSubType : integer Read   FDesc.iSubType Write  FDesc.iSubType;
-      Property FieldUnits1 : integer Read   FDesc.iUnits1 Write  FDesc.iUnits1;
-      Property FieldUnits2 : integer Read   FDesc.iUnits2 Write  FDesc.iUnits2;
-      Property FieldLength : integer Read   FDesc.iLen Write  FDesc.iLen;
+      property Buffer : Pointer Read FBuffer Write SetBuffer;
+      property Data : Pointer Read FData;
+      property DataOffset : integer Read  FDesc.iOffset Write  FDesc.iOffset;
+      property Description : FLDDesc Read FDesc Write FDesc;
+      property ValCheck : VCHKDesc Read FValCheck Write FValCheck;
+      property FieldChanged : Boolean Read GetChanged Write SetChanged;
+      property FieldNull : Boolean Read GetNull Write SetNull;
+      property FieldStatus : PFieldStatus Read FStatus;
+      property NullOffset : integer Read FDesc.iNullOffset Write FDesc.iNullOffset;
+      property FieldNumber : integer Read FDesc.iFldNum Write FDesc.iFldNum;
+      property FieldName : String Read GetFieldName Write SetFieldName;
+      property FieldType : integer Read   FDesc.iFldType Write  FDesc.iFldType;
+      property FieldSubType : integer Read   FDesc.iSubType Write  FDesc.iSubType;
+      property FieldUnits1 : integer Read   FDesc.iUnits1 Write  FDesc.iUnits1;
+      property FieldUnits2 : integer Read   FDesc.iUnits2 Write  FDesc.iUnits2;
+      property FieldLength : integer Read   FDesc.iLen Write  FDesc.iLen;
       property FieldDefault: string read GetFieldDefault write SetFieldDefault;//mi
       property NativeType : integer Read   GetLocalType Write  SetLocalType;
       property NativeSize : integer Read   GetLocalSize Write  SetLocalSize;
@@ -460,9 +397,9 @@ type
       function GetField(Index : Integer) : TPSQLField;
       function GetNativeConnect: TNativeConnect;
     public
-      Constructor Create(Table : TNativeDataSet);
+      constructor Create(Table : TNativeDataSet);
       function AddField(P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean): TPSQLField;
-      Property Field[Index : Integer] : TPSQLField Read  GetField; Default;
+      property Field[Index : Integer] : TPSQLField Read  GetField; Default;
       procedure SetFields(PRecord : Pointer);
       function FieldNumberFromName(SearchName : PChar) : Integer;
 
@@ -480,17 +417,17 @@ type
       function GetIndexName: string;
       procedure SetIndexName(const Value: string);
     Public
-      Constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
-      Property Description : IDXDesc Read FDesc Write FDesc;
+      constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
+      property Description : IDXDesc Read FDesc Write FDesc;
     Published
-      Property IndexNumber : integer Read FDesc.iIndexID Write FDesc.iIndexID;
-      Property IndexName   : string Read GetIndexName Write SetIndexName;
-      Property Primary     : WordBool Read FDesc.bPrimary Write FDesc.bPrimary;
-      Property Unique      : WordBool Read FDesc.bUnique Write FDesc.bUnique;
-      Property Descending  : WordBool Read FDesc.bDescending Write FDesc.bDescending;
-      Property FldsInKey   : integer Read FDesc.iFldsInKey Write  FDesc.iFldsInKey;
-      Property KeyLen      : integer Read FDesc.iKeyLen Write FDesc.iKeyLen;
-      Property BlockSize   : integer Read FDesc.iBlockSize Write FDesc.iBlockSize;
+      property IndexNumber : integer Read FDesc.iIndexID Write FDesc.iIndexID;
+      property IndexName   : string Read GetIndexName Write SetIndexName;
+      property Primary     : WordBool Read FDesc.bPrimary Write FDesc.bPrimary;
+      property Unique      : WordBool Read FDesc.bUnique Write FDesc.bUnique;
+      property Descending  : WordBool Read FDesc.bDescending Write FDesc.bDescending;
+      property FldsInKey   : integer Read FDesc.iFldsInKey Write  FDesc.iFldsInKey;
+      property KeyLen      : integer Read FDesc.iKeyLen Write FDesc.iKeyLen;
+      property BlockSize   : integer Read FDesc.iBlockSize Write FDesc.iBlockSize;
   end;
 
   //////////////////////////////////////////////////////////
@@ -505,8 +442,8 @@ type
       function FindByName(Name :String): TPSQLIndex;
       procedure SetNeedUpdate(const Value: boolean);
     Public
-      Constructor Create(Table : TNativeDataSet);
-      Property mIndex[Index : Integer] : TPSQLIndex Read  GetIndex; Default;
+      constructor Create(Table : TNativeDataSet);
+      property mIndex[Index : Integer] : TPSQLIndex Read  GetIndex; Default;
       function SetIndex(Name,Fields : String;aPrimary,aUnique,aDesc : Boolean): integer;
       function FieldNumberFromName(SearchName : PChar) : Integer;
       property Updated: boolean read FUpdated write SetNeedUpdate;
@@ -541,12 +478,12 @@ type
     function ListOfValues(ANode : pCANListElem): Variant;
     function PerformLikeCompare(Const Value, Mask : String; CaseSen : Boolean) : Boolean;
     function PerformInCompare(AOp1, AOp2 : Variant) : Boolean;
-    Property NodeStart : Integer  Read GetNodeStart;
+    property NodeStart : Integer  Read GetNodeStart;
   public
-    Constructor Create(Owner : TNativeDataSet; AClientData : Longint; Exp : pCANExpr; pfFilt : pfGENFilter);
+    constructor Create(Owner : TNativeDataSet; AClientData : Longint; Exp : pCANExpr; pfFilt : pfGENFilter);
     Destructor Destroy; Override;
     function GetFilterResult(PRecord : Pointer) : Variant;
-    Property Active : Boolean Read  FActive  Write FActive;
+    property Active : Boolean Read  FActive  Write FActive;
   end;
 
   //////////////////////////////////////////////////////////
@@ -557,15 +494,15 @@ type
     private
       FDesc      : TPGField_Info;
     Public
-      Constructor CreateNative(Owner : TCollection; P : PPGField_Info);
-      Property Description : TPGField_Info Read FDesc Write FDesc;
+      constructor CreateNative(Owner : TCollection; P : PPGField_Info);
+      property Description : TPGField_Info Read FDesc Write FDesc;
     Published
-      Property NativeNumber  : Integer Read FDesc.FieldIndex Write FDesc.FieldIndex;
-      Property NativeName    : String Read FDesc.FieldName Write FDesc.FieldName;
-      Property NativeType    : cardinal Read FDesc.FieldType Write FDesc.FieldType;
-      Property NativeSize    : Integer Read FDesc.FieldSize Write FDesc.FieldSize;
-      Property NativeMaxSize : Integer Read FDesc.FieldMaxSize Write FDesc.FieldMaxSize;
-      Property NativeDefault : String Read FDesc.FieldDefault Write  FDesc.FieldDefault;
+      property NativeNumber  : Integer Read FDesc.FieldIndex Write FDesc.FieldIndex;
+      property NativeName    : String Read FDesc.FieldName Write FDesc.FieldName;
+      property NativeType    : cardinal Read FDesc.FieldType Write FDesc.FieldType;
+      property NativeSize    : Integer Read FDesc.FieldSize Write FDesc.FieldSize;
+      property NativeMaxSize : Integer Read FDesc.FieldMaxSize Write FDesc.FieldMaxSize;
+      property NativeDefault : String Read FDesc.FieldDefault Write  FDesc.FieldDefault;
       property NativeNotNull: boolean read FDesc.FieldNotNull write FDesc.FieldNotNull;
   end;
 
@@ -578,8 +515,8 @@ type
       FTable : TNativeDataSet;
       function GetNative(Index : Integer) : TPSQLNative;
     Public
-      Constructor Create(Table : TNativeDataSet);
-      Property Field_Info[Index : Integer] : TPSQLNative Read  GetNative; Default;
+      constructor Create(Table : TNativeDataSet);
+      property Field_Info[Index : Integer] : TPSQLNative Read  GetNative; Default;
       procedure SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer);
   end;
 
@@ -589,11 +526,9 @@ type
   //////////////////////////////////////////////////////////
     TNativeDataSet = Class(TObject)
     private
-      function GetFieldTypType(Index: integer): AnsiChar;
-    protected
       RecNo         : LongInt; {Record Nomber}
       FOMode        : DBIOpenMode;  {Open mode}
-      FFilteredRecordCount  : LongInt; {Record count}
+//      FFilteredRecordCount  : LongInt; {Record count}
       FStatement    : PPGresult; {Handle PSQL Cursor }
       FFilters      : TContainer; {Filters list}
       FFilterActive : Boolean;  {is Active filter for Query }
@@ -607,7 +542,7 @@ type
       FPrimaryKeyNumber: SmallInt;
       FGetKeyDesc   : Boolean;
       FKeyDesc      : IDXDesc;
-      FHasOIDs      : boolean;
+//      FHasOIDs      : boolean;
       Ranges        : Boolean;
       FRecSize      : Integer;
       FConnect      : TNativeConnect;
@@ -633,8 +568,8 @@ type
       FBlobOpen       : Boolean;
       FOIDTable       : TList;
       FSystemNeed     : Boolean;
-      Ferror_pos      : integer;
-      Ferror_line     : integer;
+//      Ferror_pos      : integer;
+//      Ferror_line     : integer;
       FFieldMinSizes  : array of integer; //to decrease FieldMinSize routine access
       FFieldTypType   : AnsiString; //to store pg_type.typtype
       FSortingIndex   : array of integer; //filled with SortBy method
@@ -659,14 +594,14 @@ type
       function GetRecCount: LongInt;
       procedure InitFieldDescs;
       procedure CheckFilter(PRecord : Pointer);
-      procedure InternalCommit;
+//      procedure InternalCommit;
       procedure FirstRecord; virtual;
       procedure LastRecord;
       procedure NextRecord();
       procedure PrevRecord();
       procedure CurrentRecord(ARecNo : LongInt);
       procedure GetWorkRecord(eLock : DBILockType; PRecord : Pointer);
-      procedure GetRecordNo(var iRecNo : Longint);
+//      procedure GetRecordNo(var iRecNo : Longint);
       procedure LockRecord(eLock : DBILockType);
       function FilteredRecord(PRecord : Pointer) :  Boolean;
       procedure UpdateFilterStatus;
@@ -700,7 +635,7 @@ type
       function FieldIsNull(FieldNum: Integer): Boolean;
       function Field(FieldNum: Integer): string;
       function FieldBuffer(FieldNum: Integer): PAnsiChar;
-      function FieldByName(FieldName: String): string;
+//      function FieldByName(FieldName: String): string;
       function  GetSQLClause: string;
       function GetBufferSize : integer; Virtual;
       function GetWorkBufferSize : integer; virtual;
@@ -712,18 +647,19 @@ type
       function GetFieldInfo(Index : Integer) : TPGFIELD_INFO;
       procedure ReOpenTable;
       procedure ClearIndexInfo;
+      function GetFieldTypType(Index: integer): AnsiChar;
      private
       FTableName: string;
-      Property KeyNumber: SmallInt Read FKeyNumber Write SetKeyNumber;
+      property KeyNumber: SmallInt Read FKeyNumber Write SetKeyNumber;
       property RecordCount : LongInt Read GetRecCount;
-      Property Fields : TPSQLFields Read  FFieldDescs;
-      Property RecordSize : Integer read GetRecordSize;
-      Property FieldInfo[Index: Integer]:TPGFIELD_INFO Read GetFieldInfo;
-      Property BookMarkSize : Integer Read  GetBookMarkSize;
-      Property BufferAddress : Pointer Write SetBufferAddress;
-      Property CurrentBuffer : Pointer Read  GetCurrentBuffer Write SetCurrentBuffer;
-      Property InternalBuffer : Pointer Read  GetInternalBuffer Write SetInternalBuffer;
-      Property IndexCount : Integer Read  GetIndexCount;
+      property Fields : TPSQLFields Read  FFieldDescs;
+      property RecordSize : Integer read GetRecordSize;
+      property FieldInfo[Index: Integer]:TPGFIELD_INFO Read GetFieldInfo;
+      property BookMarkSize : Integer Read  GetBookMarkSize;
+      property BufferAddress : Pointer Write SetBufferAddress;
+      property CurrentBuffer : Pointer Read  GetCurrentBuffer Write SetCurrentBuffer;
+      property InternalBuffer : Pointer Read  GetInternalBuffer Write SetInternalBuffer;
+      property IndexCount : Integer Read  GetIndexCount;
       //insert, update, delete stuff
       function UuidValue(P : Pointer; NeedQuote: boolean = True): string;
       function StrValue(P : Pointer; NeedQuote: boolean = True): string;
@@ -736,7 +672,7 @@ type
       ROWID    : OID;
       isQuery  : boolean;
       constructor Create(PSQL : TNativeConnect;
-                         Container : TContainer;
+                         //Container : TContainer;
                          AnOptions: TPSQLDatasetOptions;
                          AName, IndexName : string;
                          Index : Word;
@@ -2355,125 +2291,49 @@ end;
 {******************************************************************************}
 {                            EPSQLError                                        *}
 {******************************************************************************}
-Constructor EPSQLException.CreateBDE(ECode : Word);
+constructor EPSQLException.CreateBDE(ECode : Word);
 begin
   Inherited Create('');
   FBDEErrorCode := ECode;
   FBDE := True;
 end;
 
-Constructor EPSQLException.CreateBDEMsg(ECode : Word; Const EMessage : string);
+constructor EPSQLException.CreateBDEMsg(ECode : Word; Const EMessage : string);
 begin
   FPSQLErrorMsg  := string(EMessage);
   CreateBDE(ECode);
 end;
 
-Constructor EPSQLException.Create(PSQL : TNativeConnect);
+constructor EPSQLException.Create(PSQL : TNativeConnect);
 begin
   FPSQL := PSQL;
   FPSQLErrorCode := 1;
-  FPSQLErrorPos             := PSQL.ferrorpos;
-  FPSQLErrorContext         := PSQL.ferrorcontext;
-  FPSQLErrorseverity        := PSQL.FErrorseverity;
-  FPSQLErrorsqlstate        := PSQL.FErrorsqlstate;
-  FPSQLErrorprimary         := PSQL.FErrorprimary;
-  FPSQLErrordetail          := PSQL.FErrordetail;
-  FPSQLErrorhint            := PSQL.FErrorhint;
-  FPSQLErrorinternalpos     := PSQL.FErrorinternalpos;
-  FPSQLErrorinternalquery   := PSQL.FErrorinternalquery;
-  FPSQLErrorsourcefile      := PSQL.FErrorsourcefile;
-  FPSQLErrorsourceline      := PSQL.FErrorsourceline;
-  FPSQLErrorsourcefunc      := PSQL.FErrorsourcefunc;
   FPSQLErrorMsg  := PSQL.GetErrorText;
   if FPSQLErrorCode > 0 then FBDEERRORCode := DBIERR_INVALIDPARAM;
   Inherited Create('');
 end;
 
-Constructor EPSQLException.CreateMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
+constructor EPSQLException.CreateMsg(PSQL : TNativeConnect; const ErrorMsg : String );
 begin
   Create(PSQL);
   FPSQLErrorMsg := ErrorMsg;
   FBDEERRORCode := 1001;
 end;
 
-function EPSQLException.GetNativeErrordetail: String;
-begin
-      result:= FPSQLErrorDetail;
-end;
-
-function EPSQLException.GetNativeErrorprimary: String;
-begin
-      result:= FPSQLErrorPrimary;
-end;
-
-function EPSQLException.GetNativeErrorhint: String;
-begin
-     result:=FPSQLErrorhint;
-end;
-
-function EPSQLException.GetNativeErrorinternalpos: String;
-begin
-      result:= FPSQLErrorinternalpos;
-end;
-
-function EPSQLException.GetNativeErrorinternalquery: String;
-begin
-     result:=FPSQLErrorinternalquery;
-end;
-
-function EPSQLException.GetNativeErrorContext: String;
-begin
-     result:= FPSQLErrorContext;
-end;
-
-function EPSQLException.GetNativeErrorMsg : String;
-begin
-  Result := FPSQLErrorMsg;
-end;
-function EPSQLException.GetNativeErrorPos : String;
-begin
-     result:=FPSQLErrorPos;
-end;
-
-function EPSQLException.GetNativeErrorseverity: String;
-begin
-     result:= FPSQLErrorseverity;
-end;
-
-function EPSQLException.GetNativeErrorsourcefile: String;
-begin
-      result:= FPSQLErrorsourcefile;
-end;
-
-function EPSQLException.GetNativeErrorsourcefunc: String;
-begin
-       result:= FPSQLErrorsourcefunc;
-end;
-
-function EPSQLException.GetNativeErrorsourceline: String;
-begin
-      result:= FPSQLErrorsourceline;
-end;
-
-function EPSQLException.GetNativeErrorsqlstate: String;
-begin
-      result:=FPSQLErrorsqlstate;
-end;
-
 {******************************************************************************}
 {                            TNativeConnect                                   *}
 {******************************************************************************}
-Constructor TNativeConnect.Create;
+constructor TNativeConnect.Create;
 begin
   Inherited Create;
-  Tables    := TContainer.Create;
+  //Tables    := TContainer.Create;
   FLoggin  := False;
   FHandle := nil;
 end;
 
 Destructor TNativeConnect.Destroy;
 begin
-  Tables.Free;
+  //Tables.Free;
   InternalDisconnect;
   Inherited Destroy;
 end;
@@ -2637,14 +2497,18 @@ end;
 
 
 procedure TNativeConnect.CheckResult;
+var S: string;
 begin
-   if GetErrorText <> '' then
-    raise EPSQLException.CreateMsg(self,GetErrorText);
+  S := GetErrorText();
+  if S > '' then raise EPSQLException.CreateMsg(Self, S);
 end;
 
-procedure TNativeConnect.CheckResult(FStatement:PPGresult);
+procedure TNativeConnect.CheckResult(FStatement: PPGresult);
+var
+  S: string;
 begin
- if GetErrorText <> '' then
+  S := GetErrorText();
+  if S > '' then
     begin
      FErrorSeverity := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SEVERITY)));
      FErrorSQLState := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SQLSTATE)));
@@ -2658,7 +2522,12 @@ begin
      FErrorSourceFunc := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SOURCE_FUNCTION)));
      FErrorContext := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_CONTEXT)));
      FErrorPos :=  Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_STATEMENT_POSITION)));
-     raise EPSQLException.CreateMsg(self,GetErrorText);
+     FErrorSchemaName := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_SCHEMA_NAME)));
+     FErrorTableName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_TABLE_NAME)));
+     FErrorColumnName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_COLUMN_NAME)));
+     FErrorDataTypeName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_DATATYPE_NAME)));
+     FErrorConstraintName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_CONSTRAINT_NAME)));
+     raise EPSQLException.CreateMsg(Self, GetErrorText);
     end;
 end;
 
@@ -2790,16 +2659,16 @@ begin
   InternalConnect;
   if FSystem then
   begin
-     hCursor := hDBICur(TNativeDataSet.Create(Self, Tables, AnOptions, pszTableName, pszIndexName, iIndexId,1,0,True));
+     hCursor := hDBICur(TNativeDataSet.Create(Self, AnOptions, pszTableName, pszIndexName, iIndexId,1,0,True));
      FSystem := False;
   end else
-     hCursor := hDBICur(TNativeDataSet.Create(Self, Tables, AnOptions, pszTableName, pszIndexName, iIndexId,Limit,Offset));
+     hCursor := hDBICur(TNativeDataSet.Create(Self, AnOptions, pszTableName, pszIndexName, iIndexId,Limit,Offset));
   TNativeDataSet(hCursor).OpenTable;
 end;
 
 procedure TNativeConnect.QueryAlloc(var hStmt: hDBIStmt);
 begin
-    hStmt := hDBIStmt(TNativeDataSet.Create(Self, nil, [], '' , '', 0, 0, 0));
+    hStmt := hDBIStmt(TNativeDataSet.Create(Self, [], '' , '', 0, 0, 0));
 end;
 
 procedure TNativeConnect.QueryPrepare(var hStmt: hDBIStmt;Query : String);
@@ -3031,7 +2900,7 @@ end;
 
 
 //////////////////////////////////////////////////////////
-//Constructor : TPSQLField.CreateField
+//constructor : TPSQLField.CreateField
 //Description : constructor CreateNewField
 //////////////////////////////////////////////////////////
 //Input       : Owner: TCollection
@@ -3040,7 +2909,7 @@ end;
 //              LType: Word
 //              LSize: Word
 //////////////////////////////////////////////////////////
-Constructor TPSQLField.CreateField(Owner : TCollection; P : FldDesc; P1 : VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean);
+constructor TPSQLField.CreateField(Owner : TCollection; P : FldDesc; P1 : VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean);
 begin
   Create(Owner);
 
@@ -3232,7 +3101,7 @@ begin
  Result.FieldArray := isArray;
 end;
 
-Constructor TPSQLFields.Create(Table : TNativeDataSet);
+constructor TPSQLFields.Create(Table : TNativeDataSet);
 begin
   Inherited Create(TPSQLField);
   FTable := Table;
@@ -3296,19 +3165,19 @@ begin
 end;
 
 //////////////////////////////////////////////////////////
-//Constructor : TPSQLIndex.CreateIndex
+//constructor : TPSQLIndex.CreateIndex
 //Description : constructor CreateIndex
 //////////////////////////////////////////////////////////
 //Input       : Owner: TCollection
 //              P: pIDXDesc
 //////////////////////////////////////////////////////////
-Constructor TPSQLIndex.CreateIndex(Owner : TCollection; P : pIDXDesc);
+constructor TPSQLIndex.CreateIndex(Owner : TCollection; P : pIDXDesc);
 begin
   Create(Owner);
   FDesc := P^;
 end;
 
-Constructor TPSQLIndexes.Create(Table : TNativeDataSet);
+constructor TPSQLIndexes.Create(Table : TNativeDataSet);
 begin
   Inherited Create(TPSQLIndex);
   FTable := Table;
@@ -3420,19 +3289,19 @@ begin
 end;
 
 //////////////////////////////////////////////////////////
-//Constructor : TPSQLNative.CreateNative
+//constructor : TPSQLNative.CreateNative
 //Description : constructor CreateNative
 //////////////////////////////////////////////////////////
 //Input       : Owner: TCollection
 //////////////////////////////////////////////////////////
-Constructor TPSQLNative.CreateNative(Owner : TCollection; P : PPGFIELD_INFO);
+constructor TPSQLNative.CreateNative(Owner : TCollection; P : PPGFIELD_INFO);
 begin
   Create(Owner);
   FDesc := P^;
 end;
 
 
-Constructor TPSQLNatives.Create(Table : TNativeDataSet);
+constructor TPSQLNatives.Create(Table : TNativeDataSet);
 begin
   Inherited Create(TPSQLNative);
   FTable := Table;
@@ -3460,7 +3329,7 @@ end;
 //////////////////////////////////////////////////////////
 //Description : TPSQLFilter impementation
 //////////////////////////////////////////////////////////
-Constructor TPSQLFilter.Create(Owner : TNativeDataSet; AClientData : Longint; Exp : pCANExpr; pfFilt : pfGENFilter);
+constructor TPSQLFilter.Create(Owner : TNativeDataSet; AClientData : Longint; Exp : pCANExpr; pfFilt : pfGENFilter);
 begin
   Inherited Create;
   FDataset := Owner;
@@ -3810,8 +3679,8 @@ begin
 end;
 
 {$O-}
-Constructor TNativeDataSet.Create(PSQL : TNativeConnect;
-                                  Container : TContainer;
+constructor TNativeDataSet.Create(PSQL : TNativeConnect;
+                                  //Container : TContainer;
                                   AnOptions: TPSQLDatasetOptions;
                                   AName, IndexName : string;
                                   Index : Word;
@@ -4061,11 +3930,11 @@ begin
   end;
 end;
 
-procedure TNativeDataSet.InternalCommit;
-begin
-  FConnect.Commit;
-  FConnect.CheckResult;
-end;
+//procedure TNativeDataSet.InternalCommit;
+//begin
+//  FConnect.Commit;
+//  FConnect.CheckResult;
+//end;
 
 procedure TNativeDataSet.FirstRecord;
 begin
@@ -4143,10 +4012,10 @@ begin
   end;
 end;
 
-procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
-begin
-  iRecNo := RecordNumber;
-end;
+//procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
+//begin
+//  iRecNo := RecordNumber;
+//end;
 
 procedure TNativeDataSet.LockRecord(eLock : DBILockType);
 begin
@@ -4832,10 +4701,10 @@ begin
      Result := TrimRight(Result);
 end;
 
-function TNativeDataSet.FieldByName(FieldName: String): string;
-begin
-  Result := Field(FieldIndex(FieldName));
-end;
+//function TNativeDataSet.FieldByName(FieldName: String): string;
+//begin
+//  Result := Field(FieldIndex(FieldName));
+//end;
 
 function TNativeDataSet.FieldIsNull(FieldNum: Integer): Boolean;
 begin
@@ -6491,9 +6360,9 @@ end;
 //////////////////////////////////////////////////////////////////////
 //          TIndexList Object                                       //
 //////////////////////////////////////////////////////////////////////
-Constructor TIndexList.Create(PSQL: TNativeConnect; D : TIDXDescList; TotalCount : integer );
+constructor TIndexList.Create(PSQL: TNativeConnect; D : TIDXDescList; TotalCount : integer );
 begin
-  Inherited Create(PSQL, nil, [], '', '', 0, 0, 0);
+  inherited Create(PSQL, [], '', '', 0, 0, 0);
   Items   := TotalCount;
   if D <> nil then
   begin
@@ -6553,7 +6422,7 @@ end;
 constructor TFieldList.Create(PSQL: TNativeConnect; D: TFLDDescList;
   TotalCount: integer);
 begin
-  Inherited Create(PSQL, nil, [], '', '', 0, 0, 0);
+  inherited Create(PSQL, [], '', '', 0, 0, 0);
   Items   := TotalCount;
   if D <> nil then
   begin
@@ -6578,7 +6447,7 @@ end;
 {******************************************************************************}
 {                           TPSQLEngine                                        }
 {******************************************************************************}
-Constructor TPSQLEngine.Create(P : TObject; Container : TContainer);
+constructor TPSQLEngine.Create(P : TObject; Container : TContainer);
 begin
   Inherited Create(P, Container);
   FDatabase := hDBIDb(Self);
@@ -6597,7 +6466,7 @@ end;
 
 procedure TPSQLEngine.SetDatabase( H : hDBIDb );
 begin
-  if H = nil then  raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
+  if H = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
   FDatabase := H;
 end;
 
@@ -6610,6 +6479,7 @@ function TPSQLEngine.OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boole
 Var
   DB : TNativeConnect;
 begin
+  FDatabase := nil;
   try
     Db := TNativeConnect.Create;
     if Db = nil then
@@ -7253,18 +7123,6 @@ begin
        Result := 1001;
       end;
      FNativeMsg := EPSQLException(ExceptionPtr).PSQLErrorMsg;
-     FNativeErrorPos:= EPSQLException(ExceptionPtr).FPSQLErrorPos;
-     FNativeErrorContext:= EPSQLException(ExceptionPtr).FPSQLErrorContext;
-     FNativeErrorseverity:= EPSQLException(ExceptionPtr).FPSQLErrorseverity;
-     FNativeErrorsqlstate:= EPSQLException(ExceptionPtr).FPSQLErrorsqlstate;
-     FNativeErrorprimary:=  EPSQLException(ExceptionPtr).FPSQLErrorprimary;
-     FNativeErrordetail:=  EPSQLException(ExceptionPtr).FPSQLErrordetail;
-     FNativeErrorhint:=    EPSQLException(ExceptionPtr).FPSQLErrorhint;
-     FNativeErrorinternalpos:= EPSQLException(ExceptionPtr).FPSQLErrorinternalpos;
-     FNativeErrorinternalquery:=EPSQLException(ExceptionPtr).FPSQLErrorinternalquery;
-     FNativeErrorsourcefile:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefile;
-     FNativeErrorsourceline:= EPSQLException(ExceptionPtr).FPSQLErrorsourceline;
-     FNativeErrorsourcefunc:= EPSQLException(ExceptionPtr).FPSQLErrorsourcefunc;
      TObject(ExceptionPtr).Free;
      {$IFDEF DELPHI_7}
      ReleaseExceptionObject;

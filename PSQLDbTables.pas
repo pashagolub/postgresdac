@@ -140,38 +140,46 @@ type
 
   { Exception Classes }
   EPSQLDatabaseError =  Class(EDatabaseError)
-    private
-      FErrorCode: Word;
-      //Error fields added by Tony Caduto 5/17/2006
-      FErrorPos:string;
-      FErrorContext:string;
-      FErrorseverity:string;
-      FErrorsqlstate:string;
-      FErrorprimary:string;
-      FErrordetail:string;
-      FErrorhint:string;
-      FErrorinternalpos:string;
-      FErrorinternalquery:string;
-      FErrorsourcefile:string;
-      FErrorsourceline:string;
-      FErrorsourcefunc:string;
-    public
-      constructor Create(Engine : TPSQLEngine; ErrorCode: Word);
-      destructor Destroy; override;
-      property ErrorCode: Word read FErrorCode;
-      //Error Field properties
-      property ErrorPos:string read FErrorPos;
-      property ErrorContext:string read FErrorContext;
-      property ErrorSeverity:string read FErrorseverity;
-      property ErrorSqlState:string read FErrorsqlstate;
-      property ErrorPrimary:string read FErrorprimary;
-      property ErrorDetail:string read FErrordetail;
-      property ErrorHint:string read FErrorhint;
-      property ErrorInternalPos:string read FErrorinternalpos;
-      property ErrorInternalQuery:string read FErrorinternalquery;
-      property ErrorSourceFile:string read FErrorsourcefile;
-      property ErrorSourceLine:string read FErrorsourceline;
-      property ErrorSourceFunc:string read FErrorsourcefunc;
+  private
+    FErrorCode: Word;
+    FErrorPos:string;
+    FErrorContext:string;
+    FErrorseverity:string;
+    FErrorsqlstate:string;
+    FErrorprimary:string;
+    FErrordetail:string;
+    FErrorhint:string;
+    FErrorinternalpos:string;
+    FErrorinternalquery:string;
+    FErrorsourcefile:string;
+    FErrorsourceline:string;
+    FErrorsourcefunc:string;
+    FErrorDataTypeName: string;
+    FErrorColumnName: string;
+    FErrorSchemaName: string;
+    FErrorTableName: string;
+    FErrorConstraintName: string;
+  public
+    constructor Create(Engine : TPSQLEngine; ErrorCode: Word);
+    destructor Destroy; override;
+    property ErrorCode: Word read FErrorCode;
+    property ErrorPos                 : string read FErrorPos;
+    property ErrorContext             : string read FErrorContext;
+    property ErrorSeverity            : string read FErrorseverity;
+    property ErrorSqlState            : string read FErrorsqlstate;
+    property ErrorPrimary             : string read FErrorprimary;
+    property ErrorDetail              : string read FErrordetail;
+    property ErrorHint                : string read FErrorhint;
+    property ErrorInternalPos         : string read FErrorinternalpos;
+    property ErrorInternalQuery       : string read FErrorinternalquery;
+    property ErrorSourceFile          : string read FErrorsourcefile;
+    property ErrorSourceLine          : string read FErrorsourceline;
+    property ErrorSourceFunc          : string read FErrorsourcefunc;
+    property ErrorSchemaName          : string read FErrorSchemaName;
+    property ErrorTableName           : string read FErrorTableName;
+    property ErrorColumnName          : string read FErrorColumnName;
+    property ErrorDataTypeName        : string read FErrorDataTypeName;
+    property ErrorConstraintName      : string read FErrorConstraintName;
   end;
 
   ENoResultSet = class(EDatabaseError);
@@ -1265,30 +1273,39 @@ constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
     if (Msg1 <> '') and (Err >0) then  Msg1 := Format('PostgreSQL Error Code: (%s)',[IntToStr(Err)])+#13#10+Msg1 else
     begin
        Msg2 := GetBDEErrorMessage(ErrorCode);
-       Msg1 := Format('DBI Error Code: (%s)'+#13#10+'%s '+#13#10+'%s',[IntToStr(ErrorCode),Msg1,Msg2]);
+       Msg1 := Format('DBI Error Code: (%s)'+#13#10+'%s '+#13#10+'%s',[IntToStr(ErrorCode), Msg1, Msg2]);
     end;
     Result := Msg1
   end;
 
+var
+  NC: TNativeConnect;
 begin
-  //FreeTimer(TRUE);
   FErrorCode := ErrorCode;
-  FErrorPos                :=engine.errorpos;
-  FErrorContext            :=engine.errorcontext;
-  FErrorseverity           :=engine.Errorseverity;
-  FErrorsqlstate           :=engine.Errorsqlstate;
-  FErrorprimary            :=engine.Errorprimary;
-  FErrordetail             :=engine.Errordetail;
-  FErrorhint               :=engine.Errorhint;
-  FErrorinternalpos        :=engine.Errorinternalpos;
-  FErrorinternalquery      :=engine.Errorinternalquery;
-  FErrorsourcefile         :=engine.Errorsourcefile;
-  FErrorsourceline         :=engine.Errorsourceline;
-  FErrorsourcefunc         :=engine.Errorsourcefunc;
+  if Assigned(Engine.Database) then
+   begin
+    NC := TNativeConnect(Engine.Database);
+    FErrorPos                := NC.FErrorPos;
+    FErrorContext            := NC.FErrorContext;
+    FErrorseverity           := NC.FErrorSeverity;
+    FErrorsqlstate           := NC.FErrorsqlstate;
+    FErrorprimary            := NC.FErrorprimary;
+    FErrordetail             := NC.FErrordetail;
+    FErrorhint               := NC.FErrorhint;
+    FErrorinternalpos        := NC.FErrorinternalpos;
+    FErrorinternalquery      := NC.FErrorinternalquery;
+    FErrorsourcefile         := NC.FErrorsourcefile;
+    FErrorsourceline         := NC.FErrorsourceline;
+    FErrorsourcefunc         := NC.FErrorsourcefunc;
+    FErrorSchemaName         := NC.FErrorSchemaName;
+    FErrorTableName          := NC.FErrorTableName;
+    FErrorColumnName         := NC.FErrorColumnName;
+    FErrorDataTypeName       := NC.FErrorDataTypeName;
+    FErrorConstraintName     := NC.FErrorConstraintName;
+   end;
   Message := GetErrorString;
-  if Message <> '' then
-     Message := Copy(Message, 1, Length(Message)) else
-     Message := Format('PSQLDAC Interface Error: (%d)',[ErrorCode]);
+  if Message = EmptyStr then
+    Message := Format('PSQLDAC Interface Error: (%d)',[ErrorCode]);
 end;
 
 destructor EPSQLDatabaseError.Destroy;
