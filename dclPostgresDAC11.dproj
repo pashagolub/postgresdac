@@ -87,6 +87,9 @@
     <DCCReference Include="PSQLupdsqled.pas">
       <Form>PSQLUpdateSQLEditForm</Form>
     </DCCReference>
+    <DCCReference Include="PSQLQueryEdit.pas">
+        <Form>SQLEditForm</Form>
+      </DCCReference>
     <DCCReference Include="rtl.dcp" />
     <DCCReference Include="vcl.dcp" />
     <DCCReference Include="vclactnband.dcp" />

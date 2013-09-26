@@ -68,6 +68,10 @@
 			<DCCReference Include="PSQLStoredProcFrm.pas">
 				<Form>PSQLStoredProcProp</Form>
 			</DCCReference>
+			<DCCReference Include="PSQLQueryEdit.pas">
+				<Form>SQLEditForm</Form>
+			</DCCReference>
+
 			<BuildConfiguration Include="Base">
 				<Key>Base</Key>
 			</BuildConfiguration>
