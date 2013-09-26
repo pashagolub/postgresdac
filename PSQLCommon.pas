@@ -1084,10 +1084,18 @@ var
   DateData: Double;
 begin
   if VarType(Value) = varString then
-  begin
+  {$IFDEF DELPHI_7}
+    begin
       if not TryStrToDate(string(TVarData(Value).VString), DateTime) then
         DateTime := VarToDateTime(Value);
-  end
+    end
+  {$ELSE}
+    try
+      DateTime := StrToDateTime(string(TVarData(Value).VString))
+    except
+      DateTime := VarToDateTime(Value)
+    end
+  {$ENDIF UNDER_DELPHI_6}
   else
     DateTime := VarToDateTime(Value);
   DateData := TimeStampToMSecs(DateTimeToTimeStamp(DateTime));
