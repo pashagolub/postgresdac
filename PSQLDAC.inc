@@ -27,7 +27,6 @@
 //---------------------------
 //DELPHI 19 (Delphi XE5 Zephyr)
 {$IFDEF VER260}
-  {$UNDEF NEXTGEN}
   {$DEFINE FMX_AVAILABLE}
   {$DEFINE DELPHI_19}
   {$DEFINE DELPHI_18}

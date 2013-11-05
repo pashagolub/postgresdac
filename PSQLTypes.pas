@@ -186,7 +186,8 @@ const
 var
   PSQL_DLL             : string =
                                 {$IFDEF MSWINDOWS}'libpq.dll'{$ENDIF}
-                                {$IFDEF MACOS}'libpq.dylib'{$ENDIF};
+                                {$IFDEF MACOS}'libpq.dylib'{$ENDIF}
+                                {$IFDEF ANDROID}'libpq.so'{$ENDIF};
 
 
 
@@ -195,7 +196,11 @@ var
   PSQL_FS              : TFormatSettings;
 
 type
-  _NAME = string[NAMEDATALEN+1];
+  {$IFDEF ANDROID}
+  PAnsiChar = PByte;
+  AnsiChar = Byte;
+  AnsiString = TBytes;
+  {$ENDIF}
 
   TPSQLPoint = packed record
     X: Double;
@@ -1425,28 +1430,28 @@ type
     szLkupTblName   : string;          { Lookup Table name }
   end;
 
-  RINTType = (                          { Ref integrity type }
-    rintMASTER,                         { This table is Master }
-    rintDEPENDENT                       { This table is Dependent }
-  );
-
-  RINTQual = (                          { Ref integrity action/qualifier }
-    rintRESTRICT,                       { Prohibit operation }
-    rintCASCADE                         { Cascade operation }
-  );
-
-  pRINTDesc = ^RINTDesc;
-  RINTDesc = packed record              { Ref Integrity Desc }
-    iRintNum        : Word;             { Ref integrity number }
-    szRintName      : DBINAME;          { A name to tag this integegrity constraint }
-    eType           : RINTType;         { Whether master/dependent }
-    szTblName       : DBIPATH;          { Other table name }
-    eModOp          : RINTQual;         { Modify qualifier }
-    eDelOp          : RINTQual;         { Delete qualifier }
-    iFldCount       : Word;             { Fields in foreign key }
-    aiThisTabFld    : DBIKEY;           { Fields in this table }
-    aiOthTabFld     : DBIKEY;           { Fields in other table }
-  end;
+//  RINTType = (                          { Ref integrity type }
+//    rintMASTER,                         { This table is Master }
+//    rintDEPENDENT                       { This table is Dependent }
+//  );
+//
+//  RINTQual = (                          { Ref integrity action/qualifier }
+//    rintRESTRICT,                       { Prohibit operation }
+//    rintCASCADE                         { Cascade operation }
+//  );
+//
+//  pRINTDesc = ^RINTDesc;
+//  RINTDesc = packed record              { Ref Integrity Desc }
+//    iRintNum        : Word;             { Ref integrity number }
+//    szRintName      : DBINAME;          { A name to tag this integegrity constraint }
+//    eType           : RINTType;         { Whether master/dependent }
+//    szTblName       : DBIPATH;          { Other table name }
+//    eModOp          : RINTQual;         { Modify qualifier }
+//    eDelOp          : RINTQual;         { Delete qualifier }
+//    iFldCount       : Word;             { Fields in foreign key }
+//    aiThisTabFld    : DBIKEY;           { Fields in this table }
+//    aiOthTabFld     : DBIKEY;           { Fields in other table }
+//  end;
 
 //============================================================================//
 //                            Miscellaneous                                   //
@@ -1979,6 +1984,11 @@ type
  TRecordBuffer = PAnsiChar;
 
  function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
+{$ENDIF}
+
+{$IFDEF DELPHI_19}
+type
+  TRecordBuffer = NativeInt;
 {$ENDIF}
 
 {$IFNDEF DELPHI_12}

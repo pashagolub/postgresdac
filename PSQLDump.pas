@@ -730,23 +730,20 @@ begin
       raise EPSQLDumpException.Create('Can''t load pg_dump.dll');
 
     @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
-    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
+    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
 
     {$IFDEF M_DEBUG}
     LogDebugMessage('DUMPVER', IntToStr(pdmbvm_GetVersionAsInt()));
     {$ENDIF}
 
-    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
-    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
+    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));
+    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));
 
-
-
-
-    pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);//mi:2007-01-15
+    pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);
     if Assigned(FOnLog) then
      begin
       ProccessOwner := Self;
-      pdmbvm_SetLogCallBackProc(@LogCallBackProc);//pg:2007-03-13
+      pdmbvm_SetLogCallBackProc(@LogCallBackProc);
      end;
 
     if LogFile > '' then
@@ -803,7 +800,7 @@ end;
 
 procedure TPSQLDump.DoLog(const Value: string);
 begin
-  If Assigned(FOnLog) then
+  if Assigned(FOnLog) then
     FOnLog(Self, Value);
 end;
 
