@@ -30,18 +30,19 @@ type
   public
     procedure SetUp; override;
     procedure TearDown; override;
+    procedure TestDumpToFileLogFile(ALogFileName: string = '');
   published
     procedure TestDumpToStream;
-    procedure TestDumpToStream1;
-    procedure TestDumpToStream2;
-    procedure TestDumpToFile;
-    procedure TestDumpToFile1;
+    procedure TestDumpToStreamStrings;
+    procedure TestDumpToStreamLogFile;
+    procedure TestDumpToFileStrings;
     //specific routines
     procedure TestDumpCompressed;
     procedure TestDumpTar;
     procedure TestDumpDirectory;
     procedure TestDumpPlain;
     procedure TestDumpPlainCompressed;
+    procedure TestDumpNonASCIIName;
   end;
 
   // Test methods for class TPSQLRestore
@@ -63,7 +64,7 @@ var
 
 implementation
 
-uses TestHelper;
+uses TestHelper, IOUtils;
 
 procedure TestTPSQLDump.SetUp;
 begin
@@ -91,7 +92,7 @@ begin
   end;
 end;
 
-procedure TestTPSQLDump.TestDumpToStream1;
+procedure TestTPSQLDump.TestDumpToStreamStrings;
 var
   Log: TStrings;
   Stream: TStream;
@@ -112,7 +113,7 @@ begin
   end;
 end;
 
-procedure TestTPSQLDump.TestDumpToStream2;
+procedure TestTPSQLDump.TestDumpToStreamLogFile;
 var
   LogFileName: string;
   Stream: TStream;
@@ -133,15 +134,36 @@ begin
   FPSQLDump.DumpFormat := dfCompressedArchive;
   FPSQLDump.CompressLevel := 9;
   FPSQLDump.RewriteFile := True;
-  TestDumpToFile();
+  TestDumpToFileLogFile('TestOutput\CompressedDump.log');
 end;
 
 procedure TestTPSQLDump.TestDumpDirectory;
 begin
   DumpFileName := 'TestOutput\TestDumpToFile';
+  if TDirectory.Exists(DumpFileName) then
+    TDirectory.Delete(DumpFileName, True);
   FPSQLDump.DumpFormat := dfDirectory;
   FPSQLDump.RewriteFile := True;
-  TestDumpToFile();
+    TestDumpToFileLogFile('TestOutput\DirectoryDump.log');
+end;
+
+procedure TestTPSQLDump.TestDumpNonASCIIName;
+var OldDb: string;
+    DoesDbExist: boolean;
+begin
+  QryDb.SelectString('SELECT TRUE FROM pg_database WHERE datname = ''ћо€”крањнськаЅазочка''', DoesDbExist);
+  if not DoesDbExist then
+    QryDb.Execute('CREATE DATABASE "ћо€”крањнськаЅазочка"');
+  oldDB := QryDb.DatabaseName;
+  try
+    QryDb.Close;
+    QryDb.DatabaseName := 'ћо€”крањнськаЅазочка';
+    DumpFileName := 'TestOutput\TestNonASCII.backup';
+    TestDumpToFileLogFile('TestOutput\NonASCIINameDump.log');
+  finally
+    QryDb.Close;
+    QryDb.DatabaseName := OldDb;
+  end;
 end;
 
 procedure TestTPSQLDump.TestDumpPlain;
@@ -150,7 +172,7 @@ begin
   FPSQLDump.DumpFormat := dfPlain;
   FPSQLDump.CompressLevel := 0;
   FPSQLDump.RewriteFile := True;
-  TestDumpToFile();
+  TestDumpToFileLogFile('TestOutput\PlainDump.log');
 end;
 
 procedure TestTPSQLDump.TestDumpPlainCompressed;
@@ -159,19 +181,19 @@ begin
   FPSQLDump.DumpFormat := dfPlain;
   FPSQLDump.CompressLevel := 6;
   FPSQLDump.RewriteFile := True;
-  TestDumpToFile();
+  TestDumpToFileLogFile('TestOutput\PlainCompressedDump.log');
 end;
 
 procedure TestTPSQLDump.TestDumpTar;
 begin
-  DumpFileName := 'TestOutput\TestDumpToFile.tar';
+  DumpFileName := 'TestOutput\TestDumpToFile.tar.gz';
   FPSQLDump.DumpFormat := dfTarArchive;
-  FPSQLDump.CompressLevel := 0;
+  FPSQLDump.CompressLevel := 6;
   FPSQLDump.RewriteFile := True;
-  TestDumpToFile();
+  TestDumpToFileLogFile('TestOutput\TarDump.log');
 end;
 
-procedure TestTPSQLDump.TestDumpToFile;
+procedure TestTPSQLDump.TestDumpToFileStrings;
 var
   Log: TStrings;
 begin
@@ -186,13 +208,16 @@ begin
   end;
 end;
 
-procedure TestTPSQLDump.TestDumpToFile1;
+procedure TestTPSQLDump.TestDumpToFileLogFile(ALogFileName: string = '');
 var
   LogFileName: string;
 begin
-  LogFileName := 'TestOutput\TestDumpToFile1.log';
+  if ALogFileName = '' then
+    LogFileName := 'TestOutput\TestDumpToFile1.log'
+  else
+    LogFileName := ALogFileName;
   FPSQLDump.DumpToFile(DumpFileName, LogFileName);
-  Check(FileExists(DumpFileName), 'Dump file empty');
+  Check(FileExists(DumpFileName) or DirectoryExists(DumpFileName), 'Dump file empty');
   Check(FileExists(LogFileName), 'Log file empty');
 end;
 

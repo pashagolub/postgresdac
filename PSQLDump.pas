@@ -11,10 +11,14 @@ type
   Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
   Tpdmvm_restore = function ( app_exe : PAnsiChar; filename : PWideChar; pwd : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
 
-  Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar);cdecl;
-  Tpdmbvm_GetVersionAsInt = function ():integer;cdecl;
-  Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer);cdecl;
-  Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer);cdecl;
+  Tv3_Dump = function (AppName: PAnsiChar; LogFileName: PAnsiChar; Params : PAnsiChar): longint; cdecl;
+  Tv3_Restore = function (AppName: PAnsiChar; LogFileName : PAnsiChar; Params : PAnsiChar): longint; cdecl;
+
+
+  Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar); cdecl;
+  Tpdmbvm_GetVersionAsInt = function():integer; cdecl;
+  Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer); cdecl;
+  Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer); cdecl;
 
   TpdmvmParams = class
   private
@@ -99,7 +103,7 @@ type
       protected
         procedure CheckDependencies;
         procedure DefineProperties(Filer: TFiler); override;
-        function GetParameters: PAnsiChar;
+        function GetParameters(OutputFileName: string): PAnsiChar;
         Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
         Constructor Create(Owner : TComponent); override;
@@ -534,36 +538,25 @@ begin
    if not FDatabase.Connected then
      FDatabase.Connected := True;
 
-   if [doDataOnly, doSchemaOnly] * FDumpOptions = [doDataOnly, doSchemaOnly]
-    then
-	      Raise EPSQLDumpException.Create('Options "Schema only" and "Data only"'+
-                                 ' cannot be used together');
-   if [doDataOnly, doClean] * FDumpOptions = [doDataOnly, doClean]
-    then
-        Raise EPSQLDumpException.Create('Options "Clean" and "Data only"'+
-                                 ' cannot be used together');
-   if (doIncludeBLOBs in FDumpOptions)
-        and (FDumpStrOPtions[dsoTable] > '')
-    then
-        Raise EPSQLDumpException.Create('Large-object output not supported for a single table.'#13#10+
+   if [doDataOnly, doSchemaOnly] * FDumpOptions = [doDataOnly, doSchemaOnly] then
+	      raise EPSQLDumpException.Create('Options "Schema only" and "Data only" cannot be used together');
+   if [doDataOnly, doClean] * FDumpOptions = [doDataOnly, doClean] then
+        raise EPSQLDumpException.Create('Options "Clean" and "Data only" cannot be used together');
+   if (doIncludeBLOBs in FDumpOptions) and (FDumpStrOPtions[dsoTable] > '') then
+        raise EPSQLDumpException.Create('Large-object output not supported for a single table.'#13#10+
 		                 'Use a full dump instead');
-   if (doIncludeBLOBs in FDumpOptions)
-        and (FDumpStrOPtions[dsoSchema] > '')
-    then
-        Raise EPSQLDumpException.Create('Large-object output not supported for a single schema.'#13#10+
+   if (doIncludeBLOBs in FDumpOptions) and (FDumpStrOPtions[dsoSchema] > '') then
+        raise EPSQLDumpException.Create('Large-object output not supported for a single schema.'#13#10+
 		                 'Use a full dump instead');
-   if [doInserts, doOids] * FDumpOPtions = [doInserts, doOids]
-    then
-        Raise EPSQLDumpException.Create('"Insert" and "OID" options cannot be used together.'#13#10+
+   if [doInserts, doOids] * FDumpOPtions = [doInserts, doOids] then
+        raise EPSQLDumpException.Create('"Insert" and "OID" options cannot be used together.'#13#10+
                                  'The INSERT command cannot set OIDs');
-   if (doIncludeBLOBs in FDumpOptions)
-      and (FDumpFormat = dfPlain)
-    then
-        Raise EPSQLDumpException.Create('Large-object output is not supported for plain-text dump files.'#13#10+
+   if (doIncludeBLOBs in FDumpOptions) and (FDumpFormat = dfPlain) then
+        raise EPSQLDumpException.Create('Large-object output is not supported for plain-text dump files.'#13#10+
 		                 'Use a different output format.');
 end;
 
-function TPSQLDump.GetParameters: PAnsiChar;
+function TPSQLDump.GetParameters(OutputFileName: string): PAnsiChar;
 var I: TDumpOption;
     J: TDumpStrOption;
     k: integer;
@@ -572,6 +565,8 @@ begin
    raise EPSQLDumpException.Create('Database property not assigned!');
 
  FmiParams.Clear;
+
+ FmiParams.Add('--file=' + OutputFileName);
 
  for I := Low(TDumpOption) to High(TDumpOption) do
    if I in FDumpOptions then
@@ -601,13 +596,18 @@ begin
  if FLockWaitTimeout > 0 then
    FmiParams.Add(Format('--lock-wait-timeout=%u', [FLockWaitTimeout]));
 
+ FmiParams.Add('--no-password'); //we will put it using environment variable
+
  with FDatabase do
   begin
    FmiParams.Add(Format('--username=%s',[UserName]));
    FmiParams.Add(Format('--port=%d',[Port]));
    FmiParams.Add(Format('--host=%s',[Host]));
+   FmiParams.Add(DatabaseName);
   end;
+
  Result := FmiParams.GetPCharArray();
+
  {$IFDEF M_DEBUG}
  FParamStr := FmiParams.FParams.Commatext;
  {$ENDIF}
@@ -628,7 +628,7 @@ procedure TPSQLDump.DumpToFile(const FileName, LogFileName: string);
 begin
   CheckDependencies;
 
-  If Assigned(FBeforeDump) then
+  if Assigned(FBeforeDump) then
     FBeforeDump(Self);
 
   Dump(FileName, LogFileName);
@@ -680,16 +680,16 @@ begin
   end;
 end;
 
-procedure ErrorCallBackProc(ModuleName: PAnsiChar; S: PAnsiChar);cdecl;
+procedure ErrorCallBackProc(Code: integer);cdecl;
 begin
   {This callback ALWAYS must raise an exception!
   In any way dump or restore process will be aborted}
-  raise EPSQLDumpException.Create(Format('Error in module %s: %s', [UTF8ToString(ModuleName), UTF8ToString(S)]));
+  raise EPSQLDumpException.Create(Format('Error with code: %d', [Code]));
 end;
 
 procedure LogCallBackProc(S: PAnsiChar);cdecl;
 begin
-  If Assigned(ProccessOwner) then
+  if Assigned(ProccessOwner) then
      if (ProccessOwner is TPSQLDump) then
        (ProccessOwner as TPSQLDump).DoLog(TrimRight(UTF8ToString(S)))
      else
@@ -700,36 +700,40 @@ end;
 procedure TPSQLDump.Dump(const TargetFile, LogFile: string);
 var
   h : Cardinal;
-  ErrBuff : array[0..1023] of AnsiChar;//error buffer
   Result: longint;
   S: string;
 
-  PLog: PWideChar;
+  PLog: PAnsiChar;
   PWD: PAnsiChar;
+  Params: PAnsiChar;
 
-  pdmvm_dump: Tpdmvm_dump;
-  pdmvm_GetLastError: Tpdmbvm_GetLastError;
+  v3_dump: Tv3_dump;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
   LibName: string;
 begin
-  if FileExists(TargetFile) and not FRewriteFile then
-    raise EPSQLDumpException.Create('Cannot rewrite existing file '+ TargetFile);
+  if (FDumpFormat = dfDirectory) then
+    begin
+      if DirectoryExists(TargetFile) then
+       raise EPSQLDumpException.Create('Cannot create dump. Target directory exists: ' + TargetFile);
+    end
+  else
+    if FileExists(TargetFile) and not FRewriteFile then
+      raise EPSQLDumpException.Create('Cannot create dump. Target file exists: ' + TargetFile);
 
   LibName := 'pg_dump.dll';
   if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
-  h := LoadLibrary(PChar(LibName));
+  h := SafeLoadLibrary(PChar(LibName));
   {$IFDEF M_DEBUG}
    LogDebugMessage('DUMPLIB', GetModuleName(h));
   {$ENDIF}
   try
-    @pdmvm_dump := GetProcAddress(h, PChar('pdmvm_dump'));
-    if not assigned(@pdmvm_dump) then
+    @v3_dump := GetProcAddress(h, PChar('v3_dump'));
+    if not assigned(@v3_dump) then
       raise EPSQLDumpException.Create('Can''t load pg_dump.dll');
 
-    @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
     @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
 
     {$IFDEF M_DEBUG}
@@ -747,20 +751,17 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PWideChar(WideString(LogFile))
+     PLog := PAnsiChar(UTF8Encode(LogFile))
     else
      PLog := nil;
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
-    Result := pdmvm_dump(PAnsiChar(UTF8Encode(ParamStr(0))),
-                         PAnsiChar(UTF8Encode(FDatabase.DatabaseName)),
-                         PWD,
-                         ErrBuff,
-                         PWideChar(WideString(TargetFile)),
-                         PLog,
-                         GetParameters());
+    SetEnvironmentVariableA('PGPASSWORD', PWD);
+    Params := GetParameters(TargetFile);
     {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
     {$ENDIF}
+    Result := v3_dump(PAnsiChar(UTF8Encode(ParamStr(0))), PLog, Params);
+
     case Result of
         0: S := '';
         1: S := 'Common dump error';
@@ -1115,7 +1116,7 @@ end;
 
 procedure TPSQLRestore.DoLog(const Value: string);
 begin
-  If Assigned(FOnLog) then
+  if Assigned(FOnLog) then
     FOnLog(Self, Value);
 end;
 

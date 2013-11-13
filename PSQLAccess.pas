@@ -9475,8 +9475,6 @@ begin
             (PQntuples(Stmt) > 0);
     if IsOK then
       Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)));
-    {else
-      CheckResult;}
     {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
   finally
    PQClear(Stmt);
