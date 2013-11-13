@@ -1,9 +1,9 @@
-In order to run applications using PostgresDAC 2.6.x on Windows 64-bit platform, 
+In order to run applications using PostgresDAC on Windows 64-bit platform, 
 the PostgreSQL x64 client library must be available on a computer, it includes 
 the following files:
 
     libpq.dll
-    libintl.dll
+    libintl-8.dll
     ssleay32.dll
     libeay32.dll
 
