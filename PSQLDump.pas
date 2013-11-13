@@ -173,6 +173,7 @@ type
         FOnLog: TLogEvent;
         FJobs: cardinal;
         FOnLibraryLoad: TLibraryLoadEvent;
+        FTableNames: TStrings;
         procedure SetDatabase(const Value : TPSQLDatabase);
         function GetStrOptions(const Index: Integer): string;
         procedure SetStrOptions(const Index: Integer; const Value: string);
@@ -182,8 +183,11 @@ type
         procedure SetJobs(const Value: cardinal);
         procedure SetRestoreOptions(const Value: TRestoreOptions);
         function GetVersionAsStr: string;
+        procedure SetTableNames(const Value: TStrings);
+        procedure ReadTableName(Reader: TReader); //deal with old missing properties
       protected
         procedure CheckDependencies;
+        procedure DefineProperties(Filer: TFiler); override;
         function GetParameters(SourceFileName: string): PAnsiChar;
         Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
@@ -206,8 +210,8 @@ type
         property RestoreFormat : TRestoreFormat read FRestoreFormat write FRestoreFormat;
         property Role: string index dsoRole read GetStrOptions write SetStrOptions;        
         property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
-        property TableName: string  index rsoTable read GetStrOptions write SetStrOptions;
         property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
+        property TableNames: TStrings read FTableNames write SetTableNames;
         property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
         property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
         property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -575,7 +579,7 @@ begin
      FmiParams.Add(DumpCommandLineBoolParameters[I]);
 
  for J := Low(TDumpStrOption) to High(TDumpStrOption) do
-   if  FDumpStrOptions[J] > '' then
+   if FDumpStrOptions[J] > '' then
      FmiParams.Add(DumpCommandLineStrParameters[J] + FDumpStrOptions[J]);
 
  for k := 0 to FSchemaNames.Count-1 do
@@ -757,7 +761,7 @@ begin
     else
      PLog := nil;
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
-    {$IFDEF WINDOWS}
+    {$IFDEF MSWINDOWS}
     SetEnvironmentVariableA('PGPASSWORD', PWD);
     {$ELSE POSIX}
     SetEnv('PGPASSWORD', PWD, 1);
@@ -877,6 +881,7 @@ begin
   FRestoreOptions := [];
   FmiParams := TpdmvmParams.Create;
   FRestoreFormat := rfAuto;
+  FTableNames := TStringList.Create;
   ZeroMemory(@FRestoreStrOptions, SizeOf(FRestoreStrOptions));
   if (csDesigning in ComponentState) and Assigned(Owner) then
     for I := Owner.ComponentCount - 1 downto 0 do
@@ -887,9 +892,16 @@ begin
       end;
 end;
 
+procedure TPSQLRestore.DefineProperties(Filer: TFiler);
+begin
+  inherited;
+  Filer.DefineProperty('TableName', ReadTableName, nil, False);
+end;
+
 destructor TPSQLRestore.Destroy;
 begin
   FmiParams.Free;
+  FTableNames.Free;
   inherited;
 end;
 
@@ -924,6 +936,7 @@ end;
 function TPSQLRestore.GetParameters(SourceFileName: string): PAnsiChar;
 var I: TRestoreOption;
     J: TRestoreStrOption;
+    K: Integer;
 begin
    if not Assigned(FDatabase) then
      raise EPSQLRestoreException.Create('Database property not assigned!');
@@ -940,6 +953,9 @@ begin
 
    if FRestoreFormat <> rfAuto then
      FmiParams.Add(RestoreCommandLineFormatValues[FRestoreFormat]);
+
+   for K := 0 to FTableNames.Count-1 do
+    FmiParams.Add(RestoreCommandLineStrParameters[rsoTable] + FTableNames[k]);
 
    if FJobs > 1 then
      FmiParams.Add(Format('--jobs=%u', [FJobs]));
@@ -986,6 +1002,11 @@ begin
  FRestoreStrOptions[TRestoreStrOption(Index)] := Value;
 end;
 
+procedure TPSQLRestore.SetTableNames(const Value: TStrings);
+begin
+  FTableNames.Assign(Value);
+end;
+
 procedure TPSQLRestore.CheckDependencies;
 var CheckDB: TPSQLDatabase;
 begin
@@ -1022,6 +1043,13 @@ begin
      CheckDB.Free;
     end;
    end;
+end;
+
+procedure TPSQLRestore.ReadTableName(Reader: TReader);
+var S: string;
+begin
+  S := Reader.ReadString;
+  if S > '' then FTableNames.Append(S);
 end;
 
 procedure TPSQLRestore.Restore(const SourceFile, LogFile: string);
@@ -1074,7 +1102,7 @@ begin
       PLog := nil;
 
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
-  {$IFDEF WINDOWS}
+  {$IFDEF MSWINDOWS}
     SetEnvironmentVariableA('PGPASSWORD', PWD);
   {$ELSE POSIX}
     SetEnv('PGPASSWORD', PWD, 1);
