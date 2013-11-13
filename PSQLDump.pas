@@ -142,14 +142,14 @@ type
 
     EPSQLRestoreException = class(Exception);
 
-    TRestoreFormat = (rfAuto, rfTarArchive, rfCompressedArchive);
+    TRestoreFormat = (rfAuto, rfTarArchive, rfCompressedArchive, rfDirectory);
 
     TRestoreOption = (roDataOnly, roClean, roCreate, roExitOnError,
               roIgnoreVersion, roList, roNoOwner,
               roSchemaOnly, roVerbose, roNoPrivileges,
               roDisableTriggers, roUseSetSessionAuthorization,
               roSingleTransaction, roNoDataForFailedTables,
-              roNoTablespaces);
+              roNoTablespaces, roNoSecurityLabels);
 
     TRestoreOptions = set of TRestoreOption;
 
@@ -176,7 +176,7 @@ type
         procedure SetDatabase(const Value : TPSQLDatabase);
         function GetStrOptions(const Index: Integer): string;
         procedure SetStrOptions(const Index: Integer; const Value: string);
-        procedure Restore(const SourceFile, OutFile, LogFile: string);
+        procedure Restore(const SourceFile, LogFile: string);
         procedure DoLog(const Value: string);
         function GetVersionAsInt: integer;
         procedure SetJobs(const Value: cardinal);
@@ -184,7 +184,7 @@ type
         function GetVersionAsStr: string;
       protected
         procedure CheckDependencies;
-        function GetParameters: PAnsiChar;
+        function GetParameters(SourceFileName: string): PAnsiChar;
         Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
         Constructor Create(Owner : TComponent); override;
@@ -253,7 +253,8 @@ const
      '--use-set-session-authorization',  //roUseSetSessionAuthorization
      '--single-transaction',             //roSingleTransaction
      '--no-data-for-failed-tables',      //roNoDataForFailedTables
-     '--no-tablespaces'                  //roNoTablespaces
+     '--no-tablespaces',                 //roNoTablespaces
+     '--no-security-labels'              //roNoSecurityLabels
      );
 
     DumpCommandLineStrParameters: array[TDumpStrOption] of string =(
@@ -289,7 +290,8 @@ const
     RestoreCommandLineFormatValues: array[TRestoreFormat] of string = (
     '',             //auto
     '--format=t',  //tar archive
-    '--format=c'   //custom archive
+    '--format=c',  //custom archive
+    '--format=d'   //directory
     );
 
 implementation
@@ -871,7 +873,7 @@ begin
   FRestoreOptions := [];
   FmiParams := TpdmvmParams.Create;
   FRestoreFormat := rfAuto;
-  ZeroMemory(@FRestoreStrOptions,sizeof(FRestoreStrOptions));
+  ZeroMemory(@FRestoreStrOptions, SizeOf(FRestoreStrOptions));
   if (csDesigning in ComponentState) and Assigned(Owner) then
     for I := Owner.ComponentCount - 1 downto 0 do
       if Owner.Components[I] is TPSQLDatabase then
@@ -903,31 +905,19 @@ begin
 end;
 
 procedure TPSQLRestore.RestoreFromFile(const FileName, LogFileName: string);
-var tmpOutFile: string;
 begin
   CheckDependencies;
 
   if Assigned(FBeforeRestore) then
     FBeforeRestore(Self);
 
-  if FRestoreStrOptions[rsoDBName] = '' then
-   Restore(FileName, FRestoreStrOptions[rsoFileName], LogFileName)
-  else
-     begin
-       tmpOutFile := GetTempFileName();
-       if tmpOutFile = '' then
-         raise EPSQLRestoreException.Create('Can''t create temporary out file');
-       try
-         Restore(FileName,tmpOutFile,logFileName);
-       finally
-         SysUtils.DeleteFile(tmpOutFile);
-       end;
-     end;
+  Restore(FileName, LogFileName);
+
   if Assigned(FAfterRestore) then
     FAfterRestore(Self);
 end;
 
-function TPSQLRestore.GetParameters: PAnsiChar;
+function TPSQLRestore.GetParameters(SourceFileName: string): PAnsiChar;
 var I: TRestoreOption;
     J: TRestoreStrOption;
 begin
@@ -936,17 +926,12 @@ begin
 
    FmiParams.Clear;
 
-   if roNoDataForFailedTables in FRestoreOptions then
-    begin
-     FmiParams.Add('-X');
-     FmiParams.Add('no-data-for-failed-tables');
-    end;
-
    for I := Low(TRestoreOption) to Pred(High(TRestoreOption)) do
      if I in FRestoreOptions then
        FmiParams.Add(RestoreCommandLineBoolParameters[I]);
+
    for J := Low(TRestoreStrOption) to High(TRestoreStrOption) do
-     if (J <> rsoFileName) and (FRestoreStrOptions[J] > '') then
+     if (FRestoreStrOptions[J] > '') then
        FmiParams.Add(RestoreCommandLineStrParameters[J] + FRestoreStrOPtions[J]);
 
    if FRestoreFormat <> rfAuto then
@@ -955,12 +940,17 @@ begin
    if FJobs > 1 then
      FmiParams.Add(Format('--jobs=%u', [FJobs]));
 
+   FmiParams.Add('--no-password'); //we will put it using environment variable
+
    with FDatabase do
     begin
      FmiParams.Add(Format('--username=%s',[UserName]));
      FmiParams.Add(Format('--port=%d',[Port]));
      FmiParams.Add(Format('--host=%s',[Host]));
     end;
+
+   FmiParams.Add(SourceFileName);
+
    Result := FmiParams.GetPCharArray();
   {$IFDEF M_DEBUG}
    FParamStr := FmiParams.FParams.Commatext;
@@ -995,15 +985,17 @@ end;
 procedure TPSQLRestore.CheckDependencies;
 var CheckDB: TPSQLDatabase;
 begin
- if (FRestoreStrOptions[rsoFileName] > '')
-    and (FRestoreStrOptions[rsoDBName] > '')
-  then
-   Raise EPSQLRestoreException.Create('Cannot specify both database and file output');
+ if not ((FRestoreStrOptions[rsoFileName] > '') xor (FRestoreStrOptions[rsoDBName] > ''))  then
+   raise EPSQLRestoreException.Create('Database or file output should be specified, but not both');
 
 
- if (roSingleTransaction in FRestoreOptions) and (FJobs > 1)
-  then
-   Raise EPSQLRestoreException.Create('Multiple jobs cannot be used within the single transaction');
+ if (roSingleTransaction in FRestoreOptions) and (FJobs > 1)  then
+   raise EPSQLRestoreException.Create('Multiple jobs cannot be used within the single transaction');
+
+ {$IFDEF WINDOWS}
+ if FJobs > MAXIMUM_WAIT_OBJECTS then
+   raise EPSQLRestoreException.CreateFmt('Maximum number of parallel jobs is %d',[MAXIMUM_WAIT_OBJECTS]);
+ {$ENDIF}
 
 
  if (FRestoreStrOptions[rsoFileName] = '')
@@ -1028,86 +1020,75 @@ begin
    end;
 end;
 
-procedure TPSQLRestore.Restore(const SourceFile, OutFile, LogFile: string);
+procedure TPSQLRestore.Restore(const SourceFile, LogFile: string);
 var
   h : Cardinal;
   Result: longint;
   S: string;
-  Err: PAnsiChar;
-  pdmvm_restore: Tpdmvm_restore;
-  pdmvm_GetLastError: Tpdmbvm_GetLastError;
+  PWD: PAnsiChar;
+
+  v3_restore: Tv3_Restore;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
-  PLog: PWideChar;
+  PLog: PAnsiChar;
   LibName: string;
+  Params: PAnsiChar;
 begin
   S := '';
   LibName := 'pg_restore.dll';
   if Assigned(FOnLibraryLoad) then FOnLibraryLoad(Self, LibName);
-  h := LoadLibrary(PChar(LibName));
+  h := SafeLoadLibrary(PChar(LibName));
   {$IFDEF M_DEBUG}
   LogDebugMessage('RESTLIB', GetModuleName(h));
   {$ENDIF}
   try
-    @pdmvm_restore := GetProcAddress(h, PChar('pdmvm_restore'));
-    if not assigned(@pdmvm_restore) then
-     raise EPSQLRestoreException.Create('Can''t load pg_restore.dll');
+    @v3_restore := GetProcAddress(h, PChar('v3_restore'));
+    if not assigned(@v3_restore) then
+      raise EPSQLRestoreException.Create('Can''t load pg_restore.dll');
 
-    @pdmvm_GetLastError := GetProcAddress(h, PChar('pdmbvm_GetLastError'));
-    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));//mi:2007-01-15
+    @pdmbvm_GetVersionAsInt := GetProcAddress(h, PChar('pdmbvm_GetVersionAsInt'));
 
     {$IFDEF M_DEBUG}
     LogDebugMessage('RESTVER', IntToStr(pdmbvm_GetVersionAsInt()));
     {$ENDIF}
 
-    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));//mi:2007-01-15
-    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));//pg:2007-03-13
+    @pdmbvm_SetErrorCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetErrorCallBackProc'));
+    @pdmbvm_SetLogCallBackProc := GetProcAddress(h, PChar('pdmbvm_SetLogCallBackProc'));
 
-    pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);//mi:2007-01-15
-    If Assigned(FOnLog) then
+    pdmbvm_SetErrorCallBackProc(@ErrorCallBackProc);
+    if Assigned(FOnLog) then
      begin
       ProccessOwner := Self;
-      pdmbvm_SetLogCallBackProc(@LogCallBackProc);//pg:2007-03-13
+      pdmbvm_SetLogCallBackProc(@LogCallBackProc);
      end;
 
     if LogFile > '' then
-     PLog := PWideChar(WideString(LogFile))
+      PLog := PAnsiChar(UTF8Encode(LogFile))
     else
-     PLog := nil;
+      PLog := nil;
 
-    Result := pdmvm_restore(PAnsiChar(UTF8Encode(ParamStr(0))),
-                          PWideChar(WideString(SourceFile)),//in file
-                          PAnsiChar(UTF8Encode(FDatabase.UserPassword)),
-                          PWideChar(WideString(OutFile)),//out file
-                          PLog,//out file
-                          GetParameters());
-
+    PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
+    SetEnvironmentVariableA('PGPASSWORD', PWD);
+    Params := GetParameters(SourceFile);
     {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
     {$ENDIF}
+
+    Result := v3_restore(PAnsiChar(UTF8Encode(ParamStr(0))), PLog, Params);
 
     case Result of
       0: ;// - OK
       1: if roExitOnError in Options then S := 'Common pg_restore error';
       3: S := 'Output file error.'; //stdout operation
       4: S := 'Error output file error.'; //stderr
-      1000: S := Format('Could not open input file %s.',[SourceFile]);
-      1001: S := Format('Could not read input file %s.',[SourceFile]);
-      1002: S := Format('Input file %s is too short.',[SourceFile]);
-      1003: S := Format('Input file %s does not appear to be a valid archive (too short?)',[SourceFile]);
-      1004: S := Format('Input file %s does not appear to be a valid archive.',[SourceFile]);
     else
       S := 'Unknown restore error';
     end;
 
     if S > '' then
-     begin
-      Err := '';
-      pdmvm_GetLastError(Err);
-      raise EPSQLRestoreException.Create(S + String(AnsiString(Err)));
-     end;
+      raise EPSQLRestoreException.Create(S + #13#10 + Format('Error Code: %d', [Result]));
 
   finally
     FreeLibrary(h);

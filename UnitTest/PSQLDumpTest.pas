@@ -53,8 +53,9 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
-    procedure TestRestoreFromFile;
-    procedure TestRestoreFromFile1;
+    procedure TestRestoreFromFileToDB;
+    procedure TestRestoreFromFileToFile;
+    procedure TestRestoreFromDirectoryToFile;
   end;
 
 var
@@ -226,42 +227,58 @@ begin
   FPSQLRestore := TPSQLRestore.Create(nil);
   FPSQLRestore.Database := QryDb;
   FPSQLRestore.Options := [roVerbose];
-  QryDb.Execute('CREATE DATABASE restore_test TEMPLATE template0;')
 end;
 
 procedure TestTPSQLRestore.TearDown;
 begin
   FPSQLRestore.Free;
   FPSQLRestore := nil;
-  QryDb.Execute('DROP DATABASE restore_test;')
 end;
 
-procedure TestTPSQLRestore.TestRestoreFromFile;
+procedure TestTPSQLRestore.TestRestoreFromDirectoryToFile;
+var
+  LogFileName: string;
+  FileName: string;
+begin
+  LogFileName := 'TestOutput\RestoreFromDirToFile.log';
+  FileName := 'TestOutput\TestDumpToFile';
+  FPSQLRestore.RestoreFormat := rfDirectory;
+  FPSQLRestore.OutputFileName := 'TestOutput\RestoreFromDirToFileOutput.sql';
+  FPSQLRestore.RestoreFromFile(FileName, LogFileName);
+  Check(DirectoryExists(FileName), 'Dump directory is empty');
+  Check(FileExists(FPSQLRestore.OutputFileName), 'Output file is empty');
+  Check(FileExists(LogFileName), 'Log file is empty');
+end;
+
+procedure TestTPSQLRestore.TestRestoreFromFileToDB;
 var
   Log: TStrings;
   FileName: string;
 begin
+  QryDb.Execute('CREATE DATABASE restore_test TEMPLATE template0;');
   Log := TStringList.Create;
   try
     FileName := DumpFileName;
     FPSQLRestore.DBName := 'restore_test';
     FPSQLRestore.RestoreFromFile(FileName, Log);
-    Log.SaveToFile('TestOutput\TestRestoreFromFile.log');
+    Log.SaveToFile('TestOutput\RestoreFromFile.log');
+    QryDb.Execute('DROP DATABASE restore_test;');
   finally
     Log.Free;
   end;
 end;
 
-procedure TestTPSQLRestore.TestRestoreFromFile1;
+procedure TestTPSQLRestore.TestRestoreFromFileToFile;
 var
   LogFileName: string;
   FileName: string;
 begin
-  LogFileName := 'TestOutput\TestRestoreFromFile1.log';
+  LogFileName := 'TestOutput\RestoreFromFileToFile.log';
   FileName := DumpFileName;
-  FPSQLRestore.DBName := 'restore_test';
+  FPSQLRestore.OutputFileName := 'TestOutput\RestoreFromFileToFileOutput.sql';
   FPSQLRestore.RestoreFromFile(FileName, LogFileName);
   Check(FileExists(DumpFileName), 'Dump file empty');
+  Check(FileExists(FPSQLRestore.OutputFileName), 'Output file empty');
   Check(FileExists(LogFileName), 'Log file empty');
 end;
 
