@@ -757,7 +757,11 @@ begin
     else
      PLog := nil;
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
+    {$IFDEF WINDOWS}
     SetEnvironmentVariableA('PGPASSWORD', PWD);
+    {$ELSE POSIX}
+    SetEnv('PGPASSWORD', PWD, 1);
+    {$ENDIF}
     Params := GetParameters(TargetFile);
     {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
@@ -1070,11 +1074,16 @@ begin
       PLog := nil;
 
     PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
+  {$IFDEF WINDOWS}
     SetEnvironmentVariableA('PGPASSWORD', PWD);
+  {$ELSE POSIX}
+    SetEnv('PGPASSWORD', PWD, 1);
+  {$ENDIF}
     Params := GetParameters(SourceFile);
-    {$IFDEF M_DEBUG}
+
+  {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
-    {$ENDIF}
+  {$ENDIF}
 
     Result := v3_restore(PAnsiChar(UTF8Encode(ParamStr(0))), PLog, Params);
 
