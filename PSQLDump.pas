@@ -50,7 +50,7 @@ type
                   doSchemaOnly, doVerbose, doNoPrivileges, doDisableDollarQuoting,
                   doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces,
                   doQuoteAllIdentifiers, doNoSecurityLabels, doNoUnloggedTableData,
-                  doSerializableDeferrable);
+                  doSerializableDeferrable, doNoSynchronizedSnapshots);
 
     TDumpOptions = set of TDumpOption;
 
@@ -84,6 +84,7 @@ type
         FOnLog: TLogEvent;
         FLockWaitTimeout: cardinal;
         FOnLibraryLoad: TLibraryLoadEvent;
+        FJobs: cardinal;
         procedure SetDatabase(const Value : TPSQLDatabase);
         procedure SetCompressLevel(const Value: TCompressLevel);
         function GetStrOptions(const Index: Integer): string;
@@ -104,9 +105,9 @@ type
         procedure CheckDependencies;
         procedure DefineProperties(Filer: TFiler); override;
         function GetParameters(OutputFileName: string): PAnsiChar;
-        Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
+        procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
-        Constructor Create(Owner : TComponent); override;
+        constructor Create(Owner : TComponent); override;
         destructor Destroy; override;
         procedure DumpToStream(Stream: TStream); overload;
         procedure DumpToStream(Stream: TStream; Log: TStrings); overload;
@@ -130,6 +131,7 @@ type
         property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;
         property SuperUserName: string  index dsoSuperUser read GetStrOptions write SetStrOptions;
         property TableNames: TStrings read FTableNames write SetTableNames;
+        property Jobs: cardinal read FJobs write FJobs;
         property AfterDump : TNotifyEvent read FAfterDump write FAfterDump;
         property BeforeDump  : TNotifyEvent read FBeforeDump write FBeforeDump;
         property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -189,9 +191,9 @@ type
         procedure CheckDependencies;
         procedure DefineProperties(Filer: TFiler); override;
         function GetParameters(SourceFileName: string): PAnsiChar;
-        Procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
+        procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
       public
-        Constructor Create(Owner : TComponent); override;
+        constructor Create(Owner : TComponent); override;
         destructor Destroy; override;
         procedure RestoreFromFile(const FileName: string; Log: TStrings); overload;
       	procedure RestoreFromFile(const FileName, LogFileName: string); overload;
@@ -239,7 +241,8 @@ const
      '--quote-all-identifiers',          //doQuoteAllIdentifiers
      '--no-security-labels',             //doNoSecurityLabels
      '--no-unlogged-table-data',         //doNoUnloggedTableData
-     '--serializable-deferrable'         //doSerializableDeferrable
+     '--serializable-deferrable',        //doSerializableDeferrable
+     '--no-synchronized-snapshots'       //doNoSynchronizedSnapshots
     );
 
     RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -538,27 +541,33 @@ end;
 
 procedure TPSQLDump.CheckDependencies;
 begin
-   if not Assigned(FDatabase) then
-     raise EDatabaseError.Create('Property Database not set!');
+  if not Assigned(FDatabase) then
+    raise EDatabaseError.Create('Property Database not set!');
+  if not FDatabase.Connected then
+    FDatabase.Connected := True;
 
-   if not FDatabase.Connected then
-     FDatabase.Connected := True;
+  if (DumpFormat <> dfDirectory) and (FJobs > 1)  then
+    raise EPSQLRestoreException.Create('Multiple jobs can be used only with directory output format');
+{$IFDEF MSWINDOWS}
+  if FJobs > MAXIMUM_WAIT_OBJECTS then
+   raise EPSQLRestoreException.CreateFmt('Maximum number of parallel jobs is %d',[MAXIMUM_WAIT_OBJECTS]);
+{$ENDIF}
 
-   if [doDataOnly, doSchemaOnly] * FDumpOptions = [doDataOnly, doSchemaOnly] then
-	      raise EPSQLDumpException.Create('Options "Schema only" and "Data only" cannot be used together');
-   if [doDataOnly, doClean] * FDumpOptions = [doDataOnly, doClean] then
-        raise EPSQLDumpException.Create('Options "Clean" and "Data only" cannot be used together');
-   if (doIncludeBLOBs in FDumpOptions) and (FDumpStrOPtions[dsoTable] > '') then
-        raise EPSQLDumpException.Create('Large-object output not supported for a single table.'#13#10+
+  if [doDataOnly, doSchemaOnly] * FDumpOptions = [doDataOnly, doSchemaOnly] then
+	  raise EPSQLDumpException.Create('Options "Schema only" and "Data only" cannot be used together');
+  if [doDataOnly, doClean] * FDumpOptions = [doDataOnly, doClean] then
+    raise EPSQLDumpException.Create('Options "Clean" and "Data only" cannot be used together');
+  if (doIncludeBLOBs in FDumpOptions) and (FDumpStrOPtions[dsoTable] > '') then
+    raise EPSQLDumpException.Create('Large-object output not supported for a single table.'#13#10+
 		                 'Use a full dump instead');
-   if (doIncludeBLOBs in FDumpOptions) and (FDumpStrOPtions[dsoSchema] > '') then
-        raise EPSQLDumpException.Create('Large-object output not supported for a single schema.'#13#10+
+  if (doIncludeBLOBs in FDumpOptions) and (FDumpStrOPtions[dsoSchema] > '') then
+    raise EPSQLDumpException.Create('Large-object output not supported for a single schema.'#13#10+
 		                 'Use a full dump instead');
-   if [doInserts, doOids] * FDumpOPtions = [doInserts, doOids] then
-        raise EPSQLDumpException.Create('"Insert" and "OID" options cannot be used together.'#13#10+
+  if [doInserts, doOids] * FDumpOPtions = [doInserts, doOids] then
+    raise EPSQLDumpException.Create('"Insert" and "OID" options cannot be used together.'#13#10+
                                  'The INSERT command cannot set OIDs');
-   if (doIncludeBLOBs in FDumpOptions) and (FDumpFormat = dfPlain) then
-        raise EPSQLDumpException.Create('Large-object output is not supported for plain-text dump files.'#13#10+
+  if (doIncludeBLOBs in FDumpOptions) and (FDumpFormat = dfPlain) then
+    raise EPSQLDumpException.Create('Large-object output is not supported for plain-text dump files.'#13#10+
 		                 'Use a different output format.');
 end;
 
@@ -567,44 +576,47 @@ var I: TDumpOption;
     J: TDumpStrOption;
     k: integer;
 begin
- if not Assigned(FDatabase) then
-   raise EPSQLDumpException.Create('Database property not assigned!');
+  if not Assigned(FDatabase) then
+    raise EPSQLDumpException.Create('Database property not assigned!');
 
- FmiParams.Clear;
+  FmiParams.Clear;
 
- FmiParams.Add('--file=' + OutputFileName);
+  FmiParams.Add('--file=' + OutputFileName);
 
- for I := Low(TDumpOption) to High(TDumpOption) do
-   if I in FDumpOptions then
-     FmiParams.Add(DumpCommandLineBoolParameters[I]);
+  for I := Low(TDumpOption) to High(TDumpOption) do
+    if I in FDumpOptions then
+      FmiParams.Add(DumpCommandLineBoolParameters[I]);
 
- for J := Low(TDumpStrOption) to High(TDumpStrOption) do
-   if FDumpStrOptions[J] > '' then
-     FmiParams.Add(DumpCommandLineStrParameters[J] + FDumpStrOptions[J]);
+  for J := Low(TDumpStrOption) to High(TDumpStrOption) do
+    if FDumpStrOptions[J] > '' then
+      FmiParams.Add(DumpCommandLineStrParameters[J] + FDumpStrOptions[J]);
 
- for k := 0 to FSchemaNames.Count-1 do
-   FmiParams.Add(DumpCommandLineStrParameters[dsoSchema] + FSchemaNames[k]);
+  for k := 0 to FSchemaNames.Count-1 do
+    FmiParams.Add(DumpCommandLineStrParameters[dsoSchema] + FSchemaNames[k]);
 
- for k := 0 to FExcludeSchemas.Count-1 do
-   FmiParams.Add(DumpCommandLineStrParameters[dsoExcludeSchema] + FExcludeSchemas[k]);
+  for k := 0 to FExcludeSchemas.Count-1 do
+    FmiParams.Add(DumpCommandLineStrParameters[dsoExcludeSchema] + FExcludeSchemas[k]);
 
- for k := 0 to FTableNames.Count-1 do
-   FmiParams.Add(DumpCommandLineStrParameters[dsoTable] + FTableNames[k]);
+  for k := 0 to FTableNames.Count-1 do
+    FmiParams.Add(DumpCommandLineStrParameters[dsoTable] + FTableNames[k]);
 
- for k := 0 to FExcludeTables.Count-1 do
-   FmiParams.Add(DumpCommandLineStrParameters[dsoExcludeTable] + FExcludeTables[k]);
+  for k := 0 to FExcludeTables.Count-1 do
+    FmiParams.Add(DumpCommandLineStrParameters[dsoExcludeTable] + FExcludeTables[k]);
 
- FmiParams.Add(DumpCommandLineFormatValues[FDumpFormat]);
+  FmiParams.Add(DumpCommandLineFormatValues[FDumpFormat]);
 
- if FDumpFormat in [dfCompressedArchive, dfPlain] then
-   FmiParams.Add(Format('--compress=%d', [FCompressLevel]));
+  if FDumpFormat in [dfCompressedArchive, dfPlain] then
+    FmiParams.Add(Format('--compress=%d', [FCompressLevel]));
 
- if FLockWaitTimeout > 0 then
-   FmiParams.Add(Format('--lock-wait-timeout=%u', [FLockWaitTimeout]));
+  if FLockWaitTimeout > 0 then
+    FmiParams.Add(Format('--lock-wait-timeout=%u', [FLockWaitTimeout]));
 
- FmiParams.Add('--no-password'); //we will put it using environment variable
+  if FJobs > 1 then
+    FmiParams.Add(Format('--jobs=%u', [FJobs]));
 
- with FDatabase do
+  FmiParams.Add('--no-password'); //we will put it using environment variable
+
+  with FDatabase do
   begin
    FmiParams.Add(Format('--username=%s',[UserName]));
    FmiParams.Add(Format('--port=%d',[Port]));
@@ -612,11 +624,11 @@ begin
    FmiParams.Add(DatabaseName);
   end;
 
- Result := FmiParams.GetPCharArray();
+  Result := FmiParams.GetPCharArray();
 
- {$IFDEF M_DEBUG}
- FParamStr := FmiParams.FParams.Commatext;
- {$ENDIF}
+  {$IFDEF M_DEBUG}
+  FParamStr := FmiParams.FParams.Commatext;
+  {$ENDIF}
 end;
 
 function TPSQLDump.GetStrOptions(const Index: Integer): string;
@@ -1017,11 +1029,10 @@ begin
  if (roSingleTransaction in FRestoreOptions) and (FJobs > 1)  then
    raise EPSQLRestoreException.Create('Multiple jobs cannot be used within the single transaction');
 
- {$IFDEF WINDOWS}
+ {$IFDEF MSWINDOWS}
  if FJobs > MAXIMUM_WAIT_OBJECTS then
    raise EPSQLRestoreException.CreateFmt('Maximum number of parallel jobs is %d',[MAXIMUM_WAIT_OBJECTS]);
  {$ENDIF}
-
 
  if (FRestoreStrOptions[rsoFileName] = '')
     and (FRestoreStrOptions[rsoDBName] = '')
