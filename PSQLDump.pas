@@ -43,7 +43,9 @@ type
 
   EPSQLDumpException = class(Exception);
 
-  TPSQLDump = class;
+  TDumpRestoreSection = (drsPreData, drsData, drsPostData);
+
+  TDumpRestoreSections = set of TDumpRestoreSection;
 
   TDumpOption = (doDataOnly, doIncludeBLOBs, doClean, doCreate, doInserts,
                 doColumnInserts, doIgnoreVersion, doOIDs, doNoOwner,
@@ -85,6 +87,7 @@ type
     FOnLibraryLoad: TLibraryLoadEvent;
     FJobs: cardinal;
     FExcludeTablesData: TStrings;
+    FSections: TDumpRestoreSections;
     procedure SetDatabase(const Value : TPSQLDatabase);
     procedure SetCompressLevel(const Value: TCompressLevel);
     function GetStrOptions(const Index: Integer): string;
@@ -134,6 +137,7 @@ type
     property SuperUserName: string  index dsoSuperUser read GetStrOptions write SetStrOptions;
     property TableNames: TStrings read FTableNames write SetTableNames;
     property Jobs: cardinal read FJobs write FJobs;
+    property Sections: TDumpRestoreSections read FSections write FSections;
     property AfterDump : TNotifyEvent read FAfterDump write FAfterDump;
     property BeforeDump  : TNotifyEvent read FBeforeDump write FBeforeDump;
     property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -142,8 +146,6 @@ type
 
 
 {TPSQLRestore stuff}
-  TPSQLRestore = class;
-
   EPSQLRestoreException = class(Exception);
 
   TRestoreFormat = (rfAuto, rfTarArchive, rfCompressedArchive, rfDirectory);
@@ -178,6 +180,7 @@ type
     FJobs: cardinal;
     FOnLibraryLoad: TLibraryLoadEvent;
     FTableNames: TStrings;
+    FSections: TDumpRestoreSections;
     procedure SetDatabase(const Value : TPSQLDatabase);
     function GetStrOptions(const Index: Integer): string;
     procedure SetStrOptions(const Index: Integer; const Value: string);
@@ -216,6 +219,7 @@ type
     property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
     property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
     property TableNames: TStrings read FTableNames write SetTableNames;
+    property Sections: TDumpRestoreSections read FSections write FSections;
     property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
     property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
     property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -223,6 +227,12 @@ type
   end;
 
 const
+  DumpRestoreCommandLineSectionParameters: array[TDumpRestoreSection] of string = (
+   '--section=pre-data', //drsPreData
+   '--section=data',     //drsData
+   '--section=post-data' //drsPostData
+  );
+
   DumpCommandLineBoolParameters: array[TDumpOption] of string = (
    '--data-only',                      //doDataOnly
    '--blobs',                          //doIncludeBLOBs
@@ -577,6 +587,7 @@ end;
 function TPSQLDump.GetParameters(OutputFileName: string): PAnsiChar;
 var I: TDumpOption;
     J: TDumpStrOption;
+    DRS: TDumpRestoreSection;
     k: integer;
 begin
   if not Assigned(FDatabase) then
@@ -593,6 +604,10 @@ begin
   for J := Low(TDumpStrOption) to High(TDumpStrOption) do
     if FDumpStrOptions[J] > '' then
       FmiParams.Add(DumpCommandLineStrParameters[J] + FDumpStrOptions[J]);
+
+  for DRS := Low(TDumpRestoreSection) to High(TDumpRestoreSection) do
+    if DRS in FSections then
+      FmiParams.Add(DumpRestoreCommandLineSectionParameters[DRS]);
 
   for k := 0 to FSchemaNames.Count-1 do
     FmiParams.Add(DumpCommandLineStrParameters[dsoSchema] + FSchemaNames[k]);
@@ -960,44 +975,50 @@ function TPSQLRestore.GetParameters(SourceFileName: string): PAnsiChar;
 var I: TRestoreOption;
     J: TRestoreStrOption;
     K: Integer;
+  DRS: TDumpRestoreSection;
 begin
-   if not Assigned(FDatabase) then
-     raise EPSQLRestoreException.Create('Database property not assigned!');
+  if not Assigned(FDatabase) then
+    raise EPSQLRestoreException.Create('Database property not assigned!');
 
-   FmiParams.Clear;
+  FmiParams.Clear;
 
-   for I := Low(TRestoreOption) to Pred(High(TRestoreOption)) do
-     if I in FRestoreOptions then
-       FmiParams.Add(RestoreCommandLineBoolParameters[I]);
+  for I := Low(TRestoreOption) to Pred(High(TRestoreOption)) do
+    if I in FRestoreOptions then
+      FmiParams.Add(RestoreCommandLineBoolParameters[I]);
 
-   for J := Low(TRestoreStrOption) to High(TRestoreStrOption) do
-     if (FRestoreStrOptions[J] > '') then
-       FmiParams.Add(RestoreCommandLineStrParameters[J] + FRestoreStrOPtions[J]);
+  for J := Low(TRestoreStrOption) to High(TRestoreStrOption) do
+    if (FRestoreStrOptions[J] > '') then
+      FmiParams.Add(RestoreCommandLineStrParameters[J] + FRestoreStrOPtions[J]);
 
-   if FRestoreFormat <> rfAuto then
-     FmiParams.Add(RestoreCommandLineFormatValues[FRestoreFormat]);
+  for DRS := Low(TDumpRestoreSection) to High(TDumpRestoreSection) do
+    if DRS in FSections then
+      FmiParams.Add(DumpRestoreCommandLineSectionParameters[DRS]);
 
-   for K := 0 to FTableNames.Count-1 do
-    FmiParams.Add(RestoreCommandLineStrParameters[rsoTable] + FTableNames[k]);
+  if FRestoreFormat <> rfAuto then
+    FmiParams.Add(RestoreCommandLineFormatValues[FRestoreFormat]);
 
-   if FJobs > 1 then
-     FmiParams.Add(Format('--jobs=%u', [FJobs]));
+  for K := 0 to FTableNames.Count-1 do
+   FmiParams.Add(RestoreCommandLineStrParameters[rsoTable] + FTableNames[k]);
 
-   FmiParams.Add('--no-password'); //we will put it using environment variable
+  if FJobs > 1 then
+    FmiParams.Add(Format('--jobs=%u', [FJobs]));
 
-   with FDatabase do
+  FmiParams.Add('--no-password'); //we will put it using environment variable
+
+  with FDatabase do
     begin
      FmiParams.Add(Format('--username=%s',[UserName]));
      FmiParams.Add(Format('--port=%d',[Port]));
      FmiParams.Add(Format('--host=%s',[Host]));
     end;
 
-   FmiParams.Add(SourceFileName);
+  FmiParams.Add(SourceFileName);
 
-   Result := FmiParams.GetPCharArray();
-  {$IFDEF M_DEBUG}
-   FParamStr := FmiParams.FParams.Commatext;
-  {$ENDIF}
+  Result := FmiParams.GetPCharArray();
+
+{$IFDEF M_DEBUG}
+  FParamStr := FmiParams.FParams.Commatext;
+{$ENDIF}
 end;
 
 function TPSQLRestore.GetStrOptions(const Index: Integer): string;
