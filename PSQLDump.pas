@@ -8,14 +8,8 @@ interface
 Uses Classes, SysUtils, Db, PSQLTypes, Math, PSQLDbTables;
 
 type
-  Tpdmvm_dump = function ( app_exe : PAnsiChar; database : PAnsiChar; pwd : PAnsiChar; err_str : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
-  Tpdmvm_restore = function ( app_exe : PAnsiChar; filename : PWideChar; pwd : PAnsiChar; out_file : PWideChar; err_file : PWideChar; params : PAnsiChar):longint; cdecl;
-
   Tv3_Dump = function (AppName: PAnsiChar; LogFileName: PAnsiChar; Params : PAnsiChar): longint; cdecl;
   Tv3_Restore = function (AppName: PAnsiChar; LogFileName : PAnsiChar; Params : PAnsiChar): longint; cdecl;
-
-
-  Tpdmbvm_GetLastError = procedure(out_buffer : PAnsiChar); cdecl;
   Tpdmbvm_GetVersionAsInt = function():integer; cdecl;
   Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer); cdecl;
   Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer); cdecl;

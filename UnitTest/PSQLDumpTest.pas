@@ -43,6 +43,7 @@ type
     procedure TestDumpPlain;
     procedure TestDumpPlainCompressed;
     procedure TestDumpNonASCIIName;
+    procedure TestDumpSections;
   end;
 
   // Test methods for class TPSQLRestore
@@ -144,8 +145,8 @@ begin
   if TDirectory.Exists(DumpFileName) then
     TDirectory.Delete(DumpFileName, True);
   FPSQLDump.DumpFormat := dfDirectory;
-  FPSQLDump.RewriteFile := True;
-    TestDumpToFileLogFile('TestOutput\DirectoryDump.log');
+  FPSQLDump.Jobs := 4;
+  TestDumpToFileLogFile('TestOutput\DirectoryDump.log');
 end;
 
 procedure TestTPSQLDump.TestDumpNonASCIIName;
@@ -183,6 +184,16 @@ begin
   FPSQLDump.CompressLevel := 6;
   FPSQLDump.RewriteFile := True;
   TestDumpToFileLogFile('TestOutput\PlainCompressedDump.log');
+end;
+
+procedure TestTPSQLDump.TestDumpSections;
+begin
+  DumpFileName := 'TestOutput\TestDumpSection.backup';
+  FPSQLDump.DumpFormat := dfCompressedArchive;
+  FPSQLDump.CompressLevel := 6;
+  FPSQLDump.RewriteFile := True;
+  FPSQLDump.Sections := [drsPreData, drsPostData];
+  TestDumpToFileLogFile('TestOutput\SectionCompressedDump.log');
 end;
 
 procedure TestTPSQLDump.TestDumpTar;
