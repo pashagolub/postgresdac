@@ -313,6 +313,9 @@ const
 implementation
 
 uses PSQLAccess,
+{$IFDEF UNDER_DELPHI_6}
+  FileCtrl,
+{$ENDIF}
 {$IFDEF MSWINDOWS}
   Windows
 {$ENDIF}
