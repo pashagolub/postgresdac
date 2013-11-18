@@ -155,7 +155,7 @@ type
 
   TRestoreStrOption = (rsoTable, rsoSuperUser, rsoDBName,
                   rsoFileName, rsoIndex, rsoListFile, rsoFunction,
-                  rsoTrigger, rsoRole);
+                  rsoTrigger, rsoRole, rsoSchemaName);
 
   TPSQLRestore = class(TComponent)
   private
@@ -213,6 +213,7 @@ type
     property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
     property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
     property TableNames: TStrings read FTableNames write SetTableNames;
+    property SchemaName: string  index rsoSchemaName read GetStrOptions write SetStrOptions;
     property Sections: TDumpRestoreSections read FSections write FSections;
     property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
     property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
@@ -290,7 +291,8 @@ const
    '--use-list=',   //rsoListFile,
    '--function=',   //rsoFunction,
    '--trigger=',    //rsoTrigger
-   '--role='        //dsoRole
+   '--role=',       //dsoRole
+   '--schema='      //rsoSchemaName
   );
 
 
