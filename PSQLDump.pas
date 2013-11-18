@@ -313,9 +313,6 @@ const
 implementation
 
 uses PSQLAccess,
-{$IFDEF UNDER_DELPHI_6}
-  FileCtrl,
-{$ENDIF}
 {$IFDEF MSWINDOWS}
   Windows
 {$ENDIF}
@@ -734,6 +731,16 @@ begin
        if (ProccessOwner is TPSQLRestore) then
         (ProccessOwner as TPSQLRestore).DoLog(TrimRight(UTF8ToString(S)));
 end;
+
+{$IFDEF UNDER_DELPHI_6}
+function DirectoryExists(const Name: string): Boolean;
+var
+  Code: Integer;
+begin
+  Code := GetFileAttributes(PChar(Name));
+  Result := (Code <> -1) and (FILE_ATTRIBUTE_DIRECTORY and Code <> 0);
+end;
+{$ENDIF}
 
 procedure TPSQLDump.Dump(const TargetFile, LogFile: string);
 var
