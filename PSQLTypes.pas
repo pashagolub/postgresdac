@@ -1986,10 +1986,10 @@ type
  function CharInSet(C: Char; const CharSet: TCharSet): Boolean;
 {$ENDIF}
 
-{$IFDEF DELPHI_19}
+{$IFDEF NEXTGEN}
 type
   TRecordBuffer = NativeInt;
-{$ENDIF}
+{$ENDIF NEXTGEN}
 
 {$IFNDEF DELPHI_12}
 
