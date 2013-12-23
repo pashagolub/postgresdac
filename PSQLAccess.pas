@@ -5755,13 +5755,25 @@ var
     if Result = 0 then
       if Field.FieldSubType = fldstMemo then
       begin
-        S := FConnect.RawToString(FieldBuffer(columnNumber - 1));
-        {$IFDEF DELPHI_12}
-        Move((PByte(S) + Offset)^, Dest^, ALength);
-        {$ELSE}
-        Move(Pointer(Integer(PByte(S)) + Offset)^, Dest^, ALength);
-        {$ENDIF}
-        Len := Length(S) * SizeOf(Char);
+        if FConnect.IsUnicodeUsed then
+        begin
+          S := FConnect.RawToString(FieldBuffer(columnNumber - 1));
+          Len := Length(S) * SizeOf(Char);
+          {$IFDEF DELPHI_12}
+          Move((PByte(S) + Offset)^, Dest^, ALength);
+          {$ELSE}
+          Move(Pointer(Integer(PByte(S)) + Offset)^, Dest^, ALength);
+          {$ENDIF}
+        end
+        else
+        begin
+          {$IFDEF DELPHI_12}
+          Move((PByte(FieldBuffer(columnNumber - 1)) + Offset)^, Dest^, ALength);
+          {$ELSE}
+          Move(Pointer(Integer(PByte(FieldBuffer(columnNumber - 1))) + Offset)^, Dest^, ALength);
+          {$ENDIF}
+          Len := FieldSize(columnNumber - 1);
+        end;
         if (Offset + ALength >= Len) then
           Result := Len - Offset
         else
