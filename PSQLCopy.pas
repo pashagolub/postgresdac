@@ -6,16 +6,14 @@ unit PSQLCopy;
 
 interface
 
-Uses {$IFDEF FPC}LCLIntf,{$ENDIF} SysUtils, Classes, PSQLTypes,
+uses {$IFDEF FPC}LCLIntf,{$ENDIF} SysUtils, Classes, PSQLTypes,
         PSQLAccess, PSQLDbTables;
 
 type
 
   TCopyDirection = (cdIn, cdOut); //in = put, out = get
 
-  TCopyMode = (cmFile, cmSTDInOut); //copy to file or to active connection
-                                // STDInOut = Standart In\Out
-
+  TCopyMode = (cmFile, cmSTDInOut, cmProgram); //copy to file, to active connection or to process launched by server
 
   TCopyFormat = (cfText, cfCSV, cfBinary);
 
@@ -30,6 +28,7 @@ type
     FDelimiter: char;
     FNullValue: string;
     FFileName: string;
+    FCommandLine: string;
     FTableName: TFileName;
     FDatabase: TPSQLDatabase;
     FOptions: TCopyOptions;
@@ -102,6 +101,9 @@ type
     procedure LoadFromServerSideFile(const FileName: string);
     procedure SaveToServerSideFile(const FileName: string);
 
+    procedure LoadFromProgram(const CommandLine: string);
+    procedure SaveToProgram(const CommandLine: string);
+
     property BeforeCopyGet: TNotifyEvent read FBeforeCopyGet write FBeforeCopyGet;
     property AfterCopyGet: TNotifyEvent read FAfterCopyGet write FAfterCopyGet;
     property AfterCopyPut: TNotifyEvent read FAfterCopyPut write FAfterCopyPut;
@@ -110,7 +112,7 @@ type
 
 
   TPSQLCopy = class(TCustomPSQLCopy)
-   published
+  published
     property Delimiter;
     property Quote;
     property Escape;
@@ -127,12 +129,11 @@ type
     property AfterCopyGet;
     property BeforeCopyPut;
     property AfterCopyPut;
-
   end;
 
 implementation
 
-uses DB;
+uses DB, {$IFNDEF DELPHI_5}StrUtils{$ENDIF};
 
 { TAbstractCopyObject }
 
@@ -221,6 +222,7 @@ begin
            AConnect.CheckResult;
          if Assigned(FAfterCopyGet) then
            FAfterCopyGet(Self);
+         FRowsAffected :=  StrToIntDef(String(PQcmdTuples(Result)), -1);
        end
       else
         AConnect.CheckResult;
@@ -386,7 +388,7 @@ function TCustomPSQLCopy.GetSQLStatement: string;
          end;
        end;
       if Result > '' then
-        Result := 'WITH ' + Result;
+        Result := ' WITH ' + Result;
     end;
 
     function GetNewWithStmt: string;
@@ -418,40 +420,37 @@ function TCustomPSQLCopy.GetSQLStatement: string;
        end;
       if FEncoding > '' then
         Result := Result + ', ENCODING ' + QuotedStr(FEncoding);
-      Result := 'WITH (' + Result + ')';
+      Result := ' WITH (' + Result + ')';
     end;
-begin
- if (FCopyDirection = cdOUT) and (FSQL.Count > 0) then
-   Result := Format('COPY (%s) ',[FSQL.Text])
- else
-  begin
-   Result := Format('COPY %s ',[FTablename]);
-   if FColumns.Count > 0 then
-    Result := Result + '(' + GetCommaSeparatedText(FColumns) + ')';
-  end;
- if FCopyDirection = cdOut then
-   Result := Result + ' TO '
- else
-   Result := Result + ' FROM ';
- if (FCopyMode = cmFile) then
-    begin
-     if FFileName = '' then
-       if FCopyDirection = cdIn then
-         raise EPSQLCopyException.Create('FileName is required for putting data.')
-       else
-         FFilename := DateTimeToStr(Date)+'.pge';
-     Result := Result + QuotedStr(FFileName) + ' ';
-    end
-  else
-    if FCopyDirection = cdOUT then
-     Result := Result + 'STDOUT '
-    else
-     Result := Result + 'STDIN ';
 
-  if Assigned(FDatabase) and (FDatabase.ServerVersionAsInt < 090000) then
-      Result := Result + GetOldWithStmt()
-    else
-      Result := Result + GetNewWithStmt();
+begin
+  if (FCopyDirection = cdOUT) and (FSQL.Count > 0) then
+    Result := Format('COPY (%s) ',[Trim(FSQL.Text)])
+  else
+  begin
+    Result := Format('COPY %s ',[FTablename]);
+    if FColumns.Count > 0 then
+      Result := Result + '(' + GetCommaSeparatedText(FColumns) + ')';
+  end;
+  Result := Result + ifthen(FCopyDirection = cdOut, ' TO ', ' FROM ');
+  case FCopyMode of
+    cmFile:
+      begin
+        if FFileName = '' then
+          if FCopyDirection = cdIn then
+            raise EPSQLCopyException.Create('FileName is required for putting data.')
+          else
+            FFilename := DateTimeToStr(Date) + '.pge';
+        Result := Result + QuotedStr(FFileName);
+      end;
+    cmSTDInOut:
+      Result := Result + ifthen(FCopyDirection = cdOUT, 'STDOUT', 'STDIN');
+    cmProgram:
+      Result := Result + 'PROGRAM ' + QuotedStr(FCommandLine);
+  end;
+
+  if Assigned(FDatabase) then
+      Result := Result + ifthen(FDatabase.ServerVersionAsInt < 090000, GetOldWithStmt(), GetNewWithStmt());
 end;
 
 
@@ -466,12 +465,20 @@ begin
   end;
 end;
 
+procedure TCustomPSQLCopy.LoadFromProgram(const CommandLine: string);
+begin
+  FCopyDirection := cdIN;
+  FCopyMode := cmProgram;
+  FCommandLine := CommandLine;
+  DoServerSideCopyPut();
+end;
+
 procedure TCustomPSQLCopy.LoadFromServerSideFile(const FileName: string);
 begin
   FCopyDirection := cdIN;
   FCopyMode := cmSTDINOUT;
   FFileName := FileName;
-  DoServerSideCopyPut;
+  DoServerSideCopyPut();
 end;
 
 procedure TCustomPSQLCopy.LoadFromStream(Stream: TStream);
@@ -505,12 +512,20 @@ begin
  end;
 end;
 
+procedure TCustomPSQLCopy.SaveToProgram(const CommandLine: string);
+begin
+ FCopyMode := cmProgram;
+ FCopyDirection := cdOUT;
+ FCommandLine := CommandLine;
+ DoServerSideCopyGet();
+end;
+
 procedure TCustomPSQLCopy.SaveToServerSideFile(const FileName: string);
 begin
  FCopyMode := cmFile;
  FCopyDirection := cdOut;
  FFileName := FileName;
- DoServerSideCopyGet;
+ DoServerSideCopyGet();
 end;
 
 procedure TCustomPSQLCopy.SaveToStream(Stream: TStream);
