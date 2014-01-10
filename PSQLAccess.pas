@@ -840,6 +840,11 @@ procedure LogDebugMessage(MsgType, Msg: string);
 var SessionStart: cardinal;
 {$ENDIF}
 
+
+{$IFDEF DELPHI_5}
+function ifThen(aCondition: boolean; IfTrue, IfFalse: string = ''): string;
+{$ENDIF}
+
 {$IFDEF UNDER_DELPHI_6}
 function StrToFloat(const S: string;
   const FormatSettings: TFormatSettings): Extended;
