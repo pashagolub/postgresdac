@@ -1122,7 +1122,6 @@ var
   h : Cardinal;
   Result: longint;
   S: string;
-  PWD: PAnsiChar;
 
   v3_restore: Tv3_Restore;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
@@ -1166,12 +1165,7 @@ begin
     else
       PLog := nil;
 
-    PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
-  {$IFDEF MSWINDOWS}
-    SetEnvironmentVariableA('PGPASSWORD', PWD);
-  {$ELSE POSIX}
-    SetEnv('PGPASSWORD', PWD, 1);
-  {$ENDIF}
+    UpdateEnv(UTF8Encode(FDatabase.UserPassword));
     Params := GetParameters(SourceFile);
 
   {$IFDEF M_DEBUG}

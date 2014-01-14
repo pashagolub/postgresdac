@@ -272,9 +272,9 @@ begin
     FileName := DumpFileName;
     FPSQLRestore.DBName := 'restore_test';
     FPSQLRestore.RestoreFromFile(FileName, Log);
-    Log.SaveToFile('TestOutput\RestoreFromFile.log');
-    QryDb.Execute('DROP DATABASE restore_test;');
   finally
+    QryDb.Execute('DROP DATABASE restore_test;');
+    Log.SaveToFile('TestOutput\RestoreFromFile.log');
     Log.Free;
   end;
 end;
