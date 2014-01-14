@@ -742,6 +742,27 @@ begin
 end;
 {$ENDIF}
 
+procedure UpdateEnv(PWD: UTF8String);
+{$IFDEF MSWINDOWS}
+type
+  tputenv = function(NameValue: PAnsiChar): integer; cdecl;
+var
+  putenv: tputenv;
+{$ENDIF}
+begin
+{$IFDEF MSWINDOWS}
+  @putenv := GetProcAddress(GetModuleHandle('msvcrt'), '_putenv');
+  if not Assigned(putenv) then
+    raise EPSQLDumpException.Create('Cannot obtain _putenv procedure entry point');
+  if putenv(PAnsiChar('PGPASSWORD=' + PWD)) <> 0 then
+    raise EPSQLDumpException.Create('Cannot populate environment settings');
+  if not SetEnvironmentVariableA('PGPASSWORD', PAnsiChar(PWD)) then
+      RaiseLastOSError();
+{$ELSE POSIX}
+  SetEnv('PGPASSWORD', PWD, 1);
+{$ENDIF}
+end;
+
 procedure TPSQLDump.Dump(const TargetFile, LogFile: string);
 var
   h : Cardinal;
@@ -749,7 +770,6 @@ var
   S: string;
 
   PLog: PAnsiChar;
-  PWD: PAnsiChar;
   Params: PAnsiChar;
 
   v3_dump: Tv3_dump;
@@ -796,15 +816,11 @@ begin
      end;
 
     if LogFile > '' then
-     PLog := PAnsiChar(UTF8Encode(LogFile))
+      PLog := PAnsiChar(UTF8Encode(LogFile))
     else
-     PLog := nil;
-    PWD := PAnsiChar(UTF8Encode(FDatabase.UserPassword));
-    {$IFDEF MSWINDOWS}
-    SetEnvironmentVariableA('PGPASSWORD', PWD);
-    {$ELSE POSIX}
-    SetEnv('PGPASSWORD', PWD, 1);
-    {$ENDIF}
+      PLog := nil;
+    //PWD := PAnsiChar();
+    UpdateEnv(UTF8Encode(FDatabase.UserPassword));
     Params := GetParameters(TargetFile);
     {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
