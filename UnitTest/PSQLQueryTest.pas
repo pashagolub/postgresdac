@@ -487,7 +487,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
+  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
                 '  intf integer NOT NULL,' + //NotNull ->Required
@@ -501,7 +501,7 @@ begin
                 '  datef date,' +
                 '  timef time' +
                 ')');
-  QryDB.Execute('CREATE TABLE IF NOT EXISTS required_test ' +
+  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
                 '  intf integer NOT NULL,' + //NotNull ->Required
@@ -512,7 +512,6 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  QryDB.Execute('DROP TABLE requestlive_test');
   QryDB.Close;
   ComponentToFile(QryDB, 'PSQLQueryTest.conf');
   QryDB.Free;

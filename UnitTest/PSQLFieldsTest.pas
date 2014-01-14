@@ -218,13 +218,12 @@ begin
   FldQry := TPSQLQuery.Create(nil);
   FldQry.Database := FldDB;
   FldQry.ParamCheck := False;
-  FldDB.Execute('CREATE TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
+  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
 end;
 
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  FldDB.Execute('DROP TABLE uuid_test_case_table');
   FldDB.Close;
   ComponentToFile(FldDB, 'PSQLQueryTest.conf');
   FldQry.Free;

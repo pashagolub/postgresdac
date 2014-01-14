@@ -193,7 +193,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLBlobs.conf');
-  QryDB.Execute('CREATE TABLE IF NOT EXISTS blobs_test_case_table(' +
+  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS blobs_test_case_table(' +
                 'id SERIAL NOT NULL PRIMARY KEY,'  +
                 'byteaf bytea,' +
                 'oidf oid,'  +
@@ -203,7 +203,6 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
-  QryDB.Execute('DROP TABLE blobs_test_case_table');
   QryDB.Close;
   ComponentToFile(QryDB, 'PSQLBlobs.conf');
   QryDB.Free;

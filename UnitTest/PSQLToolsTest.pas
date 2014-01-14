@@ -108,7 +108,7 @@ begin
   Tools := TPSQLTools.Create(nil);
   Tools.Database := toolsDB;
   Tools.Verbose := True;
-  toolsDB.Execute('CREATE TABLE tools_test_case_table(' +
+  toolsDB.Execute('CREATE TEMP TABLE tools_test_case_table(' +
                 'id SERIAL NOT NULL PRIMARY KEY,'  +
                 'sfield TEXT DEFAULT now()::text,' +
                 'tfield timestamp DEFAULT now(),'  +
@@ -121,8 +121,6 @@ end;
 procedure TDbSetup.TearDown;
 begin
   inherited;
-
-  toolsDB.Execute('DROP TABLE tools_test_case_table CASCADE');
   toolsDB.Close;
   ComponentToFile(toolsDB, 'PSQLToolsTest.conf');
   Tools.Free;

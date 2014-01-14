@@ -20,7 +20,8 @@ uses
   PSQLDumpTest in 'PSQLDumpTest.pas',
   PSQLNotifyTest in 'PSQLNotifyTest.pas',
   PSQLTypesTest in 'PSQLTypesTest.pas',
-  PSQLErrorsTest in 'PSQLErrorsTest.pas';
+  PSQLErrorsTest in 'PSQLErrorsTest.pas',
+  PSQLCopyTest in 'PSQLCopyTest.pas';
 
 {$R *.RES}
 
