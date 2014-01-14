@@ -842,7 +842,7 @@ var SessionStart: cardinal;
 
 
 {$IFDEF DELPHI_5}
-function ifThen(aCondition: boolean; IfTrue, IfFalse: string = ''): string;
+function ifThen(aCondition: boolean; IfTrue:string; IfFalse: string = ''): string;
 {$ENDIF}
 
 {$IFDEF UNDER_DELPHI_6}

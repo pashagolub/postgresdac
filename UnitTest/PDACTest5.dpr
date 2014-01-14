@@ -14,6 +14,8 @@ program PDACTest5;
 {$APPTYPE CONSOLE}
 {$ENDIF}
 
+{$D+ $R+}
+
 uses
   Forms,
   TestFramework,
@@ -28,16 +30,25 @@ uses
   PSQLBlobsTest in 'PSQLBlobsTest.pas',
   PSQLDumpTest in 'PSQLDumpTest.pas',
   PSQLNotifyTest in 'PSQLNotifyTest.pas',
-  PSQLTypesTest in 'PSQLTypesTest.pas';
+  PSQLTypesTest in 'PSQLTypesTest.pas',
+  PSQLCopyTest in 'PSQLCopyTest.pas',
+  PSQLErrorsTest in 'PSQLErrorsTest.pas';
 
 {$R *.RES}
+var
+  GUI :TGUITestRunner;
 
 begin
   Application.Initialize;
-  if IsConsole then
+  Application.CreateForm(TGUITestRunner, GUI);
+  //GUI.Suite := test;
+  GUI.Show;
+
+{  if IsConsole then
     with TextTestRunner.RunRegisteredTests do
       Free
   else
-    GUITestRunner.RunRegisteredTests;
+    //GUITestRunner.RunRegisteredTests;
+    GUITestRunner.RunRegisteredTestsModeless;}
 end.
 

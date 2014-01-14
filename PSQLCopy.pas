@@ -133,7 +133,7 @@ type
 
 implementation
 
-uses DB, {$IFNDEF DELPHI_5}StrUtils{$ENDIF};
+uses DB{$IFNDEF DELPHI_5}, StrUtils{$ENDIF};
 
 { TAbstractCopyObject }
 

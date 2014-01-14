@@ -742,6 +742,10 @@ begin
 end;
 {$ENDIF}
 
+{$IFDEF DELPHI_5}
+type UTF8String = AnsiString;
+{$ENDIF}
+
 procedure UpdateEnv(PWD: UTF8String);
 {$IFDEF MSWINDOWS}
 type
@@ -757,7 +761,11 @@ begin
   if putenv(PAnsiChar('PGPASSWORD=' + PWD)) <> 0 then
     raise EPSQLDumpException.Create('Cannot populate environment settings');
   if not SetEnvironmentVariableA('PGPASSWORD', PAnsiChar(PWD)) then
-      RaiseLastOSError();
+    {$IFDEF DELPHI_5}
+    RaiseLastWin32Error();
+    {$ELSE}
+    RaiseLastOSError();
+    {$ENDIF}
 {$ELSE POSIX}
   SetEnv('PGPASSWORD', PWD, 1);
 {$ENDIF}

@@ -28,7 +28,9 @@ uses
   PSQLBlobsTest in 'PSQLBlobsTest.pas',
   PSQLDumpTest in 'PSQLDumpTest.pas',
   PSQLNotifyTest in 'PSQLNotifyTest.pas',
-  PSQLTypesTest in 'PSQLTypesTest.pas';
+  PSQLTypesTest in 'PSQLTypesTest.pas',
+  PSQLCopyTest in 'PSQLCopyTest.pas',
+  PSQLErrorsTest in 'PSQLErrorsTest.pas';
 
 {$R *.RES}
 

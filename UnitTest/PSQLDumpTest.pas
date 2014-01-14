@@ -1,4 +1,5 @@
 unit PSQLDumpTest;
+{$I PSQLDAC.inc}
 {
 
   Delphi DUnit Test Case
@@ -66,7 +67,7 @@ var
 
 implementation
 
-uses TestHelper, IOUtils;
+uses TestHelper {$IFDEF DELPHI_15}, IOUtils{$ELSE}, FileCtrl{$ENDIF};
 
 procedure TestTPSQLDump.SetUp;
 begin
@@ -142,8 +143,13 @@ end;
 procedure TestTPSQLDump.TestDumpDirectory;
 begin
   DumpFileName := 'TestOutput\TestDumpToFile';
+  {$IFDEF DELPHI_5}
+  if DirectoryExists(DumpFileName) then
+    RemoveDirectory(PAnsiChar(DumpFileName));
+  {$ELSE}
   if TDirectory.Exists(DumpFileName) then
     TDirectory.Delete(DumpFileName, True);
+  {$ENDIF}
   FPSQLDump.DumpFormat := dfDirectory;
   FPSQLDump.Jobs := 4;
   TestDumpToFileLogFile('TestOutput\DirectoryDump.log');
