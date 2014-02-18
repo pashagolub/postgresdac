@@ -22,6 +22,7 @@ type
     FEOF: boolean;
     FBOF: boolean;
     FParams: TPSQLParams;
+    FBinaryDataFormat: boolean;
 
     procedure FreeHandle();
     function GetActive(): boolean;
@@ -64,6 +65,7 @@ type
     property SQL : TStrings read FSQL write SetSQL;
     property RecNo : integer read GetRecNo write SetRecNo;//current cursor position
     property RecordCount : integer read GetRecordCount;
+    property BinaryDataFormat: boolean read FBinaryDataFormat write FBinaryDataFormat; //test condition, not use in production
     property IsEmpty : boolean read GetIsEmpty;
     property Eof : boolean read FEOF;
     property Bof : boolean read FBOF;
@@ -214,9 +216,12 @@ begin
   if aIndex >= GetFieldsCount() then
     raise EPSQLDirectQueryException.Create(SFieldIndexError);
 
-  Result := TNativeConnect(FDatabase.Handle).RawToString(PQgetvalue(FStatement, FRecNo, aIndex));
+  if PQfformat(FStatement, aIndex) = 0 then //text representation
+    Result := TNativeConnect(FDatabase.Handle).RawToString(PQgetvalue(FStatement, FRecNo, aIndex))
+  else //binary representaion accoridin to typsend  & typreceive functions
+    Result := TNativeConnect(FDatabase.Handle).BinaryToString(PQgetvalue(FStatement, FRecNo, aIndex), PQftype(FStatement, aIndex))
 end;
- 
+
 function TPSQLCustomDirectQuery.GetIsEmpty: boolean;
 begin
   Result := GetRecordCount() = 0;
@@ -292,8 +297,8 @@ begin
 
   NC := TNativeConnect(FDatabase.Handle);
 
-  if FParams.Count > 0 then
-    FStatement := _PQExecuteParams(NC, FSQL.Text, FParams)
+  if (FParams.Count > 0) or FBinaryDataFormat then
+    FStatement := _PQExecuteParams(NC, FSQL.Text, FParams, ord(FBinaryDataFormat))
   else
     FStatement := _PQExecute(NC, FSQL.Text);
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then

@@ -635,6 +635,7 @@ type
   TPQfname         = function(Result: PPGresult; field_num: Integer): PAnsiChar; cdecl;
   TPQfnumber       = function(Result: PPGresult; field_name: PAnsiChar): Integer; cdecl;
   TPQftype         = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
+  TPQfformat       = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftable        = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftablecol     = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
   TPQfsize         = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
@@ -760,6 +761,7 @@ var
   PQfname:         TPQfname;
   PQfnumber:       TPQfnumber;
   PQftype:         TPQftype;
+  PQfformat:       TPQfformat;
   PQftable:        TPQftable;
   PQftablecol:     TPQftablecol;
   PQfsize:         TPQfsize;
@@ -3266,6 +3268,7 @@ begin
          @PQfname        := GetPSQLProc('PQfname');
          @PQfnumber      := GetPSQLProc('PQfnumber');
          @PQftype        := GetPSQLProc('PQftype');
+         @PQfformat      := GetPSQLProc('PQfformat');
          @PQftable       := GetPSQLProc('PQftable');
          @PQftablecol    := GetPSQLProc('PQftablecol');
          @PQfsize        := GetPSQLProc('PQfsize');

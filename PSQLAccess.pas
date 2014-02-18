@@ -47,6 +47,8 @@ type
     FSystem                   : Boolean;
     FLastOperationTime        : cardinal;
     FBlobTransactionInProgress: boolean;
+    FUnicodeUsed              : boolean;
+    FCharset                  : string;
     FServerVersion            : string;
     FIntServerVersion         : integer;
     FNativeByteaFormat        : TNativeByteaFormat;
@@ -152,18 +154,20 @@ type
     property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
     property BlobTransactionInProgress: boolean read FBlobTransactionInProgress;
     property NativeByteaFormat: TNativeByteaFormat read FNativeByteaFormat;
+    property IsUnicodeUsed: boolean read FUnicodeUsed;
 
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; aFieldNumber : integer):string; overload;
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
     function SelectStringsDirect(pszQuery : string; aList : TStrings; aFieldNumber : integer):string; overload;
     function SelectStringsDirect(pszQuery : string; aList : TStrings; pszFieldName : string):string; overload;
 
-    function IsUnicodeUsed: boolean;
+
     function IsSSLUsed: boolean;
 
     function RawToString(S: PAnsiChar): string;
     function StringToRaw(S: string): PAnsiChar; //need to be free by StrDispose
     function StringToRawS(S: string): AnsiString;
+    function BinaryToString(S: PAnsiChar; TypeOID: cardinal): string;
   end;
 
   {Postgres Engine}
@@ -831,7 +835,7 @@ function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLField
 function QuoteIdentifier(IdentifierName: string): string;
 
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
-function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams): PPGResult;
+function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
 
 {$IFDEF M_DEBUG}
 function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
@@ -1960,7 +1964,7 @@ begin
   end;
 end;
 
-function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams): PPGResult;
+function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
 var Q: PAnsiChar;
     S: AnsiString;
     paramValues: array of PAnsiChar;
@@ -1984,7 +1988,7 @@ begin
       {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(paramValues[i], S);
      end;
     try
-      Result := PQexecParams(AConnection.Handle, Q, AParams.Count, nil, @paramValues[0], nil, nil, 0);
+      Result := PQexecParams(AConnection.Handle, Q, AParams.Count, nil, @paramValues[0], nil, nil, AResultFormat);
     finally
      for i := 0 to AParams.Count - 1 do
        FreeMem(paramValues[i]);
@@ -2836,6 +2840,8 @@ begin
   Result := 'UNDEFINED';
   if not FLoggin then Exit;
   Result := UpperCase(string(PQparameterStatus(Handle, 'client_encoding')));
+  FCharset := Result;
+  FUnicodeUsed := (FCharset = 'UNICODE') or (FCharset = 'UTF8');
 end;
 
 procedure TNativeConnect.EmptyTable(hCursor : hDBICur; pszTableName : string);
@@ -8230,10 +8236,11 @@ begin
     ACharSet := GetCharSet();
     Exit;
    end;
-  if PQsetClientEncoding(Handle, PAnsiChar(AnsiString(ACharSet))) = 0 then
-   ACharset := UpperCase(ACharset)
-  else
-   ACharSet :=  GetCharSet();
+
+  PQsetClientEncoding(Handle, PAnsiChar(AnsiString(ACharSet)));
+
+  ACharSet :=  GetCharSet();
+
   {$IFDEF M_DEBUG}
   LogDebugMessage('INFO', 'Encoding changed to ' + ACharset);
   {$ENDIF}
@@ -9103,6 +9110,7 @@ var
   nGetRecCount: Integer;
 begin
   Result := RecNo;
+  if not IsSortedLocally then Exit;
   nGetRecCount := GetRecCount();
   if nGetRecCount > 0 then
     if (High(FSortingIndex) = nGetRecCount-1) then Result := FSortingIndex[RecNo];
@@ -9376,7 +9384,6 @@ end;
 
 function TNativeConnect.RawToString(S: PAnsiChar): string;
 begin
-
  if IsUnicodeUsed then
 {$IFDEF DELPHI_12}
   Result := UTF8ToUnicodeString(S)
@@ -9386,6 +9393,25 @@ begin
  else
   Result := string(S);
 end;
+
+function htonl_ex(value: Integer): Integer;
+begin
+  Result :=
+    (value and $FF) shl 24 +
+    (value and $FF00) shl 8 +
+    (value and $FF0000) shr 8 +
+    (value and $FF000000) shr 24;
+end;
+
+
+function TNativeConnect.BinaryToString(S: PAnsiChar; TypeOID: cardinal): string;
+begin
+  case TypeOID of
+    FIELD_TYPE_INT4: Result := IntToStr(htonl_ex(PInteger(S)^));
+    FIELD_TYPE_INT2: Result := IntToStr(Swap(Smallint(S)));
+  end;
+end;
+
 
 procedure TNativeConnect.Reset;
 begin
@@ -9496,13 +9522,6 @@ begin
   finally
    PQClear(Stmt);
   end;
-end;
-
-function TNativeConnect.IsUnicodeUsed: boolean;
-var S: string;
-begin
- S := GetCharSet();
- Result := (S = 'UNICODE') or (S = 'UTF8');
 end;
 
 function TPSQLEngine.GetFieldTypeOID(hCursor: hDBICur; const FieldNum: integer): cardinal;
