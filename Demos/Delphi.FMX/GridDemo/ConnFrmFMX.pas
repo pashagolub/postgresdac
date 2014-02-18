@@ -4,7 +4,7 @@ interface
 
 uses
   System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Edit,PSQLDbTables;
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.Edit,PSQLDbTables, FMX.StdCtrls;
 
 type
   TPConnDlgFMX = class(TForm)

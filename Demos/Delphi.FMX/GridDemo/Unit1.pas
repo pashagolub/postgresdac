@@ -7,7 +7,8 @@ uses
   FMX.Types, FMX.Controls, FMX.Forms, FMX.Dialogs, Data.DB, PSQLDbTables,
   FMX.Layouts,FMX.Grid, Data.Bind.EngExt, Fmx.Bind.DBEngExt,
   Data.Bind.Components, Data.Bind.DBScope, Fmx.Bind.Editors, Data.Bind.DBLinks,
-  Fmx.Bind.DBLinks, Fmx.Bind.Navigator, FMX.Effects, FMX.Filter.Effects, FMX.Ani;
+  Fmx.Bind.DBLinks, Fmx.Bind.Navigator, FMX.Effects, FMX.Filter.Effects, FMX.Ani,
+  FMX.StdCtrls, System.Rtti, System.Bindings.Outputs;
 
 type
   TForm1 = class(TForm)
