@@ -1,0 +1,26 @@
+package PostgresDAC20;
+
+requires
+  rtl,
+  dsnap,
+  dbrtl;
+
+contains
+  PSQLTypes in 'PSQLTypes.pas',
+  PSQLAccess in 'PSQLAccess.pas',
+  PSQLDbTables in 'PSQLDbTables.pas',
+  PSQLBatch in 'PSQLBatch.pas',
+  PSQLMacroQuery in 'PSQLMacroQuery.pas',
+  PSQLMonitor in 'PSQLMonitor.pas',
+  PSQLTools in 'PSQLTools.pas',
+  PSQLDump in 'PSQLDump.pas',
+  PSQLMetaData in 'PSQLMetaData.pas',
+  PSQLConsts in 'PSQLConsts.pas',
+  PSQLCopy in 'PSQLCopy.pas',
+  PSQLDirectQuery in 'PSQLDirectQuery.pas',
+  PSQLExtMask in 'PSQLExtMask.pas',
+  PSQLFields in 'PSQLFields.pas',
+  PSQLNotify in 'PSQLNotify.pas';
+
+end.
+

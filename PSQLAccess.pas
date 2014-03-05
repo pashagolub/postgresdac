@@ -9394,20 +9394,32 @@ begin
   Result := string(S);
 end;
 
-function htonl_ex(value: Integer): Integer;
+procedure ReverseBytes(P: Pointer; Count: Integer);
+var
+  P1: PByte;
+  P2: PByte;
+  C: Byte;
 begin
-  Result :=
-    (value and $FF) shl 24 +
-    (value and $FF00) shl 8 +
-    (value and $FF0000) shr 8 +
-    (value and $FF000000) shr 24;
+  P1 := PByte(P);
+  P2 := PByte(P) + Count - 1;
+  while P1 < P2 do
+  begin
+    C := P1^;
+    P1^ := P2^;
+    P2^ := C;
+    System.inc(P1);
+    System.dec(P2);
+  end;
 end;
-
 
 function TNativeConnect.BinaryToString(S: PAnsiChar; TypeOID: cardinal): string;
 begin
   case TypeOID of
-    FIELD_TYPE_INT4: Result := IntToStr(htonl_ex(PInteger(S)^));
+    FIELD_TYPE_INT4:
+      begin
+        ReverseBytes(S, SizeOf(Integer));
+        Result := IntToStr(PInteger(S)^);
+      end;
     FIELD_TYPE_INT2: Result := IntToStr(Swap(Smallint(S)));
   end;
 end;
