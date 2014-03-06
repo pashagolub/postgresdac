@@ -167,7 +167,9 @@ type
     function RawToString(S: PAnsiChar): string;
     function StringToRaw(S: string): PAnsiChar; //need to be free by StrDispose
     function StringToRawS(S: string): AnsiString;
+{$IFDEF DELPHI_15}
     function BinaryToString(S: PAnsiChar; TypeOID: cardinal): string;
+{$ENDIF}
   end;
 
   {Postgres Engine}
@@ -9394,6 +9396,7 @@ begin
   Result := string(S);
 end;
 
+{$IFDEF DELPHI_15}
 procedure ReverseBytes(P: Pointer; Count: Integer);
 var
   P1: PByte;
@@ -9423,6 +9426,7 @@ begin
     FIELD_TYPE_INT2: Result := IntToStr(Swap(Smallint(S)));
   end;
 end;
+{$ENDIF}
 
 
 procedure TNativeConnect.Reset;

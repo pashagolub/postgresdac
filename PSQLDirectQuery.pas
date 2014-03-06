@@ -218,8 +218,10 @@ begin
 
   if PQfformat(FStatement, aIndex) = 0 then //text representation
     Result := TNativeConnect(FDatabase.Handle).RawToString(PQgetvalue(FStatement, FRecNo, aIndex))
+{$IFDEF DELPHI_15}
   else //binary representaion accoridin to typsend  & typreceive functions
     Result := TNativeConnect(FDatabase.Handle).BinaryToString(PQgetvalue(FStatement, FRecNo, aIndex), PQftype(FStatement, aIndex))
+{$ENDIF}
 end;
 
 function TPSQLCustomDirectQuery.GetIsEmpty: boolean;
