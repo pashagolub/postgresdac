@@ -1,4 +1,4 @@
-{$I PSQLdac.inc}
+{$I PSQLDAC.inc}
 unit PSQLDump;
 
 {SVN revision: $Id$}
@@ -310,6 +310,8 @@ const
   '--format=d'   //directory
   );
 
+function GetTempFileName: string;
+
 implementation
 
 uses PSQLAccess,
@@ -329,6 +331,29 @@ begin
   Minor := VerInt mod 10000 div 100;
   Revision := VerInt mod 100;
   Result := Format('%d.%d.%d', [Major, Minor, Revision]);
+end;
+
+function StringToAnsiChar(CodePage: Cardinal; Src: String): PAnsiChar;
+var
+  Len: integer;
+begin
+  Result := nil;
+  if Src = EmptyStr then Exit;
+  Len := {$IFDEF DELPHI_16}
+            LocaleCharsFromUnicode
+         {$ELSE}
+            WideCharToMultiByte
+         {$ENDIF}(codePage, 0, PWideChar(Src), Length(Src), nil, 0, nil, nil);
+  if Len = 0 then Exit;
+  GetMem(Result, Len + 1);
+  if {$IFDEF DELPHI_16}
+        LocaleCharsFromUnicode
+     {$ELSE}
+        WideCharToMultiByte
+     {$ENDIF}(codePage, 0, PWideChar(Src), Length(Src), PAnsiChar(Result), Len, nil, nil) = 0 then
+    ReallocMem(Result, 0)
+  else
+    Result[Len] := #0;
 end;
 
 function GetTempPath: string;
@@ -462,15 +487,14 @@ begin
   p := Pointer(FArr);
   for i:=0 to FParams.Count - 1 do
   begin
-    s1 := PAnsiChar(UTF8Encode(FParams[i]));
-    GetMem(s, Length(s1) + 1);
-    //StrCopy(s, s1);
-    Move(s1^, s^, (Length(s1) + 1) * SizeOf(AnsiChar));
+    if FParams.Names[i] = '--file' then
+      S := StringToAnsiChar(CP_ACP, FParams[i])
+    else
+      S := StringToAnsiChar(CP_UTF8, FParams[i]);
     p^ := Integer(s);
     Inc(p);
   end;
   p^ := 0;
-
   Result := FArr;
 end;
 
@@ -767,7 +791,7 @@ begin
     RaiseLastOSError();
     {$ENDIF}
 {$ELSE POSIX}
-  SetEnv('PGPASSWORD', PWD, 1);
+  SetEnv('PGPASSWORD', PAnsiChar(PWD), 1);
 {$ENDIF}
 end;
 
@@ -822,12 +846,7 @@ begin
       ProccessOwner := Self;
       pdmbvm_SetLogCallBackProc(@LogCallBackProc);
      end;
-
-    if LogFile > '' then
-      PLog := PAnsiChar(UTF8Encode(LogFile))
-    else
-      PLog := nil;
-    //PWD := PAnsiChar();
+    PLog := StringToAnsiChar(CP_ACP, LogFile);
     UpdateEnv(UTF8Encode(FDatabase.UserPassword));
     Params := GetParameters(TargetFile);
     {$IFDEF M_DEBUG}
@@ -848,6 +867,7 @@ begin
 
   finally
    ProccessOwner := nil;
+   ReallocMem(PLog, 0);
    FreeLibrary(h);
   end;
 end;

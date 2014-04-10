@@ -6570,7 +6570,7 @@ function TPSQLEngine.OpenTableList(hDb: hDBIDb;pszWild: string; SystemTables: Bo
 begin
   try
     Database := hDb;
-    TNativeConnect(hDb).TableList(pszWild,SystemTables, List);
+    TNativeConnect(hDb).TableList(pszWild, SystemTables, List);
     Result := DBIERR_NONE;
   except
     Result := CheckError;
