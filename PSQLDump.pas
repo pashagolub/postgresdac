@@ -477,7 +477,7 @@ end;
 
 function TpdmvmParams.GetPcharArray: PAnsiChar;
 var
-  s, s1 : PAnsiChar;
+  s : PAnsiChar;
   p : PInteger; //32-bit pointer
   i : integer;
 begin
