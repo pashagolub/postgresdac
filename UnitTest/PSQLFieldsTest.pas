@@ -29,7 +29,6 @@ type
   // Test methods for class TPSQLGuidField
   TestTPSQLGuidField = class(TTestCase)
   public
-    procedure SetUp; override;
     procedure TearDown; override;
     procedure TestGUIDField;
     procedure TestGUIDInsert;
@@ -63,10 +62,6 @@ begin
   Result := CoCreateGuid(Guid);
 end;
 {$ENDIF}
-
-procedure TestTPSQLGuidField.SetUp;
-begin
-end;
 
 procedure TestTPSQLGuidField.TearDown;
 begin

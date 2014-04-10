@@ -166,8 +166,8 @@ begin
   try
     QryDb.Close;
     QryDb.DatabaseName := 'МояУкраїнськаБазочка';
-    DumpFileName := 'TestOutput\TestNonASCII.backup';
-    TestDumpToFileLogFile('TestOutput\NonASCIINameDump.log');
+    DumpFileName := 'TestOutput\МійУкраїнськийДамп.backup';
+    TestDumpToFileLogFile('TestOutput\МійУкраїнськийДамп.log');
   finally
     QryDb.Close;
     QryDb.DatabaseName := OldDb;

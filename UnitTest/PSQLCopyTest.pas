@@ -24,9 +24,6 @@ type
   // Test methods for class TCustomPSQLCopy
 
   TestTCustomPSQLCopy = class(TTestCase)
-  public
-    procedure SetUp; override;
-    procedure TearDown; override;
   published
     procedure TestLoadFromStream;
     procedure TestSaveToStream;
@@ -47,15 +44,6 @@ uses TestHelper;
 var
   FldDB: TPSQLDatabase;
   FPSQLCopy: TPSQLCopy;
-
-procedure TestTCustomPSQLCopy.SetUp;
-begin
-
-end;
-
-procedure TestTCustomPSQLCopy.TearDown;
-begin
-end;
 
 procedure TestTCustomPSQLCopy.TestLoadFromStream;
 var
