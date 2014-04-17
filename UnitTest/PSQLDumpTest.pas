@@ -58,6 +58,7 @@ type
     procedure TestRestoreFromFileToDB;
     procedure TestRestoreFromFileToFile;
     procedure TestRestoreFromDirectoryToFile;
+    procedure TestRestoreNonASCIIName;
   end;
 
 var
@@ -167,6 +168,7 @@ begin
     QryDb.Close;
     QryDb.DatabaseName := 'ћо€”крањнськаЅазочка';
     DumpFileName := 'TestOutput\ћ≥й”крањнськийƒамп.backup';
+    FPSQLDump.DumpFormat := dfCompressedArchive;
     TestDumpToFileLogFile('TestOutput\ћ≥й”крањнськийƒамп.log');
   finally
     QryDb.Close;
@@ -293,6 +295,20 @@ begin
   LogFileName := 'TestOutput\RestoreFromFileToFile.log';
   FileName := DumpFileName;
   FPSQLRestore.OutputFileName := 'TestOutput\RestoreFromFileToFileOutput.sql';
+  FPSQLRestore.RestoreFromFile(FileName, LogFileName);
+  Check(FileExists(DumpFileName), 'Dump file empty');
+  Check(FileExists(FPSQLRestore.OutputFileName), 'Output file empty');
+  Check(FileExists(LogFileName), 'Log file empty');
+end;
+
+procedure TestTPSQLRestore.TestRestoreNonASCIIName;
+var
+  LogFileName: string;
+  FileName: string;
+begin
+  LogFileName := 'TestOutput\ћ≥й–есторе”крањнськийЋог.log';
+  FileName := 'TestOutput\ћ≥й”крањнськийƒамп.backup';
+  FPSQLRestore.OutputFileName := 'TestOutput\ћ≥й–есторе”крањнський—крипт.sql';
   FPSQLRestore.RestoreFromFile(FileName, LogFileName);
   Check(FileExists(DumpFileName), 'Dump file empty');
   Check(FileExists(FPSQLRestore.OutputFileName), 'Output file empty');
