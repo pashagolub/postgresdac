@@ -251,9 +251,10 @@ end;
 
 procedure TBDE2PSQLDAC.MoveFields(aDataSet: TPSQLDataSet;  OldDataSet: TDataSet);
 begin
-  if  OldDataSet.DefaultFields then Exit;
+  {$IFNDEF DELPHI_20}if OldDataSet.DefaultFields then Exit;{$ENDIF}
   with OldDataSet do
-    while FieldCount > 0 do Fields[0].DataSet := aDataSet;
+    while FieldCount > 0 do
+      Fields[0].DataSet := aDataSet;
 end;
 
 procedure  TBDE2PSQLDAC.UpdateDesignInfo(OldDataSet, NewComponent: TComponent);

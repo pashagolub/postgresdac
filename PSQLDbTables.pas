@@ -2570,7 +2570,11 @@ begin
   FieldDefs.Updated := FALSE;
   FieldDefs.Update;
   GetIndexInfo;
-  if DefaultFields or (dsoForceCreateFields in FOptions) then
+{$IFDEF DELPHI_20}
+  if (dsoForceCreateFields in FOptions) or (FieldOptions.AutoCreateMode <> acExclusive) then
+{$ELSE}
+  if (dsoForceCreateFields in FOptions) or DefaultFields() then
+{$ENDIF}
     CreateFields;
   BindFields(TRUE);
   {$IFNDEF FPC}
@@ -2592,7 +2596,7 @@ begin
   FExprFilter := nil;
   FreeKeyBuffers;
   BindFields(FALSE);
-  if DefaultFields then DestroyFields;
+  {$IFNDEF DELPHI_20}if DefaultFields then{$ENDIF} DestroyFields;
   FIndexFieldCount := 0;
   FKeySize := 0;
   FExpIndex := FALSE;
