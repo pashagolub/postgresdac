@@ -2570,12 +2570,10 @@ begin
   FieldDefs.Updated := FALSE;
   FieldDefs.Update;
   GetIndexInfo;
-{$IFDEF DELPHI_20}
-  if (dsoForceCreateFields in FOptions) or (FieldOptions.AutoCreateMode <> acExclusive) then
-{$ELSE}
+{$WARNINGS OFF}
   if (dsoForceCreateFields in FOptions) or DefaultFields() then
-{$ENDIF}
     CreateFields;
+{$WARNINGS ON}
   BindFields(TRUE);
   {$IFNDEF FPC}
   if ObjectView then GetObjectTypeNames(Fields);

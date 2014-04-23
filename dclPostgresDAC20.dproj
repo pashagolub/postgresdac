@@ -3,7 +3,7 @@
         <ProjectGuid>{8FF2A483-D902-4DFB-8989-F109E368A288}</ProjectGuid>
         <MainSource>dclPostgresDAC20.dpk</MainSource>
         <ProjectVersion>15.4</ProjectVersion>
-        <Config Condition="'$(Config)'==''">Debug</Config>
+        <Config Condition="'$(Config)'==''">Release</Config>
         <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
         <Base>True</Base>
         <AppType>Package</AppType>
@@ -47,6 +47,7 @@
         <Base>true</Base>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base)'!=''">
+        <SanitizedProjectName>dclPostgresDAC20</SanitizedProjectName>
         <DCC_UsePackage>rtl;xmlrtl;dbrtl;$(DCC_UsePackage)</DCC_UsePackage>
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Vcl;Vcl.Imaging;Vcl.Touch;Vcl.Samples;Vcl.Shell;Winapi;$(DCC_Namespace)</DCC_Namespace>
         <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
