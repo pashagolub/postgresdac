@@ -2571,7 +2571,7 @@ begin
   FieldDefs.Update;
   GetIndexInfo;
 {$WARNINGS OFF}
-  if (dsoForceCreateFields in FOptions) or DefaultFields() then
+  if (dsoForceCreateFields in FOptions) or DefaultFields then
     CreateFields;
 {$WARNINGS ON}
   BindFields(TRUE);
