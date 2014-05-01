@@ -8472,7 +8472,7 @@ procedure TNativeConnect.GetTableProps(const TableName: string; var Owner,
   var TableOid: cardinal);
 var
    sql, Tbl, Schema : String;
-   I, SV : integer;
+   I : integer;
    RES : PPGresult;
 begin
   Owner := '';
@@ -8480,7 +8480,6 @@ begin
   Tablespace := '';
   HasOIDs := False;
   TableOid := 0;
-  SV := GetServerVersionAsInt;
 
   Sql :=  'SELECT pg_class.oid, relhasoids, usename, '#13#10 +
       ' COALESCE(pg_description.description,''''), COALESCE(pg_tablespace.spcname,''<DEFAULT>'')'#13#10 +

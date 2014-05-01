@@ -333,7 +333,7 @@ begin
   Result := Format('%d.%d.%d', [Major, Minor, Revision]);
 end;
 
-function StringToAnsiChar(CodePage: Cardinal; Src: String): PAnsiChar;
+function StringToAnsiChar(CodePage: Cardinal; Src: WideString): PAnsiChar;
 var
   Len: integer;
 begin
