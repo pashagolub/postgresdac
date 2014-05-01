@@ -6674,7 +6674,7 @@ begin
   Result := inherited PSGetKeyFields;
   if  Result = '' then
   begin
-    if not Exists then  Exit;
+    if not Exists then Exit;
     IndexFound := FALSE;
     IndexDefs.Update;
     for i := 0 to IndexDefs.Count - 1 do

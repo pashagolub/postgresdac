@@ -5530,10 +5530,10 @@ begin
            ATableName := TableName;
         if ATableName = '' then Exit;
         ATableName := StringReplace(ATableName,'"','',[rfReplaceAll]);
-        sSqlQuery := 'SELECT t1.relname AS name, i.indisunique as "unique", i.indkey as fields, i.indisprimary'+
-                     ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'+
-                     ' WHERE i.indexrelid=t1.oid'+
-                     ' AND i.indrelid=t2.oid'+
+        sSqlQuery := 'SELECT t1.relname AS name, i.indisunique as "unique", i.indkey as fields, i.indisprimary'#13#10+
+                     ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'#13#10+
+                     ' WHERE i.indexrelid=t1.oid'#13#10+
+                     ' AND i.indrelid=t2.oid'#13#10+
                      ' AND t2.relname = ''%s''';
                      //' AND i.indexprs IS NULL';
         I := Pos('.',ATableName);
@@ -5551,15 +5551,15 @@ begin
     else //if we have version >= 7.4.1
       begin
        ATableOID := FieldTable(0);
-       sSqlQuery := 'SELECT t1.relname AS name,'+
-                    ' i.indisunique as "unique",'+
-                    ' i.indkey as fields,'+
-                    ' i.indisprimary'+
-                    ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'+
-                    ' WHERE i.indexrelid=t1.oid'+
-                    ' AND i.indrelid=t2.oid'+
-                    ' AND t2.oid = %u'+
-                    ' AND i.indexprs IS NULL';
+       sSqlQuery := 'SELECT t1.relname AS name,'#13#10+
+                    ' i.indisunique as "unique",'#13#10+
+                    ' i.indkey as fields,'#13#10+
+                    ' i.indisprimary'#13#10+
+                    ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" as t2'#13#10+
+                    ' WHERE i.indexrelid = t1.oid'#13#10+
+                    ' AND i.indrelid = t2.oid'#13#10+
+                    ' AND t2.oid = %u'#13#10+
+                    ' AND i.indexprs IS NULL'#13#10;
        sSQLQuery := Format(sSQLQuery,[ATableOID]);
       end;
    try
@@ -8482,56 +8482,38 @@ begin
   TableOid := 0;
   SV := GetServerVersionAsInt;
 
-
-  Sql :=    'SELECT   pg_class.oid,                                            '+
-      '         relhasoids,                                                    '+
-      '         usename,                                                       '+
-      '         COALESCE(pg_description.description,'''')                     '+
-      '    %s                                '+
-      ' FROM pg_class                                                               '+
-      ' INNER JOIN pg_namespace ON (pg_class.relnamespace = pg_namespace.oid)       '+
-      ' INNER JOIN pg_user ON (pg_class.relowner = pg_user.usesysid)            '+
-      ' %s     '+
-      ' LEFT JOIN pg_description ON (pg_description.objoid = pg_class.oid)          '+
+  Sql :=  'SELECT pg_class.oid, relhasoids, usename, '#13#10 +
+      ' COALESCE(pg_description.description,''''), COALESCE(pg_tablespace.spcname,''<DEFAULT>'')'#13#10 +
+      ' FROM pg_class'#13#10 +
+      ' INNER JOIN pg_namespace ON (pg_class.relnamespace = pg_namespace.oid)'#13#10 +
+      ' INNER JOIN pg_user ON (pg_class.relowner = pg_user.usesysid)'#13#10 +
+      ' LEFT JOIN pg_tablespace ON (pg_class.reltablespace = pg_tablespace.oid)'#13#10 +
+      ' LEFT JOIN pg_description ON (pg_description.objoid = pg_class.oid)'#13#10 +
       ' WHERE relkind IN (''r'', ''v'') AND relname = ''%s'' AND nspname LIKE ''%s''';
 
 
   Tbl := StringReplace(TableName,'"','',[rfReplaceAll]);
   I := Pos('.',Tbl);
   if I > 0 then
-   begin
+  begin
     Schema := Copy(Tbl, 1, I-1);
     Tbl := Copy(Tbl, I+1, MaxInt);
-   end
-  else
-   Schema := '%';
-
-  if SV >= 080000 then
-   Sql := Format(Sql,[', COALESCE(pg_tablespace.spcname,''<DEFAULT>'')'
-                ,'LEFT JOIN pg_tablespace ON (pg_class.reltablespace = pg_tablespace.oid)',
-                Tbl,Schema])
-  else
-   Sql := Format(Sql,['','',Tbl,Schema]);
- try
+  end else
+    Schema := '%';
+  Sql := Format(Sql, [Tbl, Schema]);
   RES := _PQExecute(Self, Sql);
-  if Assigned(RES) then
-   try
-    CheckResult;
-    if PQntuples(RES) > 0 then
-     begin
+  try
+    if (PQresultStatus(RES) = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
+    begin
       TableOid := StrToInt64(RawToString(PQgetvalue(RES,0,0)));
-      HasOIDs := PQgetvalue(RES,0,1) = 't';
-      Owner := RawToString(PQgetvalue(RES,0,2));
-      if SV >= 800000 then
-        Tablespace := RawToString(PQgetvalue(RES,0,4));
+      HasOIDs := PQgetvalue(RES, 0, 1) = 't';
+      Owner := RawToString(PQgetvalue(RES, 0, 2));
+      Tablespace := RawToString(PQgetvalue(RES,0,4));
       Comment := RawToString(PQgetvalue(RES,0,3));
-     end;
-   except
+    end;
+  finally
     PQclear(RES);
-   end;
-  PQclear(RES);
- except
- end;
+  end;
 end;
 
 function TPSQLEngine.GetTableProps(hDB: hDBIDB; const TableName: string;
