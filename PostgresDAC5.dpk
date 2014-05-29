@@ -28,8 +28,7 @@ package PostgresDAC5;
 
 requires
   vcl50,
-  VCLDB50,
-  VCLBDE50;
+  VCLDB50;
 
 contains
   PSQLTypes in 'PSQLTypes.pas',
