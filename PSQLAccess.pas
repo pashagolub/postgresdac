@@ -534,11 +534,11 @@ type
     private
       RecNo         : LongInt; {Record Nomber}
       FOMode        : DBIOpenMode;  {Open mode}
-//      FFilteredRecordCount  : LongInt; {Record count}
       FStatement    : PPGresult; {Handle PSQL Cursor }
       FFilters      : TContainer; {Filters list}
       FFilterActive : Boolean;  {is Active filter for Query }
       FReFetch      : Boolean;  {Batch Insert allows}
+      FFetched      : boolean; // if dsoFetchOnDemand shows if all rows are consumed
       FFieldDescs   : TPSQLFields;
       FIndexDescs   : TPSQLIndexes;
       FNativeDescs  : TPSQLNatives; {Native field Description}
@@ -548,12 +548,11 @@ type
       FPrimaryKeyNumber: SmallInt;
       FGetKeyDesc   : Boolean;
       FKeyDesc      : IDXDesc;
-//      FHasOIDs      : boolean;
       Ranges        : Boolean;
       FRecSize      : Integer;
       FConnect      : TNativeConnect;
-      FOpen         : Boolean; {is Active Query}
-      FAffectedRows : LongInt; {Affected Rows}
+      FOpen         : Boolean;
+      FAffectedRows : LongInt;
       FBookOfs        : Integer;
       FRecordState    : TRecordState;
       FLastDir        : TDir;
@@ -572,19 +571,13 @@ type
       FBlobHandle     : cardinal;
       FlocalBHandle   : Integer;
       FBlobOpen       : Boolean;
-      FOIDTable       : TList;
       FSystemNeed     : Boolean;
-//      Ferror_pos      : integer;
-//      Ferror_line     : integer;
       FFieldMinSizes  : array of integer; //to decrease FieldMinSize routine access
       FFieldTypType   : AnsiString; //to store pg_type.typtype
       FSortingIndex   : array of integer; //filled with SortBy method
       FSortingFields  : string; //"fieldname" ASC|DESC, ...
       FOptions        : TPSQLDatasetOptions;
       FCustomCompareFunc: TPSQLDatasetSortCompare;
-      //////////////////////////////////////////////////////////
-      //            PROTECTED METHODS                         //
-      //////////////////////////////////////////////////////////
       procedure SetInternalBuffer(Buffer : Pointer);
       function GetInternalBuffer: Pointer;
       function GetCurrentBuffer: Pointer;
@@ -600,16 +593,15 @@ type
       function GetRecCount: LongInt;
       procedure InitFieldDescs;
       procedure CheckFilter(PRecord : Pointer);
-//      procedure InternalCommit;
       procedure FirstRecord; virtual;
       procedure LastRecord;
       procedure NextRecord();
       procedure PrevRecord();
       procedure CurrentRecord(ARecNo : LongInt);
       procedure GetWorkRecord(eLock : DBILockType; PRecord : Pointer);
-//      procedure GetRecordNo(var iRecNo : Longint);
       procedure LockRecord(eLock : DBILockType);
       function FilteredRecord(PRecord : Pointer) :  Boolean;
+      function FetchRecords: integer;
       procedure UpdateFilterStatus;
       function FieldCount : Integer;
     	procedure InternalSortBy(const Fields: array of Integer; const IsReverseOrder : array of boolean);
@@ -836,6 +828,7 @@ function BDETOPSQLStr(Field : TFieldDef): String;
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
 function QuoteIdentifier(IdentifierName: string): string;
 
+function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
 function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
 
@@ -1949,6 +1942,26 @@ begin
 end;
 {$ENDIF}
 
+function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
+var Q: PAnsiChar;
+    S: AnsiString;
+begin
+{$IFDEF M_DEBUG}
+  LogDebugMessage('SEND', String(AQuery));
+{$ENDIF}
+  if AConnection.IsUnicodeUsed then
+    S := UTF8Encode(AQuery)
+  else
+    S := AnsiString(AQuery);
+  GetMem(Q, Length(S) + 1);
+  try
+    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
+    Result := PQsendQuery(AConnection.Handle, Q);
+  finally
+    FreeMem(Q);
+  end;
+end;
+
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
 var Q: PAnsiChar;
     S: AnsiString;
@@ -1959,7 +1972,7 @@ begin
     S := AnsiString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
+    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
     Result := PQExec(AConnection.Handle, Q);
   finally
    FreeMem(Q);
@@ -3722,7 +3735,6 @@ begin
   LimitClause := TStringList.Create;
   TableName  := string(AName);
   MasterCursor      := nil;
-  FOIDTable := TList.Create;
   FSystemNeed := ASystem;
   IsQuery := False;
   FPreventRememberBuffer := False; //mi:2008-08-27
@@ -3730,9 +3742,6 @@ end;
 
 Destructor TNativeDataSet.Destroy;
 begin
-  if FOIDTable <> nil then
-     FOIDTable.Free;
-  FOIDTable := nil;
   MasterCursor      := nil;
   CloseTable;
   ClearIndexInfo;
@@ -3849,10 +3858,9 @@ end;
 
 function TNativeDataSet.GetRecCount: LongInt;
 begin
-  if FStatement = nil then
-     Result := 0
-  else
-     Result := PQntuples(FStatement)
+  Result := 0;
+  if not Assigned(FStatement) then Exit;
+  Result := PQntuples(FStatement);
 end;
 
 procedure TNativeDataSet.GetRecordCount( var iRecCount : Longint );
@@ -3861,45 +3869,45 @@ var
   Buff   : Pointer;
   Marked : Boolean;
 begin
-    if not FFilterActive then
-      iRecCount := GetRecCount()
-    else
-      begin
-        iRecCount := 0;
-        GetMem(Buff, GetWorkBufferSize);
+  if not FFilterActive then
+    iRecCount := GetRecCount()
+  else
+    begin
+      iRecCount := 0;
+      GetMem(Buff, GetWorkBufferSize);
+      try
+
+        GetMem(P, BookMarkSize);
         try
-
-          GetMem(P, BookMarkSize);
           try
-            try
-              GetBookMark(P);
-              Marked := true;
-            except
-              on E:EPSQLException do
-                Marked := false;
-            end;
-
-            SetToBegin();
-            try
-              repeat
-                GetNextRecord(dbiNOLOCK, Buff, nil);
-                Inc(iRecCount);
-              until false;
-            except
-              on E:EPSQLException do;
-            end;
-
-            if Marked then
-              SetToBookMark(P)
-            else
-              SetToBegin;
-          finally
-            FreeMem(P, BookMarkSize);
+            GetBookMark(P);
+            Marked := true;
+          except
+            on E:EPSQLException do
+              Marked := false;
           end;
+
+          SetToBegin();
+          try
+            repeat
+              GetNextRecord(dbiNOLOCK, Buff, nil);
+              Inc(iRecCount);
+            until false;
+          except
+            on E:EPSQLException do;
+          end;
+
+          if Marked then
+            SetToBookMark(P)
+          else
+            SetToBegin;
         finally
-          FreeMem(Buff, GetWorkBufferSize);
+          FreeMem(P, BookMarkSize);
         end;
-    end;
+      finally
+        FreeMem(Buff, GetWorkBufferSize);
+      end;
+  end;
 end;
 
 procedure TNativeDataSet.CheckFilter(PRecord : Pointer);
@@ -3977,12 +3985,11 @@ end;
 
 procedure TNativeDataSet.NextRecord();
 begin
-  if Assigned(FStatement) then
-  begin
-    Inc(RecNo);
-    if RecNo >= RecordCount then
-      raise EPSQLException.CreateBDE(DBIERR_EOF);
-  end;
+  Inc(RecNo);
+  if (RecNo >= RecordCount) and (dsoFetchOnDemand in Options) and not FFetched then
+    FetchRecords();
+  if RecNo >= RecordCount then
+    raise EPSQLException.CreateBDE(DBIERR_EOF);
   InternalReadBuffer;
   SetBufBookmark;
   MonitorHook.SQLFetch(Self);
@@ -4296,7 +4303,16 @@ var
           raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := Trim(SQLQuery);
-       FStatement := _PQExecute(FConnect, sql_stmt);
+       if dsoFetchOnDemand in Options then
+         if _PQSendQuery(FConnect, sql_stmt) = 1 then
+           if PQsetSingleRowMode(FConnect.Handle) = 1 then
+             FStatement := PQgetResult(FConnect.Handle)
+           else
+             DatabaseError('Cannot switch to dsoFetchOnDemand mode')
+         else
+           FConnect.CheckResult
+       else
+         FStatement := _PQExecute(FConnect, sql_stmt);
        if Assigned(FStatement) then
        begin
           try
@@ -4322,6 +4338,7 @@ begin
   if FOpen then CloseTable;
   FAffectedRows := 0;
   FOpen := False;
+  FFetched := False;
   sql_stmt := '';
 
   try
@@ -4357,12 +4374,13 @@ begin
     if (KeyNumber = 0) then
     begin
        if FPrimaryKeyNumber <> 0 then
-          GetIndexDesc(FPrimaryKeyNumber, FKeyDesc) else
-       if IndexCount > 0 then
-         if FPrimaryKeyNumber <> 0 then
-           GetIndexDesc(FPrimaryKeyNumber, FKeyDesc)
-         else
-           GetIndexDesc(1, FKeyDesc);
+         GetIndexDesc(FPrimaryKeyNumber, FKeyDesc)
+       else
+         if IndexCount > 0 then
+           if FPrimaryKeyNumber <> 0 then
+             GetIndexDesc(FPrimaryKeyNumber, FKeyDesc)
+           else
+             GetIndexDesc(1, FKeyDesc);
     end;
   finally
    SetLength(FFieldMinSizes,0);
@@ -4705,6 +4723,42 @@ begin
   end;
 end;
 
+function TNativeDataSet.FetchRecords: integer;
+var
+  LocResult: PPGResult;
+  i: integer;
+  fval: PAnsiChar;
+  fname: PAnsiChar;
+  flen: Integer;
+  CurrentRecNum: Integer;
+begin
+  Result := 0;
+  LocResult := PQgetResult(FConnect.Handle);
+  FFetched := not Assigned(LocResult);
+  if FFetched then Exit;
+  case PQresultStatus(LocResult) of
+    PGRES_SINGLE_TUPLE:
+    begin
+      CurrentRecNum := PQntuples(FStatement);
+      for i := 0 to PQnfields(LocResult) - 1 do
+      begin
+        fval := PQgetvalue(LocResult, 0, i);
+        fname := PQfname(LocResult, i);
+        flen := PQgetlength(LocResult, 0, i);
+        if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
+         raise EPSQLException.CreateFmt('Cannot consume row on demand. Operation for field "%s" failed', [fname]);
+      end;
+      PQClear(LocResult);
+      inc(Result);
+    end;
+    PGRES_TUPLES_OK:
+    begin
+      LocResult := PQgetResult(FConnect.Handle);
+      FFetched := not Assigned(LocResult);
+    end;
+  end;
+end;
+
 function TNativeDataSet.Field(FieldNum: Integer): string;
 begin
   Result := '';
@@ -4713,11 +4767,6 @@ begin
   if Fieldtype(FieldNum) = FIELD_TYPE_BPCHAR then
      Result := TrimRight(Result);
 end;
-
-//function TNativeDataSet.FieldByName(FieldName: String): string;
-//begin
-//  Result := Field(FieldIndex(FieldName));
-//end;
 
 function TNativeDataSet.FieldIsNull(FieldNum: Integer): Boolean;
 begin
@@ -5368,25 +5417,25 @@ begin
       //FConnect.QExecDirect(SQL, nil, FAffectedRows);
       AStatement := _PQExecute(FConnect, SQL);
       if Assigned(AStatement) then
-        try
-          FConnect.CheckResult(AStatement);
-          MonitorHook.SQLExecute(Self, True);
-          FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
-          if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
-           for i := 0 to PQnfields(AStatement) - 1 do
-            begin
-             fval := PQgetvalue(AStatement, 0, i);
-             fname := PQfname(AStatement, i);
-             flen := PQgetlength(AStatement, 0, i);
-             if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
-               raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
-            end;
-          FReFetch := False;
-          RecordState := tsPos;
-        except
-          MonitorHook.SQLExecute(Self, False);
-          raise;
-        end
+      try
+        FConnect.CheckResult(AStatement);
+        MonitorHook.SQLExecute(Self, True);
+        FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
+        if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
+          for i := 0 to PQnfields(AStatement) - 1 do
+          begin
+            fval := PQgetvalue(AStatement, 0, i);
+            fname := PQfname(AStatement, i);
+            flen := PQgetlength(AStatement, 0, i);
+            if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
+              raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
+          end;
+        FReFetch := False;
+        RecordState := tsPos;
+      except
+        MonitorHook.SQLExecute(Self, False);
+        raise;
+      end
       else
         FConnect.CheckResult;
   finally
@@ -5562,32 +5611,31 @@ begin
                     ' AND i.indexprs IS NULL'#13#10;
        sSQLQuery := Format(sSQLQuery,[ATableOID]);
       end;
-   try
-    Res := _PQExecute(FConnect, sSQLQuery);
-    if Assigned(RES) then
-     try
-      FConnect.CheckResult;
-      for i:=0 to PQntuples(RES)-1 do
-       begin
-        aUniq := PQgetvalue(Res,i,1) = 't';
-        aPrim := PQgetvalue(Res,i,3) = 't';
-        aSort := False;
-        Buffer :=  FConnect.RawToString(PQgetvalue(Res,i,2));
-        for J :=1 to Length(Buffer) do
-           if Buffer[J] = ' ' then Buffer[J] := ',';
-        IdxName := FConnect.RawToString(PQgetvalue(Res,i,0));
-        LastIdx := FIndexDescs.SetIndex(IdxName, Buffer, aPrim, aUniq, aSort);
-        if LastIdx > 0 then
-          if aPrim and (FPrimaryKeyNumber = 0) then
-             FPrimaryKeyNumber := LastIdx; //pg: 14.02.07
-       end;
-       FIndexDescs.Updated := True;
-     finally
-      PQclear(RES);
-     end;
+    try
+      Res := _PQExecute(FConnect, sSQLQuery);
+      if Assigned(RES) then
+      try
+        FConnect.CheckResult;
+        for i:=0 to PQntuples(RES)-1 do
+        begin
+          aUniq := PQgetvalue(Res,i,1) = 't';
+          aPrim := PQgetvalue(Res,i,3) = 't';
+          aSort := False;
+          Buffer :=  FConnect.RawToString(PQgetvalue(Res,i,2));
+          for J :=1 to Length(Buffer) do
+             if Buffer[J] = ' ' then Buffer[J] := ',';
+          IdxName := FConnect.RawToString(PQgetvalue(Res,i,0));
+          LastIdx := FIndexDescs.SetIndex(IdxName, Buffer, aPrim, aUniq, aSort);
+          if LastIdx > 0 then
+            if aPrim and (FPrimaryKeyNumber = 0) then
+               FPrimaryKeyNumber := LastIdx; //pg: 14.02.07
+        end;
+        FIndexDescs.Updated := True;
+      finally
+        PQclear(RES);
+      end;
     except
-     if FConnect.GetserverVersionAsInt >= 070401
-      then raise;
+      if FConnect.GetserverVersionAsInt >= 070401 then raise;
       //in case if parser failed to get correct tablename
       //and ver <= 7.4.0 swallow exception
     end;
