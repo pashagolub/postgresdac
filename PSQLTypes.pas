@@ -591,8 +591,9 @@ type
                               paramLengths: PInteger;
                               paramFormats: PInteger;
                               resultFormat: integer): PPGresult; cdecl;
-  TPQexec          = function(Handle: PPGconn;
-                              Query: PAnsiChar): PPGresult; cdecl;
+
+  TPQexec          = function(Handle: PPGconn; Query: PAnsiChar): PPGresult; cdecl;
+
   TPQexecParams    = function(Handle: PPGconn;
                               Query: PAnsiChar;
                               nParams: integer;
@@ -603,6 +604,7 @@ type
                               resultFormat: integer): PPGresult; cdecl;
   TPQresultErrorField = function(Result: PPGresult; fieldcode: integer): PAnsiChar; cdecl;
   TPQnotifies      = function(Handle: PPGconn): PPGnotify; cdecl;
+  TPQsetSingleRowMode = function(Handle: PPGconn): integer; cdecl;
   TPQsendQuery     = function(Handle: PPGconn; Query: PAnsiChar): Integer; cdecl;
   TPQgetResult     = function(Handle: PPGconn): PPGresult; cdecl;
   TPQisBusy        = function(Handle: PPGconn): Integer; cdecl;
@@ -738,10 +740,11 @@ var
   PQprepare:       TPQprepare;           
   PQexecPrepared:  TPQexecPrepared;
   PQexec:          TPQexec;
+  PQsendQuery:     TPQsendQuery;
   PQexecParams:    TPQexecParams; 
   PQresultErrorField:TPQresultErrorField;
   PQnotifies:      TPQnotifies;
-  PQsendQuery:     TPQsendQuery;
+  PQsetSingleRowMode: TPQsetSingleRowMode;
   PQgetResult:     TPQgetResult;
   PQisBusy:        TPQisBusy;
   PQconsumeInput:  TPQconsumeInput;
@@ -1838,7 +1841,7 @@ type
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
                         dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsMaxString,
-                        dsoRefreshModifiedRecordOnly);
+                        dsoRefreshModifiedRecordOnly, dsoFetchOnDemand);
 
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
@@ -3245,6 +3248,7 @@ begin
          @PQexecPrepared := GetPSQLProc('PQexecPrepared');
          @PQprepare      := GetPSQLProc('PQprepare');
          @PQexec         := GetPSQLProc('PQexec');
+         @PQsetSingleRowMode := GetPSQLProc('PQsetSingleRowMode');
          @PQexecParams   := GetPSQLProc('PQexecParams');
          @PQnotifies     := GetPSQLProc('PQnotifies');
          @PQsendQuery    := GetPSQLProc('PQsendQuery');
