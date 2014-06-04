@@ -5464,6 +5464,11 @@ end;
 
 procedure TPSQLDataSet.SetOptions(const Value: TPSQLDatasetOptions);
 begin
+  if (dsoFetchOnDemand in Value)  then
+  begin
+    if not (Self is TPSQLQuery) then DatabaseError('Option is applicable only to TPSQLQuery objects', Self);
+    if (Self as TPSQLQuery).RequestLive then DatabaseError('RequestLive must be False to apply this option', Self);
+  end;
   FOptions := Value;
 end;
 
