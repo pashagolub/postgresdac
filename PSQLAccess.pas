@@ -882,8 +882,8 @@ var F: TextFile;
 procedure LogDebugMessage(MsgType, Msg: string);
 begin
   if not DebugFileOpened or (Msg = EmptyStr) then Exit;
-  Msg := ReplaceStr(Msg, '<','&lt;');
-  Msg := ReplaceStr(Msg, '>','&gt;');
+  Msg :=  StringReplace(Msg, '<','&lt;', [rfReplaceAll]);
+  Msg := StringReplace(Msg, '>','&gt;', [rfReplaceAll]);
   WriteLn(F,'<TR><TD>',GetTickCount() - SessionStart,'&nbsp;ms</TD><TD><b>', MsgType, '</b></TD><TD><PRE>',Msg,'</PRE></TD><TR>');
 end;
 
@@ -927,7 +927,7 @@ procedure OpenDebugFile;
 var Name, Time: string;
 begin
  SessionStart := GetTickCount();
- DateTimeToString(Time, 'dd.mm.yy_hh.nn.ss', Now());
+ DateTimeToString(Time, 'dd.mm.yy_hh.nn.ss', Now(), PSQL_FS);
  Name := '_' + Time;
  Name := ChangeFileExt(GetModuleName(HInstance), Name + '_log.html');
  AssignFile(F, Name);
@@ -4731,6 +4731,8 @@ var
   fname: PAnsiChar;
   flen: Integer;
   CurrentRecNum: Integer;
+const
+  NULL_LEN: integer = -1;
 begin
   Result := 0;
   LocResult := PQgetResult(FConnect.Handle);
@@ -4742,11 +4744,11 @@ begin
       CurrentRecNum := PQntuples(FStatement);
       for i := 0 to PQnfields(LocResult) - 1 do
       begin
+        flen := ifthen(PQgetisnull(LocResult, 0, i) = 1, NULL_LEN, PQgetlength(LocResult, 0, i));
         fval := PQgetvalue(LocResult, 0, i);
         fname := PQfname(LocResult, i);
-        flen := PQgetlength(LocResult, 0, i);
         if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
-         raise EPSQLException.CreateFmt('Cannot consume row on demand. Operation for field "%s" failed', [fname]);
+          raise EPSQLException.CreateFmt('Cannot consume row on demand. Operation for field "%s" failed', [fname]);
       end;
       PQClear(LocResult);
       inc(Result);
