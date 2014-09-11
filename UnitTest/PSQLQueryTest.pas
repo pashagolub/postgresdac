@@ -247,7 +247,7 @@ begin
  FPSQLQuery.Open;
  ClientTime := Time();
  ServerTime := TimeOf(FPSQLQuery.Fields[0].AsDateTime);
- Check(MinutesBetween(ClientTime, ServerTime) < 1, 'Field value AsTime is incorrect');
+ Check(MinutesBetween(ClientTime, ServerTime) < 5, 'Field value AsTime is incorrect');
  FPSQLQuery.Close
 end;
 
@@ -255,7 +255,7 @@ procedure TestTPSQLQuery.TestAsTimestamp;
 begin
  FPSQLQuery.SQL.Text := 'SELECT LOCALTIMESTAMP';
  FPSQLQuery.Open;
- Check(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 1, 'Field value AsTimestamp is incorrect');
+ Check(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 5, 'Field value AsTimestamp is incorrect');
  FPSQLQuery.Close
 end;
 
