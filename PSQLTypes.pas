@@ -349,7 +349,8 @@ const
     FIELD_TYPE_GTSVECTOR          = 3642; 
     FIELD_TYPE_TSQUERY            = 3615; 
     FIELD_TYPE_REGCONFIG          = 3734; 
-    FIELD_TYPE_REGDICTIONARY      = 3769; 
+    FIELD_TYPE_REGDICTIONARY      = 3769;
+    FIELD_TYPE_JSONB              = 3802;
 	
     //range types
     FIELD_TYPE_INT4RANGE		= 3904;
