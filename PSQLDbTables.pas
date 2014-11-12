@@ -15,7 +15,7 @@ uses  SysUtils, Classes, Db,
       PSQLAccess, PSQLTypes;
 
 const
-    VERSION : string = '2.12.0';
+    VERSION : string = '2.12.2';
     {$IFDEF MICROOLAP_BUSINESS_LICENSE}
     LICENSETYPE : string = 'Business License';
     {$ELSE}
@@ -1130,7 +1130,7 @@ type
   end;
 
   { TPSQLBlobStream }
-  TPSQLBlobStream = Class(TStream)
+  TPSQLBlobStream = class(TStream)
   private
     FField: TBlobField;
     FDataSet: TPSQLDataSet;
@@ -1767,15 +1767,12 @@ begin
     ChangeOldParameter('SSLMode', 'sslmode');
     ChangeOldParameter('Host', 'host');
     if IsValidIP(FParams.Values['host']) then
-     begin
+    begin
       FParams.Values['hostaddr'] := FParams.Values['host'];
       FParams.Values['host'] := '';
-     end
+    end
     else
-     begin
       FParams.Values['hostaddr'] := '';
-      FParams.Values['host'] := FParams.Values['host'];
-     end;
   finally
     TStringList(FParams).OnChanging := ParamsChanging;
   end;
@@ -1783,7 +1780,7 @@ end;
 
 procedure TPSQLDatabase.Notification(AComponent : TComponent; Operation : TOperation);
 begin
-  Inherited Notification(AComponent, Operation);
+  inherited Notification(AComponent, Operation);
 end;
 
 procedure TPSQLDatabase.Login(LoginParams: TStrings);
@@ -2097,11 +2094,8 @@ procedure TPSQLDatabase.CloseNotify;
 var
   I: Integer;
 begin
-  for I := 0 to FNotifyList.Count-1 do
-    try
-      TPSQLNotify(FNotifyList[I]).CloseNotify;
-    except
-    end;
+  for I := 0 to FNotifyList.Count - 1 do
+    TPSQLNotify(FNotifyList[I]).CloseNotify;
 end;
 
 function TPSQLDatabase.GetBackendPID:Integer;
@@ -4572,10 +4566,12 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLDataSet.DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean);
 begin
-  if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
-    Move(Source[0], Dest[0], SizeOf(TDateTime))
+  case Field.DataType of
+    ftDateTime: if not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
+      Move(Source[0], Dest[0], SizeOf(TDateTime));
   else
    inherited;
+  end;
 end;
 {$ELSE}
 procedure TPSQLDataSet.DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean);
@@ -5340,7 +5336,9 @@ var
 begin
   if Prepared then
     if Engine.GetEngProp(hDBIObj(FHandle), stmtROWCOUNT, @Result, SizeOf(Result), Length) <> 0 then
-      Result := -1  else
+      Result := -1
+    else
+      //nothing
   else
     Result := FRowsAffected;
 end;
@@ -6774,6 +6772,7 @@ begin
     Self.FDataSet.InternalHandleException();
     {$ENDIF}
   end;
+  inherited;
 end;
 
 function TPSQLBlobStream.Engine : TPSQLEngine;

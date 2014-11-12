@@ -1,36 +1,34 @@
-package PostgresDAC15;
+package PostgresDAC21;
 
 {$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
 {$ALIGN 8}
-{$ASSERTIONS OFF}
+{$ASSERTIONS ON}
 {$BOOLEVAL OFF}
-{$DEBUGINFO ON}
+{$DEBUGINFO OFF}
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS OFF}
+{$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION ON}
+{$OPTIMIZATION OFF}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO OFF}
+{$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
 {$STACKFRAMES ON}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
-{$WRITEABLECONST ON}
+{$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DESCRIPTION 'PostgreSQL Direct Access Components'}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
 {$RUNONLY}
-{$IMPLICITBUILD OFF}
-{$DEFINE RELEASE}
+{$IMPLICITBUILD ON}
 
 requires
-  vcl,
-  vcldb,
-  bdertl,
   rtl,
   dsnap,
   dbrtl;
@@ -39,14 +37,13 @@ contains
   PSQLTypes in 'PSQLTypes.pas',
   PSQLAccess in 'PSQLAccess.pas',
   PSQLDbTables in 'PSQLDbTables.pas',
-  psqlBatch in 'psqlBatch.pas',
+  PSQLBatch in 'PSQLBatch.pas',
   PSQLMacroQuery in 'PSQLMacroQuery.pas',
   PSQLMonitor in 'PSQLMonitor.pas',
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
   PSQLMetaData in 'PSQLMetaData.pas',
   PSQLConsts in 'PSQLConsts.pas',
-  PSQLCommon in 'PSQLCommon.pas',
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',

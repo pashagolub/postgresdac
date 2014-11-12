@@ -91,6 +91,34 @@ type
     property Value: TPSQLLSeg read GetAsLSeg write SetAsLSeg;
   end;
 
+  { TPSQLRangeField }
+
+  TPSQLRangeField = class(TNumericField)
+  private
+    function GetValue(var Value: TPSQLRange): Boolean; inline;
+    function GetAsRange: TPSQLRange;
+    procedure SetAsRange(const Value: TPSQLRange);
+  public
+    function IsDiscrete: boolean; virtual;
+    function IsEmpty: boolean; virtual;
+    property Value: TPSQLRange read GetAsRange write SetAsRange;
+  end;
+
+{$IFDEF DELPHI_17}
+  TPSQLBitConverter = class(TBitConverter)
+    class function ToPSQLPoint(Value: TArray<Byte>): TPSQLPoint;
+    class function ToPSQLCircle(Value: TArray<Byte>): TPSQLCircle;
+    class function ToPSQLBox(Value: TArray<Byte>): TPSQLBox;
+    class function ToPSQLLSeg(Value: TArray<Byte>): TPSQLLSeg;
+    class function ToPSQLRange(Value: TArray<Byte>): TPSQLRange;
+    class procedure FromPSQLPoint(Value: TPSQLPoint; Buffer: TArray<Byte>);
+    class procedure FromPSQLCircle(Value: TPSQLCircle; Buffer: TArray<Byte>);
+    class procedure FromPSQLBox(Value: TPSQLBox; Buffer: TArray<Byte>);
+    class procedure FromPSQLLSeg(Value: TPSQLLSeg; Buffer: TArray<Byte>);
+  end;
+{$ENDIF DELPHI_17}
+
+
 const
   OriginPoint: TPSQLPoint = (X: 0.0; Y: 0.0);
   OriginCircle: TPSQLCircle = (R: 0.0; X: 0.0; Y: 0.0);
@@ -107,7 +135,7 @@ function IsEqualGUID(const guid1, guid2: TGUID): Boolean;
 
 implementation
 
-uses {DbConsts,} SysUtils;
+uses {DbConsts,} SysUtils, Math, PSQLDBTables;
 
 procedure Register;
 begin
@@ -121,17 +149,6 @@ type
   end;
 
 {$IFDEF DELPHI_17}
-  TPSQLBitConverter = class(TBitConverter)
-    class function ToPSQLPoint(Value: TArray<Byte>): TPSQLPoint;
-    class function ToPSQLCircle(Value: TArray<Byte>): TPSQLCircle;
-    class function ToPSQLBox(Value: TArray<Byte>): TPSQLBox;
-    class function ToPSQLLSeg(Value: TArray<Byte>): TPSQLLSeg;
-    class procedure FromPSQLPoint(Value: TPSQLPoint; Buffer: TArray<Byte>);
-    class procedure FromPSQLCircle(Value: TPSQLCircle; Buffer: TArray<Byte>);
-    class procedure FromPSQLBox(Value: TPSQLBox; Buffer: TArray<Byte>);
-    class procedure FromPSQLLSeg(Value: TPSQLLSeg; Buffer: TArray<Byte>);
-  end;
-
 class function TPSQLBitConverter.ToPSQLPoint(Value: TArray<Byte>): TPSQLPoint;
 begin
   Move(Value[0], Result, SizeOf(TPSQLPoint));
@@ -150,6 +167,11 @@ end;
 class function TPSQLBitConverter.ToPSQLLSeg(Value: TArray<Byte>): TPSQLLSeg;
 begin
   Move(Value[0], Result, SizeOf(TPSQLLSeg));
+end;
+
+class function TPSQLBitConverter.ToPSQLRange(Value: TArray<Byte>): TPSQLRange;
+begin
+  Move(Value[0], Result, SizeOf(TPSQLRange));
 end;
 
 class procedure TPSQLBitConverter.FromPSQLPoint(Value: TPSQLPoint; Buffer: TArray<Byte>);
@@ -479,7 +501,7 @@ var
   Data: TValueBuffer;
 begin
   SetLength(Data, SizeOf(TPSQLPoint));
-  Result := GetData(Data, False);
+  Result := GetData(Data);
   Value := TPSQLBitConverter.ToPSQLPoint(Data);
 end;
 {$ELSE}
@@ -492,7 +514,7 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLPointField.SetAsPoint(const Value: TPSQLPoint);
 begin
-  SetData(BytesOf(@Value, SizeOf(TPSQLPoint)), False);
+  SetData(BytesOf(@Value, SizeOf(TPSQLPoint)));
 end;
 {$ELSE}
 procedure TPSQLPointField.SetAsPoint(const Value: TPSQLPoint);
@@ -572,7 +594,7 @@ var
   Data: TValueBuffer;
 begin
   SetLength(Data, SizeOf(TPSQLCircle));
-  Result := GetData(Data, False);
+  Result := GetData(Data);
   Value := TPSQLBitConverter.ToPSQLCircle(Data);
 end;
 {$ELSE}
@@ -585,7 +607,7 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLCircleField.SetAsCircle(const Value: TPSQLCircle);
 begin
-  SetData(BytesOf(@Value, SizeOf(TPSQLPoint)), False);
+  SetData(BytesOf(@Value, SizeOf(TPSQLPoint)));
 end;
 {$ELSE}
 procedure TPSQLCircleField.SetAsCircle(const Value: TPSQLCircle);
@@ -668,7 +690,7 @@ var
   Data: TValueBuffer;
 begin
   SetLength(Data, SizeOf(TPSQLBox));
-  Result := GetData(Data, False);
+  Result := GetData(Data);
   Value := TPSQLBitConverter.ToPSQLBox(Data);
 end;
 {$ELSE}
@@ -763,7 +785,7 @@ var
   Data: TValueBuffer;
 begin
   SetLength(Data, SizeOf(TPSQLLSeg));
-  Result := GetData(Data, False);
+  Result := GetData(Data);
   Value := TPSQLBitConverter.ToPSQLLSeg(Data);
 end;
 {$ELSE}
@@ -776,7 +798,7 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLLSegField.SetAsLSeg(const Value: TPSQLLSeg);
 begin
-  SetData(BytesOf(@Value, SizeOf(TPSQLLSeg)), False);
+  SetData(BytesOf(@Value, SizeOf(TPSQLLSeg)));
 end;
 {$ELSE}
 procedure TPSQLLSegField.SetAsLSeg(const Value: TPSQLLSeg);
@@ -793,6 +815,63 @@ begin
     LS := SQLLSegToLSeg(Value, ';', True);
     SetAsLSeg(LS);
   end;
+end;
+
+{ TPSQLRangeField }
+
+function TPSQLRangeField.GetValue(var Value: TPSQLRange): Boolean;
+{$IFDEF DELPHI_17}
+var
+  Data: TValueBuffer;
+{$ENDIF}
+begin
+{$IFDEF DELPHI_17}
+  SetLength(Data, SizeOf(TPSQLRange));
+  Result := GetData(Data);
+  Value := TPSQLBitConverter.ToPSQLRange(Data);
+{$ELSE}
+  Result := GetData(@Value);
+{$ENDIF}
+end;
+
+
+function TPSQLRangeField.GetAsRange: TPSQLRange;
+begin
+  if not GetValue(Result) then
+    Result := Default(TPSQLRange);
+end;
+
+function TPSQLRangeField.IsDiscrete: boolean;
+begin
+  Result := False;
+  case (DataSet as TPSQLDataset).GetFieldTypeOID(FieldNo) of
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_DATERANGE : Result := True;
+    FIELD_TYPE_NUMRANGE,
+    FIELD_TYPE_TSRANGE   : Result := False;
+  else
+    DatabaseErrorFmt('Field %s is not range type', [DisplayName]);
+  end;
+end;
+
+function TPSQLRangeField.IsEmpty: boolean;
+var
+  R: TPSQLRange;
+begin
+  if not GetValue(R) then
+    Result := True
+  else
+    Result := R.Empty;
+end;
+
+procedure TPSQLRangeField.SetAsRange(const Value: TPSQLRange);
+begin
+{$IFDEF DELPHI_17}
+  SetData(BytesOf(@Value, SizeOf(TPSQLRange)), True);
+{$ELSE}
+  SetData(@Value);
+{$ENDIF}
 end;
 
 initialization

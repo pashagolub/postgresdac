@@ -46,6 +46,26 @@ type
     procedure TestGUIDDelete_UTF8;
   end;
 
+  // Test methods for class TPSQLPointField
+  TestTPSQLPointField = class(TTestCase)
+  public
+    procedure TearDown; override;
+  published
+    procedure TestSelectPoint;
+    procedure TestInsertPoint;
+    procedure TestUpdatePoint;
+  end;
+
+  // Test methods for class TPSQLRangeField
+  TestTPSQLRangeField = class(TTestCase)
+  public
+    procedure TearDown; override;
+  published
+    procedure TestSelectRange;
+    procedure TestInsertRange;
+    procedure TestUpdateRange;
+  end;
+
 var
   FldDB: TPSQLDatabase;
   FldQry: TPSQLQuery;
@@ -214,6 +234,7 @@ begin
   FldQry.Database := FldDB;
   FldQry.ParamCheck := False;
   FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
+  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS geometry_test_case_table(id int4 PRIMARY KEY, p point, c circle, b box, l lseg)');
 end;
 
 procedure TDbSetup.TearDown;
@@ -225,9 +246,88 @@ begin
   FldDB.Free;
 end;
 
+{ TestTPSQLPointField }
+
+procedure TestTPSQLPointField.TearDown;
+begin
+  inherited;
+  FldQry.Close;
+  FldQry.SQL.Clear;
+end;
+
+procedure TestTPSQLPointField.TestInsertPoint;
+const
+  P: TPSQLPoint = (X: 2.5; Y: 3.5);
+begin
+  FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  FldQry.Insert;
+  FldQry.FieldByName('id').AsInteger := 1;
+  TPSQLPointField(FldQry.FieldByName('p')).Value := P;
+  FldQry.Post;
+  Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
+end;
+
+procedure TestTPSQLPointField.TestSelectPoint;
+begin
+  FldQry.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point';
+  FldQry.Open;
+  Check(TPSQLPointField(FldQry.Fields[0]).Value.Y > TPSQLPointField(FldQry.Fields[0]).Value.X);
+  Check(FldQry.Active, 'Cannot select "point" value');
+end;
+
+procedure TestTPSQLPointField.TestUpdatePoint;
+const
+  P: TPSQLPoint = (X: pi; Y: 2.818281828);
+begin
+  FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  if FldQry.RecordCount = 0 then TestInsertPoint;
+  FldQry.Edit;
+  TPSQLPointField(FldQry.FieldByName('p')).Value := P;
+  FldQry.Post;
+  Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
+end;
+
+{ TestTPSQLRangeField }
+
+procedure TestTPSQLRangeField.TearDown;
+begin
+  inherited;
+  FldQry.Close;
+  FldQry.SQL.Clear;
+end;
+
+procedure TestTPSQLRangeField.TestInsertRange;
+begin
+
+end;
+
+procedure TestTPSQLRangeField.TestSelectRange;
+var R: TPSQLRange;
+begin
+  FldQry.SQL.Text := 'SELECT numrange(3,5,''[)'')';
+  FldQry.Open;
+  Check(FldQry.Active, 'Cannot select "point" value');
+  R := TPSQLRangeField(FldQry.Fields[0]).Value;
+  Check(not R.Empty, 'Range is empty');
+  Check(R.LowerBound.State = rbsInclusive, 'Range lower bound must be exclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be inclusive');
+  Check(R.LowerBound.AsFloat = 3, 'Wrong lower bound value');
+  Check(R.UpperBound.AsFloat = 5, 'Wrong upper bound value');
+end;
+
+procedure TestTPSQLRangeField.TestUpdateRange;
+begin
+
+end;
+
 initialization
   //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite, 'Database Setup'));
-
+  RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite));
+  RegisterTest(TDbSetup.Create(TestTPSQLPointField.Suite));
+  RegisterTest(TDbSetup.Create(TestTPSQLRangeField.Suite));
 end.
 

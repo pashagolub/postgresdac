@@ -144,7 +144,7 @@ const
 
 const
   NAMEDATALEN      = 64;
-  TIMESTAMPTZLEN   = length('2006-02-28 09:08:08.677444+02');
+  TIMESTAMPTZLEN   = length('2001-02-17 07:08:40.123456+10:30');
   TIMETZLEN        = length('13:45:35.4880123457+13:40');
   UUIDLEN          = length('{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}');
   INETLEN          = length('7628:0d18:11a3:09d7:1f34:8a2e:07a0:765d/128');
@@ -152,9 +152,9 @@ const
   OIDNAMELEN       = 36;
   INV_WRITE        = $00020000;
   INV_READ         = $00040000;
-  PG_SEEK_SET         =	0;	// Seek from beginning of file
-  PG_SEEK_CUR         =	1;	// Seek from current position
-  PG_SEEK_END         = 	2;	// Seek from end of file
+  PG_SEEK_SET      =	0;	// Seek from beginning of file
+  PG_SEEK_CUR      =	1;	// Seek from current position
+  PG_SEEK_END      = 2;	// Seek from end of file
   DELIMITERS       : string = ' .:;,+-<>/*%^=()[]|&~@#$\`{}!?'#10#13;
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
@@ -202,16 +202,47 @@ type
   AnsiString = TBytes;
   {$ENDIF}
 
+  TPSQLRangeBoundState = (rbsExclusive, rbsInclusive, rbsInfinite);
+
+  TPSQLRangeBound = packed record
+  strict private
+    var Value: record
+      case Integer of
+        0: (IVal: Integer);
+        1: (FVal: Double);
+        2: (DVal: TDateTime);
+        3: (LVal: Int64);
+      end;
+  public
+    State: TPSQLRangeBoundState;
+    property AsInteger: integer read Value.IVal write Value.IVal;
+    property AsFloat: double read Value.FVal write Value.FVal;
+    property AsLargeInt: Int64 read Value.LVal write Value.LVal;
+    property AsDateTime: TDateTime read Value.DVal write Value.DVal;
+  end;
+
+  TPSQLRange = packed record
+  private
+    var FEmpty: boolean;
+  public
+    LowerBound: TPSQLRangeBound;
+    UpperBound: TPSQLRangeBound;
+    property Empty: boolean read FEmpty;
+    procedure SetEmpty;
+  end;
+
   TPSQLPoint = packed record
     X: Double;
     Y: Double;
+    class operator Equal(P1: TPSQLPoint; P2: TPSQLPoint): Boolean;
+    class operator Implicit(P: TPoint): TPSQLPoint;
   end;
 
   TPSQLCircle = packed record
-   R: Double;
-   case Integer of
-    0: (X, Y: Double);
-    1: (Center: TPSQLPoint);
+    R: Double;
+    case Integer of
+      0: (X, Y: Double);
+      1: (Center: TPSQLPoint);
   end;
 
   TPSQLBox = packed record
@@ -232,22 +263,6 @@ type
   TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
       FieldIndex: integer): Integer;
 
-const
-
-//--generate_series analogue for < 8.0 versions
-  sqlGenerateSeries :string =
-        '(select i*10+j as n'+
-        ' from (select 0 union all select 1 union all select 2 union all'+
-        '       select 3 union all select 4 union all select 5 union all'+
-        '       select 6 union all select 7 union all select 8 union all'+
-        '       select 9) s1(i),'+
-        '      (select 0 union all select 1 union all select 2 union all'+
-        '       select 3 union all select 4 union all select 5 union all'+
-        '       select 6 union all select 7 union all select 8 union all'+
-        '       select 9) s2(j)'+
-        ' where (i*10+j >= %d) AND (i*10+j <= %d))';
-//--generate_series analogue for < 8.0 versions
-  
 //////////////////////////////////////////////////////////////////
 //            FIELD TYPES                                       //
 //////////////////////////////////////////////////////////////////
@@ -349,7 +364,8 @@ const
     FIELD_TYPE_GTSVECTOR          = 3642; 
     FIELD_TYPE_TSQUERY            = 3615; 
     FIELD_TYPE_REGCONFIG          = 3734; 
-    FIELD_TYPE_REGDICTIONARY      = 3769; 
+    FIELD_TYPE_REGDICTIONARY      = 3769;
+    FIELD_TYPE_JSONB              = 3802;
 	
     //range types
     FIELD_TYPE_INT4RANGE		= 3904;
@@ -1948,6 +1964,7 @@ function SQLBoxToBox(Value: string; const Delimiter: char = ','; const UseSystem
 function BoxToSQLBox(Value: TPSQLBox; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLLSeg;
 function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+function SQLRangeToRange(Value: string; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLRange;
 
 procedure GetToken(var Buffer, Token: string);
 procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : integer;
@@ -2929,6 +2946,42 @@ begin
   Result := '[' + PointToSQLPoint(Value.P1, Delimiter, UseSystemSeparator) + Delimiter + PointToSQLPoint(Value.P2, Delimiter, UseSystemSeparator) + ']';
 end;
 
+function SQLRangeToRange(Value: string; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLRange;
+var
+  DelimPos: integer;
+
+  procedure SetBound(var B: TPSQLRangeBound; SVal: string);
+  begin
+    if SVal = EmptyStr then
+      B.State := rbsInfinite
+    else
+      case RangeType of
+        FIELD_TYPE_NUMRANGE:  if not UseSystemSeparator then
+                                B.AsFloat := StrToFloat(SVal, PSQL_FS)
+                              else
+                                B.AsFloat := StrToFloat(SVal);
+        FIELD_TYPE_INT4RANGE,
+        FIELD_TYPE_INT8RANGE: B.AsLargeInt := StrToInt64(SVal);
+        FIELD_TYPE_DATERANGE: B.AsDateTime := SqlDateToDateTime(SVal, False);
+        FIELD_TYPE_TSRANGE: B.AsDateTime := SQLTimeStampToDateTime(SVal);
+      end;
+  end;
+
+begin
+  if SameText(Value, 'empty') then
+    Result.SetEmpty
+  else
+  begin
+    Result.FEmpty := False;
+    Result.LowerBound.State := TPSQLRangeBoundState(ifthen(Value[1] = '[', ord(rbsInclusive), ord(rbsExclusive)));
+    Result.UpperBound.State := TPSQLRangeBoundState(ifthen(Value[Length(Value)] = ']', ord(rbsInclusive), ord(rbsExclusive)));
+    Value := Copy(Value, 2, Length(Value) - 2); //eliminate brackets
+    DelimPos := Pos(',', Value);
+    SetBound(Result.LowerBound, Copy(Value, 1, DelimPos - 1));
+    SetBound(Result.UpperBound, Copy(Value, DelimPos + 1, MaxInt));
+  end;
+end;
+
 procedure GetToken(var Buffer, Token: string);
 label ExitProc;
 var
@@ -3466,6 +3519,29 @@ begin
    end;
 end;
 
+{ TPSQLPoint }
+
+class operator TPSQLPoint.Equal(P1, P2: TPSQLPoint): Boolean;
+begin
+  Result := SameValue(P1.X, P2.X, 0) and SameValue(P1.Y, P2.Y, 0);
+end;
+
+class operator TPSQLPoint.Implicit(P: TPoint): TPSQLPoint;
+begin
+  Result.X := P.X;
+  Result.Y := P.Y;
+end;
+
+{TPSQLRange}
+
+procedure TPSQLRange.SetEmpty;
+begin
+  FEmpty := True;
+  UpperBound.State := rbsExclusive;
+  LowerBound.State := rbsExclusive;
+  UpperBound.AsLargeInt := 0;
+  LowerBound.AsLargeInt := 0;
+end;
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;

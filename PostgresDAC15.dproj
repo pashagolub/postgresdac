@@ -26,6 +26,7 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 			<DCC_UnitAlias>WinTypes=Windows;WinProcs=Windows;DbiTypes=BDE;DbiProcs=BDE;DbiErrs=BDE;$(DCC_UnitAlias)</DCC_UnitAlias>
 			<DCC_CBuilderOutput>All</DCC_CBuilderOutput>
 			<RuntimeOnlyPackage>true</RuntimeOnlyPackage>
@@ -39,18 +40,14 @@
 			<DCC_AssertionsAtRuntime>false</DCC_AssertionsAtRuntime>
 			<DCC_OutputNeverBuildDcps>true</DCC_OutputNeverBuildDcps>
 			<GenDll>true</GenDll>
-			<DCC_DebugInformation>false</DCC_DebugInformation>
 			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
 			<GenPackage>true</GenPackage>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
+			<DCC_DebugInformation>true</DCC_DebugInformation>
+			<DCC_MapFile>3</DCC_MapFile>
+			<DCC_GenerateStackFrames>true</DCC_GenerateStackFrames>
 			<Version>7.0</Version>
-			<DCC_AssertionsAtRuntime>False</DCC_AssertionsAtRuntime>
-			<DCC_DebugInformation>False</DCC_DebugInformation>
-			<DCC_WriteableConstants>True</DCC_WriteableConstants>
-			<DCC_LocalDebugSymbols>False</DCC_LocalDebugSymbols>
-			<DCC_SymbolReferenceInfo>0</DCC_SymbolReferenceInfo>
-			<DCC_Define>RELEASE</DCC_Define>
 			<DCC_SYMBOL_DEPRECATED>False</DCC_SYMBOL_DEPRECATED>
 			<DCC_CBuilderOutput>All</DCC_CBuilderOutput>
 		</PropertyGroup>
@@ -157,3 +154,21 @@
 			<ProjectFileVersion>12</ProjectFileVersion>
 		</ProjectExtensions>
 	</Project>
+
+<!-- EurekaLog First Line
+[Exception Log]
+EurekaLog Version=7001
+Activate=1
+atVCL=1
+DeleteMapAfterCompile=1
+dpJCL=1
+Encrypt Password=""
+idEurekaLog=1
+idEurekaLogDetailed=1
+idMSClassic=1
+idStepsToReproduce=1
+InjectCode=1
+InjectInfo=1
+InjectOptions=1
+sndShowFailureMsg=1
+EurekaLog Last Line -->

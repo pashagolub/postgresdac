@@ -32,6 +32,7 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
     procedure TestDumpToFileLogFile(ALogFileName: string = '');
+    procedure LoadLibrary(Sender: TObject; var FileName: string);
   published
     procedure TestDumpToStream;
     procedure TestDumpToStreamStrings;
@@ -54,6 +55,7 @@ type
   public
     procedure SetUp; override;
     procedure TearDown; override;
+    procedure LoadLibrary(Sender: TObject; var FileName: string);
   published
     procedure TestRestoreFromFileToDB;
     procedure TestRestoreFromFileToFile;
@@ -70,11 +72,17 @@ implementation
 
 uses TestHelper {$IFDEF DELPHI_15}, IOUtils{$ELSE}, FileCtrl{$ENDIF};
 
+procedure TestTPSQLDump.LoadLibrary(Sender: TObject; var FileName: string);
+begin
+  //FileName := 'pg_dump-9.2.9.dll';
+end;
+
 procedure TestTPSQLDump.SetUp;
 begin
   FPSQLDump := TPSQLDump.Create(nil);
   FPSQLDump.Database := QryDb;
   FPSQLDump.Options := [doVerbose];
+  FPSQLDump.OnLibraryLoad := LoadLibrary;
 end;
 
 procedure TestTPSQLDump.TearDown;
@@ -241,11 +249,17 @@ begin
   Check(FileExists(LogFileName), 'Log file empty');
 end;
 
+procedure TestTPSQLRestore.LoadLibrary(Sender: TObject; var FileName: string);
+begin
+  //FileName := 'pg_restore-9.2.9.dll';
+end;
+
 procedure TestTPSQLRestore.SetUp;
 begin
   FPSQLRestore := TPSQLRestore.Create(nil);
   FPSQLRestore.Database := QryDb;
   FPSQLRestore.Options := [roVerbose];
+  FPSQLRestore.OnLibraryLoad := LoadLibrary;
 end;
 
 procedure TestTPSQLRestore.TearDown;

@@ -1125,15 +1125,15 @@ begin
    begin
     CheckDB := TPSQLDatabase.Create(nil);
     try
-     CheckDB.DatabaseName := FRestoreStrOptions[rsoDBName];
-     CheckDB.Host := FDatabase.Host;
-     CheckDB.Port := FDatabase.Port;
-     CheckDB.UserName := FDatabase.UserName;
-     CheckDB.UserPassword := FDatabase.UserPassword;
-     CheckDB.Connected := True;
-     CheckDB.Connected := False;
+      CheckDB.DatabaseName := FRestoreStrOptions[rsoDBName];
+      CheckDB.Host := FDatabase.Host;
+      CheckDB.Port := FDatabase.Port;
+      CheckDB.UserName := FDatabase.UserName;
+      CheckDB.UserPassword := FDatabase.UserPassword;
+      CheckDB.Connected := True;
     finally
-     CheckDB.Free;
+      CheckDB.Connected := False;
+      CheckDB.Free;
     end;
    end;
 end;
