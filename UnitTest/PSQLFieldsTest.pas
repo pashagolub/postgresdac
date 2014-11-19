@@ -61,6 +61,11 @@ type
   public
     procedure TearDown; override;
   published
+    procedure TestSelectEmptyRange;
+    procedure TestSelectOpenRange;
+    procedure TestSeelectClosedRange;
+    procedure TestSelectUpperInfinityRange;
+    procedure TestSelectLowerInfinityRange;
     procedure TestSelectRange;
     procedure TestInsertRange;
     procedure TestUpdateRange;
@@ -305,18 +310,106 @@ begin
 
 end;
 
+procedure TestTPSQLRangeField.TestSeelectClosedRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''[3.3, 4.45]''::numrange, '+
+                     ' ''[2010-01-01 14:45, 2010-01-01 15:45]''::tsrange,' +
+                     ' ''[2010-01-01 14:45 UTC, 2010-01-01 15:45 PST]''::tstzrange,' +
+                     ' ''[1, 2]''::int4range,' +
+                     ' ''[22, 4567]::int8range,' +
+                     ' ''[2010-01-01, 2010-01-12]::daterange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((UpperBound.State = rbsInclusive) and
+          (LowerBound.State = rbsInclusive), 'Range must be closed');
+end;
+
+procedure TestTPSQLRangeField.TestSelectEmptyRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''empty''::numrange, '+
+                     ' ''empty''::int4range,' +
+                     ' ''empty''::int8range,' +
+                     ' ''empty''::tsrange,' +
+                     ' ''empty''::daterange,' +
+                     ' ''empty''::tstzrange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+    Check((FldQry.Fields[i] as TPSQLRangeField).IsEmpty, 'Range field must be empty');
+end;
+
+procedure TestTPSQLRangeField.TestSelectLowerInfinityRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''[ , 4.45]''::numrange, '+
+                     ' ''[, 2010-01-01 15:45]''::tsrange,' +
+                     ' ''[, 2010-01-01 15:45 PST]''::tstzrange,' +
+                     ' ''[, 2]''::int4range,' +
+                     ' ''[, 4567]::int8range,' +
+                     ' ''[, 2010-01-12]::daterange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((LowerBound.State = rbsInfinite), 'Range must gave infinite lower range');
+end;
+
+procedure TestTPSQLRangeField.TestSelectOpenRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''(3,4)''::numrange, '+
+                     ' ''(2010-01-01 14:45, 2010-01-01 15:45)''::tsrange,' +
+                     ' ''(2010-01-01 14:45 UTC, 2010-01-01 15:45 PST)''::tstzrange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((UpperBound.State = rbsExclusive) and
+          (LowerBound.State = rbsExclusive), 'Range must be open');
+end;
+
 procedure TestTPSQLRangeField.TestSelectRange;
 var R: TPSQLRange;
 begin
-  FldQry.SQL.Text := 'SELECT numrange(3,5,''[)'')';
+  FldQry.SQL.Text := 'SELECT numrange(3.1, 5.2, ''()''), '+
+                     ' int4range(1, 3, ''[)''), ' +
+                     ' int4range(1, 1, ''()'') ';
   FldQry.Open;
   Check(FldQry.Active, 'Cannot select "point" value');
   R := TPSQLRangeField(FldQry.Fields[0]).Value;
   Check(not R.Empty, 'Range is empty');
-  Check(R.LowerBound.State = rbsInclusive, 'Range lower bound must be exclusive');
-  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be inclusive');
-  Check(R.LowerBound.AsFloat = 3, 'Wrong lower bound value');
-  Check(R.UpperBound.AsFloat = 5, 'Wrong upper bound value');
+  Check(R.LowerBound.State = rbsExclusive, 'Range lower bound must be exclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
+  Check(R.LowerBound.AsFloat = 3.1, 'Wrong lower bound value');
+  Check(R.UpperBound.AsFloat = 5.2, 'Wrong upper bound value');
+
+  R := TPSQLRangeField(FldQry.Fields[1]).Value;
+  Check(not R.Empty, 'Range is empty');
+  Check(R.LowerBound.State = rbsInclusive, 'Range lower bound must be inclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
+  Check(R.LowerBound.AsInteger = 1, 'Wrong lower bound value');
+  Check(R.UpperBound.AsInteger = 3, 'Wrong upper bound value');
+
+end;
+
+procedure TestTPSQLRangeField.TestSelectUpperInfinityRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''[3.3, ]''::numrange, '+
+                     ' ''[2010-01-01 14:45, ]''::tsrange,' +
+                     ' ''[2010-01-01 14:45 UTC, ]''::tstzrange,' +
+                     ' ''[1, ]''::int4range,' +
+                     ' ''[22, ]::int8range,' +
+                     ' ''[2010-01-01, ]::daterange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((UpperBound.State = rbsInfinite), 'Range must gave infinite upper range');
 end;
 
 procedure TestTPSQLRangeField.TestUpdateRange;
