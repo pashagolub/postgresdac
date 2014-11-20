@@ -7,7 +7,7 @@ unit PSQLTypes;
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
-     Classes, SysUtils
+     Classes, SysUtils, SqlTimSt
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
@@ -212,6 +212,7 @@ type
         1: (FVal: Double);
         2: (DVal: TDateTime);
         3: (LVal: Int64);
+        4: (TVal: TSQLTimeStamp);
       end;
   public
     State: TPSQLRangeBoundState;

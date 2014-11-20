@@ -63,7 +63,7 @@ type
   published
     procedure TestSelectEmptyRange;
     procedure TestSelectOpenRange;
-    procedure TestSeelectClosedRange;
+    procedure TestSelectClosedRange;
     procedure TestSelectUpperInfinityRange;
     procedure TestSelectLowerInfinityRange;
     procedure TestSelectRange;
@@ -77,7 +77,7 @@ var
 
 implementation
 
-uses TestHelper;
+uses TestHelper, Math;
 
 {$IFDEF DELPHI_5}
 function CoCreateGuid(out guid: TGUID): HResult; stdcall; external 'ole32.dll' name 'CoCreateGuid';
@@ -310,7 +310,7 @@ begin
 
 end;
 
-procedure TestTPSQLRangeField.TestSeelectClosedRange;
+procedure TestTPSQLRangeField.TestSelectClosedRange;
 var
   i: Integer;
 begin
@@ -318,8 +318,17 @@ begin
                      ' ''[2010-01-01 14:45, 2010-01-01 15:45]''::tsrange,' +
                      ' ''[2010-01-01 14:45 UTC, 2010-01-01 15:45 PST]''::tstzrange,' +
                      ' ''[1, 2]''::int4range,' +
-                     ' ''[22, 4567]::int8range,' +
-                     ' ''[2010-01-01, 2010-01-12]::daterange';
+                     ' ''[22, 4567]''::int8range,' +
+                     ' ''[2010-01-01, 2010-01-12]''::daterange';
+
+  //expected output
+  //"[3.3,4.45]"; - numrange
+  //"["2010-01-01 14:45:00","2010-01-01 15:45:00"]"; - tsrange
+  //"["2010-01-01 16:45:00+02","2010-01-02 01:45:00+02"]"; - tstzrange
+  //"[1,3)"; - int4range
+  //"[22,4568)"; - int8range
+  //"[2010-01-01,2010-01-13)" - daterange
+
   FldQry.Open;
   for i := 0 to FldQry.FieldCount - 1 do
    with (FldQry.Fields[i] as TPSQLRangeField).Value do
@@ -346,12 +355,13 @@ procedure TestTPSQLRangeField.TestSelectLowerInfinityRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT ''[ , 4.45]''::numrange, '+
-                     ' ''[, 2010-01-01 15:45]''::tsrange,' +
-                     ' ''[, 2010-01-01 15:45 PST]''::tstzrange,' +
-                     ' ''[, 2]''::int4range,' +
-                     ' ''[, 4567]::int8range,' +
-                     ' ''[, 2010-01-12]::daterange';
+  FldQry.SQL.Text := 'SELECT numrange(NULL, 3.3),  '+
+                     'tsrange(NULL, ''2010-01-01 14:45''), '+
+                     'tstzrange(NULL, ''2010-01-01 14:45 UTC''), '+
+                     'int4range(NULL, 1), int8range(NULL, 22), '+
+                     'daterange(NULL, ''2010-01-01'')';
+  //expected output
+  //(,3.3); (,"2010-01-01 14:45:00"); (,"2010-01-01 16:45:00+02"); (,1); (,22); (,2010-01-01)
   FldQry.Open;
   for i := 0 to FldQry.FieldCount - 1 do
    with (FldQry.Fields[i] as TPSQLRangeField).Value do
@@ -382,10 +392,10 @@ begin
   Check(FldQry.Active, 'Cannot select "point" value');
   R := TPSQLRangeField(FldQry.Fields[0]).Value;
   Check(not R.Empty, 'Range is empty');
-  Check(R.LowerBound.State = rbsExclusive, 'Range lower bound must be exclusive');
-  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
-  Check(R.LowerBound.AsFloat = 3.1, 'Wrong lower bound value');
-  Check(R.UpperBound.AsFloat = 5.2, 'Wrong upper bound value');
+  Check(R.LowerBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
+  Check(SameValue(R.LowerBound.AsFloat, 3.1), 'Wrong numrange lower bound value');
+  Check(SameValue(R.UpperBound.AsFloat, 5.2), 'Wrong numrange upper bound value');
 
   R := TPSQLRangeField(FldQry.Fields[1]).Value;
   Check(not R.Empty, 'Range is empty');
@@ -400,12 +410,13 @@ procedure TestTPSQLRangeField.TestSelectUpperInfinityRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT ''[3.3, ]''::numrange, '+
-                     ' ''[2010-01-01 14:45, ]''::tsrange,' +
-                     ' ''[2010-01-01 14:45 UTC, ]''::tstzrange,' +
-                     ' ''[1, ]''::int4range,' +
-                     ' ''[22, ]::int8range,' +
-                     ' ''[2010-01-01, ]::daterange';
+  FldQry.SQL.Text := 'SELECT numrange(3.3, NULL), '+
+                     'tsrange(''2010-01-01 14:45'', NULL), '+
+                     'tstzrange(''2010-01-01 14:45 UTC'', NULL), '+
+                     'int4range(1, NULL), int8range(22, NULL), '+
+                     'daterange(''2010-01-01'', NULL)';
+  //expected output
+  //[3.3,); ["2010-01-01 14:45:00",); ["2010-01-01 16:45:00+02",); [1,); [22,); [2010-01-01,)
   FldQry.Open;
   for i := 0 to FldQry.FieldCount - 1 do
    with (FldQry.Fields[i] as TPSQLRangeField).Value do

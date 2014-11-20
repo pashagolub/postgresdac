@@ -2110,7 +2110,9 @@ begin
     FIELD_TYPE_NUMRANGE,
     FIELD_TYPE_DATERANGE,
     FIELD_TYPE_INT4RANGE,
-    FIELD_TYPE_INT8RANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE    : TPSQLRange(Dest^) := TPSQLRange(Src^);
 
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
@@ -2173,7 +2175,9 @@ begin
       FIELD_TYPE_NUMRANGE,
       FIELD_TYPE_DATERANGE,
       FIELD_TYPE_INT4RANGE,
-      FIELD_TYPE_INT8RANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
 
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
@@ -4579,7 +4583,9 @@ begin
       FIELD_TYPE_NUMRANGE,
       FIELD_TYPE_DATERANGE,
       FIELD_TYPE_INT4RANGE,
-      FIELD_TYPE_INT8RANGE: Result := SizeOf(TPSQLRange);
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: Result := SizeOf(TPSQLRange);
 
       FIELD_TYPE_TEXT,
       FIELD_TYPE_BYTEA,
@@ -4988,7 +4994,9 @@ begin
              FIELD_TYPE_NUMRANGE,
              FIELD_TYPE_DATERANGE,
              FIELD_TYPE_INT4RANGE,
-             FIELD_TYPE_INT8RANGE: TPSQLRange(Data^) := SQLRangeToRange(FldValue, T.NativeType);
+             FIELD_TYPE_INT8RANGE,
+             FIELD_TYPE_TSRANGE,
+             FIELD_TYPE_TSTZRANGE: TPSQLRange(Data^) := SQLRangeToRange(FldValue, T.NativeType);
              FIELD_TYPE_OID,
              FIELD_TYPE_TEXT,
              FIELD_TYPE_BYTEA:     begin

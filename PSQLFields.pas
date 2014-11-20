@@ -847,9 +847,10 @@ begin
   case (DataSet as TPSQLDataset).GetFieldTypeOID(FieldNo) of
     FIELD_TYPE_INT4RANGE,
     FIELD_TYPE_INT8RANGE,
-    FIELD_TYPE_DATERANGE : Result := True;
+    FIELD_TYPE_DATERANGE: Result := True;
     FIELD_TYPE_NUMRANGE,
-    FIELD_TYPE_TSRANGE   : Result := False;
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE: Result := False;
   else
     DatabaseErrorFmt('Field %s is not range type', [DisplayName]);
   end;
