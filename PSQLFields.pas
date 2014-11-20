@@ -139,7 +139,7 @@ uses {DbConsts,} SysUtils, Math, PSQLDBTables;
 
 procedure Register;
 begin
-  RegisterClasses([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField]);
+  RegisterClasses([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField, TPSQLRangeField]);
 end;
 
 { TPSQLGuidField }

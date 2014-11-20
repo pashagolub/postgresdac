@@ -3093,6 +3093,7 @@ begin
      fldCIRCLE:  Result := SimpleQuote(CircleToSQLCircle(TPSQLCircle(Src^)));
      fldBOX:     Result := SimpleQuote(BoxToSQLBox(TPSQLBox(Src^)));
      fldLSEG:    Result := SimpleQuote(LSegToSQLLSeg(TPSQLLSeg(Src^)));
+     fldRANGE:   Result := SimpleQuote(RangeToSQLRange(TPSQLRange(Src^), NativeType));
   end;
 end;
 
@@ -4035,11 +4036,6 @@ begin
     RecordState := tsPos;
   end;
 end;
-
-//procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
-//begin
-//  iRecNo := RecordNumber;
-//end;
 
 procedure TNativeDataSet.LockRecord(eLock : DBILockType);
 begin

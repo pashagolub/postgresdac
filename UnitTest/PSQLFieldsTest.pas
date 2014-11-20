@@ -240,6 +240,7 @@ begin
   FldQry.ParamCheck := False;
   FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
   FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS geometry_test_case_table(id int4 PRIMARY KEY, p point, c circle, b box, l lseg)');
+  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS range_test_case_table(id int4 PRIMARY KEY, numr numrange, intr int4range, dater daterange, tsr tsrange)');
 end;
 
 procedure TDbSetup.TearDown;
@@ -306,7 +307,27 @@ begin
 end;
 
 procedure TestTPSQLRangeField.TestInsertRange;
+var
+  R, RF, RD, RTS: TPSQLRange;
 begin
+  R.CreateInteger('[4,6)');
+  RF.CreateFloat('[3.1,4.6]');
+  RD.CreateDate('[2010-01-01,2010-01-11)');
+  RTS.CreateTimestamp('["2010-01-01 14:45:00","2014-11-20 00:00:00")');
+  FldQry.SQL.Text := 'SELECT * FROM range_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  FldQry.Insert;
+  FldQry.FieldByName('id').AsInteger := 1;
+  (FldQry.FieldByName('intr') as TPSQLRangeField).Value := R;
+  (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
+  (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
+  (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  FldQry.Post;
+  Check((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
+  Check((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
+  Check((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
+  Check((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
 
 end;
 
@@ -316,18 +337,12 @@ var
 begin
   FldQry.SQL.Text := 'SELECT ''[3.3, 4.45]''::numrange, '+
                      ' ''[2010-01-01 14:45, 2010-01-01 15:45]''::tsrange,' +
-                     ' ''[2010-01-01 14:45 UTC, 2010-01-01 15:45 PST]''::tstzrange,' +
-                     ' ''[1, 2]''::int4range,' +
-                     ' ''[22, 4567]''::int8range,' +
-                     ' ''[2010-01-01, 2010-01-12]''::daterange';
+                     ' ''[2010-01-01 14:45 UTC, 2010-01-01 15:45 PST]''::tstzrange';
 
   //expected output
   //"[3.3,4.45]"; - numrange
   //"["2010-01-01 14:45:00","2010-01-01 15:45:00"]"; - tsrange
   //"["2010-01-01 16:45:00+02","2010-01-02 01:45:00+02"]"; - tstzrange
-  //"[1,3)"; - int4range
-  //"[22,4568)"; - int8range
-  //"[2010-01-01,2010-01-13)" - daterange
 
   FldQry.Open;
   for i := 0 to FldQry.FieldCount - 1 do
@@ -390,7 +405,7 @@ begin
                      ' int4range(1, 1, ''()'') ';
   FldQry.Open;
   Check(FldQry.Active, 'Cannot select "point" value');
-  R := TPSQLRangeField(FldQry.Fields[0]).Value;
+  R := (FldQry.Fields[0] as TPSQLRangeField).Value;
   Check(not R.Empty, 'Range is empty');
   Check(R.LowerBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
   Check(R.UpperBound.State = rbsExclusive, 'numrange lower bound must be exclusive');

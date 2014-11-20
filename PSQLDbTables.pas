@@ -2433,12 +2433,17 @@ begin
             FIELD_TYPE_CIRCLE: F := TPSQLCircleField.Create(Self);
             FIELD_TYPE_BOX: F := TPSQLBoxField.Create(Self);
             FIELD_TYPE_LSEG: F := TPSQLLSegField.Create(Self);
+            FIELD_TYPE_NUMRANGE,
+            FIELD_TYPE_DATERANGE,
+            FIELD_TYPE_INT4RANGE,
+            FIELD_TYPE_INT8RANGE,
+            FIELD_TYPE_TSRANGE,
+            FIELD_TYPE_TSTZRANGE: F := TPSQLRangeField.Create(Self);
           else
             Continue;
           end;
           try
             F.FieldName := FieldDefs[I].Name;
-            F.SetFieldType(ftADT);
             F.Required := faRequired in FieldDefs[I].Attributes;
             F.ReadOnly := faReadonly in FieldDefs[I].Attributes;
             F.DataSet := FieldDefs.DataSet;

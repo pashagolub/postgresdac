@@ -204,32 +204,42 @@ type
 
   TPSQLRangeBoundState = (rbsExclusive, rbsInclusive, rbsInfinite);
 
+  TPSQLRangeBoundValue = record
+  case Integer of
+      0: (IVal: Integer);
+      1: (FVal: Double);
+      2: (DVal: TDateTime);
+      3: (LVal: Int64);
+      4: (TVal: TSQLTimeStamp);
+  end;
+  PPSQLRangeBoundValue = ^TPSQLRangeBoundValue;
+
   TPSQLRangeBound = packed record
   strict private
-    var Value: record
-      case Integer of
-        0: (IVal: Integer);
-        1: (FVal: Double);
-        2: (DVal: TDateTime);
-        3: (LVal: Int64);
-        4: (TVal: TSQLTimeStamp);
-      end;
+    var Value: TPSQLRangeBoundValue;
   public
     State: TPSQLRangeBoundState;
     property AsInteger: integer read Value.IVal write Value.IVal;
     property AsFloat: double read Value.FVal write Value.FVal;
     property AsLargeInt: Int64 read Value.LVal write Value.LVal;
     property AsDateTime: TDateTime read Value.DVal write Value.DVal;
+    property AsSQLTimeStamp: TSQLTimeStamp read Value.TVal write Value.TVal;
+    class operator Equal(RB1: TPSQLRangeBound; RB2: TPSQLRangeBound): Boolean;
   end;
 
   TPSQLRange = packed record
   private
-    var FEmpty: boolean;
+    function GetEmpty: boolean;
   public
     LowerBound: TPSQLRangeBound;
     UpperBound: TPSQLRangeBound;
-    property Empty: boolean read FEmpty;
+    property Empty: boolean read GetEmpty;
     procedure SetEmpty;
+    class operator Equal(R1: TPSQLRange; R2: TPSQLRange): Boolean;
+    constructor CreateInteger(const Value: string);
+    constructor CreateFloat(const Value: string);
+    constructor CreateDate(const Value: string);
+    constructor CreateTimestamp(const Value: string);
   end;
 
   TPSQLPoint = packed record
@@ -261,7 +271,7 @@ type
   TPSQLDACAbout = class
   end;
 
-  TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
+ TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
       FieldIndex: integer): Integer;
 
 //////////////////////////////////////////////////////////////////
@@ -1347,6 +1357,7 @@ const
   fldCIRCLE          = MAXLOGFLDTYPES + 6;
   fldBOX             = MAXLOGFLDTYPES + 7;
   fldLSEG            = MAXLOGFLDTYPES + 8;
+  fldRANGE           = MAXLOGFLDTYPES + 9;
 
 { Sub Types (Logical) }
 
@@ -1966,6 +1977,7 @@ function BoxToSQLBox(Value: TPSQLBox; const Delimiter: char = ','; const UseSyst
 function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLLSeg;
 function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 function SQLRangeToRange(Value: string; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLRange;
+function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): string;
 
 procedure GetToken(var Buffer, Token: string);
 procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : integer;
@@ -2964,16 +2976,17 @@ var
         FIELD_TYPE_INT4RANGE,
         FIELD_TYPE_INT8RANGE: B.AsLargeInt := StrToInt64(SVal);
         FIELD_TYPE_DATERANGE: B.AsDateTime := SqlDateToDateTime(SVal, False);
-        FIELD_TYPE_TSRANGE: B.AsDateTime := SQLTimeStampToDateTime(SVal);
+        FIELD_TYPE_TSRANGE,
+        FIELD_TYPE_TSTZRANGE: B.AsDateTime := SQLTimeStampToDateTime(SVal);
       end;
   end;
 
 begin
+  Result := Default(TPSQLRange);
   if SameText(Value, 'empty') then
     Result.SetEmpty
   else
   begin
-    Result.FEmpty := False;
     Result.LowerBound.State := TPSQLRangeBoundState(ifthen(Value[1] = '[', ord(rbsInclusive), ord(rbsExclusive)));
     Result.UpperBound.State := TPSQLRangeBoundState(ifthen(Value[Length(Value)] = ']', ord(rbsInclusive), ord(rbsExclusive)));
     Value := Copy(Value, 2, Length(Value) - 2); //eliminate brackets
@@ -2982,6 +2995,38 @@ begin
     SetBound(Result.UpperBound, Copy(Value, DelimPos + 1, MaxInt));
   end;
 end;
+
+function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): string;
+begin
+  if Value.Empty then Exit('empty');
+
+  if Value.LowerBound.State = rbsInfinite then
+    Result := '['
+  else
+  begin
+    Result := ifthen(Value.LowerBound.State = rbsInclusive, '[', '(');
+    case RangeType of
+      FIELD_TYPE_INT4RANGE: Result := Result + IntToStr(Value.LowerBound.AsInteger);
+      FIELD_TYPE_INT8RANGE: Result := Result + IntToStr(Value.LowerBound.AsLargeInt);
+      FIELD_TYPE_NUMRANGE: Result := Result + SQLFloatToStr(Value.LowerBound.AsFloat);
+    end;
+  end;
+
+  Result := Result + ',';
+
+  if Value.UpperBound.State = rbsInfinite then
+    Result := Result + ']'
+  else
+  begin
+    case RangeType of
+      FIELD_TYPE_INT4RANGE: Result := Result + IntToStr(Value.UpperBound.AsInteger);
+      FIELD_TYPE_INT8RANGE: Result := Result + IntToStr(Value.UpperBound.AsLargeInt);
+      FIELD_TYPE_NUMRANGE: Result := Result + SQLFloatToStr(Value.UpperBound.AsFloat);
+    end;
+    Result := Result + ifthen(Value.UpperBound.State = rbsInclusive, ']', ')');
+  end;
+end;
+
 
 procedure GetToken(var Buffer, Token: string);
 label ExitProc;
@@ -3196,6 +3241,16 @@ begin
                          BdeType := fldLSEG;
                          LogSize := SizeOf(TPSQLLSeg);
                       end;
+    FIELD_TYPE_NUMRANGE,
+    FIELD_TYPE_DATERANGE,
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE:
+                      begin
+                        BdeType := fldRANGE;
+                        LogSize := SizeOf(TPSQLRange);
+                      end
   else
     begin
        BdeType := fldZSTRING;
@@ -3520,6 +3575,47 @@ begin
    end;
 end;
 
+{ TPSQLRange }
+
+class operator TPSQLRangeBound.Equal(RB1: TPSQLRangeBound; RB2: TPSQLRangeBound): Boolean;
+begin
+  Result := (RB1.State = RB2.State)
+        and CompareMem(@RB1.Value, @RB2.Value, SizeOf(TPSQLRangeBoundValue)); //timestamp is the biggest field in record
+end;
+
+constructor TPSQLRange.CreateDate(const Value: string);
+begin
+  Self := Default(TPSQLRange);
+  Self := PSQLTypes.SQLRangeToRange(Value, FIELD_TYPE_DATERANGE);
+end;
+
+constructor TPSQLRange.CreateFloat(const Value: string);
+begin
+  Self := Default(TPSQLRange);
+  Self := PSQLTypes.SQLRangeToRange(Value, FIELD_TYPE_NUMRANGE);
+end;
+
+constructor TPSQLRange.CreateInteger(const Value: string);
+begin
+  Self := Default(TPSQLRange);
+  Self := PSQLTypes.SQLRangeToRange(Value, FIELD_TYPE_INT4RANGE);
+end;
+
+constructor TPSQLRange.CreateTimestamp(const Value: string);
+begin
+  Self := Default(TPSQLRange);
+  Self := PSQLTypes.SQLRangeToRange(Value, FIELD_TYPE_TSRANGE);
+end;
+
+class operator TPSQLRange.Equal(R1: TPSQLRange; R2: TPSQLRange): Boolean;
+begin
+  Result := (R1.Empty = R2.Empty) and (R1.LowerBound = R2.LowerBound) and (R1.UpperBound = R2.UpperBound);
+end;
+
+function TPSQLRange.GetEmpty: boolean;
+begin
+  Result := (LowerBound.State = rbsExclusive) and (LowerBound = UpperBound);
+end;
 { TPSQLPoint }
 
 class operator TPSQLPoint.Equal(P1, P2: TPSQLPoint): Boolean;
@@ -3537,11 +3633,10 @@ end;
 
 procedure TPSQLRange.SetEmpty;
 begin
-  FEmpty := True;
   UpperBound.State := rbsExclusive;
   LowerBound.State := rbsExclusive;
-  UpperBound.AsLargeInt := 0;
-  LowerBound.AsLargeInt := 0;
+  UpperBound.AsSQLTimeStamp := NullSQLTimeStamp;
+  LowerBound.AsSQLTimeStamp := NullSQLTimeStamp;
 end;
 
 initialization
