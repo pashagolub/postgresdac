@@ -238,9 +238,13 @@ begin
   FldQry := TPSQLQuery.Create(nil);
   FldQry.Database := FldDB;
   FldQry.ParamCheck := False;
+  FldDB.Execute('SET TimeZone to ''America/Caracas'''); // for the complex timezone -04:30
   FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
   FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS geometry_test_case_table(id int4 PRIMARY KEY, p point, c circle, b box, l lseg)');
-  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS range_test_case_table(id int4 PRIMARY KEY, numr numrange, intr int4range, dater daterange, tsr tsrange)');
+  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS range_test_case_table('+
+                'id int4 PRIMARY KEY, numr numrange, '+
+                'intr int4range, dater daterange, '+
+                'tsr tsrange, tstzr tstzrange)');
 end;
 
 procedure TDbSetup.TearDown;
@@ -323,12 +327,13 @@ begin
   (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
   (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
   (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  (FldQry.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
   FldQry.Post;
   Check((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
   Check((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
   Check((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
   Check((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
-
+  Check((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after insert');
 end;
 
 procedure TestTPSQLRangeField.TestSelectClosedRange;
@@ -439,8 +444,29 @@ begin
 end;
 
 procedure TestTPSQLRangeField.TestUpdateRange;
+var
+  R, RF, RD, RTS: TPSQLRange;
 begin
-
+  R.CreateInteger('[7,8)');
+  RF.CreateFloat('[8.12,124.46]');
+  RD.CreateDate('[2012-01-01,2013-01-11)');
+  RTS.CreateTimestamp('["2011-01-01 14:45:00","2012-11-20 00:00:00")');
+  FldQry.SQL.Text := 'SELECT * FROM range_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  if FldQry.RecordCount = 0 then TestInsertRange;
+  FldQry.Edit;
+  (FldQry.FieldByName('intr') as TPSQLRangeField).Value := R;
+  (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
+  (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
+  (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  (FldQry.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
+  FldQry.Post;
+  Check((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after update');
+  Check((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after update');
+  Check((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after update');
+  Check((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after update');
+  Check((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
 end;
 
 initialization
