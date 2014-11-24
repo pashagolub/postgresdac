@@ -47,13 +47,13 @@ type
   end;
 
   // Test methods for class TPSQLPointField
-  TestTPSQLPointField = class(TTestCase)
+  TestGeometricFields = class(TTestCase)
   public
     procedure TearDown; override;
   published
-    procedure TestSelectPoint;
-    procedure TestInsertPoint;
-    procedure TestUpdatePoint;
+    procedure TestSelectGeoms;
+    procedure TestInsertGeoms;
+    procedure TestUpdateGeoms;
   end;
 
   // Test methods for class TPSQLRangeField
@@ -258,47 +258,66 @@ end;
 
 { TestTPSQLPointField }
 
-procedure TestTPSQLPointField.TearDown;
+procedure TestGeometricFields.TearDown;
 begin
   inherited;
   FldQry.Close;
   FldQry.SQL.Clear;
 end;
 
-procedure TestTPSQLPointField.TestInsertPoint;
+procedure TestGeometricFields.TestInsertGeoms;
 const
   P: TPSQLPoint = (X: 2.5; Y: 3.5);
+  C: TPSQLCircle = (R: 1.34; X: 2.5; Y: 3.5);
+  B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
 begin
   FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
   FldQry.RequestLive := True;
   FldQry.Open;
   FldQry.Insert;
   FldQry.FieldByName('id').AsInteger := 1;
-  TPSQLPointField(FldQry.FieldByName('p')).Value := P;
+  (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
+  (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
+  (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
   FldQry.Post;
   Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
+  Check(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
+  Check(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
 end;
 
-procedure TestTPSQLPointField.TestSelectPoint;
+procedure TestGeometricFields.TestSelectGeoms;
+const
+  P: TPSQLPoint = (X: 2.5; Y: 3.5);
+  C: TPSQLCircle = (R: 1.34; X: 2.5; Y: 3.5);
+  B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
 begin
-  FldQry.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point';
+  FldQry.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point, '+
+                     ' ''<( 2.5 , 3.5 ) , 1.34>''::circle, '+
+                     ' ''(2.12, 7.89) , (-0.14, 0.1)''::box';
   FldQry.Open;
-  Check(TPSQLPointField(FldQry.Fields[0]).Value.Y > TPSQLPointField(FldQry.Fields[0]).Value.X);
-  Check(FldQry.Active, 'Cannot select "point" value');
+  Check(TPSQLPointField(FldQry.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
+  Check(TPSQLCircleField(FldQry.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
+  Check(TPSQLBoxField(FldQry.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
 end;
 
-procedure TestTPSQLPointField.TestUpdatePoint;
+procedure TestGeometricFields.TestUpdateGeoms;
 const
   P: TPSQLPoint = (X: pi; Y: 2.818281828);
+  C: TPSQLCircle = (R: 1.34; X: pi; Y: 2.818281828);
+  B: TPSQLBox = (Right: 3.12; Top: 9.89; Left: -1.14; Bottom: -10.1);
 begin
   FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
   FldQry.RequestLive := True;
   FldQry.Open;
-  if FldQry.RecordCount = 0 then TestInsertPoint;
+  if FldQry.RecordCount = 0 then TestInsertGeoms;
   FldQry.Edit;
-  TPSQLPointField(FldQry.FieldByName('p')).Value := P;
+  (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
+  (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
+  (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
   FldQry.Post;
   Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
+  Check(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
+  Check(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
 end;
 
 { TestTPSQLRangeField }
@@ -472,7 +491,7 @@ end;
 initialization
   //PaGo: Register any test cases with setup decorator
   RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite));
-  RegisterTest(TDbSetup.Create(TestTPSQLPointField.Suite));
+  RegisterTest(TDbSetup.Create(TestGeometricFields.Suite));
   RegisterTest(TDbSetup.Create(TestTPSQLRangeField.Suite));
 end.
 

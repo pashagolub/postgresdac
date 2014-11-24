@@ -2102,6 +2102,7 @@ begin
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+{$IFDEF DELPHI_12}
     FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
     FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
     FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
@@ -2113,6 +2114,7 @@ begin
     FIELD_TYPE_INT8RANGE,
     FIELD_TYPE_TSRANGE,
     FIELD_TYPE_TSTZRANGE    : TPSQLRange(Dest^) := TPSQLRange(Src^);
+{$ENDIF DELPHI_12}    
 
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
@@ -2167,6 +2169,7 @@ begin
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+{$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
       FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
       FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
@@ -2178,6 +2181,7 @@ begin
       FIELD_TYPE_INT8RANGE,
       FIELD_TYPE_TSRANGE,
       FIELD_TYPE_TSTZRANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
+{$ENDIF DELPHI_12}      
 
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
@@ -3089,11 +3093,13 @@ begin
      fldDate:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), DATE_MODE));
      fldTime:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIME_MODE));
      fldTIMESTAMP: Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIMESTAMP_MODE));
+{$IFDEF DELPHI_12}
      fldPOINT:   Result := SimpleQuote(PointToSQLPoint(TPSQLPoint(Src^)));
      fldCIRCLE:  Result := SimpleQuote(CircleToSQLCircle(TPSQLCircle(Src^)));
      fldBOX:     Result := SimpleQuote(BoxToSQLBox(TPSQLBox(Src^)));
      fldLSEG:    Result := SimpleQuote(LSegToSQLLSeg(TPSQLLSeg(Src^)));
      fldRANGE:   Result := SimpleQuote(RangeToSQLRange(TPSQLRange(Src^), NativeType));
+{$ENDIF DELPHI_12}
   end;
 end;
 
@@ -4571,6 +4577,7 @@ begin
       FIELD_TYPE_NUMERIC,
       FIELD_TYPE_FLOAT8: Result := Sizeof(Double);
 
+{$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: Result := SizeOf(TPSQLPoint);
       FIELD_TYPE_CIRCLE: Result := SizeOf(TPSQLCircle);
       FIELD_TYPE_BOX: Result := SizeOf(TPSQLBox);
@@ -4582,6 +4589,7 @@ begin
       FIELD_TYPE_INT8RANGE,
       FIELD_TYPE_TSRANGE,
       FIELD_TYPE_TSTZRANGE: Result := SizeOf(TPSQLRange);
+{$ENDIF DELPHI_12}
 
       FIELD_TYPE_TEXT,
       FIELD_TYPE_BYTEA,
@@ -4983,6 +4991,7 @@ begin
              FIELD_TYPE_FLOAT4,
              FIELD_TYPE_FLOAT8,
              FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
+{$IFDEF DELPHI_12}
              FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
              FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
              FIELD_TYPE_BOX:       TPSQLBox(Data^) := SQLBoxToBox(FldValue);
@@ -4993,6 +5002,7 @@ begin
              FIELD_TYPE_INT8RANGE,
              FIELD_TYPE_TSRANGE,
              FIELD_TYPE_TSTZRANGE: TPSQLRange(Data^) := SQLRangeToRange(FldValue, T.NativeType);
+{$ENDIF DELPHI_12}
              FIELD_TYPE_OID,
              FIELD_TYPE_TEXT,
              FIELD_TYPE_BYTEA:     begin

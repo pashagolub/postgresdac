@@ -2421,10 +2421,11 @@ procedure TPSQLDataset.CreateFields;
 var F: TField;
     I: integer;
 begin
- F := nil; //make compiler happy
- inherited CreateFields;
- if FieldDefs.Count > Fields.Count then
-   for I := 0 to FieldDefs.Count - 1 do
+  F := nil; //make compiler happy
+  inherited CreateFields;
+{$IFDEF DELPHI_12}
+  if FieldDefs.Count > Fields.Count then
+    for I := 0 to FieldDefs.Count - 1 do
       if (FieldDefs[I].DataType = ftUnknown) and
         not ((faHiddenCol in FieldDefs[I].Attributes) and not FieldDefs.HiddenFields) then
          begin
@@ -2448,11 +2449,11 @@ begin
             F.ReadOnly := faReadonly in FieldDefs[I].Attributes;
             F.DataSet := FieldDefs.DataSet;
             F.Index := I;
-          except
+          finally
             F.Free;
-            raise;
           end;
          end;
+{$ENDIF DELPHI_12}
 end;
 
 //////////////////////////////////////////////////////////
@@ -2957,22 +2958,17 @@ begin
           FSize := PSQLTypes.UUIDLEN;
           FType := ftGuid;
         end;
+{$IFDEF DELPHI_12}
       fldPOINT:
-        begin
           FSize := SizeOf(PSQLTypes.TPSQLPoint);
-        end;
       fldCIRCLE:
-        begin
           FSize := SizeOf(PSQLTypes.TPSQLCircle);
-        end;
       fldBOX:
-        begin
           FSize := SizeOf(PSQLTypes.TPSQLBox);
-        end;
       fldLSEG:
-        begin
           FSize := SizeOf(PSQLTypes.TPSQLLSeg);
-        end;
+{$WARN FATAL 'Add description for range types'} 
+{$ENDIF DELPHI_12}
     end;
 
     //pg: Unicode playing

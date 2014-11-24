@@ -19,6 +19,7 @@ type
     property AsGuid: TGUID read GetAsGuid write SetAsGuid;
   end;
 
+{$IFDEF DELPHI_12}
  { TPSQLPointField }
 
   TPSQLPointField = class(TNumericField)
@@ -103,6 +104,8 @@ type
     function IsEmpty: boolean; virtual;
     property Value: TPSQLRange read GetAsRange write SetAsRange;
   end;
+  
+{$ENDIF DELPHI_12}
 
 {$IFDEF DELPHI_17}
   TPSQLBitConverter = class(TBitConverter)
@@ -119,11 +122,13 @@ type
 {$ENDIF DELPHI_17}
 
 
+{$IFDEF DELPHI_12}
 const
   OriginPoint: TPSQLPoint = (X: 0.0; Y: 0.0);
   OriginCircle: TPSQLCircle = (R: 0.0; X: 0.0; Y: 0.0);
   OriginBox: TPSQLBox = (Right: 0.0; Top: 0.0; Left: 0.0; Bottom: 0.0);
   OriginLSeg: TPSQLLSeg = (X1: 0.0; Y1: 0.0; X2: 0.0; Y2: 0.0);
+{$ENDIF DELPHI_12}  
 
 procedure Register;
 
@@ -139,7 +144,10 @@ uses {DbConsts,} SysUtils, Math, PSQLDBTables;
 
 procedure Register;
 begin
-  RegisterClasses([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField, TPSQLRangeField]);
+  RegisterClasses([TPSQLGuidField
+        {$IFDEF DELPHI_12}
+        ,TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField, TPSQLRangeField
+        {$ENDIF DELPHI_12}]);
 end;
 
 { TPSQLGuidField }
@@ -438,6 +446,8 @@ begin
     inherited;
 end;
 
+{$IFDEF DELPHI_12}
+
 { TPSQLPointField }
 
 function TPSQLPointField.GetAsPoint: TPSQLPoint;
@@ -607,7 +617,7 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLCircleField.SetAsCircle(const Value: TPSQLCircle);
 begin
-  SetData(BytesOf(@Value, SizeOf(TPSQLPoint)));
+  SetData(BytesOf(@Value, SizeOf(TPSQLCircle)));
 end;
 {$ELSE}
 procedure TPSQLCircleField.SetAsCircle(const Value: TPSQLCircle);
@@ -703,7 +713,7 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLBoxField.SetAsBox(const Value: TPSQLBox);
 begin
-  SetData(BytesOf(@Value, SizeOf(TPSQLPoint)), False);
+  SetData(BytesOf(@Value, SizeOf(TPSQLBox)));
 end;
 {$ELSE}
 procedure TPSQLBoxField.SetAsBox(const Value: TPSQLBox);
@@ -874,6 +884,8 @@ begin
   SetData(@Value);
 {$ENDIF}
 end;
+
+{$ENDIF DELPHI_12}
 
 initialization
 

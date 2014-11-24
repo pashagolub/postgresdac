@@ -203,6 +203,8 @@ type
   AnsiString = TBytes;
   {$ENDIF}
 
+
+{$IFDEF DELPHI_12}
   TPSQLRangeBoundState = (rbsExclusive, rbsInclusive, rbsInfinite);
 
   TPSQLRangeBoundValue = record
@@ -252,12 +254,14 @@ type
 
   TPSQLCircle = packed record
     R: Double;
+    class operator Equal(C1: TPSQLCircle; C2: TPSQLCircle): Boolean;
     case Integer of
       0: (X, Y: Double);
       1: (Center: TPSQLPoint);
   end;
 
   TPSQLBox = packed record
+    class operator Equal(B1: TPSQLBox; B2: TPSQLBox): Boolean;
     case Integer of
       0: (Right, Top, Left, Bottom: Double);
       1: (TopRight, BottomLeft: TPSQLPoint);
@@ -268,6 +272,7 @@ type
       0: (X1, Y1, X2, Y2: Double);
       1: (P1, P2: TPSQLPoint);
   end;
+{$ENDIF DELPHI_12}
 
   TPSQLDACAbout = class
   end;
@@ -1969,6 +1974,7 @@ function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
+{$IFDEF DELPHI_12}
 function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
 function PointToSQLPoint(Value: TPSQLPoint; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 function SQLCircleToCircle(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLCircle;
@@ -1979,6 +1985,7 @@ function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSyst
 function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 function SQLRangeToRange(Value: string; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLRange;
 function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): string;
+{$ENDIF DELPHI_12}
 
 procedure GetToken(var Buffer, Token: string);
 procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : integer;
@@ -2885,6 +2892,7 @@ begin
   Result := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}FloatToStr(Value, PSQL_FS);
 end;
 
+{$IFDEF DELPHI_12}
 function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
 var S, Xs, Ys: string;
     DelimPos: integer;
@@ -3039,6 +3047,8 @@ begin
     Result := Result + ifthen(Value.UpperBound.State = rbsInclusive, ']', ')');
   end;
 end;
+
+{$ENDIF DELPHI_12}
 
 procedure GetToken(var Buffer, Token: string);
 label ExitProc;
@@ -3233,6 +3243,7 @@ begin
                          BdeType := fldZSTRING;
                          LogSize := MACADDRLEN + 1;
                       end;
+{$IFDEF DELPHI_12}
     FIELD_TYPE_POINT:
                       begin
                          BdeType := fldPOINT;
@@ -3263,6 +3274,7 @@ begin
                         BdeType := fldRANGE;
                         LogSize := SizeOf(TPSQLRange);
                       end
+{$ENDIF DELPHI_12}                      
   else
     begin
        BdeType := fldZSTRING;
@@ -3587,6 +3599,7 @@ begin
    end;
 end;
 
+{$IFDEF DELPHI_12}
 { TPSQLRange }
 
 class operator TPSQLRangeBound.Equal(RB1: TPSQLRangeBound; RB2: TPSQLRangeBound): Boolean;
@@ -3628,6 +3641,7 @@ function TPSQLRange.GetEmpty: boolean;
 begin
   Result := (LowerBound.State = rbsExclusive) and (LowerBound = UpperBound);
 end;
+
 { TPSQLPoint }
 
 class operator TPSQLPoint.Equal(P1, P2: TPSQLPoint): Boolean;
@@ -3641,6 +3655,20 @@ begin
   Result.Y := P.Y;
 end;
 
+{ TPSQLCircle }
+
+class operator TPSQLCircle.Equal(C1: TPSQLCircle; C2: TPSQLCircle): Boolean;
+begin
+  Result := (C1.Center = C2.Center) and SameValue(C1.R, C2.R);
+end;
+
+{ TPSQLBox }
+
+class operator TPSQLBox.Equal(B1, B2: TPSQLBox): Boolean;
+begin
+  Result := (B1.TopRight = B2.TopRight) and (B1.BottomLeft = B2.BottomLeft);
+end;
+
 {TPSQLRange}
 
 procedure TPSQLRange.SetEmpty;
@@ -3650,6 +3678,8 @@ begin
 //  UpperBound.AsSQLTimeStamp := NullSQLTimeStamp;
 //  LowerBound.AsSQLTimeStamp := NullSQLTimeStamp;
 end;
+
+{$ENDIF DELPHI_12}
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;
