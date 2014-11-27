@@ -270,6 +270,7 @@ const
   P: TPSQLPoint = (X: 2.5; Y: 3.5);
   C: TPSQLCircle = (R: 1.34; X: 2.5; Y: 3.5);
   B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
+  L: TPSQLLSeg = (X1: 1.2; Y1: 0.4; X2: -5.5; Y2: -0.2);
 begin
   FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
   FldQry.RequestLive := True;
@@ -279,10 +280,12 @@ begin
   (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
   (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
   (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
+  (FldQry.FieldByName('l') as TPSQLLSegField).Value := L;
   FldQry.Post;
   Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
   Check(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
   Check(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
+  Check(TPSQLLSegField(FldQry.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after insert');
 end;
 
 procedure TestGeometricFields.TestSelectGeoms;
@@ -290,14 +293,17 @@ const
   P: TPSQLPoint = (X: 2.5; Y: 3.5);
   C: TPSQLCircle = (R: 1.34; X: 2.5; Y: 3.5);
   B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
+  L: TPSQLLSeg = (X1: 1.2; Y1: 0.4; X2: -5.5; Y2: -0.2);
 begin
   FldQry.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point, '+
                      ' ''<( 2.5 , 3.5 ) , 1.34>''::circle, '+
-                     ' ''(2.12, 7.89) , (-0.14, 0.1)''::box';
+                     ' ''(2.12, 7.89) , (-0.14, 0.1)''::box, '+
+                     ' ''[(1.2,0.4),(-5.5,-0.2)]''::lseg ';
   FldQry.Open;
   Check(TPSQLPointField(FldQry.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
   Check(TPSQLCircleField(FldQry.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
   Check(TPSQLBoxField(FldQry.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
+  Check((FldQry.Fields[3] as TPSQLLSegField).Value = L, 'Wrong value for "lseg" field after SELECT');
 end;
 
 procedure TestGeometricFields.TestUpdateGeoms;
@@ -305,6 +311,7 @@ const
   P: TPSQLPoint = (X: pi; Y: 2.818281828);
   C: TPSQLCircle = (R: 1.34; X: pi; Y: 2.818281828);
   B: TPSQLBox = (Right: 3.12; Top: 9.89; Left: -1.14; Bottom: -10.1);
+  L: TPSQLLSeg = (X1: 8.2; Y1: 1.4; X2: -255.5; Y2: -13845.14212);
 begin
   FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
   FldQry.RequestLive := True;
@@ -314,10 +321,12 @@ begin
   (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
   (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
   (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
+  (FldQry.FieldByName('l') as TPSQLLSegField).Value := L;
   FldQry.Post;
   Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
   Check(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
   Check(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
+  Check(TPSQLLSegField(FldQry.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after update');
 end;
 
 { TestTPSQLRangeField }
