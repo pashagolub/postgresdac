@@ -2449,8 +2449,9 @@ begin
             F.ReadOnly := faReadonly in FieldDefs[I].Attributes;
             F.DataSet := FieldDefs.DataSet;
             F.Index := I;
-          finally
+          except
             F.Free;
+            raise;
           end;
          end;
 {$ENDIF DELPHI_12}
@@ -2967,7 +2968,8 @@ begin
           FSize := SizeOf(PSQLTypes.TPSQLBox);
       fldLSEG:
           FSize := SizeOf(PSQLTypes.TPSQLLSeg);
-{$WARN FATAL 'Add description for range types'} 
+      fldRANGE:
+          FSize := SizeOf(PSQLTypes.TPSQLRange);
 {$ENDIF DELPHI_12}
     end;
 
