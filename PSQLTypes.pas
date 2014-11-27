@@ -268,6 +268,7 @@ type
   end;
 
   TPSQLLSeg = packed record
+    class operator Equal(L1: TPSQLLSeg; L2: TPSQLLSeg): Boolean;
     case Integer of
       0: (X1, Y1, X2, Y2: Double);
       1: (P1, P2: TPSQLPoint);
@@ -3667,6 +3668,13 @@ end;
 class operator TPSQLBox.Equal(B1, B2: TPSQLBox): Boolean;
 begin
   Result := (B1.TopRight = B2.TopRight) and (B1.BottomLeft = B2.BottomLeft);
+end;
+
+{ TPSQLLSeg }
+
+class operator TPSQLLSeg.Equal(L1: TPSQLLSeg; L2: TPSQLLSeg): Boolean;
+begin
+  Result := (L1.P1 = L2.P1) and (L1.P2 = L2.P2);
 end;
 
 {TPSQLRange}
