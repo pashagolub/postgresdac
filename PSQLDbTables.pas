@@ -197,6 +197,19 @@ type
   end;
 {$ENDIF}
 
+  TPSQLFieldDef = class(TFieldDef)
+  private
+    FNativeDataType: cardinal;
+    procedure SetNativeDataType(const Value: cardinal);
+  published
+    property NativeDataType: cardinal read FNativeDataType write SetNativeDataType default 0;
+  end;
+
+  TPSQLFieldDefs = class(TFieldDefs)
+  protected
+    function GetFieldDefClass: TFieldDefClass; override;
+  end;
+
   TParamClass = class of TParam;
 
   TPSQLParam = class(TParam)
@@ -642,9 +655,11 @@ type
     procedure InternalSetToRecord(Buffer: TRecordBuffer); override;
     function  GetCanModify: Boolean; override;
 {$IFNDEF FPC}
-    function  GetFieldFullName(Field: TField): string; override;
+    function GetFieldFullName(Field: TField): string; override;
 {$ENDIF}
-    function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
+    function GetFieldClass(FieldType: TFieldType): TFieldClass; override;
+    function GetFieldClass(FieldDef: TFieldDef): TFieldClass; override;
+    function GetFieldDefsClass: TFieldDefsClass; override;
 {$IFDEF DELPHI_12}
     function GetLookupListClass(Field: TField): TLookupListClass; override;
 {$ENDIF}
@@ -2429,7 +2444,7 @@ begin
       if (FieldDefs[I].DataType = ftUnknown) and
         not ((faHiddenCol in FieldDefs[I].Attributes) and not FieldDefs.HiddenFields) then
          begin
-          case GetFieldTypeOID(I) of
+          case (FieldDefs[I] as TPSQLFieldDef).NativeDataType of
             FIELD_TYPE_POINT: F := TPSQLPointField.Create(Self);
             FIELD_TYPE_CIRCLE: F := TPSQLCircleField.Create(Self);
             FIELD_TYPE_BOX: F := TPSQLBoxField.Create(Self);
@@ -2901,6 +2916,7 @@ procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Intege
   var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
 var
   FType: TFieldType;
+  ANativeType: cardinal;
   FSize: integer;
   FRequired: Boolean;
   FPrecision, I: Integer;
@@ -2912,6 +2928,7 @@ begin
   with FieldDesc do
   begin
     FieldName := szName;
+    ANativeType := iNativeType;
     I := 0;
     FName := FieldName;
     while FieldDefs.IndexOf(string(FName)) >= 0 do
@@ -2959,18 +2976,6 @@ begin
           FSize := PSQLTypes.UUIDLEN;
           FType := ftGuid;
         end;
-{$IFDEF DELPHI_12}
-      fldPOINT:
-          FSize := SizeOf(PSQLTypes.TPSQLPoint);
-      fldCIRCLE:
-          FSize := SizeOf(PSQLTypes.TPSQLCircle);
-      fldBOX:
-          FSize := SizeOf(PSQLTypes.TPSQLBox);
-      fldLSEG:
-          FSize := SizeOf(PSQLTypes.TPSQLLSeg);
-      fldRANGE:
-          FSize := SizeOf(PSQLTypes.TPSQLRange);
-{$ENDIF DELPHI_12}
     end;
 
     //pg: Unicode playing
@@ -2984,11 +2989,12 @@ begin
     {$ENDIF}
 
 
-    with FieldDefs.AddFieldDef do
+    with TPSQLFieldDef(FieldDefs.AddFieldDef) do
     begin
       {$IFNDEF FPC}FieldNo := FieldID;{$ENDIF}
       Inc(FieldID);
       Name := FName;
+      NativeDataType := ANativeType;
       DataType := FType;
       Size := FSize;
       Precision := FPrecision;
@@ -3055,6 +3061,25 @@ begin
 end;
 {$ENDIF}
 
+function TPSQLDataSet.GetFieldClass(FieldDef: TFieldDef): TFieldClass;
+begin
+  if FieldDef.DataType = ftUnknown then
+    case TPSQLFieldDef(FieldDef).NativeDataType of
+      FIELD_TYPE_POINT: Result := TPSQLPointField;
+      FIELD_TYPE_CIRCLE: Result := TPSQLCircleField;
+      FIELD_TYPE_BOX: Result := TPSQLBoxField;
+      FIELD_TYPE_LSEG: Result := TPSQLLSegField;
+      FIELD_TYPE_NUMRANGE,
+      FIELD_TYPE_DATERANGE,
+      FIELD_TYPE_INT4RANGE,
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: Result := TPSQLRangeField;
+    end
+  else
+    Result := inherited GetFieldClass(FieldDef);
+end;
+
 function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
 var
   IsBlank: Boolean;
@@ -3080,6 +3105,11 @@ begin
   end;
 end;
 
+
+function TPSQLDataSet.GetFieldDefsClass: TFieldDefsClass;
+begin
+  Result := TPSQLFieldDefs;
+end;
 
 function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
@@ -5116,8 +5146,8 @@ end;
 
 procedure TPSQLQuery.SetRequestLive(const Value : Boolean);
 begin
-   if Value <> FRequestLive then
-      FRequestLive := Value;
+  if Value <> FRequestLive then
+    FRequestLive := Value;
 end;
 
 function TPSQLQuery.GetRequestLive : Boolean;
@@ -7486,6 +7516,21 @@ begin
       end;
 end;
 {$ENDIF DELPHI_12}
+
+{ TPSQLFieldDef }
+
+procedure TPSQLFieldDef.SetNativeDataType(const Value: cardinal);
+begin
+  FNativeDataType := Value;
+  Changed(False);
+end;
+
+{ TPSQLFieldDefs }
+
+function TPSQLFieldDefs.GetFieldDefClass: TFieldDefClass;
+begin
+  Result := TPSQLFieldDef;
+end;
 
 initialization
 

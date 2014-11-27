@@ -498,7 +498,7 @@ begin
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
   RegisterFields([TPSQLGuidField
   {$IFDEF DELPHI_12}
-    ,TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField
+    ,TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField, TPSQLRangeField
   {$ENDIF DELPHI_12}
     ]);
 

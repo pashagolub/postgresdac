@@ -1422,6 +1422,7 @@ type
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
     iFldNum         : integer;             { Field number (1..n) }
+    iNativeType     : cardinal;        { Field native type }
     szName          : string;          { Field name }
     iFldType        : integer;             { Field type }
     iSubType        : integer;             { Field subtype (if applicable) }
@@ -3298,6 +3299,7 @@ begin
   with RecBuff do
   begin
     iFldNum  := Count;
+    iNativeType := Info.FieldType;
     ValChk.iFldNum := Count;
     DataLen := Info.FieldMaxSize;
     FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);

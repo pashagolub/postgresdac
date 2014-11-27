@@ -99,6 +99,8 @@ type
     function GetValue(var Value: TPSQLRange): Boolean; inline;
     function GetAsRange: TPSQLRange;
     procedure SetAsRange(const Value: TPSQLRange);
+  protected
+    function GetAsString: string; override;
   public
     function IsDiscrete: boolean; virtual;
     function IsEmpty: boolean; virtual;
@@ -849,6 +851,16 @@ function TPSQLRangeField.GetAsRange: TPSQLRange;
 begin
   if not GetValue(Result) then
     Result := Default(TPSQLRange);
+end;
+
+function TPSQLRangeField.GetAsString: string;
+var R: TPSQLRange;
+begin
+  {$MESSAGE WARN 'GetAsString need to be refactored using TPSQLFieldDef.NativeType information'}
+  if GetValue(R) then
+    Result := RangeToSQLRange(R, (DataSet as TPSQLDataset).GetFieldTypeOID(FieldNo), ';', True)
+  else
+    Result := '';
 end;
 
 function TPSQLRangeField.IsDiscrete: boolean;
