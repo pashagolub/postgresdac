@@ -20,6 +20,7 @@ type
   end;
 
 {$IFDEF DELPHI_12}
+
  { TPSQLPointField }
 
   TPSQLPointField = class(TNumericField)
@@ -99,8 +100,11 @@ type
     function GetValue(var Value: TPSQLRange): Boolean; inline;
     function GetAsRange: TPSQLRange;
     procedure SetAsRange(const Value: TPSQLRange);
+    function GetNativeRangeType: cardinal;
   protected
     function GetAsString: string; override;
+    procedure SetAsString(const Value: string); override;
+    function GetDefaultWidth: Integer; override;
   public
     function IsDiscrete: boolean; virtual;
     function IsEmpty: boolean; virtual;
@@ -769,7 +773,7 @@ end;
 
 function TPSQLLSegField.GetDefaultWidth: Integer;
 begin
-  Result := 15;
+  Result := 32;
 end;
 
 procedure TPSQLLSegField.GetText(var Text: string; DisplayText: Boolean);
@@ -846,6 +850,10 @@ begin
 {$ENDIF}
 end;
 
+function TPSQLRangeField.GetNativeRangeType: cardinal;
+begin
+  Result := (DataSet.FieldDefs[FieldNo-1] as TPSQLFieldDef).NativeDataType;
+end;
 
 function TPSQLRangeField.GetAsRange: TPSQLRange;
 begin
@@ -856,17 +864,40 @@ end;
 function TPSQLRangeField.GetAsString: string;
 var R: TPSQLRange;
 begin
-  {$MESSAGE WARN 'GetAsString need to be refactored using TPSQLFieldDef.NativeType information'}
   if GetValue(R) then
-    Result := RangeToSQLRange(R, (DataSet as TPSQLDataset).GetFieldTypeOID(FieldNo), ';', True)
+    Result := RangeToSQLRange(R, GetNativeRangeType(), ';', True)
   else
     Result := '';
+end;
+
+procedure TPSQLRangeField.SetAsString(const Value: string);
+var R: TPSQLRange;
+begin
+  if Value = '' then Clear else
+  begin
+    R := SQLRangeToRange(Value, GetNativeRangeType(), ';', True);
+    SetAsRange(R);
+  end;
+end;
+
+function TPSQLRangeField.GetDefaultWidth: Integer;
+begin
+  case GetNativeRangeType() of
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_NUMRANGE : Result := (inherited GetDefaultWidth) * 2 + 3;
+    FIELD_TYPE_DATERANGE: Result := DATELEN * 2 + 3;
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE: Result := TIMESTAMPTZLEN * 2 + 3;
+  else
+    Result := 15;
+  end;
 end;
 
 function TPSQLRangeField.IsDiscrete: boolean;
 begin
   Result := False;
-  case (DataSet as TPSQLDataset).GetFieldTypeOID(FieldNo) of
+  case GetNativeRangeType() of
     FIELD_TYPE_INT4RANGE,
     FIELD_TYPE_INT8RANGE,
     FIELD_TYPE_DATERANGE: Result := True;
@@ -874,7 +905,7 @@ begin
     FIELD_TYPE_TSRANGE,
     FIELD_TYPE_TSTZRANGE: Result := False;
   else
-    DatabaseErrorFmt('Field %s is not range type', [DisplayName]);
+    DatabaseErrorFmt(SFieldNotRangeType, [DisplayName]);
   end;
 end;
 

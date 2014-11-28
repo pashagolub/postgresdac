@@ -144,6 +144,7 @@ const
 
 const
   NAMEDATALEN      = 64;
+  DATELEN          = length('2001-02-17');
   TIMEZONELEN      = length('+10:30');
   TIMESTAMPTZLEN   = length('2001-02-17 07:08:40.123456+10:30');
   TIMETZLEN        = length('13:45:35.4880123457+13:40');
@@ -852,6 +853,7 @@ resourcestring
   SInvalidIntegerField = 'Cannot convert field ''%s'' to an integer value';
   STableMismatch = 'Source and destination tables are incompatible';
   SFieldAssignError = 'Fields ''%s'' and ''%s'' are not assignment compatible';
+  SFieldNotRangeType = 'Field ''%s'' is not range type';
   SNoReferenceTableName = 'ReferenceTableName not specified for field ''%s''';
   SCompositeIndexError = 'Cannot use array of Field values with Expression Indices';
   SInvalidBatchMove = 'Invalid batch move parameters';
@@ -1468,29 +1470,6 @@ type
     szLkupTblName   : string;          { Lookup Table name }
   end;
 
-//  RINTType = (                          { Ref integrity type }
-//    rintMASTER,                         { This table is Master }
-//    rintDEPENDENT                       { This table is Dependent }
-//  );
-//
-//  RINTQual = (                          { Ref integrity action/qualifier }
-//    rintRESTRICT,                       { Prohibit operation }
-//    rintCASCADE                         { Cascade operation }
-//  );
-//
-//  pRINTDesc = ^RINTDesc;
-//  RINTDesc = packed record              { Ref Integrity Desc }
-//    iRintNum        : Word;             { Ref integrity number }
-//    szRintName      : DBINAME;          { A name to tag this integegrity constraint }
-//    eType           : RINTType;         { Whether master/dependent }
-//    szTblName       : DBIPATH;          { Other table name }
-//    eModOp          : RINTQual;         { Modify qualifier }
-//    eDelOp          : RINTQual;         { Delete qualifier }
-//    iFldCount       : Word;             { Fields in foreign key }
-//    aiThisTabFld    : DBIKEY;           { Fields in this table }
-//    aiOthTabFld     : DBIKEY;           { Fields in other table }
-//  end;
-
 //============================================================================//
 //                            Miscellaneous                                   //
 //============================================================================//
@@ -1970,7 +1949,7 @@ const
 
 function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 function GetTable(const SQL: String; var Aliace : String): String;
-
+function IfThen(const Value: boolean; const ATrue: TDateTime; const AFalse: TDateTime): TDateTime; overload; inline;
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;
@@ -2803,6 +2782,14 @@ begin
   end;
 end;
 
+function IfThen(const Value: boolean; const ATrue: TDateTime; const AFalse: TDateTime): TDateTime;
+begin
+  if Value then
+    Result := ATrue
+  else
+    Result := AFalse;
+end;
+
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 var
   Year, Month, Day, Hour, Min, Sec, MSec: Integer;
@@ -2857,11 +2844,11 @@ begin
    else
     begin
       for Idx := Length(Value) downto Length(Value) - TIMEZONELEN do //crop timezone information "+\-dd:dd"
-       if CharInSet(Value[Idx], ['+', '-']) then
-       begin
-         Value := Copy(Value, 1, Idx - 1);
-         Break;
-       end;
+        if CharInSet(Value[Idx], ['+', '-']) then
+        begin
+          Value := Copy(Value, 1, Idx - 1);
+          Break;
+        end;
       Year  := Max(1, StrToIntDef(Copy(Value, 1, 4), 1));
       Month := Max(1, StrToIntDef(Copy(Value, 6, 2), 1));
       Day   := Max(1, StrToIntDef(Copy(Value, 9, 2), 1));
@@ -2992,60 +2979,71 @@ var
                                 B.AsFloat := StrToFloat(SVal);
         FIELD_TYPE_INT4RANGE: B.AsInteger  := StrToInt(SVal);
         FIELD_TYPE_INT8RANGE: B.AsLargeInt := StrToInt64(SVal);
-        FIELD_TYPE_DATERANGE: B.AsDateTime := SqlDateToDateTime(SVal, False);
+        FIELD_TYPE_DATERANGE: if UseSystemSeparator then
+                                B.AsDateTime := StrToDate(SVal)
+                              else
+                                B.AsDateTime := SqlDateToDateTime(SVal, False);
         FIELD_TYPE_TSRANGE,
-        FIELD_TYPE_TSTZRANGE: B.AsDateTime := SQLTimeStampToDateTime(SVal);
+        FIELD_TYPE_TSTZRANGE: if UseSystemSeparator then
+                                B.AsDateTime := StrToDateTime(SVal)
+                              else
+                                B.AsDateTime := SQLTimeStampToDateTime(SVal);
       end;
   end;
 
 begin
   Result := Default(TPSQLRange);
-  if SameText(Value, 'empty') then
+  if SameText(Value, 'empty') or (Length(Value) <= 2) then
     Result.SetEmpty
   else
   begin
     Result.LowerBound.State := TPSQLRangeBoundState(ifthen(Value[1] = '[', ord(rbsInclusive), ord(rbsExclusive)));
     Result.UpperBound.State := TPSQLRangeBoundState(ifthen(Value[Length(Value)] = ']', ord(rbsInclusive), ord(rbsExclusive)));
     Value := Copy(Value, 2, Length(Value) - 2); //eliminate brackets
-    DelimPos := Pos(',', Value);
+    DelimPos := Pos(Delimiter, Value);
     SetBound(Result.LowerBound, AnsiDequotedStr(Copy(Value, 1, DelimPos - 1), '"')); // eliminate quotes if needed
     SetBound(Result.UpperBound, AnsiDequotedStr(Copy(Value, DelimPos + 1, MaxInt), '"'));
   end;
 end;
 
 function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): string;
+
+  function GetBound(const B: TPSQLRangeBound): string;
+  begin
+    case RangeType of
+      FIELD_TYPE_INT4RANGE: Result := IntToStr(B.AsInteger);
+      FIELD_TYPE_INT8RANGE: Result := IntToStr(B.AsLargeInt);
+      FIELD_TYPE_NUMRANGE:  if UseSystemSeparator then
+                              Result := FloatToStr(B.AsFloat)
+                            else
+                              Result := SQLFloatToStr(B.AsFloat);
+      FIELD_TYPE_DATERANGE: if UseSystemSeparator then
+                              Result := DateToStr(B.AsDateTime)
+                            else
+                              Result := DateTimeToSqlDate(B.AsDateTime, DATE_MODE);
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: if UseSystemSeparator then
+                              Result := DateTimeToStr(B.AsDateTime)
+                            else
+                              Result := DateTimeToSqlDate(B.AsDateTime, TIMESTAMP_MODE);
+    end;
+  end;
+
 begin
   if Value.Empty then Exit('empty');
-
   if Value.LowerBound.State = rbsInfinite then
     Result := '['
   else
   begin
     Result := ifthen(Value.LowerBound.State = rbsInclusive, '[', '(');
-    case RangeType of
-      FIELD_TYPE_INT4RANGE: Result := Result + IntToStr(Value.LowerBound.AsInteger);
-      FIELD_TYPE_INT8RANGE: Result := Result + IntToStr(Value.LowerBound.AsLargeInt);
-      FIELD_TYPE_NUMRANGE:  Result := Result + SQLFloatToStr(Value.LowerBound.AsFloat);
-      FIELD_TYPE_DATERANGE: Result := Result + DateTimeToSqlDate(Value.LowerBound.AsDateTime, DATE_MODE);
-      FIELD_TYPE_TSRANGE,
-      FIELD_TYPE_TSTZRANGE: Result := Result + DateTimeToSqlDate(Value.LowerBound.AsDateTime, TIMESTAMP_MODE);
-    end;
+    Result := Result + GetBound(Value.LowerBound);
   end;
-
-  Result := Result + ',';
-
+  Result := Result + Delimiter;
   if Value.UpperBound.State = rbsInfinite then
     Result := Result + ']'
   else
   begin
-    case RangeType of
-      FIELD_TYPE_INT4RANGE: Result := Result + IntToStr(Value.UpperBound.AsInteger);
-      FIELD_TYPE_INT8RANGE: Result := Result + IntToStr(Value.UpperBound.AsLargeInt);
-      FIELD_TYPE_NUMRANGE:  Result := Result + SQLFloatToStr(Value.UpperBound.AsFloat);
-      FIELD_TYPE_DATERANGE: Result := Result + DateTimeToSqlDate(Value.UpperBound.AsDateTime, DATE_MODE);
-      FIELD_TYPE_TSRANGE,
-      FIELD_TYPE_TSTZRANGE: Result := Result + DateTimeToSqlDate(Value.UpperBound.AsDateTime, TIMESTAMP_MODE);
-    end;
+    Result := Result + GetBound(Value.UpperBound);
     Result := Result + ifthen(Value.UpperBound.State = rbsInclusive, ']', ')');
   end;
 end;

@@ -3075,6 +3075,8 @@ begin
       FIELD_TYPE_INT8RANGE,
       FIELD_TYPE_TSRANGE,
       FIELD_TYPE_TSTZRANGE: Result := TPSQLRangeField;
+    else
+      Result := inherited GetFieldClass(FieldDef);
     end
   else
     Result := inherited GetFieldClass(FieldDef);
