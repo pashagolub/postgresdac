@@ -46,13 +46,38 @@ type
     procedure TestGUIDDelete_UTF8;
   end;
 
+  // Test methods for class TPSQLPointField
+  TestGeometricFields = class(TTestCase)
+  public
+    procedure TearDown; override;
+  published
+    procedure TestSelectGeoms;
+    procedure TestInsertGeoms;
+    procedure TestUpdateGeoms;
+  end;
+
+  // Test methods for class TPSQLRangeField
+  TestTPSQLRangeField = class(TTestCase)
+  public
+    procedure TearDown; override;
+  published
+    procedure TestSelectEmptyRange;
+    procedure TestSelectOpenRange;
+    procedure TestSelectClosedRange;
+    procedure TestSelectUpperInfinityRange;
+    procedure TestSelectLowerInfinityRange;
+    procedure TestSelectRange;
+    procedure TestInsertRange;
+    procedure TestUpdateRange;
+  end;
+
 var
   FldDB: TPSQLDatabase;
   FldQry: TPSQLQuery;
 
 implementation
 
-uses TestHelper;
+uses TestHelper, Math;
 
 {$IFDEF DELPHI_5}
 function CoCreateGuid(out guid: TGUID): HResult; stdcall; external 'ole32.dll' name 'CoCreateGuid';
@@ -213,7 +238,13 @@ begin
   FldQry := TPSQLQuery.Create(nil);
   FldQry.Database := FldDB;
   FldQry.ParamCheck := False;
+  FldDB.Execute('SET TimeZone to ''America/Caracas'''); // for the complex timezone -04:30
   FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
+  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS geometry_test_case_table(id int4 PRIMARY KEY, p point, c circle, b box, l lseg)');
+  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS range_test_case_table('+
+                'id int4 PRIMARY KEY, numr numrange, '+
+                'intr int4range, dater daterange, '+
+                'tsr tsrange, tstzr tstzrange)');
 end;
 
 procedure TDbSetup.TearDown;
@@ -225,9 +256,251 @@ begin
   FldDB.Free;
 end;
 
+{ TestTPSQLPointField }
+
+procedure TestGeometricFields.TearDown;
+begin
+  inherited;
+  FldQry.Close;
+  FldQry.SQL.Clear;
+end;
+
+procedure TestGeometricFields.TestInsertGeoms;
+const
+  P: TPSQLPoint = (X: 2.5; Y: 3.5);
+  C: TPSQLCircle = (R: 1.34; X: 2.5; Y: 3.5);
+  B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
+  L: TPSQLLSeg = (X1: 1.2; Y1: 0.4; X2: -5.5; Y2: -0.2);
+begin
+  FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  FldQry.Insert;
+  FldQry.FieldByName('id').AsInteger := 1;
+  (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
+  (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
+  (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
+  (FldQry.FieldByName('l') as TPSQLLSegField).Value := L;
+  FldQry.Post;
+  Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
+  Check(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
+  Check(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
+  Check(TPSQLLSegField(FldQry.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after insert');
+end;
+
+procedure TestGeometricFields.TestSelectGeoms;
+const
+  P: TPSQLPoint = (X: 2.5; Y: 3.5);
+  C: TPSQLCircle = (R: 1.34; X: 2.5; Y: 3.5);
+  B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
+  L: TPSQLLSeg = (X1: 1.2; Y1: 0.4; X2: -5.5; Y2: -0.2);
+begin
+  FldQry.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point, '+
+                     ' ''<( 2.5 , 3.5 ) , 1.34>''::circle, '+
+                     ' ''(2.12, 7.89) , (-0.14, 0.1)''::box, '+
+                     ' ''[(1.2,0.4),(-5.5,-0.2)]''::lseg ';
+  FldQry.Open;
+  Check(TPSQLPointField(FldQry.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
+  Check(TPSQLCircleField(FldQry.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
+  Check(TPSQLBoxField(FldQry.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
+  Check((FldQry.Fields[3] as TPSQLLSegField).Value = L, 'Wrong value for "lseg" field after SELECT');
+end;
+
+procedure TestGeometricFields.TestUpdateGeoms;
+const
+  P: TPSQLPoint = (X: pi; Y: 2.818281828);
+  C: TPSQLCircle = (R: 1.34; X: pi; Y: 2.818281828);
+  B: TPSQLBox = (Right: 3.12; Top: 9.89; Left: -1.14; Bottom: -10.1);
+  L: TPSQLLSeg = (X1: 8.2; Y1: 1.4; X2: -255.5; Y2: -13845.14212);
+begin
+  FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  if FldQry.RecordCount = 0 then TestInsertGeoms;
+  FldQry.Edit;
+  (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
+  (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
+  (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
+  (FldQry.FieldByName('l') as TPSQLLSegField).Value := L;
+  FldQry.Post;
+  Check(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
+  Check(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
+  Check(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
+  Check(TPSQLLSegField(FldQry.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after update');
+end;
+
+{ TestTPSQLRangeField }
+
+procedure TestTPSQLRangeField.TearDown;
+begin
+  inherited;
+  FldQry.Close;
+  FldQry.SQL.Clear;
+end;
+
+procedure TestTPSQLRangeField.TestInsertRange;
+var
+  R, RF, RD, RTS: TPSQLRange;
+begin
+  R.Create('[4,6)', FIELD_TYPE_INT4RANGE);
+  RF.Create('[3.1,4.6]', FIELD_TYPE_NUMRANGE);
+  RD.Create('[2010-01-01,2010-01-11)', FIELD_TYPE_DATERANGE);
+  RTS.Create('["2010-01-01 14:45:00","2014-11-20 00:00:00")', FIELD_TYPE_TSRANGE);
+  FldQry.SQL.Text := 'SELECT * FROM range_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  FldQry.Insert;
+  FldQry.FieldByName('id').AsInteger := 1;
+  (FldQry.FieldByName('intr') as TPSQLRangeField).Value := R;
+  (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
+  (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
+  (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  (FldQry.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
+  FldQry.Post;
+  Check((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
+  Check((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
+  Check((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
+  Check((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
+  Check((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after insert');
+end;
+
+procedure TestTPSQLRangeField.TestSelectClosedRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''[3.3, 4.45]''::numrange, '+
+                     ' ''[2010-01-01 14:45, 2010-01-01 15:45]''::tsrange,' +
+                     ' ''[2010-01-01 14:45 UTC, 2010-01-01 15:45 PST]''::tstzrange';
+
+  //expected output
+  //"[3.3,4.45]"; - numrange
+  //"["2010-01-01 14:45:00","2010-01-01 15:45:00"]"; - tsrange
+  //"["2010-01-01 16:45:00+02","2010-01-02 01:45:00+02"]"; - tstzrange
+
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((UpperBound.State = rbsInclusive) and
+          (LowerBound.State = rbsInclusive), 'Range must be closed');
+end;
+
+procedure TestTPSQLRangeField.TestSelectEmptyRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''empty''::numrange, '+
+                     ' ''empty''::int4range,' +
+                     ' ''empty''::int8range,' +
+                     ' ''empty''::tsrange,' +
+                     ' ''empty''::daterange,' +
+                     ' ''empty''::tstzrange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+    Check((FldQry.Fields[i] as TPSQLRangeField).IsEmpty, 'Range field must be empty');
+end;
+
+procedure TestTPSQLRangeField.TestSelectLowerInfinityRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT numrange(NULL, 3.3),  '+
+                     'tsrange(NULL, ''2010-01-01 14:45''), '+
+                     'tstzrange(NULL, ''2010-01-01 14:45 UTC''), '+
+                     'int4range(NULL, 1), int8range(NULL, 22), '+
+                     'daterange(NULL, ''2010-01-01'')';
+  //expected output
+  //(,3.3); (,"2010-01-01 14:45:00"); (,"2010-01-01 16:45:00+02"); (,1); (,22); (,2010-01-01)
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((LowerBound.State = rbsInfinite), 'Range must gave infinite lower range');
+end;
+
+procedure TestTPSQLRangeField.TestSelectOpenRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT ''(3,4)''::numrange, '+
+                     ' ''(2010-01-01 14:45, 2010-01-01 15:45)''::tsrange,' +
+                     ' ''(2010-01-01 14:45 UTC, 2010-01-01 15:45 PST)''::tstzrange';
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((UpperBound.State = rbsExclusive) and
+          (LowerBound.State = rbsExclusive), 'Range must be open');
+end;
+
+procedure TestTPSQLRangeField.TestSelectRange;
+var R: TPSQLRange;
+begin
+  FldQry.SQL.Text := 'SELECT numrange(3.1, 5.2, ''()''), '+
+                     ' int4range(1, 3, ''[)''), ' +
+                     ' int4range(1, 1, ''()'') ';
+  FldQry.Open;
+  Check(FldQry.Active, 'Cannot select "point" value');
+  R := (FldQry.Fields[0] as TPSQLRangeField).Value;
+  Check(not R.Empty, 'Range is empty');
+  Check(R.LowerBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
+  Check(SameValue(R.LowerBound.AsFloat, 3.1), 'Wrong numrange lower bound value');
+  Check(SameValue(R.UpperBound.AsFloat, 5.2), 'Wrong numrange upper bound value');
+
+  R := TPSQLRangeField(FldQry.Fields[1]).Value;
+  Check(not R.Empty, 'Range is empty');
+  Check(R.LowerBound.State = rbsInclusive, 'Range lower bound must be inclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
+  Check(R.LowerBound.AsInteger = 1, 'Wrong lower bound value');
+  Check(R.UpperBound.AsInteger = 3, 'Wrong upper bound value');
+
+end;
+
+procedure TestTPSQLRangeField.TestSelectUpperInfinityRange;
+var
+  i: Integer;
+begin
+  FldQry.SQL.Text := 'SELECT numrange(3.3, NULL), '+
+                     'tsrange(''2010-01-01 14:45'', NULL), '+
+                     'tstzrange(''2010-01-01 14:45 UTC'', NULL), '+
+                     'int4range(1, NULL), int8range(22, NULL), '+
+                     'daterange(''2010-01-01'', NULL)';
+  //expected output
+  //[3.3,); ["2010-01-01 14:45:00",); ["2010-01-01 16:45:00+02",); [1,); [22,); [2010-01-01,)
+  FldQry.Open;
+  for i := 0 to FldQry.FieldCount - 1 do
+   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+    Check((UpperBound.State = rbsInfinite), 'Range must gave infinite upper range');
+end;
+
+procedure TestTPSQLRangeField.TestUpdateRange;
+var
+  R, RF, RD, RTS: TPSQLRange;
+begin
+  R.Create('[7,8)', FIELD_TYPE_INT4RANGE);
+  RF.Create('[8.12,124.46]', FIELD_TYPE_NUMRANGE);
+  RD.Create('[2012-01-01,2013-01-11)', FIELD_TYPE_DATERANGE);
+  RTS.Create('["2011-01-01 14:45:00","2012-11-20 00:00:00")', FIELD_TYPE_TSRANGE);
+  FldQry.SQL.Text := 'SELECT * FROM range_test_case_table';
+  FldQry.RequestLive := True;
+  FldQry.Open;
+  if FldQry.RecordCount = 0 then TestInsertRange;
+  FldQry.Edit;
+  (FldQry.FieldByName('intr') as TPSQLRangeField).Value := R;
+  (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
+  (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
+  (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  (FldQry.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
+  FldQry.Post;
+  Check((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after update');
+  Check((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after update');
+  Check((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after update');
+  Check((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after update');
+  Check((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
+end;
+
 initialization
   //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite, 'Database Setup'));
-
+  RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite));
+  RegisterTest(TDbSetup.Create(TestGeometricFields.Suite));
+  RegisterTest(TDbSetup.Create(TestTPSQLRangeField.Suite));
 end.
 

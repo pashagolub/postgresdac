@@ -2115,14 +2115,23 @@ begin
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+{$IFDEF DELPHI_12}
     FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
     FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
     FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
     FIELD_TYPE_LSEG: TPSQLLSeg(Dest^) := TPSQLLSeg(Src^);
 
+    FIELD_TYPE_NUMRANGE,
+    FIELD_TYPE_DATERANGE,
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE    : TPSQLRange(Dest^) := TPSQLRange(Src^);
+{$ENDIF DELPHI_12}    
+
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
-    FIELD_TYPE_TEXT: Result := 1; //29.09.2008
+    FIELD_TYPE_TEXT: Result := 1;
   else
     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1); //minus null byte
   end;
@@ -2173,10 +2182,19 @@ begin
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+{$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
       FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
       FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
       FIELD_TYPE_LSEG: TPSQLLSeg(Dest^) := TPSQLLSeg(Src^);
+
+      FIELD_TYPE_NUMRANGE,
+      FIELD_TYPE_DATERANGE,
+      FIELD_TYPE_INT4RANGE,
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
+{$ENDIF DELPHI_12}      
 
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
@@ -3088,10 +3106,13 @@ begin
      fldDate:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), DATE_MODE));
      fldTime:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIME_MODE));
      fldTIMESTAMP: Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIMESTAMP_MODE));
+{$IFDEF DELPHI_12}
      fldPOINT:   Result := SimpleQuote(PointToSQLPoint(TPSQLPoint(Src^)));
      fldCIRCLE:  Result := SimpleQuote(CircleToSQLCircle(TPSQLCircle(Src^)));
      fldBOX:     Result := SimpleQuote(BoxToSQLBox(TPSQLBox(Src^)));
      fldLSEG:    Result := SimpleQuote(LSegToSQLLSeg(TPSQLLSeg(Src^)));
+     fldRANGE:   Result := SimpleQuote(RangeToSQLRange(TPSQLRange(Src^), NativeType));
+{$ENDIF DELPHI_12}
   end;
 end;
 
@@ -3272,10 +3293,7 @@ begin
     begin
        I := StrToIntDef(FieldList[J],0);
        if FTable.FConnect.GetserverVersionAsInt >= 070400 then
-         I := GetLogicalIndexByPhysical(I)
-       else
-         I := I; //dropped columns will make problems here
-                 //however, handling this in < 7.4.0 is too complex
+         I := GetLogicalIndexByPhysical(I);
 
        if I = 0 then //we have index built on expressions.
          begin
@@ -4032,11 +4050,6 @@ begin
   end;
 end;
 
-//procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
-//begin
-//  iRecNo := RecordNumber;
-//end;
-
 procedure TNativeDataSet.LockRecord(eLock : DBILockType);
 begin
   FIsLocked := (eLock <> dbiNOLOCK);
@@ -4430,7 +4443,7 @@ end;
 procedure TNativeDataSet.GetBookMark( P : Pointer );
 begin
   ZeroMemory(P, BookMarkSize );
-  With TPSQLBookMark(P^) do
+  with TPSQLBookMark(P^) do
     Position:= RecordNumber+1;
 end;
 
@@ -4582,10 +4595,19 @@ begin
       FIELD_TYPE_NUMERIC,
       FIELD_TYPE_FLOAT8: Result := Sizeof(Double);
 
+{$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: Result := SizeOf(TPSQLPoint);
       FIELD_TYPE_CIRCLE: Result := SizeOf(TPSQLCircle);
       FIELD_TYPE_BOX: Result := SizeOf(TPSQLBox);
       FIELD_TYPE_LSEG: Result := SizeOf(TPSQLLSeg);
+
+      FIELD_TYPE_NUMRANGE,
+      FIELD_TYPE_DATERANGE,
+      FIELD_TYPE_INT4RANGE,
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: Result := SizeOf(TPSQLRange);
+{$ENDIF DELPHI_12}
 
       FIELD_TYPE_TEXT,
       FIELD_TYPE_BYTEA,
@@ -5010,20 +5032,28 @@ begin
              then
                FldValue := FConnect.RawToString(FieldBuffer(i));
            case T.NativeType of
-             FIELD_TYPE_INT2: SmallInt(Data^) := SmallInt(StrToint(FldValue));
-             FIELD_TYPE_BOOL:    if FldValue = 't' then SmallInt(Data^) := 1 else SmallInt(Data^) := 0;
-             FIELD_TYPE_INT4:    LongInt(Data^) := LongInt(StrToint(FldValue));
-             FIELD_TYPE_INT8:    Int64(Data^) := StrToInt64(FldValue);
-             FIELD_TYPE_DATE:    TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
-             FIELD_TYPE_TIME:    TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
+             FIELD_TYPE_INT2:      SmallInt(Data^) := SmallInt(StrToint(FldValue));
+             FIELD_TYPE_BOOL:      if FldValue = 't' then SmallInt(Data^) := 1 else SmallInt(Data^) := 0;
+             FIELD_TYPE_INT4:      LongInt(Data^) := LongInt(StrToint(FldValue));
+             FIELD_TYPE_INT8:      Int64(Data^) := StrToInt64(FldValue);
+             FIELD_TYPE_DATE:      TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
+             FIELD_TYPE_TIME:      TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
              FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
              FIELD_TYPE_FLOAT4,
              FIELD_TYPE_FLOAT8,
-             FIELD_TYPE_NUMERIC: Double(Data^) := StrToSQLFloat(FldValue);
-             FIELD_TYPE_POINT:   TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
-             FIELD_TYPE_CIRCLE:  TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
-             FIELD_TYPE_BOX:     TPSQLBox(Data^) := SQLBoxToBox(FldValue);
-             FIELD_TYPE_LSEG:    TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
+             FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
+{$IFDEF DELPHI_12}
+             FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
+             FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
+             FIELD_TYPE_BOX:       TPSQLBox(Data^) := SQLBoxToBox(FldValue);
+             FIELD_TYPE_LSEG:      TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
+             FIELD_TYPE_NUMRANGE,
+             FIELD_TYPE_DATERANGE,
+             FIELD_TYPE_INT4RANGE,
+             FIELD_TYPE_INT8RANGE,
+             FIELD_TYPE_TSRANGE,
+             FIELD_TYPE_TSTZRANGE: TPSQLRange(Data^) := SQLRangeToRange(FldValue, T.NativeType);
+{$ENDIF DELPHI_12}
              FIELD_TYPE_OID,
              FIELD_TYPE_TEXT,
              FIELD_TYPE_BYTEA:     begin
@@ -5031,8 +5061,8 @@ begin
                                       ZeroMemory(FCurrentBuffer, Size);
                                       Inc(PAnsiChar(FCurrentBuffer)); //Null byte allocate
                                       Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
-                                      continue;
-                                  end;
+                                      Continue;
+                                   end;
              FIELD_TYPE_UUID: {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
            else
              if dsoTrimCharFields in FOptions then
@@ -5388,7 +5418,7 @@ begin
        IsQuery := OldQueryFlag;
        RecordState := tsPos;
        try
-        if not SetRowPosition(KN,GetLastInsertID(KN),PRecord) then
+        if not SetRowPosition(KN, GetLastInsertID(KN), PRecord) then
             SettoSeqNo(RecordCount);
        except
        end;
@@ -6296,11 +6326,13 @@ end;
 
 procedure TNativeDataSet.SettoSeqNo(iSeqNo: Longint);
 begin
-    if iSeqNo-1 < 0 then
-       RecNo := -1 else
-       if iSeqNo-1 >= RecordCount-1 then
-          RecNo := RecordCount-1 else
-          RecNo := iSeqNo-1;
+    if iSeqNo - 1 < 0 then
+      RecNo := -1
+    else
+      if iSeqNo - 1 >= RecordCount - 1 then
+        RecNo := RecordCount - 1
+      else
+        RecNo := iSeqNo - 1;
     CurrentRecord(RecNo);
 end;
 
@@ -6900,7 +6932,7 @@ end;
 function TPSQLEngine.GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: integer;var iLen: integer): DBIResult;
 begin
   iLen := 0;
-  if Assigned( hObj ) then
+  if Assigned(hObj) then
   begin
     TNativeDataSet(hObj).GetProp( iProp, PropValue, iMaxLen, iLen );
     Result := DBIERR_NONE;
@@ -8300,35 +8332,31 @@ end;
 
 procedure TNativeConnect.GetCharSetList(var List: TStrings);
 var
-   sql, s : String;
+   sql : String;
    RES : PPGresult;
    i: integer;
    CREC: string;
 begin
   InternalConnect;
   List.Clear;
-  if Self.GetserverVersionAsInt >= 080000 then
-   S := Format('generate_series(0,%d)',[MAX_ENCODING_ID])
-  else
-   S := Format(sqlGenerateSeries,[0,MAX_ENCODING_ID]);
-  Sql := 'SELECT pg_encoding_to_char(num.n) FROM '+S+' as num(n)';
+  Sql := Format('SELECT pg_encoding_to_char(num.n) FROM generate_series(0,%d) as num(n)', [MAX_ENCODING_ID]);
   RES := PQexec(Handle, PAnsiChar(AnsiString(Sql)));
   if Assigned(RES) then
    try
     CheckResult;
     List.BeginUpdate;
-     try
+    try
       for i:=0 to PQntuples(RES)-1 do
-       begin
-          CREC := Trim(RawToString(PQgetvalue(RES,i,0)));
-          if CREC > '' then List.Append(CREC);
-       end;
-     finally
+      begin
+        CREC := Trim(RawToString(PQgetvalue(RES,i,0)));
+        if CREC > '' then List.Append(CREC);
+      end;
+    finally
       List.EndUpdate;
-     end;
-   finally
-    PQclear(RES);
-   end;
+    end;
+  finally
+     PQclear(RES);
+  end;
 end;
 
 function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; var CharSet: string): DBIResult;
@@ -8440,23 +8468,21 @@ begin
   InternalConnect;
   Sql := 'SELECT usesysid, usecreatedb, usesuper, usecatupd, valuntil '+
          ' FROM pg_user WHERE usename = '''+UserName+'''';
- try
+
   RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
-   try
+  try
     CheckResult;
     if PQntuples(RES) > 0 then
-     begin
-      UserID := strtoint(string(PQgetvalue(RES,0,0)));
-      CanCreateDB := PQgetvalue(RES,0,1) = 't';
-      SuperUser := PQgetvalue(RES,0,2) = 't';
-      CanUpdateSysCatalogs := PQgetvalue(RES,0,3) = 't';
-      ValidUntil := string(PQgetvalue(RES,0,4));
-     end;
-   except
+    begin
+      UserID := StrToIntDef(string(PQgetvalue(RES, 0, 0)), InvalidOID);
+      CanCreateDB := PQgetvalue(RES, 0, 1) = 't';
+      SuperUser := PQgetvalue(RES, 0, 2) = 't';
+      CanUpdateSysCatalogs := PQgetvalue(RES, 0, 3) = 't';
+      ValidUntil := string(PQgetvalue(RES, 0, 4));
+    end;
+  finally
     PQclear(RES);
-   end;
-  except
   end;
 end;
 

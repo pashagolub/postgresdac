@@ -7,7 +7,7 @@ unit PSQLTypes;
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
-     Classes, SysUtils
+     Classes, SysUtils, SqlTimSt
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
@@ -144,7 +144,9 @@ const
 
 const
   NAMEDATALEN      = 64;
-  TIMESTAMPTZLEN   = length('2006-02-28 09:08:08.677444+02');
+  DATELEN          = length('2001-02-17');
+  TIMEZONELEN      = length('+10:30');
+  TIMESTAMPTZLEN   = length('2001-02-17 07:08:40.123456+10:30');
   TIMETZLEN        = length('13:45:35.4880123457+13:40');
   UUIDLEN          = length('{a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11}');
   INETLEN          = length('7628:0d18:11a3:09d7:1f34:8a2e:07a0:765d/128');
@@ -152,9 +154,9 @@ const
   OIDNAMELEN       = 36;
   INV_WRITE        = $00020000;
   INV_READ         = $00040000;
-  PG_SEEK_SET         =	0;	// Seek from beginning of file
-  PG_SEEK_CUR         =	1;	// Seek from current position
-  PG_SEEK_END         = 	2;	// Seek from end of file
+  PG_SEEK_SET      =	0;	// Seek from beginning of file
+  PG_SEEK_CUR      =	1;	// Seek from current position
+  PG_SEEK_END      = 2;	// Seek from end of file
   DELIMITERS       : string = ' .:;,+-<>/*%^=()[]|&~@#$\`{}!?'#10#13;
   PSQL_PORT        = 5432;
   MINLONGINT       = -MaxLongInt;
@@ -202,52 +204,81 @@ type
   AnsiString = TBytes;
   {$ENDIF}
 
+
+{$IFDEF DELPHI_12}
+  TPSQLRangeBoundState = (rbsExclusive, rbsInclusive, rbsInfinite);
+
+  TPSQLRangeBoundValue = record
+  case Integer of
+      0: (IVal: Integer);
+      1: (FVal: Double);
+      2: (DVal: TDateTime);
+      3: (LVal: Int64);
+    //4: (TVal: TSQLTimeStamp); for future use
+  end;
+  PPSQLRangeBoundValue = ^TPSQLRangeBoundValue;
+
+  TPSQLRangeBound = packed record
+  strict private
+    var Value: TPSQLRangeBoundValue;
+  public
+    State: TPSQLRangeBoundState;
+    property AsInteger: integer read Value.IVal write Value.IVal;
+    property AsFloat: double read Value.FVal write Value.FVal;
+    property AsLargeInt: Int64 read Value.LVal write Value.LVal;
+    property AsDateTime: TDateTime read Value.DVal write Value.DVal;
+    //property AsSQLTimeStamp: TSQLTimeStamp read Value.TVal write Value.TVal; for future use
+    class operator Equal(RB1: TPSQLRangeBound; RB2: TPSQLRangeBound): Boolean;
+  end;
+
+  TPSQLRange = packed record
+  private
+    function GetEmpty: boolean;
+  public
+    LowerBound: TPSQLRangeBound;
+    UpperBound: TPSQLRangeBound;
+    property Empty: boolean read GetEmpty;
+    procedure SetEmpty;
+    class operator Equal(R1: TPSQLRange; R2: TPSQLRange): Boolean;
+    constructor Create(const Value: string; const RangeType: cardinal);
+  end;
+
   TPSQLPoint = packed record
     X: Double;
     Y: Double;
+    class operator Equal(P1: TPSQLPoint; P2: TPSQLPoint): Boolean;
+    class operator Implicit(P: TPoint): TPSQLPoint;
   end;
 
   TPSQLCircle = packed record
-   R: Double;
-   case Integer of
-    0: (X, Y: Double);
-    1: (Center: TPSQLPoint);
+    R: Double;
+    class operator Equal(C1: TPSQLCircle; C2: TPSQLCircle): Boolean;
+    case Integer of
+      0: (X, Y: Double);
+      1: (Center: TPSQLPoint);
   end;
 
   TPSQLBox = packed record
+    class operator Equal(B1: TPSQLBox; B2: TPSQLBox): Boolean;
     case Integer of
       0: (Right, Top, Left, Bottom: Double);
       1: (TopRight, BottomLeft: TPSQLPoint);
   end;
 
   TPSQLLSeg = packed record
+    class operator Equal(L1: TPSQLLSeg; L2: TPSQLLSeg): Boolean;
     case Integer of
       0: (X1, Y1, X2, Y2: Double);
       1: (P1, P2: TPSQLPoint);
   end;
+{$ENDIF DELPHI_12}
 
   TPSQLDACAbout = class
   end;
 
-  TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
+ TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
       FieldIndex: integer): Integer;
 
-const
-
-//--generate_series analogue for < 8.0 versions
-  sqlGenerateSeries :string =
-        '(select i*10+j as n'+
-        ' from (select 0 union all select 1 union all select 2 union all'+
-        '       select 3 union all select 4 union all select 5 union all'+
-        '       select 6 union all select 7 union all select 8 union all'+
-        '       select 9) s1(i),'+
-        '      (select 0 union all select 1 union all select 2 union all'+
-        '       select 3 union all select 4 union all select 5 union all'+
-        '       select 6 union all select 7 union all select 8 union all'+
-        '       select 9) s2(j)'+
-        ' where (i*10+j >= %d) AND (i*10+j <= %d))';
-//--generate_series analogue for < 8.0 versions
-  
 //////////////////////////////////////////////////////////////////
 //            FIELD TYPES                                       //
 //////////////////////////////////////////////////////////////////
@@ -349,7 +380,8 @@ const
     FIELD_TYPE_GTSVECTOR          = 3642; 
     FIELD_TYPE_TSQUERY            = 3615; 
     FIELD_TYPE_REGCONFIG          = 3734; 
-    FIELD_TYPE_REGDICTIONARY      = 3769; 
+    FIELD_TYPE_REGDICTIONARY      = 3769;
+    FIELD_TYPE_JSONB              = 3802;
 	
     //range types
     FIELD_TYPE_INT4RANGE		= 3904;
@@ -703,7 +735,7 @@ type
 
 
 //////////////////////////////////////////////////////////////////
-//            Plain API Function variables definition           //
+//            Plain API function variables definition           //
 //////////////////////////////////////////////////////////////////
 
 var
@@ -819,8 +851,10 @@ resourcestring
   SHandleError = 'Error creating cursor handle';
   SInvalidFloatField = 'Cannot convert field ''%s'' to a floating point value';
   SInvalidIntegerField = 'Cannot convert field ''%s'' to an integer value';
+  SInvalidRangeType = 'Cannot convert value. Unsupported range type passed';
   STableMismatch = 'Source and destination tables are incompatible';
   SFieldAssignError = 'Fields ''%s'' and ''%s'' are not assignment compatible';
+  SFieldNotRangeType = 'Field ''%s'' is not range type';
   SNoReferenceTableName = 'ReferenceTableName not specified for field ''%s''';
   SCompositeIndexError = 'Cannot use array of Field values with Expression Indices';
   SInvalidBatchMove = 'Invalid batch move parameters';
@@ -1014,7 +1048,7 @@ Type
 //============================================================================//
   DBIDATE            = Longint;
   TIME               = Longint;
-  DBIResult          = Word;         { Function result }
+  DBIResult          = Word;         { function result }
   TypedEnum          = Integer;
 
   _hDBIObj           = record end;      { Dummy structure to create "typed" handles }
@@ -1054,7 +1088,7 @@ type
     paramIN,                            { Input parameter }
     paramOUT,                           { Output parameter }
     paramINOUT,                         { Input/Output parameter }
-    paramRET                            { Procedure (or function) return }
+    paramRET                            { procedure (or function) return }
   );
 
 //============================================================================//
@@ -1333,6 +1367,7 @@ const
   fldCIRCLE          = MAXLOGFLDTYPES + 6;
   fldBOX             = MAXLOGFLDTYPES + 7;
   fldLSEG            = MAXLOGFLDTYPES + 8;
+  fldRANGE           = MAXLOGFLDTYPES + 9;
 
 { Sub Types (Logical) }
 
@@ -1390,6 +1425,7 @@ type
   pFLDDesc = ^FLDDesc;
   FLDDesc = packed record               { Field Descriptor }
     iFldNum         : integer;             { Field number (1..n) }
+    iNativeType     : cardinal;        { Field native type }
     szName          : string;          { Field name }
     iFldType        : integer;             { Field type }
     iSubType        : integer;             { Field subtype (if applicable) }
@@ -1434,29 +1470,6 @@ type
     elkupType       : LKUPType;         { Lookup/Fill type }
     szLkupTblName   : string;          { Lookup Table name }
   end;
-
-//  RINTType = (                          { Ref integrity type }
-//    rintMASTER,                         { This table is Master }
-//    rintDEPENDENT                       { This table is Dependent }
-//  );
-//
-//  RINTQual = (                          { Ref integrity action/qualifier }
-//    rintRESTRICT,                       { Prohibit operation }
-//    rintCASCADE                         { Cascade operation }
-//  );
-//
-//  pRINTDesc = ^RINTDesc;
-//  RINTDesc = packed record              { Ref Integrity Desc }
-//    iRintNum        : Word;             { Ref integrity number }
-//    szRintName      : DBINAME;          { A name to tag this integegrity constraint }
-//    eType           : RINTType;         { Whether master/dependent }
-//    szTblName       : DBIPATH;          { Other table name }
-//    eModOp          : RINTQual;         { Modify qualifier }
-//    eDelOp          : RINTQual;         { Delete qualifier }
-//    iFldCount       : Word;             { Fields in foreign key }
-//    aiThisTabFld    : DBIKEY;           { Fields in this table }
-//    aiOthTabFld     : DBIKEY;           { Fields in other table }
-//  end;
 
 //============================================================================//
 //                            Miscellaneous                                   //
@@ -1534,7 +1547,7 @@ type
     canLIST2,                           { List of constant values of same type }
     canUPPER,                           { CANUnary: upper case }
     canLOWER,                           { CANUnary: lower case }
-    canFUNC2,                           { CANFunc: Function }
+    canFUNC2,                           { CANFunc: function }
     canLISTELEM2,                       { CANListElem: List Element }
     canASSIGN                           { CANBinary: Field assignment }
   );
@@ -1550,7 +1563,7 @@ type
     nodeCONTINUE,                       { Node is a continue node    (*) }
     nodeUDF,                            { Node is a UDF node }
     nodeLIST,                           { Node is a LIST node }
-    nodeFUNC,                           { Node is a Function node }
+    nodeFUNC,                           { Node is a function node }
     nodeLISTELEM                        { Node is a List Element node }
   );
 
@@ -1621,7 +1634,7 @@ type
   end;
 
   pCANFunc = ^CANFunc;
-  CANFunc = packed record               { Function }
+  CANFunc = packed record               { function }
     nodeClass       : NODEClass;
     canOp           : CANOp;
     iNameOffset     : Word;             { Name offset in Literal pool }
@@ -1692,7 +1705,7 @@ type
   );
 
 {======================================================================}
-{            Stored Procedure and Stored Procedure Param descriptor    }
+{            Stored procedure and Stored procedure Param descriptor    }
 {======================================================================}
   pSPParamDesc = ^SPParamDesc;
   SPParamDesc = packed record
@@ -1882,29 +1895,29 @@ type
     Private
       FItems : TList;
     Public
-      Constructor Create;
+      constructor Create;
       Destructor Destroy; Override;
-      Function At( Index : integer ) : pointer;
-      Procedure AtDelete( Index : integer );
-      Procedure AtFree( Index : integer );
-      Procedure AtInsert( Index: integer; Item : pointer );
-      Procedure AtPut( Index : Integer; Item : Pointer );
-      Procedure Clear;
-      Procedure Delete( Item : Pointer );
-      Procedure DeleteAll;
-      Procedure FreeAll;
-      Procedure FreeItem( Item : pointer );
-      Function Get( AIndex : integer ) : pointer;
-      Function GetCount : integer;
-      Function IndexOf( Item : pointer ) : integer;
-      Procedure Insert( Item : pointer ); Virtual;
-      Procedure Pack;
-      Procedure Put( AIndex : integer; APointer : pointer );
-      Function GetCapacity : Integer;
-      Procedure SetCapacity( NewCapacity : Integer );
-      Property Count: integer Read  GetCount;
-      Property Items[ index : integer ] : pointer Read  Get Write Put;
-      Property Capacity : Integer Read  GetCapacity Write SetCapacity;
+      function At( Index : integer ) : pointer;
+      procedure AtDelete( Index : integer );
+      procedure AtFree( Index : integer );
+      procedure AtInsert( Index: integer; Item : pointer );
+      procedure AtPut( Index : Integer; Item : Pointer );
+      procedure Clear;
+      procedure Delete( Item : Pointer );
+      procedure DeleteAll;
+      procedure FreeAll;
+      procedure FreeItem( Item : pointer );
+      function Get( AIndex : integer ) : pointer;
+      function GetCount : integer;
+      function IndexOf( Item : pointer ) : integer;
+      procedure Insert( Item : pointer ); Virtual;
+      procedure Pack;
+      procedure Put( AIndex : integer; APointer : pointer );
+      function GetCapacity : Integer;
+      procedure SetCapacity( NewCapacity : Integer );
+      property Count: integer Read  GetCount;
+      property Items[ index : integer ] : pointer Read  Get Write Put;
+      property Capacity : Integer Read  GetCapacity Write SetCapacity;
   end;
 
   TBaseObject = Class(TObject)
@@ -1912,9 +1925,9 @@ type
       FParent : TObject;
       FContainer: TContainer;
     Public
-      Property Container : TContainer  Read  FContainer  Write FContainer;
-      Property Parent : TObject  Read  FParent  Write FParent;
-      Constructor Create(P : TObject; Container : TContainer);
+      property Container : TContainer  Read  FContainer  Write FContainer;
+      property Parent : TObject  Read  FParent  Write FParent;
+      constructor Create(P : TObject; Container : TContainer);
       Destructor Destroy; Override;
   end;
 
@@ -1937,12 +1950,13 @@ const
 
 function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 function GetTable(const SQL: String; var Aliace : String): String;
-
+function IfThen(const Value: boolean; const ATrue: TDateTime; const AFalse: TDateTime): TDateTime; overload; inline;
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;
 function StrToSQLFloat(Value: string): Double;
 function SQLFloatToStr(Value: Double): string;
+{$IFDEF DELPHI_12}
 function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
 function PointToSQLPoint(Value: TPSQLPoint; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 function SQLCircleToCircle(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLCircle;
@@ -1951,6 +1965,9 @@ function SQLBoxToBox(Value: string; const Delimiter: char = ','; const UseSystem
 function BoxToSQLBox(Value: TPSQLBox; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
 function SQLLSegToLSeg(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLLSeg;
 function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseSystemSeparator: boolean = False) : string;
+function SQLRangeToRange(Value: string; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLRange;
+function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): string;
+{$ENDIF DELPHI_12}
 
 procedure GetToken(var Buffer, Token: string);
 procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : integer;
@@ -2327,7 +2344,7 @@ begin
 end;
 {$ENDIF}
 
-Constructor TContainer.Create;
+constructor TContainer.Create;
 begin
   Inherited Create;
   FItems := TList.Create;
@@ -2340,7 +2357,7 @@ begin
   Inherited Destroy;
 end;
 
-Function TContainer.At(Index : integer) : Pointer;
+function TContainer.At(Index : integer) : Pointer;
 begin
   Try
     Result := FItems[Index];
@@ -2349,12 +2366,12 @@ begin
   end;
 end;
 
-Procedure TContainer.AtDelete(Index : integer);
+procedure TContainer.AtDelete(Index : integer);
 begin
   FItems.Delete(Index);
 end;
 
-Procedure TContainer.AtFree( Index : integer );
+procedure TContainer.AtFree( Index : integer );
 var
   Item : Pointer;
 begin
@@ -2366,22 +2383,22 @@ begin
   end;
 end;
 
-Procedure TContainer.AtInsert( Index : integer; Item : pointer );
+procedure TContainer.AtInsert( Index : integer; Item : pointer );
 begin
   FItems.Insert( Index, Item );
 end;
 
-Procedure TContainer.AtPut( Index : integer; Item : pointer );
+procedure TContainer.AtPut( Index : integer; Item : pointer );
 begin
   FItems[ Index ] := Item;
 end;
 
-Procedure TContainer.Clear;
+procedure TContainer.Clear;
 begin
   FItems.Clear;
 end;
 
-Procedure TContainer.Delete( Item : pointer );
+procedure TContainer.Delete( Item : pointer );
 var
   i : Integer;
 begin
@@ -2389,12 +2406,12 @@ begin
   if i <> -1  then  AtDelete(i);
 end;
 
-Procedure TContainer.DeleteAll;
+procedure TContainer.DeleteAll;
 begin
   FItems.Clear;
 end;
 
-Procedure TContainer.FreeAll;
+procedure TContainer.FreeAll;
 var
   I : integer;
 begin
@@ -2407,47 +2424,47 @@ begin
   FItems.Clear;
 end;
 
-Procedure TContainer.FreeItem( Item : pointer );
+procedure TContainer.FreeItem( Item : pointer );
 begin
   if Item <> nil  then TObject(Item).Free;
 end;
 
-Function TContainer.Get(AIndex : integer) : pointer;
+function TContainer.Get(AIndex : integer) : pointer;
 begin
   Result := FItems[AIndex];
 end;
 
-Function TContainer.GetCount: integer;
+function TContainer.GetCount: integer;
 begin
   Result := FItems.Count;
 end;
 
-Function TContainer.IndexOf( Item : pointer ) : integer;
+function TContainer.IndexOf( Item : pointer ) : integer;
 begin
   Result := FItems.IndexOf( Item );
 end;
 
-Procedure TContainer.Insert(Item : pointer);
+procedure TContainer.Insert(Item : pointer);
 begin
   FItems.Add(Item);
 end;
 
-Procedure TContainer.Pack;
+procedure TContainer.Pack;
 begin
   FItems.Pack;
 end;
 
-Procedure TContainer.Put( AIndex : integer; APointer : pointer );
+procedure TContainer.Put( AIndex : integer; APointer : pointer );
 begin
   FItems[AIndex] := APointer;
 end;
 
-Function TContainer.GetCapacity : Integer;
+function TContainer.GetCapacity : Integer;
 begin
   Result := FItems.Capacity;
 end;
 
-Procedure TContainer.SetCapacity( NewCapacity : Integer );
+procedure TContainer.SetCapacity( NewCapacity : Integer );
 begin
   FItems.Capacity := NewCapacity;
 end;
@@ -2455,7 +2472,7 @@ end;
 /////////////////////////////////////////////////////////////////////////////
 //                  IMPLEMENTATION TBASEOBJECT OBJECT                      //
 /////////////////////////////////////////////////////////////////////////////
-Constructor TBaseObject.Create(P : TObject; Container : TContainer);
+constructor TBaseObject.Create(P : TObject; Container : TContainer);
 begin
   Inherited Create;
   FParent    := P;
@@ -2766,6 +2783,14 @@ begin
   end;
 end;
 
+function IfThen(const Value: boolean; const ATrue: TDateTime; const AFalse: TDateTime): TDateTime;
+begin
+  if Value then
+    Result := ATrue
+  else
+    Result := AFalse;
+end;
+
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 var
   Year, Month, Day, Hour, Min, Sec, MSec: Integer;
@@ -2805,7 +2830,7 @@ end;
 
 function SQLTimestampToDateTime(Value: string): TDateTime;
 var
-  Year, Month, Day, Hour, Min, Sec, MSec: Integer;
+  Year, Month, Day, Hour, Min, Sec, MSec, Idx: Integer;
 {$IFDEF DELPHI_5}
 const
   MinDateTime: TDateTime = -657434.0;      { 01/01/0100 12:00:00.000 AM }
@@ -2819,13 +2844,19 @@ begin
       Result := MinDateTime  //EncodeDate(0, 1, 1) + EncodeTime(0, 0, 0, 0)
    else
     begin
+      for Idx := Length(Value) downto Length(Value) - TIMEZONELEN do //crop timezone information "+\-dd:dd"
+        if CharInSet(Value[Idx], ['+', '-']) then
+        begin
+          Value := Copy(Value, 1, Idx - 1);
+          Break;
+        end;
       Year  := Max(1, StrToIntDef(Copy(Value, 1, 4), 1));
       Month := Max(1, StrToIntDef(Copy(Value, 6, 2), 1));
       Day   := Max(1, StrToIntDef(Copy(Value, 9, 2), 1));
       Hour := StrToIntDef(Copy(Value, 12, 2), 0);
       Min  := StrToIntDef(Copy(Value, 15, 2), 0);
       Sec  := StrToIntDef(Copy(Value, 18, 2), 0);
-      Msec := StrToIntDef(Copy(Copy(Value, 21, 3) + '000',1,3), 0); //19.05.2008: for cases when trailing 0 are missing
+      Msec := StrToIntDef(Copy(Copy(Value, 21, 3) + '000', 1, 3), 0); //19.05.2008: for cases when trailing 0 are missing
       Result := EncodeDate(Year, Month, Day);
       if Result >= 0 then
         Result := Result + EncodeTime(Hour, Min, Sec, MSec)
@@ -2851,6 +2882,7 @@ begin
   Result := {$IFDEF UNDER_DELPHI_6}PSQLAccess.{$ENDIF}FloatToStr(Value, PSQL_FS);
 end;
 
+{$IFDEF DELPHI_12}
 function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
 var S, Xs, Ys: string;
     DelimPos: integer;
@@ -2931,6 +2963,93 @@ function LSegToSQLLSeg(Value: TPSQLLSeg; const Delimiter: char = ','; const UseS
 begin
   Result := '[' + PointToSQLPoint(Value.P1, Delimiter, UseSystemSeparator) + Delimiter + PointToSQLPoint(Value.P2, Delimiter, UseSystemSeparator) + ']';
 end;
+
+function SQLRangeToRange(Value: string; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLRange;
+var
+  DelimPos: integer;
+
+  procedure SetBound(var B: TPSQLRangeBound; SVal: string);
+  begin
+    if SVal = EmptyStr then
+      B.State := rbsInfinite
+    else
+      case RangeType of
+        FIELD_TYPE_NUMRANGE:  if not UseSystemSeparator then
+                                B.AsFloat := StrToFloat(SVal, PSQL_FS)
+                              else
+                                B.AsFloat := StrToFloat(SVal);
+        FIELD_TYPE_INT4RANGE: B.AsInteger  := StrToInt(SVal);
+        FIELD_TYPE_INT8RANGE: B.AsLargeInt := StrToInt64(SVal);
+        FIELD_TYPE_DATERANGE: if UseSystemSeparator then
+                                B.AsDateTime := StrToDate(SVal)
+                              else
+                                B.AsDateTime := SqlDateToDateTime(SVal, False);
+        FIELD_TYPE_TSRANGE,
+        FIELD_TYPE_TSTZRANGE: if UseSystemSeparator then
+                                B.AsDateTime := StrToDateTime(SVal)
+                              else
+                                B.AsDateTime := SQLTimeStampToDateTime(SVal);
+      end;
+  end;
+
+begin
+  Result := Default(TPSQLRange);
+  if SameText(Value, 'empty') or (Length(Value) <= 2) then
+    Result.SetEmpty
+  else
+  begin
+    Result.LowerBound.State := TPSQLRangeBoundState(ifthen(Value[1] = '[', ord(rbsInclusive), ord(rbsExclusive)));
+    Result.UpperBound.State := TPSQLRangeBoundState(ifthen(Value[Length(Value)] = ']', ord(rbsInclusive), ord(rbsExclusive)));
+    Value := Copy(Value, 2, Length(Value) - 2); //eliminate brackets
+    DelimPos := Pos(Delimiter, Value);
+    SetBound(Result.LowerBound, AnsiDequotedStr(Copy(Value, 1, DelimPos - 1), '"')); // eliminate quotes if needed
+    SetBound(Result.UpperBound, AnsiDequotedStr(Copy(Value, DelimPos + 1, MaxInt), '"'));
+  end;
+end;
+
+function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): string;
+
+  function GetBound(const B: TPSQLRangeBound): string;
+  begin
+    case RangeType of
+      FIELD_TYPE_INT4RANGE: Result := IntToStr(B.AsInteger);
+      FIELD_TYPE_INT8RANGE: Result := IntToStr(B.AsLargeInt);
+      FIELD_TYPE_NUMRANGE:  if UseSystemSeparator then
+                              Result := FloatToStr(B.AsFloat)
+                            else
+                              Result := SQLFloatToStr(B.AsFloat);
+      FIELD_TYPE_DATERANGE: if UseSystemSeparator then
+                              Result := DateToStr(B.AsDateTime)
+                            else
+                              Result := DateTimeToSqlDate(B.AsDateTime, DATE_MODE);
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: if UseSystemSeparator then
+                              Result := DateTimeToStr(B.AsDateTime)
+                            else
+                              Result := DateTimeToSqlDate(B.AsDateTime, TIMESTAMP_MODE);
+    end;
+  end;
+
+begin
+  if Value.Empty then Exit('empty');
+  if Value.LowerBound.State = rbsInfinite then
+    Result := '['
+  else
+  begin
+    Result := ifthen(Value.LowerBound.State = rbsInclusive, '[', '(');
+    Result := Result + GetBound(Value.LowerBound);
+  end;
+  Result := Result + Delimiter;
+  if Value.UpperBound.State = rbsInfinite then
+    Result := Result + ']'
+  else
+  begin
+    Result := Result + GetBound(Value.UpperBound);
+    Result := Result + ifthen(Value.UpperBound.State = rbsInclusive, ']', ')');
+  end;
+end;
+
+{$ENDIF DELPHI_12}
 
 procedure GetToken(var Buffer, Token: string);
 label ExitProc;
@@ -3044,7 +3163,7 @@ begin
     FIELD_TYPE_TINTERVAL:
                      begin
                         BdeType := fldZSTRING;
-                        LogSize   := phSize+1;
+                        LogSize   := phSize + 1;
                         if FieldType = FIELD_TYPE_BPCHAR then
                            BdeSubType := fldstFIXED;
                      end;
@@ -3084,6 +3203,10 @@ begin
                          BdeType := fldTIMESTAMP;
                          LogSize := SizeOf(TDateTime);
                       end;
+    FIELD_TYPE_TIMESTAMPTZ: begin
+                         BdeType := fldZSTRING;
+                         LogSize := TIMESTAMPTZLEN + 1;
+                      end;
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_NUMERIC,
     FIELD_TYPE_FLOAT8:
@@ -3104,10 +3227,6 @@ begin
                          BdeType := fldZSTRING;
                          LogSize := TIMETZLEN + 1;
                       end;
-    FIELD_TYPE_TIMESTAMPTZ: begin
-                         BdeType := fldZSTRING;
-                         LogSize := TIMESTAMPTZLEN + 1;
-                      end;
     FIELD_TYPE_BIT:   begin
                          BdeType := fldZSTRING;
                          LogSize := phSize + 1;
@@ -3125,6 +3244,7 @@ begin
                          BdeType := fldZSTRING;
                          LogSize := MACADDRLEN + 1;
                       end;
+{$IFDEF DELPHI_12}
     FIELD_TYPE_POINT:
                       begin
                          BdeType := fldPOINT;
@@ -3145,6 +3265,17 @@ begin
                          BdeType := fldLSEG;
                          LogSize := SizeOf(TPSQLLSeg);
                       end;
+    FIELD_TYPE_NUMRANGE,
+    FIELD_TYPE_DATERANGE,
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE:
+                      begin
+                        BdeType := fldRANGE;
+                        LogSize := SizeOf(TPSQLRange);
+                      end
+{$ENDIF DELPHI_12}                      
   else
     begin
        BdeType := fldZSTRING;
@@ -3153,7 +3284,7 @@ begin
   end;
 end;
 
-Procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO;
+procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO;
       Count, Offset : integer;
       var RecBuff : FLDDesc;
       var ValChk : VCHKDesc;
@@ -3167,6 +3298,7 @@ begin
   with RecBuff do
   begin
     iFldNum  := Count;
+    iNativeType := Info.FieldType;
     ValChk.iFldNum := Count;
     DataLen := Info.FieldMaxSize;
     FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
@@ -3195,7 +3327,7 @@ begin
   end;
 end;
 
-Procedure LoadPSQLLibrary(LibPQPath: string = '');
+procedure LoadPSQLLibrary(LibPQPath: string = '');
 
   function GetPSQLProc( ProcName : string ) : pointer;
   begin
@@ -3319,14 +3451,14 @@ begin
    end;
 end;
 
-Procedure UnloadPSQLLibrary;
+procedure UnloadPSQLLibrary;
 begin
   if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
      FreeLibrary( SQLLibraryHandle );
   SQLLibraryHandle := HINSTANCE_ERROR;
 end;
 
-Procedure CheckLibraryLoaded;
+procedure CheckLibraryLoaded;
 begin
   if SQLLibraryHandle <= HINSTANCE_ERROR then
       {$IFDEF DELPHI_5}
@@ -3470,6 +3602,84 @@ begin
    end;
 end;
 
+{$IFDEF DELPHI_12}
+{ TPSQLRange }
+
+class operator TPSQLRangeBound.Equal(RB1: TPSQLRangeBound; RB2: TPSQLRangeBound): Boolean;
+begin
+  Result := (RB1.State = RB2.State)
+        and CompareMem(@RB1.Value, @RB2.Value, SizeOf(TPSQLRangeBoundValue)); //timestamp is the biggest field in record
+end;
+
+constructor TPSQLRange.Create(const Value: string; const RangeType: cardinal);
+begin
+  case RangeType of
+    FIELD_TYPE_DATERANGE,
+    FIELD_TYPE_NUMRANGE,
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE: Self := PSQLTypes.SQLRangeToRange(Value, RangeType);
+  else
+    raise EConvertError.Create(SInvalidRangeType);
+  end;
+end;
+
+class operator TPSQLRange.Equal(R1: TPSQLRange; R2: TPSQLRange): Boolean;
+begin
+  Result := (R1.Empty = R2.Empty) and (R1.LowerBound = R2.LowerBound) and (R1.UpperBound = R2.UpperBound);
+end;
+
+function TPSQLRange.GetEmpty: boolean;
+begin
+  Result := (LowerBound.State = rbsExclusive) and (LowerBound = UpperBound);
+end;
+
+{ TPSQLPoint }
+
+class operator TPSQLPoint.Equal(P1, P2: TPSQLPoint): Boolean;
+begin
+  Result := SameValue(P1.X, P2.X, 0) and SameValue(P1.Y, P2.Y, 0);
+end;
+
+class operator TPSQLPoint.Implicit(P: TPoint): TPSQLPoint;
+begin
+  Result.X := P.X;
+  Result.Y := P.Y;
+end;
+
+{ TPSQLCircle }
+
+class operator TPSQLCircle.Equal(C1: TPSQLCircle; C2: TPSQLCircle): Boolean;
+begin
+  Result := (C1.Center = C2.Center) and SameValue(C1.R, C2.R);
+end;
+
+{ TPSQLBox }
+
+class operator TPSQLBox.Equal(B1, B2: TPSQLBox): Boolean;
+begin
+  Result := (B1.TopRight = B2.TopRight) and (B1.BottomLeft = B2.BottomLeft);
+end;
+
+{ TPSQLLSeg }
+
+class operator TPSQLLSeg.Equal(L1: TPSQLLSeg; L2: TPSQLLSeg): Boolean;
+begin
+  Result := (L1.P1 = L2.P1) and (L1.P2 = L2.P2);
+end;
+
+{TPSQLRange}
+
+procedure TPSQLRange.SetEmpty;
+begin
+  UpperBound.State := rbsExclusive;
+  LowerBound.State := rbsExclusive;
+//  UpperBound.AsSQLTimeStamp := NullSQLTimeStamp;
+//  LowerBound.AsSQLTimeStamp := NullSQLTimeStamp;
+end;
+
+{$ENDIF DELPHI_12}
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;
