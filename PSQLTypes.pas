@@ -2783,14 +2783,6 @@ begin
   end;
 end;
 
-function IfThen(const Value: boolean; const ATrue: TDateTime; const AFalse: TDateTime): TDateTime;
-begin
-  if Value then
-    Result := ATrue
-  else
-    Result := AFalse;
-end;
-
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 var
   Year, Month, Day, Hour, Min, Sec, MSec: Integer;
