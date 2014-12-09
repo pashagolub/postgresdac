@@ -29,7 +29,6 @@ type
   TestTPSQLQuery = class(TTestCase)
   private
     FPSQLQuery: TPSQLQuery;
-
   public
     procedure SetUp; override;
     procedure TearDown; override;
@@ -60,6 +59,8 @@ type
     procedure TestTimeValues;
     procedure TestDateValues;
     procedure TestTimestampValues;
+  //fetch on demand
+    procedure TestFetchOnDemand;
   end;
 
 var
@@ -317,6 +318,25 @@ begin
   {$IFDEF DELPHI_12}
   Check(FPSQLQuery.Fields.FieldByName('col1').AsWideString = 'text', 'Field must be not empty if dsoEmptyCharAsNull enabled');
   {$ENDIF}
+  FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestFetchOnDemand;
+var T: cardinal;
+  i: Integer;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT g.s, repeat($$Pg$$, 25000) FROM generate_series(1, 250) g(s)';
+  FPSQLQuery.Options := FPSQLQuery.Options + [dsoFetchOnDemand];
+  T := GetTickCount();
+  FPSQLQuery.Open;
+  T := GetTickCount() - T;
+  Check(T < 5000, 'Query should return control to application less then 5 seconds using fetch on demand');
+  Check(FPSQLQuery.RecordCount = 1, 'Record count should be 1 since no other records fetched yet');
+  for i := 1 to 125 do
+    FPSQLQuery.Next;
+  Check(FPSQLQuery.RecordCount = 126, 'Record count should be exactly the fetched rows number');
+  FPSQLQuery.FetchAll;
+  Check(FPSQLQuery.RecordCount = 250, 'Record count should equal to the result set size');
   FPSQLQuery.Close;
 end;
 

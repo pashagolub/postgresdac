@@ -2215,7 +2215,8 @@ end;
 
 procedure TPSQLDatabase.CancelBackend(PID: Integer);
 begin
-  Check(Engine,Engine.CancelBackend(Handle,PID));
+  CheckActive;
+  Check(Engine, Engine.CancelBackend(Handle,PID));
 end;
 
 procedure TPSQLDatabase.RegisterDirectQuery(aDirectQuery: TObject);
