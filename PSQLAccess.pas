@@ -534,11 +534,11 @@ type
     private
       RecNo         : LongInt; {Record Nomber}
       FOMode        : DBIOpenMode;  {Open mode}
-//      FFilteredRecordCount  : LongInt; {Record count}
       FStatement    : PPGresult; {Handle PSQL Cursor }
       FFilters      : TContainer; {Filters list}
       FFilterActive : Boolean;  {is Active filter for Query }
       FReFetch      : Boolean;  {Batch Insert allows}
+      FFetched      : boolean; // if dsoFetchOnDemand shows if all rows are consumed
       FFieldDescs   : TPSQLFields;
       FIndexDescs   : TPSQLIndexes;
       FNativeDescs  : TPSQLNatives; {Native field Description}
@@ -548,12 +548,11 @@ type
       FPrimaryKeyNumber: SmallInt;
       FGetKeyDesc   : Boolean;
       FKeyDesc      : IDXDesc;
-//      FHasOIDs      : boolean;
       Ranges        : Boolean;
       FRecSize      : Integer;
       FConnect      : TNativeConnect;
-      FOpen         : Boolean; {is Active Query}
-      FAffectedRows : LongInt; {Affected Rows}
+      FOpen         : Boolean;
+      FAffectedRows : LongInt;
       FBookOfs        : Integer;
       FRecordState    : TRecordState;
       FLastDir        : TDir;
@@ -572,19 +571,13 @@ type
       FBlobHandle     : cardinal;
       FlocalBHandle   : Integer;
       FBlobOpen       : Boolean;
-      FOIDTable       : TList;
       FSystemNeed     : Boolean;
-//      Ferror_pos      : integer;
-//      Ferror_line     : integer;
       FFieldMinSizes  : array of integer; //to decrease FieldMinSize routine access
       FFieldTypType   : AnsiString; //to store pg_type.typtype
       FSortingIndex   : array of integer; //filled with SortBy method
       FSortingFields  : string; //"fieldname" ASC|DESC, ...
       FOptions        : TPSQLDatasetOptions;
       FCustomCompareFunc: TPSQLDatasetSortCompare;
-      //////////////////////////////////////////////////////////
-      //            PROTECTED METHODS                         //
-      //////////////////////////////////////////////////////////
       procedure SetInternalBuffer(Buffer : Pointer);
       function GetInternalBuffer: Pointer;
       function GetCurrentBuffer: Pointer;
@@ -600,16 +593,15 @@ type
       function GetRecCount: LongInt;
       procedure InitFieldDescs;
       procedure CheckFilter(PRecord : Pointer);
-//      procedure InternalCommit;
       procedure FirstRecord; virtual;
       procedure LastRecord;
       procedure NextRecord();
       procedure PrevRecord();
       procedure CurrentRecord(ARecNo : LongInt);
       procedure GetWorkRecord(eLock : DBILockType; PRecord : Pointer);
-//      procedure GetRecordNo(var iRecNo : Longint);
       procedure LockRecord(eLock : DBILockType);
       function FilteredRecord(PRecord : Pointer) :  Boolean;
+      function FetchRecords(const NumberOfRecs: integer = 1): integer;
       procedure UpdateFilterStatus;
       function FieldCount : Integer;
     	procedure InternalSortBy(const Fields: array of Integer; const IsReverseOrder : array of boolean);
@@ -836,6 +828,7 @@ function BDETOPSQLStr(Field : TFieldDef): String;
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
 function QuoteIdentifier(IdentifierName: string): string;
 
+function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
 function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
 
@@ -889,8 +882,8 @@ var F: TextFile;
 procedure LogDebugMessage(MsgType, Msg: string);
 begin
   if not DebugFileOpened or (Msg = EmptyStr) then Exit;
-  Msg := ReplaceStr(Msg, '<','&lt;');
-  Msg := ReplaceStr(Msg, '>','&gt;');
+  Msg :=  StringReplace(Msg, '<','&lt;', [rfReplaceAll]);
+  Msg := StringReplace(Msg, '>','&gt;', [rfReplaceAll]);
   WriteLn(F,'<TR><TD>',GetTickCount() - SessionStart,'&nbsp;ms</TD><TD><b>', MsgType, '</b></TD><TD><PRE>',Msg,'</PRE></TD><TR>');
 end;
 
@@ -934,7 +927,7 @@ procedure OpenDebugFile;
 var Name, Time: string;
 begin
  SessionStart := GetTickCount();
- DateTimeToString(Time, 'dd.mm.yy_hh.nn.ss', Now());
+ DateTimeToString(Time, 'dd.mm.yy_hh.nn.ss', Now(), PSQL_FS);
  Name := '_' + Time;
  Name := ChangeFileExt(GetModuleName(HInstance), Name + '_log.html');
  AssignFile(F, Name);
@@ -1949,6 +1942,26 @@ begin
 end;
 {$ENDIF}
 
+function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
+var Q: PAnsiChar;
+    S: AnsiString;
+begin
+{$IFDEF M_DEBUG}
+  LogDebugMessage('SEND', String(AQuery));
+{$ENDIF}
+  if AConnection.IsUnicodeUsed then
+    S := UTF8Encode(AQuery)
+  else
+    S := AnsiString(AQuery);
+  GetMem(Q, Length(S) + 1);
+  try
+    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
+    Result := PQsendQuery(AConnection.Handle, Q);
+  finally
+    FreeMem(Q);
+  end;
+end;
+
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
 var Q: PAnsiChar;
     S: AnsiString;
@@ -1959,7 +1972,7 @@ begin
     S := AnsiString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
+    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
     Result := PQExec(AConnection.Handle, Q);
   finally
    FreeMem(Q);
@@ -2102,14 +2115,23 @@ begin
     FIELD_TYPE_FLOAT8,
     FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+{$IFDEF DELPHI_12}
     FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
     FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
     FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
     FIELD_TYPE_LSEG: TPSQLLSeg(Dest^) := TPSQLLSeg(Src^);
 
+    FIELD_TYPE_NUMRANGE,
+    FIELD_TYPE_DATERANGE,
+    FIELD_TYPE_INT4RANGE,
+    FIELD_TYPE_INT8RANGE,
+    FIELD_TYPE_TSRANGE,
+    FIELD_TYPE_TSTZRANGE    : TPSQLRange(Dest^) := TPSQLRange(Src^);
+{$ENDIF DELPHI_12}    
+
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
-    FIELD_TYPE_TEXT: Result := 1; //29.09.2008
+    FIELD_TYPE_TEXT: Result := 1;
   else
     StrLCopy(PChar(Dest), PChar(Src), iField.FieldLength - 1); //minus null byte
   end;
@@ -2160,10 +2182,19 @@ begin
       FIELD_TYPE_FLOAT8,
       FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
 
+{$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
       FIELD_TYPE_CIRCLE: TPSQLCircle(Dest^) := TPSQLCircle(Src^);
       FIELD_TYPE_BOX: TPSQLBox(Dest^) := TPSQLBox(Src^);
       FIELD_TYPE_LSEG: TPSQLLSeg(Dest^) := TPSQLLSeg(Src^);
+
+      FIELD_TYPE_NUMRANGE,
+      FIELD_TYPE_DATERANGE,
+      FIELD_TYPE_INT4RANGE,
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
+{$ENDIF DELPHI_12}      
 
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
@@ -3075,10 +3106,13 @@ begin
      fldDate:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), DATE_MODE));
      fldTime:    Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIME_MODE));
      fldTIMESTAMP: Result := SimpleQuote(DateTimeToSqlDate(TDateTime(Src^), TIMESTAMP_MODE));
+{$IFDEF DELPHI_12}
      fldPOINT:   Result := SimpleQuote(PointToSQLPoint(TPSQLPoint(Src^)));
      fldCIRCLE:  Result := SimpleQuote(CircleToSQLCircle(TPSQLCircle(Src^)));
      fldBOX:     Result := SimpleQuote(BoxToSQLBox(TPSQLBox(Src^)));
      fldLSEG:    Result := SimpleQuote(LSegToSQLLSeg(TPSQLLSeg(Src^)));
+     fldRANGE:   Result := SimpleQuote(RangeToSQLRange(TPSQLRange(Src^), NativeType));
+{$ENDIF DELPHI_12}
   end;
 end;
 
@@ -3259,10 +3293,7 @@ begin
     begin
        I := StrToIntDef(FieldList[J],0);
        if FTable.FConnect.GetserverVersionAsInt >= 070400 then
-         I := GetLogicalIndexByPhysical(I)
-       else
-         I := I; //dropped columns will make problems here
-                 //however, handling this in < 7.4.0 is too complex
+         I := GetLogicalIndexByPhysical(I);
 
        if I = 0 then //we have index built on expressions.
          begin
@@ -3722,7 +3753,6 @@ begin
   LimitClause := TStringList.Create;
   TableName  := string(AName);
   MasterCursor      := nil;
-  FOIDTable := TList.Create;
   FSystemNeed := ASystem;
   IsQuery := False;
   FPreventRememberBuffer := False; //mi:2008-08-27
@@ -3730,9 +3760,6 @@ end;
 
 Destructor TNativeDataSet.Destroy;
 begin
-  if FOIDTable <> nil then
-     FOIDTable.Free;
-  FOIDTable := nil;
   MasterCursor      := nil;
   CloseTable;
   ClearIndexInfo;
@@ -3849,10 +3876,9 @@ end;
 
 function TNativeDataSet.GetRecCount: LongInt;
 begin
-  if FStatement = nil then
-     Result := 0
-  else
-     Result := PQntuples(FStatement)
+  Result := 0;
+  if not Assigned(FStatement) then Exit;
+  Result := PQntuples(FStatement);
 end;
 
 procedure TNativeDataSet.GetRecordCount( var iRecCount : Longint );
@@ -3861,45 +3887,45 @@ var
   Buff   : Pointer;
   Marked : Boolean;
 begin
-    if not FFilterActive then
-      iRecCount := GetRecCount()
-    else
-      begin
-        iRecCount := 0;
-        GetMem(Buff, GetWorkBufferSize);
+  if not FFilterActive then
+    iRecCount := GetRecCount()
+  else
+    begin
+      iRecCount := 0;
+      GetMem(Buff, GetWorkBufferSize);
+      try
+
+        GetMem(P, BookMarkSize);
         try
-
-          GetMem(P, BookMarkSize);
           try
-            try
-              GetBookMark(P);
-              Marked := true;
-            except
-              on E:EPSQLException do
-                Marked := false;
-            end;
-
-            SetToBegin();
-            try
-              repeat
-                GetNextRecord(dbiNOLOCK, Buff, nil);
-                Inc(iRecCount);
-              until false;
-            except
-              on E:EPSQLException do;
-            end;
-
-            if Marked then
-              SetToBookMark(P)
-            else
-              SetToBegin;
-          finally
-            FreeMem(P, BookMarkSize);
+            GetBookMark(P);
+            Marked := true;
+          except
+            on E:EPSQLException do
+              Marked := false;
           end;
+
+          SetToBegin();
+          try
+            repeat
+              GetNextRecord(dbiNOLOCK, Buff, nil);
+              Inc(iRecCount);
+            until false;
+          except
+            on E:EPSQLException do;
+          end;
+
+          if Marked then
+            SetToBookMark(P)
+          else
+            SetToBegin;
         finally
-          FreeMem(Buff, GetWorkBufferSize);
+          FreeMem(P, BookMarkSize);
         end;
-    end;
+      finally
+        FreeMem(Buff, GetWorkBufferSize);
+      end;
+  end;
 end;
 
 procedure TNativeDataSet.CheckFilter(PRecord : Pointer);
@@ -3943,20 +3969,11 @@ begin
   end;
 end;
 
-//procedure TNativeDataSet.InternalCommit;
-//begin
-//  FConnect.Commit;
-//  FConnect.CheckResult;
-//end;
-
 procedure TNativeDataSet.FirstRecord;
 begin
-  if Assigned(FStatement) then
-  begin
-    RecNo := 0;
-    if RecNo >= RecordCount then
-       raise EPSQLException.CreateBDE(DBIERR_EOF);
-  end;
+  RecNo := 0;
+  if RecordCount = 0 then
+    raise EPSQLException.CreateBDE(DBIERR_EOF);
   InternalReadBuffer;
   SetBufBookmark;
   MonitorHook.SQLFetch(Self);
@@ -3964,12 +3981,11 @@ end;
 
 procedure TNativeDataSet.LastRecord;
 begin
-  if Assigned(FStatement) then
-  begin
-     RecNo := ELSEIF(RecordCount>0, RecordCount-1, -1);
-     if RecNo <= -1 then
-        raise EPSQLException.CreateBDE(DBIERR_EOF);
-  end;
+  if (dsoFetchOnDemand in Options) and not FFetched then
+    FetchRecords(MaxInt);
+  RecNo := RecordCount - 1;
+  if RecNo < 0 then
+    raise EPSQLException.CreateBDE(DBIERR_EOF);
   InternalReadBuffer;
   SetBufBookmark;
   MonitorHook.SQLFetch(Self);
@@ -3977,12 +3993,11 @@ end;
 
 procedure TNativeDataSet.NextRecord();
 begin
-  if Assigned(FStatement) then
-  begin
-    Inc(RecNo);
-    if RecNo >= RecordCount then
-      raise EPSQLException.CreateBDE(DBIERR_EOF);
-  end;
+  Inc(RecNo);
+  if (RecNo >= RecordCount) and (dsoFetchOnDemand in Options) and not FFetched then
+    FetchRecords();
+  if RecNo >= RecordCount then
+    raise EPSQLException.CreateBDE(DBIERR_EOF);
   InternalReadBuffer;
   SetBufBookmark;
   MonitorHook.SQLFetch(Self);
@@ -3990,22 +4005,20 @@ end;
 
 procedure TNativeDataSet.PrevRecord();
 begin
-   if Assigned(FStatement) then
-   begin
-      if RecNo >= RecordCount then raise EPSQLException.CreateBDE(DBIERR_BOF);
-      Dec(Recno);
-      if RecNo <= -1 then
-         raise EPSQLException.CreateBDE(DBIERR_BOF);
-   end;
-   InternalReadBuffer;
-   SetBufBookmark;
-   MonitorHook.SQLFetch(Self);
+  if RecNo >= RecordCount then
+    raise EPSQLException.CreateBDE(DBIERR_BOF);
+  if RecNo > 0 then
+    Dec(RecNo)
+  else
+    raise EPSQLException.CreateBDE(DBIERR_BOF);
+  InternalReadBuffer;
+  SetBufBookmark;
+  MonitorHook.SQLFetch(Self);
 end;
 
 procedure TNativeDataSet.CurrentRecord(ARecNo : Longint);
 begin
-  if Assigned(FStatement) then
-     RecNo := ARecNo;
+  RecNo := ARecNo;
   if RecNo <= -1 then raise EPSQLException.CreateBDE(DBIERR_BOF);
   SetBufBookmark;
   InternalReadBuffer;
@@ -4024,11 +4037,6 @@ begin
     RecordState := tsPos;
   end;
 end;
-
-//procedure TNativeDataSet.GetRecordNo(var iRecNo: Longint);
-//begin
-//  iRecNo := RecordNumber;
-//end;
 
 procedure TNativeDataSet.LockRecord(eLock : DBILockType);
 begin
@@ -4175,7 +4183,7 @@ procedure TNativeDataSet.GetPriorRecord(eLock: DBILockType;PRecord: Pointer;pRec
 begin
   FLastDir     := tdPrev;
   InternalBuffer := PRecord;
-  Case RecordState of
+  case RecordState of
     tsPos,
     tsEmpty: PrevRecord;
     tsLast,
@@ -4296,7 +4304,16 @@ var
           raise EPSQLException.CreateBDE(DBIERR_QRYEMPTY)
        else
         sql_stmt := Trim(SQLQuery);
-       FStatement := _PQExecute(FConnect, sql_stmt);
+       if dsoFetchOnDemand in Options then
+         if _PQSendQuery(FConnect, sql_stmt) = 1 then
+           if PQsetSingleRowMode(FConnect.Handle) = 1 then
+             FStatement := PQgetResult(FConnect.Handle)
+           else
+             DatabaseError('Cannot switch to dsoFetchOnDemand mode')
+         else
+           FConnect.CheckResult
+       else
+         FStatement := _PQExecute(FConnect, sql_stmt);
        if Assigned(FStatement) then
        begin
           try
@@ -4322,6 +4339,7 @@ begin
   if FOpen then CloseTable;
   FAffectedRows := 0;
   FOpen := False;
+  FFetched := False;
   sql_stmt := '';
 
   try
@@ -4357,12 +4375,13 @@ begin
     if (KeyNumber = 0) then
     begin
        if FPrimaryKeyNumber <> 0 then
-          GetIndexDesc(FPrimaryKeyNumber, FKeyDesc) else
-       if IndexCount > 0 then
-         if FPrimaryKeyNumber <> 0 then
-           GetIndexDesc(FPrimaryKeyNumber, FKeyDesc)
-         else
-           GetIndexDesc(1, FKeyDesc);
+         GetIndexDesc(FPrimaryKeyNumber, FKeyDesc)
+       else
+         if IndexCount > 0 then
+           if FPrimaryKeyNumber <> 0 then
+             GetIndexDesc(FPrimaryKeyNumber, FKeyDesc)
+           else
+             GetIndexDesc(1, FKeyDesc);
     end;
   finally
    SetLength(FFieldMinSizes,0);
@@ -4412,7 +4431,7 @@ end;
 procedure TNativeDataSet.GetBookMark( P : Pointer );
 begin
   ZeroMemory(P, BookMarkSize );
-  With TPSQLBookMark(P^) do
+  with TPSQLBookMark(P^) do
     Position:= RecordNumber+1;
 end;
 
@@ -4564,10 +4583,19 @@ begin
       FIELD_TYPE_NUMERIC,
       FIELD_TYPE_FLOAT8: Result := Sizeof(Double);
 
+{$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: Result := SizeOf(TPSQLPoint);
       FIELD_TYPE_CIRCLE: Result := SizeOf(TPSQLCircle);
       FIELD_TYPE_BOX: Result := SizeOf(TPSQLBox);
       FIELD_TYPE_LSEG: Result := SizeOf(TPSQLLSeg);
+
+      FIELD_TYPE_NUMRANGE,
+      FIELD_TYPE_DATERANGE,
+      FIELD_TYPE_INT4RANGE,
+      FIELD_TYPE_INT8RANGE,
+      FIELD_TYPE_TSRANGE,
+      FIELD_TYPE_TSTZRANGE: Result := SizeOf(TPSQLRange);
+{$ENDIF DELPHI_12}
 
       FIELD_TYPE_TEXT,
       FIELD_TYPE_BYTEA,
@@ -4705,6 +4733,48 @@ begin
   end;
 end;
 
+function TNativeDataSet.FetchRecords(const NumberOfRecs: integer = 1): integer;
+var
+  LocResult: PPGResult;
+  i: integer;
+  fval: PAnsiChar;
+  flen: Integer;
+  CurrentRecNum: Integer;
+const
+  NULL_LEN: integer = -1;
+begin
+  Result := 0;
+  repeat
+    LocResult := PQgetResult(FConnect.Handle);
+    FFetched := not Assigned(LocResult);
+    case PQresultStatus(LocResult) of
+      PGRES_SINGLE_TUPLE:
+        begin
+          CurrentRecNum := PQntuples(FStatement);
+          for i := 0 to PQnfields(LocResult) - 1 do
+          begin
+            if PQgetisnull(LocResult, 0, i) = 1 then
+              flen := NULL_LEN
+            else
+              flen := PQgetlength(LocResult, 0, i);
+            fval := PQgetvalue(LocResult, 0, i);
+            if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
+              raise EPSQLException.CreateFmt('Cannot consume row on demand. Operation for field "%s" failed', [PQfname(LocResult, i)]);
+          end;
+          PQClear(LocResult);
+          inc(Result);
+        end;
+      PGRES_TUPLES_OK:
+        begin
+          LocResult := PQgetResult(FConnect.Handle);
+          FFetched := not Assigned(LocResult);
+        end;
+      else
+        Exit; //no rows for fetching, command returning no data executed?
+    end;
+  until (Result = NumberOfRecs) or FFetched;
+end;
+
 function TNativeDataSet.Field(FieldNum: Integer): string;
 begin
   Result := '';
@@ -4713,11 +4783,6 @@ begin
   if Fieldtype(FieldNum) = FIELD_TYPE_BPCHAR then
      Result := TrimRight(Result);
 end;
-
-//function TNativeDataSet.FieldByName(FieldName: String): string;
-//begin
-//  Result := Field(FieldIndex(FieldName));
-//end;
 
 function TNativeDataSet.FieldIsNull(FieldNum: Integer): Boolean;
 begin
@@ -4959,20 +5024,28 @@ begin
              then
                FldValue := FConnect.RawToString(FieldBuffer(i));
            case T.NativeType of
-             FIELD_TYPE_INT2: SmallInt(Data^) := SmallInt(StrToint(FldValue));
-             FIELD_TYPE_BOOL:    if FldValue = 't' then SmallInt(Data^) := 1 else SmallInt(Data^) := 0;
-             FIELD_TYPE_INT4:    LongInt(Data^) := LongInt(StrToint(FldValue));
-             FIELD_TYPE_INT8:    Int64(Data^) := StrToInt64(FldValue);
-             FIELD_TYPE_DATE:    TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
-             FIELD_TYPE_TIME:    TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
+             FIELD_TYPE_INT2:      SmallInt(Data^) := SmallInt(StrToint(FldValue));
+             FIELD_TYPE_BOOL:      if FldValue = 't' then SmallInt(Data^) := 1 else SmallInt(Data^) := 0;
+             FIELD_TYPE_INT4:      LongInt(Data^) := LongInt(StrToint(FldValue));
+             FIELD_TYPE_INT8:      Int64(Data^) := StrToInt64(FldValue);
+             FIELD_TYPE_DATE:      TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
+             FIELD_TYPE_TIME:      TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
              FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
              FIELD_TYPE_FLOAT4,
              FIELD_TYPE_FLOAT8,
-             FIELD_TYPE_NUMERIC: Double(Data^) := StrToSQLFloat(FldValue);
-             FIELD_TYPE_POINT:   TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
-             FIELD_TYPE_CIRCLE:  TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
-             FIELD_TYPE_BOX:     TPSQLBox(Data^) := SQLBoxToBox(FldValue);
-             FIELD_TYPE_LSEG:    TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
+             FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
+{$IFDEF DELPHI_12}
+             FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
+             FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
+             FIELD_TYPE_BOX:       TPSQLBox(Data^) := SQLBoxToBox(FldValue);
+             FIELD_TYPE_LSEG:      TPSQLLSeg(Data^) := SQLLSegToLSeg(FldValue);
+             FIELD_TYPE_NUMRANGE,
+             FIELD_TYPE_DATERANGE,
+             FIELD_TYPE_INT4RANGE,
+             FIELD_TYPE_INT8RANGE,
+             FIELD_TYPE_TSRANGE,
+             FIELD_TYPE_TSTZRANGE: TPSQLRange(Data^) := SQLRangeToRange(FldValue, T.NativeType);
+{$ENDIF DELPHI_12}
              FIELD_TYPE_OID,
              FIELD_TYPE_TEXT,
              FIELD_TYPE_BYTEA:     begin
@@ -4980,8 +5053,8 @@ begin
                                       ZeroMemory(FCurrentBuffer, Size);
                                       Inc(PAnsiChar(FCurrentBuffer)); //Null byte allocate
                                       Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
-                                      continue;
-                                  end;
+                                      Continue;
+                                   end;
              FIELD_TYPE_UUID: {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
            else
              if dsoTrimCharFields in FOptions then
@@ -5337,7 +5410,7 @@ begin
        IsQuery := OldQueryFlag;
        RecordState := tsPos;
        try
-        if not SetRowPosition(KN,GetLastInsertID(KN),PRecord) then
+        if not SetRowPosition(KN, GetLastInsertID(KN), PRecord) then
             SettoSeqNo(RecordCount);
        except
        end;
@@ -5365,28 +5438,27 @@ begin
   try
     SQL := GetUpdateSQL(TableName, OldRecord, PRecord, dsoRefreshModifiedRecordOnly in FOptions);
     if SQL <> '' then
-      //FConnect.QExecDirect(SQL, nil, FAffectedRows);
       AStatement := _PQExecute(FConnect, SQL);
       if Assigned(AStatement) then
-        try
-          FConnect.CheckResult(AStatement);
-          MonitorHook.SQLExecute(Self, True);
-          FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
-          if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
-           for i := 0 to PQnfields(AStatement) - 1 do
-            begin
-             fval := PQgetvalue(AStatement, 0, i);
-             fname := PQfname(AStatement, i);
-             flen := PQgetlength(AStatement, 0, i);
-             if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
-               raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
-            end;
-          FReFetch := False;
-          RecordState := tsPos;
-        except
-          MonitorHook.SQLExecute(Self, False);
-          raise;
-        end
+      try
+        FConnect.CheckResult(AStatement);
+        MonitorHook.SQLExecute(Self, True);
+        FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
+        if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
+          for i := 0 to PQnfields(AStatement) - 1 do
+          begin
+            fval := PQgetvalue(AStatement, 0, i);
+            fname := PQfname(AStatement, i);
+            flen := PQgetlength(AStatement, 0, i);
+            if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
+              raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
+          end;
+        FReFetch := False;
+        RecordState := tsPos;
+      except
+        MonitorHook.SQLExecute(Self, False);
+        raise;
+      end
       else
         FConnect.CheckResult;
   finally
@@ -5512,63 +5584,33 @@ var
   J : Integer;
   LastIdx: integer;
   sSQLQuery: string;
-  ATablename, Aliace: String;
-  Tbl, ASchema: string;
   RES: PPGresult;
   IdxName: string;
 begin
-  Result :=0;
+  Result := 0;
   if not FIndexDescs.Updated then
   begin
     if isQuery and (FOMode = dbiReadOnly) or (FieldCount <= 0)
       then Exit; //multitable or non-Select SQL query
 
-    if FConnect.GetserverVersionAsInt <= 070400 then
-     begin
-        if SQLQuery <> ''then
-           ATableName := GetTable(SQLQuery, Aliace) else
-           ATableName := TableName;
-        if ATableName = '' then Exit;
-        ATableName := StringReplace(ATableName,'"','',[rfReplaceAll]);
-        sSqlQuery := 'SELECT t1.relname AS name, i.indisunique as "unique", i.indkey as fields, i.indisprimary'#13#10+
-                     ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" AS t2'#13#10+
-                     ' WHERE i.indexrelid=t1.oid'#13#10+
-                     ' AND i.indrelid=t2.oid'#13#10+
-                     ' AND t2.relname = ''%s''';
-                     //' AND i.indexprs IS NULL';
-        I := Pos('.',ATableName);
-        if I > 0 then
-          begin
-           ASchema := Copy(ATableName, 1, I-1);
-           Tbl := Copy(ATableName, I+1, MaxInt);
-           sSQLQuery := sSQLQuery + ' AND t2.relnamespace =' +
-                                    ' (SELECT oid FROM pg_namespace WHERE nspname = ''%s'')';
-           sSQLQuery := Format(sSQLQuery,[Tbl,ASchema]);
-          end
-        else
-           sSQLQuery := Format(sSQLQuery,[ATableName]);
-     end
-    else //if we have version >= 7.4.1
-      begin
-       ATableOID := FieldTable(0);
-       sSqlQuery := 'SELECT t1.relname AS name,'#13#10+
-                    ' i.indisunique as "unique",'#13#10+
-                    ' i.indkey as fields,'#13#10+
-                    ' i.indisprimary'#13#10+
-                    ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" as t2'#13#10+
-                    ' WHERE i.indexrelid = t1.oid'#13#10+
-                    ' AND i.indrelid = t2.oid'#13#10+
-                    ' AND t2.oid = %u'#13#10+
-                    ' AND i.indexprs IS NULL'#13#10;
-       sSQLQuery := Format(sSQLQuery,[ATableOID]);
-      end;
-   try
+    ATableOID := FieldTable(0);
+    sSqlQuery := 'SELECT t1.relname AS name,'#13#10+
+                ' i.indisunique as "unique",'#13#10+
+                ' i.indkey as fields,'#13#10+
+                ' i.indisprimary'#13#10+
+                ' FROM "pg_index" as i, "pg_class" as t1, "pg_class" as t2'#13#10+
+                ' WHERE i.indexrelid = t1.oid'#13#10+
+                ' AND i.indrelid = t2.oid'#13#10+
+                ' AND t2.oid = %u'#13#10+
+                ' AND i.indexprs IS NULL'#13#10;
+    sSQLQuery := Format(sSQLQuery, [ATableOID] );
+
     Res := _PQExecute(FConnect, sSQLQuery);
     if Assigned(RES) then
-     try
+    try
       FConnect.CheckResult;
-      for i:=0 to PQntuples(RES)-1 do
-       begin
+      for i := 0 to PQntuples(RES) - 1 do
+      begin
         aUniq := PQgetvalue(Res,i,1) = 't';
         aPrim := PQgetvalue(Res,i,3) = 't';
         aSort := False;
@@ -5579,17 +5621,11 @@ begin
         LastIdx := FIndexDescs.SetIndex(IdxName, Buffer, aPrim, aUniq, aSort);
         if LastIdx > 0 then
           if aPrim and (FPrimaryKeyNumber = 0) then
-             FPrimaryKeyNumber := LastIdx; //pg: 14.02.07
-       end;
-       FIndexDescs.Updated := True;
-     finally
+             FPrimaryKeyNumber := LastIdx;
+      end;
+      FIndexDescs.Updated := True;
+    finally
       PQclear(RES);
-     end;
-    except
-     if FConnect.GetserverVersionAsInt >= 070401
-      then raise;
-      //in case if parser failed to get correct tablename
-      //and ver <= 7.4.0 swallow exception
     end;
   end;
   Result := FIndexDescs.Count;
@@ -6246,11 +6282,13 @@ end;
 
 procedure TNativeDataSet.SettoSeqNo(iSeqNo: Longint);
 begin
-    if iSeqNo-1 < 0 then
-       RecNo := -1 else
-       if iSeqNo-1 >= RecordCount-1 then
-          RecNo := RecordCount-1 else
-          RecNo := iSeqNo-1;
+    if iSeqNo - 1 < 0 then
+      RecNo := -1
+    else
+      if iSeqNo - 1 >= RecordCount - 1 then
+        RecNo := RecordCount - 1
+      else
+        RecNo := iSeqNo - 1;
     CurrentRecord(RecNo);
 end;
 
@@ -6642,7 +6680,7 @@ end;
 function TPSQLEngine.GetPriorRecord(hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
 begin
   try
-    TNativeDataSet(hCursor).GetPriorRecord(eLock,PRecord,pRecProps);
+    TNativeDataSet(hCursor).GetPriorRecord(eLock, PRecord, pRecProps);
     Result := DBIERR_NONE;
   except
     Result := CheckError;
@@ -6850,7 +6888,7 @@ end;
 function TPSQLEngine.GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: integer;var iLen: integer): DBIResult;
 begin
   iLen := 0;
-  if Assigned( hObj ) then
+  if Assigned(hObj) then
   begin
     TNativeDataSet(hObj).GetProp( iProp, PropValue, iMaxLen, iLen );
     Result := DBIERR_NONE;
@@ -7421,10 +7459,10 @@ begin
          SFlds[I] := SS;
       end;
    end;
-   R := findrows(Flds,SFlds,False,0);
+   R := FindRows(Flds, SFlds, False, 0);
    Result := R <> -1;
    if Result then
-      SettoSeqNo(R+1);
+      SettoSeqNo(R + 1);
 end;
 
 
@@ -8250,35 +8288,31 @@ end;
 
 procedure TNativeConnect.GetCharSetList(var List: TStrings);
 var
-   sql, s : String;
+   sql : String;
    RES : PPGresult;
    i: integer;
    CREC: string;
 begin
   InternalConnect;
   List.Clear;
-  if Self.GetserverVersionAsInt >= 080000 then
-   S := Format('generate_series(0,%d)',[MAX_ENCODING_ID])
-  else
-   S := Format(sqlGenerateSeries,[0,MAX_ENCODING_ID]);
-  Sql := 'SELECT pg_encoding_to_char(num.n) FROM '+S+' as num(n)';
+  Sql := Format('SELECT pg_encoding_to_char(num.n) FROM generate_series(0,%d) as num(n)', [MAX_ENCODING_ID]);
   RES := PQexec(Handle, PAnsiChar(AnsiString(Sql)));
   if Assigned(RES) then
    try
     CheckResult;
     List.BeginUpdate;
-     try
+    try
       for i:=0 to PQntuples(RES)-1 do
-       begin
-          CREC := Trim(RawToString(PQgetvalue(RES,i,0)));
-          if CREC > '' then List.Append(CREC);
-       end;
-     finally
+      begin
+        CREC := Trim(RawToString(PQgetvalue(RES,i,0)));
+        if CREC > '' then List.Append(CREC);
+      end;
+    finally
       List.EndUpdate;
-     end;
-   finally
-    PQclear(RES);
-   end;
+    end;
+  finally
+     PQclear(RES);
+  end;
 end;
 
 function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; var CharSet: string): DBIResult;
@@ -8390,23 +8424,21 @@ begin
   InternalConnect;
   Sql := 'SELECT usesysid, usecreatedb, usesuper, usecatupd, valuntil '+
          ' FROM pg_user WHERE usename = '''+UserName+'''';
- try
+
   RES := _PQExecute(Self, Sql);
   if Assigned(RES) then
-   try
+  try
     CheckResult;
     if PQntuples(RES) > 0 then
-     begin
-      UserID := strtoint(string(PQgetvalue(RES,0,0)));
-      CanCreateDB := PQgetvalue(RES,0,1) = 't';
-      SuperUser := PQgetvalue(RES,0,2) = 't';
-      CanUpdateSysCatalogs := PQgetvalue(RES,0,3) = 't';
-      ValidUntil := string(PQgetvalue(RES,0,4));
-     end;
-   except
+    begin
+      UserID := StrToIntDef(string(PQgetvalue(RES, 0, 0)), InvalidOID);
+      CanCreateDB := PQgetvalue(RES, 0, 1) = 't';
+      SuperUser := PQgetvalue(RES, 0, 2) = 't';
+      CanUpdateSysCatalogs := PQgetvalue(RES, 0, 3) = 't';
+      ValidUntil := string(PQgetvalue(RES, 0, 4));
+    end;
+  finally
     PQclear(RES);
-   end;
-  except
   end;
 end;
 
@@ -9444,7 +9476,7 @@ var
 begin
   InternalConnect;
   sql := AnsiString(Format('SELECT pg_cancel_backend(%u)',[PID]));
-  RES := PQexec(Handle,PAnsiChar(sql));
+  RES := PQexec(Handle, PAnsiChar(sql));
   try
     CheckResult;
   finally

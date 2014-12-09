@@ -496,7 +496,12 @@ begin
   {$IFNDEF FPC}{$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}{$ENDIF}
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
   RegisterComponentEditor(TPSQLStoredProc,TPSQLStoredProcEditor);
-  RegisterFields([TPSQLGuidField, TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField]);
+  RegisterFields([TPSQLGuidField
+  {$IFDEF DELPHI_12}
+    ,TPSQLPointField, TPSQLCircleField, TPSQLBoxField, TPSQLLSegField, TPSQLRangeField
+  {$ENDIF DELPHI_12}
+    ]);
+
   RegisterPropertyEditors;
 end;
 
