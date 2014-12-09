@@ -7,7 +7,8 @@ unit PSQLTypes;
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
-     Classes, SysUtils, SqlTimSt
+     Classes, SysUtils
+     {$IFDEF DELPHI_12}, SqlTimSt{$ENDIF}
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
@@ -1950,7 +1951,6 @@ const
 
 function NextSQLToken(var p: PChar; out Token: string; CurSection: TSQLToken): TSQLToken;
 function GetTable(const SQL: String; var Aliace : String): String;
-function IfThen(const Value: boolean; const ATrue: TDateTime; const AFalse: TDateTime): TDateTime; overload; inline;
 function SqlDateToDateTime(Value: string; const IsTime: boolean): TDateTime;
 function DateTimeToSqlDate(Value: TDateTime; Mode : integer): string;
 function SQLTimeStampToDateTime(Value: string): TDateTime;

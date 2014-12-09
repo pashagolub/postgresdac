@@ -195,7 +195,6 @@ type
     procedure Clear; override;
     function ValueOfKey(const AKey: Variant): Variant; override;
   end;
-{$ENDIF}
 
   TPSQLFieldDef = class(TFieldDef)
   private
@@ -209,6 +208,7 @@ type
   protected
     function GetFieldDefClass: TFieldDefClass; override;
   end;
+{$ENDIF}
 
   TParamClass = class of TParam;
 
@@ -616,7 +616,9 @@ type
     procedure CheckSetKeyMode;
     procedure ClearCalcFields(Buffer: TRecordBuffer); override;
     procedure CloseCursor; override;
+{$IFDEF DELPHI_12}
     procedure CreateFields; override;
+{$ENDIF DELPHI_12}
     procedure CloseBlob(Field: TField); override;
     function  CreateExprFilter(const Expr: string;
       Options: TFilterOptions; Priority: Integer): HDBIFilter;
@@ -658,9 +660,9 @@ type
     function  GetFieldFullName(Field: TField): string; override;
 {$ENDIF}
     function  GetFieldClass(FieldType: TFieldType): TFieldClass; override;
+{$IFDEF DELPHI_12}
     function GetFieldClass(FieldDef: TFieldDef): TFieldClass; override;
     function GetFieldDefsClass: TFieldDefsClass; override;
-{$IFDEF DELPHI_12}
     function GetLookupListClass(Field: TField): TLookupListClass; override;
 {$ENDIF}
     function  GetIndexField(Index: Integer): TField;
@@ -2433,13 +2435,13 @@ begin
   SetDBFlag(dbfOpened, FALSE);
 end;
 
+{$IFDEF DELPHI_12}
 procedure TPSQLDataset.CreateFields;
 var F: TField;
     I: integer;
 begin
  F := nil; //make compiler happy
  inherited CreateFields;
-{$IFDEF DELPHI_12}
  if FieldDefs.Count > Fields.Count then
    for I := 0 to FieldDefs.Count - 1 do
       if (FieldDefs[I].DataType = ftUnknown) and
@@ -2470,8 +2472,8 @@ begin
             raise;
           end;
          end;
-{$ENDIF DELPHI_12}
 end;
+{$ENDIF DELPHI_12}
 
 //////////////////////////////////////////////////////////
 //function    : TPSQLDataSet.CreateHandle
@@ -2917,7 +2919,9 @@ procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Intege
   var FieldID: Integer; RequiredFields: TBits; FieldDefs: TFieldDefs);
 var
   FType: TFieldType;
+{$IFDEF DELPHI_12}
   ANativeType: cardinal;
+{$ENDIF}
   FSize: integer;
   FRequired: Boolean;
   FPrecision, I: Integer;
@@ -2929,7 +2933,7 @@ begin
   with FieldDesc do
   begin
     FieldName := szName;
-    ANativeType := iNativeType;
+    {$IFDEF DELPHI_12}ANativeType := iNativeType;{$ENDIF}
     I := 0;
     FName := FieldName;
     while FieldDefs.IndexOf(string(FName)) >= 0 do
@@ -2990,12 +2994,12 @@ begin
     {$ENDIF}
 
 
-    with TPSQLFieldDef(FieldDefs.AddFieldDef) do
+    with FieldDefs.AddFieldDef {$IFDEF DELPHI_12}as TPSQLFieldDef{$ENDIF} do
     begin
       {$IFNDEF FPC}FieldNo := FieldID;{$ENDIF}
       Inc(FieldID);
       Name := FName;
-      NativeDataType := ANativeType;
+      {$IFDEF DELPHI_12}NativeDataType := ANativeType;{$ENDIF}
       DataType := FType;
       Size := FSize;
       Precision := FPrecision;
@@ -3062,6 +3066,7 @@ begin
 end;
 {$ENDIF}
 
+{$IFDEF DELPHI_12}
 function TPSQLDataSet.GetFieldClass(FieldDef: TFieldDef): TFieldClass;
 begin
   if FieldDef.DataType = ftUnknown then
@@ -3082,6 +3087,7 @@ begin
   else
     Result := inherited GetFieldClass(FieldDef);
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
 var
@@ -3108,11 +3114,12 @@ begin
   end;
 end;
 
-
+{$IFDEF DELPHI_12}
 function TPSQLDataSet.GetFieldDefsClass: TFieldDefsClass;
 begin
   Result := TPSQLFieldDefs;
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
@@ -7521,7 +7528,6 @@ begin
         Break;
       end;
 end;
-{$ENDIF DELPHI_12}
 
 { TPSQLFieldDef }
 
@@ -7537,6 +7543,7 @@ function TPSQLFieldDefs.GetFieldDefClass: TFieldDefClass;
 begin
   Result := TPSQLFieldDef;
 end;
+{$ENDIF DELPHI_12}
 
 initialization
 
