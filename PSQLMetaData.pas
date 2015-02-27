@@ -1,5 +1,5 @@
 {$I PSQLdac.inc}
-unit PSQLMetaData;
+unit PSQLMetaData deprecated 'Will be removed from suite shortly!';
 
 {SVN revision: $Id$}
 

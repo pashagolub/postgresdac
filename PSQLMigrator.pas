@@ -1,5 +1,5 @@
 {$I Psqldac.inc}
-unit PSQLMigrator;
+unit PSQLMigrator deprecated 'Will be removed from suite shortly! Consider using reFind.exe, see help for details';
 
 {SVN revision: $Id$}
 
