@@ -304,14 +304,13 @@ begin
   else
     FStatement := _PQExecute(NC, FSQL.Text);
   if PQresultStatus(FStatement) <> PGRES_TUPLES_OK then
-  begin
+  try
+    NC.CheckResult(FStatement);
     FreeHandle();
-    try
-      NC.CheckResult(FStatement);
-    except
-      if FDatabase.Engine().CheckError <> 0 then
-       raise EPSQLDatabaseError.Create(FDatabase.Engine(), FDatabase.Engine().Status);
-    end;
+  except
+    if FDatabase.Engine().CheckError <> 0 then
+      raise EPSQLDatabaseError.Create(FDatabase.Engine(), FDatabase.Engine().Status);
+    FreeHandle();
   end;
   RecNo := 0;
 end;
