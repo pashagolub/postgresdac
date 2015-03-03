@@ -33,6 +33,8 @@ type
     procedure SetUp; override;
     procedure TearDown; override;
   published
+  //parameters
+    procedure CheckCorruptedParams;
   //dataset options
     procedure TestEmptyCharAsNullOption;
   //TField.AsXXX
@@ -187,6 +189,13 @@ begin
     raise EConvertError.Create('Cannot encode date');
 end;
 {$ENDIF}
+
+procedure TestTPSQLQuery.CheckCorruptedParams;
+begin
+  FPSQLQuery.ParamCheck := True;
+  FPSQLQuery.SQL.Text := '6.1.2009 12:12:04';
+  Check(FPSQLQuery.ParamCount = 0, 'Wrong parameters parsing with ParamCheck');
+end;
 
 procedure TestTPSQLQuery.SetUp;
 begin
