@@ -500,7 +500,7 @@ type
 
  TBlobDataArray = array of TBlobData;
 
- TPSQLDataSet = Class(TDataSet)
+ TPSQLDataSet = class(TDataSet)
   private
     FAbout : TPSQLDACAbout;
     FRecProps: RecProps; //Record properties
@@ -2405,11 +2405,18 @@ end;
 //Input       : InfoQuery: Boolean
 //////////////////////////////////////////////////////////
 procedure TPSQLDataSet.OpenCursor(InfoQuery: Boolean);
+var
+  I: Integer;
 begin
-  if Database=nil then raise EDatabaseError.Create('Property Database not set!');
-  if FHandle = nil then
-     FHandle := CreateHandle;
-  if FHandle = nil then
+  if not Assigned(Database) then
+    DatabaseError('Property Database not set!', Self);
+  if dsoFetchOnDemand in Options then
+    for I := Database.DataSetCount - 1 downto 0 do
+      if Database.DataSets[I].Active then
+        DatabaseError('Cannot swith to fetch-on-demand mode since database object is used by another dataset', Self);
+  if not Assigned(FHandle) then
+     FHandle := CreateHandle();
+  if not Assigned(FHandle) then
     raise ENoResultSet.Create(SHandleError);
   SetDBFlag(dbfOpened, TRUE);
   Inherited OpenCursor(InfoQuery);
@@ -5471,7 +5478,7 @@ end;
 function TPSQLDataSet.GetFieldClass(FieldType: TFieldType): TFieldClass;
 begin
   if (FieldType = ftGuid) and (dsoUseGUIDField in FOptions) then
-   Result := TPSQLGuidField
+    Result := TPSQLGuidField
   else
     Result := inherited GetFieldClass(FieldType);
 end;
@@ -5479,16 +5486,14 @@ end;
 procedure TPSQLDataSet.SortBy(FieldNames: string);
 begin
 	if Active and (RecordCount > 1) then
-	begin
-   try
+  try
 		TNativeDataSet(FHandle).SortBy(FieldNames);
     TNativeDataset(Fhandle).SetRowPosition(-1, -1, Pointer(ActiveBuffer));
     Resync([]);
-   except
+  except
     FSortFieldNames := '';
     raise;
-   end;
-	end;
+  end;
 end;
 
 
@@ -5505,8 +5510,8 @@ procedure TPSQLDataSet.SetOptions(const Value: TPSQLDatasetOptions);
 begin
   if (dsoFetchOnDemand in Value)  then
   begin
-    if not (Self is TPSQLQuery) then DatabaseError('Option is applicable only to TPSQLQuery objects', Self);
-    if (Self as TPSQLQuery).RequestLive then DatabaseError('RequestLive must be False to apply this option', Self);
+    if not (Self is TPSQLQuery) then DatabaseError('dsoFetchOnDemand option is applicable only to TPSQLQuery objects', Self);
+    if (Self as TPSQLQuery).RequestLive then DatabaseError('RequestLive must be False to apply dsoFetchOnDemand option', Self);
   end;
   FOptions := Value;
 end;

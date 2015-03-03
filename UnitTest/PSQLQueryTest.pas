@@ -61,6 +61,7 @@ type
     procedure TestTimestampValues;
   //fetch on demand
     procedure TestFetchOnDemand;
+    procedure TestFetchOnDemandExclusive;
   end;
 
 var
@@ -338,6 +339,22 @@ begin
   FPSQLQuery.FetchAll;
   Check(FPSQLQuery.RecordCount = 250, 'Record count should equal to the result set size');
   FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestFetchOnDemandExclusive;
+var Q: TPSQLQuery;
+begin
+  Q := TPSQLQuery.Create(nil);
+  try
+    Q.SQL.Text := 'SELECT 1';
+    Q.Database := QryDB;
+    Q.Open;
+    FPSQLQuery.SQL.Text := 'SELECT g.s, repeat($$Pg$$, 25000) FROM generate_series(1, 250) g(s)';
+    FPSQLQuery.Options := FPSQLQuery.Options + [dsoFetchOnDemand];
+    CheckException(TestFetchOnDemand, EDatabaseError, 'Open should failed for non-exsclusive use of Database');
+  finally
+    FreeAndNil(Q);
+  end;
 end;
 
 procedure TestTPSQLQuery.TestInsert;

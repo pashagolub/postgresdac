@@ -1,5 +1,6 @@
 {$I PSQLdac.inc}
-unit PSQLMetaData deprecated 'Will be removed from suite shortly!';
+unit PSQLMetaData
+{$IFDEF DELPHI_15}deprecated 'Will be removed from suite shortly!'{$ENDIF};
 
 {SVN revision: $Id$}
 

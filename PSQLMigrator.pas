@@ -1,5 +1,6 @@
 {$I Psqldac.inc}
-unit PSQLMigrator deprecated 'Will be removed from suite shortly! Consider using reFind.exe, see help for details';
+unit PSQLMigrator
+{$IFDEF DELPHI_15} deprecated 'Will be removed from suite shortly! Consider using reFind.exe, see help for details'{$ENDIF};
 
 {SVN revision: $Id$}
 
