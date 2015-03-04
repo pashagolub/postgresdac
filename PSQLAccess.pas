@@ -611,7 +611,6 @@ type
       procedure SetTableName(Name : string);
       function CheckUniqueKey(var KeyNumber : integer): Boolean;
       procedure GetKeys(Unique: Boolean;var FieldList: TFieldArray; var FieldCount: Integer);
-      function GetLOUnlinkSQL(ObjOID: cardinal): string; overload;
       function GetLOUnlinkSQL(ObjOID: string): string; overload;
       function GetDeleteSQL(Table: string; PRecord: Pointer): string;
       function GetInsertSQL(Table: string; PRecord: Pointer; ReturnUpdated: boolean = False): string;
@@ -5190,11 +5189,6 @@ begin
       end;
     end;
   end;
-end;
-
-function TNativeDataSet.GetLOUnlinkSQL(ObjOID: cardinal): string;
-begin
-  Result := GetLOUnlinkSQL(UIntToStr(ObjOID));
 end;
 
 function TNativeDataSet.GetLOUnlinkSQL(ObjOID: string): string;
