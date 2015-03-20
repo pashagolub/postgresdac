@@ -1784,12 +1784,10 @@ begin
     ChangeOldParameter('SSLMode', 'sslmode');
     ChangeOldParameter('Host', 'host');
     if IsValidIP(FParams.Values['host']) then
-     begin
+    begin
       FParams.Values['hostaddr'] := FParams.Values['host'];
       FParams.Values['host'] := '';
-     end
-    else
-      FParams.Values['hostaddr'] := '';
+    end;
   finally
     TStringList(FParams).OnChanging := ParamsChanging;
   end;
