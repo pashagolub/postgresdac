@@ -93,7 +93,10 @@ type
     procedure SaveToStream(Stream: TStream);
 
     procedure LoadFromStrings(Strings: TStrings);
-    procedure SaveToStrings(Strings: TStrings);
+    procedure SaveToStrings(Strings: TStrings); overload;
+{$IFDEF DELPHI_15}
+    procedure SaveToStrings(Strings: TStrings; Encoding: TEncoding); overload;
+{$ENDIF}
 
     procedure LoadFromClientSideFile(const FileName: string);
     procedure SaveToClientSideFile(const FileName: string);
@@ -394,7 +397,7 @@ function TCustomPSQLCopy.GetSQLStatement: string;
     function GetNewWithStmt: string;
     const
       cFormat: array[TCopyFormat] of string = ('''text''', '''csv''', '''binary''');
-      cForced: array[TCopyDirection] of string = (', FORCE NOT NULL %s', ', FORCE QUOTE %s');
+      cForced: array[TCopyDirection] of string = (', FORCE_NOT_NULL %s', ', FORCE_QUOTE %s');
     begin
       Result := 'FORMAT ' + cFormat[GetDataFormat];
       if coUseOIDs in FOptions then Result := Result + ', OIDS true';
@@ -537,7 +540,8 @@ begin
  DoClientSideCopyGet(Stream);
 end;
 
-procedure TCustomPSQLCopy.SaveToStrings(Strings: TStrings);
+{$IFDEF DELPHI_15}
+procedure TCustomPSQLCopy.SaveToStrings(Strings: TStrings; Encoding: TEncoding);
 var MS: TMemoryStream;
 begin
  if Assigned(Strings) then
@@ -546,10 +550,27 @@ begin
    try
     SaveToStream(MS);
     MS.Position := 0;
-    Strings.LoadFromStream(MS);
+    Strings.LoadFromStream(MS, Encoding);
    finally
     MS.Free;
    end;
+  end;
+end;
+{$ENDIF}
+
+procedure TCustomPSQLCopy.SaveToStrings(Strings: TStrings);
+var MS: TMemoryStream;
+begin
+ if Assigned(Strings) then
+  begin
+    MS := TMemoryStream.Create;
+    try
+      SaveToStream(MS);
+      MS.Position := 0;
+      Strings.LoadFromStream(MS);
+    finally
+      MS.Free;
+    end;
   end;
 end;
 

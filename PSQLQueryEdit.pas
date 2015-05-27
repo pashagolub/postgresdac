@@ -441,6 +441,7 @@ begin
   SQLMemo.Lines.Text := aSQL;
   SQLMemo.OnEnter := SQLMemoEnter;
   SQLMemo.OnExit := SQLMemoExit;
+  SQLMemo.ScrollBars := ssBoth;
   SynMemoLines := SQLMemo.Lines;
 end;
 
