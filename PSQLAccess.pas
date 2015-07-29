@@ -8142,7 +8142,7 @@ begin
 
     MinOIDSel :=  MinOIDSel + ', pg_proc.oid '+
                   'FROM pg_catalog.pg_proc, pg_catalog.pg_namespace '+
-                  Format(' WHERE proname LIKE ''%s'''+
+                  Format(' WHERE proname = ''%s'''+
                          ' AND nspname LIKE ''%s''',
                          [ProcName,ProcSchema]) +
                   ' ORDER BY 2 '+
