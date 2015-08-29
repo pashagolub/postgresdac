@@ -627,11 +627,11 @@ type
     function  CreateHandle: HDBICur; virtual;
     function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
-{$IFDEF DELPHI_17}
-    procedure DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean); override;
-{$ELSE}
-    procedure DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean); override;
-{$ENDIF}
+//{$IFDEF DELPHI_17}
+//    procedure DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean); override;
+//{$ELSE}
+//    procedure DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean); override;
+//{$ENDIF}
     procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; virtual;
@@ -4611,23 +4611,23 @@ begin
   Result := GetIntProp(Engine, FHandle, curDELAYUPDNUMUPDATES) > 0;
 end;
 
-{$IFDEF DELPHI_17}
-procedure TPSQLDataSet.DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean);
-begin
-  if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
-    Move(Source[0], Dest[0], SizeOf(TDateTime))
-  else
-   inherited;
-end;
-{$ELSE}
-procedure TPSQLDataSet.DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean);
-begin
-  if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
-    TDateTime(Dest^) := TDateTime(Source^)
-  else
-   inherited;
-end;
-{$ENDIF}
+//{$IFDEF DELPHI_17}
+//procedure TPSQLDataSet.DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean);
+//begin
+//  if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
+//    Move(Source[0], Dest[0], SizeOf(TDateTime))
+//  else
+//   inherited;
+//end;
+//{$ELSE}
+//procedure TPSQLDataSet.DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean);
+//begin
+//  if (Field.DataType = ftDateTime) and not ToNative then //#1871 	TDateTimeField supports dates before 30/12/1899 from now
+//    TDateTime(Dest^) := TDateTime(Source^)
+//  else
+//   inherited;
+//end;
+//{$ENDIF}
 
 procedure TPSQLDataSet.DataEvent(Event: TDataEvent; Info: TDataEventInfo);
 

@@ -2108,7 +2108,7 @@ begin
 
     FIELD_TYPE_DATE:   LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Date;
     FIELD_TYPE_TIME:   LongInt(Dest^) := DateTimeToTimeStamp(TDateTime(Src^)).Time;
-    FIELD_TYPE_TIMESTAMP: TDateTime(Dest^):= TDateTime(Src^);
+    FIELD_TYPE_TIMESTAMP: TDateTime(Dest^):= TimeStampToMSecs(DateTimeToTimeStamp(TDateTime(Src^)));
 
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_FLOAT8,
