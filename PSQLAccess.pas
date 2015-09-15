@@ -8,11 +8,14 @@ unit PSQLAccess;
 
 interface
 
-uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
+uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, PSQLGeomTypes, Math,
      {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
      {$IFDEF DELPHI_6}Variants,{$ENDIF}
      {$IFDEF FPC}Variants,{$ENDIF}
      SysUtils;
+
+{$NOINCLUDE PSQLGeomTypes}
+
 type
   {Forward declaration}
   TNativeConnect = class;

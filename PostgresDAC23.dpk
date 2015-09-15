@@ -48,7 +48,8 @@ contains
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',
   PSQLFields in 'PSQLFields.pas',
-  PSQLNotify in 'PSQLNotify.pas';
+  PSQLNotify in 'PSQLNotify.pas',
+  PSQLGeomTypes in 'PSQLGeomTypes.pas'; {$NOINCLUDE PSQLGeomTypes}
 
 end.
 

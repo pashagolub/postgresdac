@@ -319,6 +319,7 @@ begin
     DoneMaskStates(Slice(PMaskStateArray(FMask)^, FSize));
     FreeMem(FMask, FSize * SizeOf(TMaskState));
   end;
+  inherited;
 end;
 
 function TExtMask.Matches(const AString: string): Boolean;
