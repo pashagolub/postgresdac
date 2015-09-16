@@ -3,9 +3,9 @@ unit PSQLGeomTypes;
 
 interface
 
+{$IFDEF DELPHI_12}
 uses Types;
 
-{$IFDEF DELPHI_12}
 type
   TPSQLRangeBoundState = (rbsExclusive, rbsInclusive, rbsInfinite);
 
@@ -87,9 +87,9 @@ function RangeToSQLRange(Value: TPSQLRange; const RangeType: cardinal; const Del
 
 implementation
 
+{$IFDEF DELPHI_12}
 uses PSQLAccess, PSQLTypes, SysUtils, StrUtils, Math;
 
-{$IFDEF DELPHI_12}
 function SQLPointToPoint(Value: string; const Delimiter: char = ','; const UseSystemSeparator: boolean = False): TPSQLPoint;
 var S, Xs, Ys: string;
     DelimPos: integer;
