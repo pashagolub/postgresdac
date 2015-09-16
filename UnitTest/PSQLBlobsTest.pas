@@ -38,6 +38,7 @@ type
     procedure TestEmptyBLOBsInsertAsParams;
     procedure TestBlobSizeAnsi;
     procedure TestBlobSizeUnicode;
+    procedure TestMemoEmptyValue;
   end;
 
 var
@@ -131,6 +132,20 @@ begin
     MS.Free;
     FPSQLQuery.Close;
   end;
+end;
+
+procedure TestTPSQLBlobs.TestMemoEmptyValue;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Open;
+  FPSQLQuery.Insert;
+  (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := '';
+  Check(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL before Post with empty text value');
+  FPSQLQuery.Post;
+  FPSQLQuery.First;
+  Check(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL after Post with empty text value');
+  FPSQLQuery.Close;
 end;
 
 procedure TestTPSQLBlobs.TestQueryInsertAndRead;
