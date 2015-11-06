@@ -1803,7 +1803,7 @@ begin
   if Assigned(FOnLogin) then
     FOnLogin(Self, LoginParams)
   else
-    DatabaseErrorFmt(SLoginError, [DatabaseName]);
+    DatabaseErrorFmt(SLoginPrompt, [DatabaseName]);
 end;
 
 procedure TPSQLDatabase.DoConnect;

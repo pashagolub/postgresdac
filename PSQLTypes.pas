@@ -798,6 +798,7 @@ resourcestring
   SNoParameterValue = 'No value for parameter ''%s''';
   SNoParameterType = 'No parameter type for parameter ''%s''';
   SLoginError = 'Cannot connect to database ''%s''';
+  SLoginPrompt = 'Cannot call login prompt to database ''%s''';
   SInitError = 'An error occurred while attempting to initialize the Borland Database Engine (error $%.4x)';
   SDatabaseEditor = 'Da&tabase Editor...';
   SExplore = 'E&xplore';
