@@ -4286,10 +4286,14 @@ end;
 
 procedure TNativeDataSet.SetToBookmark(P : Pointer);
 begin
-  CheckParam(P=nil,DBIERR_INVALIDPARAM);
-  if TPSQLBookMark(P^).Position >= 1 then
-     RecordNumber := TPSQLBookMark(P^).Position-1 else
-     FirstRecord;
+  CheckParam(P = nil, DBIERR_INVALIDPARAM);
+  if TPSQLBookMark(P^).Position >= RecordCount then
+    LastRecord()
+  else
+    if TPSQLBookMark(P^).Position < 1 then
+      FirstRecord()
+    else
+      RecordNumber := TPSQLBookMark(P^).Position - 1;
   RecordState := tsPos;
 end;
 
