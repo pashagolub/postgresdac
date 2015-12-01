@@ -1,18 +1,22 @@
+{$I PSQLDAC.inc}
 unit PgSSHDatabase;
+
+// One should uncomment only one directive
+{$DEFINE USE_SSH_PLINK} 	// this allows to connect via plink.exe
+{ .$DEFINE USE_SSH_WEONLYDO } // this allows to connect via WeOnlyDo
 
 interface
 
 uses
-  Classes, Windows, SysUtils, PSQLDbTables, WinSock, wodSSHTunnelLib_TLB,
-  Forms;
+  Classes, Windows, SysUtils,
+  {$IFDEF USE_SSH_WEONLYDO}wodSSHTunnelLib_TLB, {$ENDIF}
+  PSQLDbTables, PSQLTypes;
 
 type
   ESSHConnectError = class(Exception);
 
   TPgSSHDatabase = class(TPSQLDatabase)
   private
-    FTunnel: TwodTunnel;
-
     FSSHEnabled: boolean;
     FInitPort: Cardinal;
     FInitHost: string;
@@ -20,46 +24,51 @@ type
     FSSHHost: string;
     FSSHLogin: string;
     FSSHPassword: string;
-
+    FOnTunnelConnected: TNotifyEvent;
+{$IFDEF USE_SSH_WEONLYDO}
+    FTunnel: TwodTunnel;
     FIsSSHConnecting: boolean;
     FLastSSHError: string;
-
-    FOnTunnelConnected: TNotifyEvent;
+    FOnTunnelDisconnected: TwodTunnelDisconnected;
     FOnTunnelChannelStart: TwodTunnelChannelStart;
     FOnTunnelChannelStop: TwodTunnelChannelStop;
     FOnTunnelCryptoInformation: TwodTunnelCryptoInformation;
-    FOnTunnelDisconnected: TwodTunnelDisconnected;
     FOnTunnelUserConnected: TwodTunnelUserConnected;
     FOnTunnelUserDisconnected: TwodTunnelUserDisconnected;
+{$ELSE} // USE_SSH_PLINK defined
+    FPLinkPath: String;
+    FPlinkProcInfo: TProcessInformation;
+{$ENDIF}
     FSSHUseCompression: boolean;
     FSSHCompressionLevel: integer;
     FSSHTimeout: integer;
     FInitialLocalPort: integer;
-
-    procedure DoOnTunnelUserConnecting(Sender: TObject;
-      const Chan: IChannel; const Hostname: WideString; Port: Integer;
+{$IFDEF USE_SSH_WEONLYDO}
+    procedure DoOnTunnelUserConnecting(Sender: TObject; const Chan: IChannel; const Hostname: WideString; Port: integer;
       var Allow: WordBool);
-    procedure DoOnTunnelDisconnected(Sender: TObject; ErrorCode: Smallint;
-     const ErrorText: WideString);
+    procedure DoOnTunnelDisconnected(Sender: TObject; ErrorCode: Smallint; const ErrorText: WideString);
     procedure DoOnTunnelConnected(Sender: TObject);
     procedure DoOnTunnelChannelStop(Sender: TObject; const Chan: IChannel; ErrorCode: Smallint;
       const ErrorText: WideString);
     procedure DoOnTunnelChannelStart(Sender: TObject; const Chan: IChannel);
-    procedure DoOnTunnelUserDisconnected(ASender: TObject;
-      const Chan: IChannel; const User: IUser; ErrorCode: Smallint;
+    procedure DoOnTunnelUserDisconnected(ASender: TObject; const Chan: IChannel; const User: IUser; ErrorCode: Smallint;
       const ErrorText: WideString);
-
-    procedure RemoveSSHConnection;
     function CreateSSHTunnel: TwodTunnel;
+{$ELSE} // USE_SSH_PLINK defined
+    procedure ShutdownPlink;
+{$IFEND}
+    procedure RemoveSSHConnection;
     procedure SetInitialLocalPort(const Value: integer);
   protected
     procedure DoConnect; override;
-//    procedure DoDisconnect; override;
-    procedure SetConnected(Value: Boolean); override;
+    procedure SetConnected(Value: boolean); override;
   public
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
   published
+{$IFDEF USE_SSH_PLINK}
+    property PathPLinkExe: String read FPLinkPath write FPLinkPath;
+{$ENDIF}
     property SSHEnabled: boolean read FSSHEnabled write FSSHEnabled default False;
     property SSHHost: string read FSSHHost write FSSHHost;
     property SSHLogin: string read FSSHLogin write FSSHLogin;
@@ -69,23 +78,17 @@ type
     property SSHUseCompression: boolean read FSSHUseCompression write FSSHUseCompression;
     property SSHCompressionLevel: integer read FSSHCompressionLevel write FSSHCompressionLevel;
     property InitialLocalPort: integer read FInitialLocalPort write SetInitialLocalPort default 3380;
-
-    property OnTunnelConnected: TNotifyEvent read FOnTunnelConnected
-      write FOnTunnelConnected;
-    property OnTunnelDisconnected: TwodTunnelDisconnected read FOnTunnelDisconnected
-      write FOnTunnelDisconnected;
-
-    property OnTunnelChannelStart: TwodTunnelChannelStart read FOnTunnelChannelStart
-      write FOnTunnelChannelStart;
-    property OnTunnelChannelStop: TwodTunnelChannelStop read FOnTunnelChannelStop
-      write FOnTunnelChannelStop;
-
-    property OnTunnelUserConnected: TwodTunnelUserConnected read FOnTunnelUserConnected
-      write FOnTunnelUserConnected;
+    property OnTunnelConnected: TNotifyEvent read FOnTunnelConnected write FOnTunnelConnected;
+{$IFDEF USE_SSH_WEONLYDO}
+    property OnTunnelDisconnected: TwodTunnelDisconnected read FOnTunnelDisconnected write FOnTunnelDisconnected;
+    property OnTunnelChannelStart: TwodTunnelChannelStart read FOnTunnelChannelStart write FOnTunnelChannelStart;
+    property OnTunnelChannelStop: TwodTunnelChannelStop read FOnTunnelChannelStop write FOnTunnelChannelStop;
+    property OnTunnelUserConnected: TwodTunnelUserConnected read FOnTunnelUserConnected write FOnTunnelUserConnected;
     property OnTunnelUserDisconnected: TwodTunnelUserDisconnected read FOnTunnelUserDisconnected
       write FOnTunnelUserDisconnected;
     property OnTunnelCryptoInformation: TwodTunnelCryptoInformation read FOnTunnelCryptoInformation
       write FOnTunnelCryptoInformation;
+{$ENDIF}
   end;
 
   procedure Register;
@@ -94,10 +97,11 @@ implementation
 
 {$R SSHDB.DCR}
 
-
+{$IFDEF USE_SSH_WEONLYDO}
 var
   TunnelList: TList;
   InitLocalPort: integer;
+{$ENDIF}
 
 procedure Register;
 begin
@@ -109,13 +113,15 @@ end;
 constructor TPgSSHDatabase.Create(AOwner: TComponent);
 begin
   inherited;
+{$IFDEF USE_SSH_WEONLYDO}
   FTunnel := nil;
+{$ENDIF}
   FSSHEnabled := False;
   FSSHTimeout := 120;
   FSSHUseCompression := False;
   FSSHCompressionLevel := 6;
+  FSSHPort := 22;
   FInitialLocalPort := 3380;
-
   CheckIfActiveOnParamChange := False;
 end;
 
@@ -125,13 +131,15 @@ begin
   inherited;
 end;
 
+{$IFDEF USE_SSH_WEONLYDO}
 procedure TPgSSHDatabase.RemoveSSHConnection;
 begin
-  if Assigned(FTunnel) then begin
+  if Assigned(FTunnel) then
+  begin
     FTunnel.Tag := FTunnel.Tag - 1;
-    if FTunnel.Tag = 0 then begin
+    if FTunnel.Tag = 0 then
+    begin
       TunnelList.Remove(FTunnel);
-    
       FTunnel.Channels.StopAll();
       FTunnel.Channels.RemoveAll();
       Dec(InitLocalPort);
@@ -141,24 +149,27 @@ begin
     end;
   end;
 end;
+{$ELSE}
+procedure TPgSSHDatabase.RemoveSSHConnection;
+begin
+  ShutdownPlink;
+end;
+{$ENDIF}
 
+{$IFDEF USE_SSH_WEONLYDO}
 function TPgSSHDatabase.CreateSSHTunnel: TwodTunnel;
 var
   AErrorMsg: string;
 begin
   Result := TwodTunnel.Create(nil);
-
   Result.Encryption := encAny;
   Result.Authentication := authPassword;
   Result.Protocol := SSHAuto;
-
   Result.OnConnected := DoOnTunnelConnected;
   Result.OnDisconnected := DoOnTunnelDisconnected;
-
   Result.OnUserConnecting := DoOnTunnelUserConnecting;
   Result.OnChannelStop := DoOnTunnelChannelStop;
   Result.OnChannelStart := DoOnTunnelChannelStart;
-
   Result.OnCryptoInformation := FOnTunnelCryptoInformation;
   Result.OnUserConnected := FOnTunnelUserConnected;
   Result.OnUserDisconnected := DoOnTunnelUserDisconnected;
@@ -169,27 +180,24 @@ begin
   Result.Timeout := FSSHTimeout;
   if FSSHUseCompression then
     Result.Compression := FSSHCompressionLevel
-  else Result.Compression := 0;
+  else
+    Result.Compression := 0;
   Result.Threads := True;
-
   Inc(InitLocalPort);
   Result.Channels.Add(LocalListen, '0.0.0.0', InitLocalPort, Host, FInitPort);
-
   FLastSSHError := EmptyStr;
   FIsSSHConnecting := True;
   Result.Connect();
-
   while FIsSSHConnecting do
     Application.ProcessMessages();
-
-  if not ((Result.State = wodSSHTunnelLib_TLB.Connected) and (Result.Channels.Count > 0) and
-     Result.Channels[0].Activated) then begin
+  if not((Result.State = wodSSHTunnelLib_TLB.Connected) and (Result.Channels.Count > 0) and Result.Channels[0].Activated)
+  then
+  begin
     TunnelList.Remove(Result);
     Result.Free();
     AErrorMsg := 'SSH Connection Failed';
     if FLastSSHError <> EmptyStr then
       AErrorMsg := Format('%s with Error: %s', [AErrorMsg, FLastSSHError]);
-
     raise ESSHConnectError.Create(AErrorMsg);
   end;
 end;
@@ -202,17 +210,18 @@ begin
   FInitPort := Port;
   FInitHost := Host;
   try
-    if FSSHEnabled then begin
+    if FSSHEnabled then
+    begin
       ATunnel := nil;
-      for i := 0 to TunnelList.Count - 1 do begin
+      for i := 0 to TunnelList.Count - 1 do
+      begin
         ATunnel := TwodTunnel(TunnelList[i]);
-        if (ATunnel.Hostname = FSSHHost) and
-           (ATunnel.Port = SSHPort) and
-           (ATunnel.Password = SSHPassword) and
-           (ATunnel.Login = SSHLogin) and
-           (ATunnel.Channels.Count > 0) and
-           (ATunnel.Channels[0].RemotePort = Integer(Port)) then Break
-        else ATunnel := nil;
+        if (ATunnel.Hostname = FSSHHost) and (ATunnel.Port = SSHPort) and (ATunnel.Password = SSHPassword) and
+          (ATunnel.Login = SSHLogin) and (ATunnel.Channels.Count > 0) and
+          (ATunnel.Channels[0].RemotePort = integer(Port)) then
+          Break
+        else
+          ATunnel := nil;
       end;
       if ATunnel = nil then
         ATunnel := CreateSSHTunnel();
@@ -229,6 +238,66 @@ begin
     Host := FInitHost;
   end;
 end;
+{$ELSE}
+procedure TPgSSHDatabase.DoConnect;
+var
+  ConnectStr: String;
+  StartupInfo: TStartupInfo;
+  ExCode: LongWord;
+const
+  START_FLAGS: cardinal = CREATE_DEFAULT_ERROR_MODE + NORMAL_PRIORITY_CLASS + CREATE_NO_WINDOW;
+begin
+  FInitPort := Port;
+  FInitHost := Host;
+  try
+    if FSSHEnabled then
+    begin
+      if not FileExists(FPLinkPath) then
+        raise ESSHConnectError.Create('Please specify path to PLink.exe!');
+      ConnectStr := AnsiQuotedStr(FPLinkPath, '"') + ' -ssh ';
+      if SSHLogin <> '' then
+        ConnectStr := ConnectStr + SSHLogin + '@';
+      if SSHHost <> '' then
+        ConnectStr := ConnectStr + SSHHost
+      else
+        ConnectStr := ConnectStr + Host;
+      if SSHPassword <> '' then
+        ConnectStr := ConnectStr + ' -pw ' + AnsiQuotedStr(SSHPassword, '"');
+      if SSHPort > 0 then
+        ConnectStr := ConnectStr + Format(' -P %u', [SSHPort]);
+      ConnectStr := ConnectStr + Format(' -N -L %u:%s:%u', [InitialLocalPort, Host, Port]);
+      FillChar(FPlinkProcInfo, SizeOf(TProcessInformation), 0);
+      FillChar(StartupInfo, SizeOf(TStartupInfo), 0);
+      StartupInfo.cb := SizeOf(TStartupInfo);
+      if CreateProcess(nil, PChar(ConnectStr), nil, nil, False, START_FLAGS, nil, nil, StartupInfo, FPlinkProcInfo) then
+      begin
+        WaitForSingleObject(FPlinkProcInfo.hProcess, SSHTimeout);
+        GetExitCodeProcess(FPlinkProcInfo.hProcess, ExCode);
+        if ExCode <> STILL_ACTIVE then
+          raise ESSHConnectError.Create('Failed to connect. Check the settings for PLink');
+      end
+      else
+      begin
+        ShutdownPlink;
+        raise ESSHConnectError.Create('Could not execute PLink.');
+      end;
+      if Assigned(FOnTunnelConnected) then
+        FOnTunnelConnected(Self);
+      Host := 'localhost';
+      Port := InitialLocalPort;
+    end;
+    try
+      inherited DoConnect();
+    except
+      ShutdownPlink;
+      raise;
+    end;
+  finally
+    Port := FInitPort;
+    Host := FInitHost;
+  end;
+end;
+{$ENDIF}
 
 procedure TPgSSHDatabase.SetConnected(Value: Boolean);
 begin
@@ -237,9 +306,9 @@ begin
     RemoveSSHConnection();
 end;
 
-procedure TPgSSHDatabase.DoOnTunnelUserConnecting(Sender: TObject;
-  const Chan: IChannel; const Hostname: WideString; Port: Integer;
-  var Allow: WordBool);
+{$IFDEF USE_SSH_WEONLYDO}
+procedure TPgSSHDatabase.DoOnTunnelUserConnecting(Sender: TObject; const Chan: IChannel; const Hostname: WideString;
+  Port: integer; var Allow: WordBool);
 begin
   Allow := True;
 end;
@@ -257,50 +326,72 @@ begin
     FOnTunnelConnected(Sender);
 end;
 
-procedure TPgSSHDatabase.DoOnTunnelDisconnected(Sender: TObject;
-  ErrorCode: Smallint; const ErrorText: WideString);
+procedure TPgSSHDatabase.DoOnTunnelDisconnected(Sender: TObject; ErrorCode: Smallint; const ErrorText: WideString);
 begin
   FIsSSHConnecting := False;
+
   if ErrorText <> '' then
     FLastSSHError := ErrorText
-  else FLastSSHError := 'Connection broke unexpectedly';
-  if Assigned(FOnTunnelDisconnected) then FOnTunnelDisconnected(Sender, ErrorCode,
-    ErrorText);
+  else
+    FLastSSHError := 'Connection broke unexpectedly';
+
+  if Assigned(FOnTunnelDisconnected) then
+    FOnTunnelDisconnected(Sender, ErrorCode, ErrorText);
 end;
 
-procedure TPgSSHDatabase.DoOnTunnelChannelStart(Sender: TObject;
-  const Chan: IChannel);
+procedure TPgSSHDatabase.DoOnTunnelChannelStart(Sender: TObject; const Chan: IChannel);
 begin
   FIsSSHConnecting := False;
 end;
 
-procedure TPgSSHDatabase.DoOnTunnelChannelStop(Sender: TObject;
-  const Chan: IChannel; ErrorCode: Smallint; const ErrorText: WideString);
-begin
-  FIsSSHConnecting := False;
-  if ErrorText <> '' then
-    FLastSSHError := ErrorText
-  else FLastSSHError := 'Channel stopped unexpectedly';
-end;
-
-procedure TPgSSHDatabase.DoOnTunnelUserDisconnected(ASender: TObject;
-  const Chan: IChannel; const User: IUser; ErrorCode: Smallint;
+procedure TPgSSHDatabase.DoOnTunnelChannelStop(Sender: TObject; const Chan: IChannel; ErrorCode: Smallint;
   const ErrorText: WideString);
 begin
+  FIsSSHConnecting := False;
+
   if ErrorText <> '' then
     FLastSSHError := ErrorText
-  else FLastSSHError := 'User disconnected unexpectedly';
+  else
+    FLastSSHError := 'Channel stopped unexpectedly';
+end;
+
+procedure TPgSSHDatabase.DoOnTunnelUserDisconnected(ASender: TObject; const Chan: IChannel; const User: IUser;
+  ErrorCode: Smallint; const ErrorText: WideString);
+begin
+  if ErrorText <> '' then
+    FLastSSHError := ErrorText
+  else
+    FLastSSHError := 'User disconnected unexpectedly';
   if Assigned(FOnTunnelUserDisconnected) then
     FOnTunnelUserDisconnected(ASender, Chan, User, ErrorCode, ErrorText);
 end;
 
+{$ELSE}
+
+procedure TPgSSHDatabase.ShutdownPlink;
+begin
+  if FPlinkProcInfo.hProcess <> 0 then
+  begin
+    TerminateProcess(FPlinkProcInfo.hProcess, 0);
+    CloseHandle(FPlinkProcInfo.hProcess);
+  end;
+end;
+
+{$ENDIF}
+
 procedure TPgSSHDatabase.SetInitialLocalPort(const Value: integer);
 begin
   FInitialLocalPort := Value;
-  if InitLocalPort = 3380 then InitLocalPort := Value;
+{$IFDEF USE_SSH_WEONLYDO}
+  if InitLocalPort = 3380 then
+    InitLocalPort := Value;
+{$ENDIF}
 end;
 
+{$IFDEF USE_SSH_WEONLYDO}
+
 initialization
+
   TunnelList := TList.Create();
   InitLocalPort := 3380;
 
@@ -308,5 +399,6 @@ finalization
 
   TunnelList.Free();
 
-end.
+{$ENDIF}
 
+end.
