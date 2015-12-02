@@ -151,7 +151,8 @@ begin
   FldQry.Open;
   FldQry.Insert;
   Check(CreateGUID(G) = 0, 'GUID generation failed');
-  if FldQry.Fields[0] is TGUIDField then
+  PSQLAccess.LogDebugMessage('GUID generated value:', G.ToString);
+  if not (dsoUseGUIDField in FldQry.Options) then
    TGUIDField(FldQry.Fields[0]).AsGuid := G
   else
    TPSQLGUIDField(FldQry.Fields[0]).AsGuid := G;
