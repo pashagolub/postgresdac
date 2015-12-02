@@ -8,13 +8,16 @@ unit PSQLAccess;
 
 interface
 
-uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, PSQLGeomTypes, Math,
-     {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
-     {$IFDEF DELPHI_6}Variants,{$ENDIF}
-     {$IFDEF FPC}Variants,{$ENDIF}
-     SysUtils;
-
-{$NOINCLUDE PSQLGeomTypes}
+uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
+    {$IFDEF DELPHI_12}PSQLGeomTypes{$ENDIF}
+    {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
+    {$IFDEF DELPHI_6}Variants,{$ENDIF}
+    {$IFDEF FPC}Variants,{$ENDIF}
+    SysUtils;
+    
+{$IFDEF DELPHI_12}
+  {$NOINCLUDE PSQLGeomTypes}
+{$ENDIF}
 
 type
   {Forward declaration}
@@ -9723,3 +9726,6 @@ finalization
   {$ENDIF}
 
 end.
+
+
+

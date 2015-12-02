@@ -7,13 +7,15 @@ unit PSQLTypes;
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
-     Classes, SysUtils, PSQLGeomTypes
-     {$IFDEF DELPHI_12}, SqlTimSt{$ENDIF}
+     Classes, SysUtils
+     {$IFDEF DELPHI_12}, SqlTimSt, PSQLGeomTypes{$ENDIF}
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
 
-{$NOINCLUDE PSQLGeomTypes}
+{$IFDEF DELPHI_12}
+  {$NOINCLUDE PSQLGeomTypes}
+{$ENDIF}
 
 
 //============================================================================//
@@ -3357,4 +3359,5 @@ finalization
   UnloadPSQLLibrary;
 
 end.
+
 

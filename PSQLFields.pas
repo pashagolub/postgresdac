@@ -4,9 +4,12 @@ unit PSQLFields;
 interface
 
 uses {$IFDEF UNDER_DELPHI_6}Windows{$ELSE}Types{$ENDIF},
-     Classes, DB, PSQLTypes, PSQLGeomTypes;
+     Classes, DB, PSQLTypes
+     {$IFDEF DELPHI_12}, PSQLGeomTypes{$ENDIF};
 
-{$NOINCLUDE PSQLGeomTypes}
+{$IFDEF DELPHI_12}
+  {$NOINCLUDE PSQLGeomTypes}
+{$ENDIF}
 
 type
 
