@@ -136,7 +136,7 @@ begin
   FldQry.Open;
   Check(FldQry.Active, 'Cannot select UUID value');
   Check(FldQry.Fields[0].AsString = UpperCase('{35c6c84e-4157-466c-0091-31a4714aca34}'), 'UUID value is corrupted in SQL_ASCII charset using TGUIDField');
-  if FldQry.Fields[0] is TGUIDField then
+  if not (dsoUseGUIDField in FldQry.Options) then
    G2 := TGUIDField(FldQry.Fields[0]).AsGuid
   else
    G2 := TPSQLGUIDField(FldQry.Fields[0]).AsGuid;
@@ -152,10 +152,12 @@ begin
   FldQry.Insert;
   Check(CreateGUID(G) = 0, 'GUID generation failed');
   PSQLAccess.LogDebugMessage('GUID generated value:', G.ToString);
+  if FldQry.Fields[0] is TGUIDField then
+
   if not (dsoUseGUIDField in FldQry.Options) then
    TGUIDField(FldQry.Fields[0]).AsGuid := G
   else
-   TPSQLGUIDField(FldQry.Fields[0]).AsGuid := G;
+   (FldQry.Fields[0] as TPSQLGUIDField).AsGuid := G;
   FldQry.Post;
   Check(FldQry.RowsAffected = 1, 'Cannot insert UUID: ' + FldQry.Fields[0].ClassName);
 end;
@@ -186,10 +188,10 @@ begin
   FldQry.Open;
   FldQry.Edit;
   CreateGUID(G);
-  if FldQry.Fields[0] is TGUIDField then
-   TGUIDField(FldQry.Fields[0]).AsGuid := G
+  if not (dsoUseGUIDField in FldQry.Options) then
+    TGUIDField(FldQry.Fields[0]).AsGuid := G
   else
-   TPSQLGUIDField(FldQry.Fields[0]).AsGuid := G;
+    TPSQLGUIDField(FldQry.Fields[0]).AsGuid := G;
   FldQry.Post;
   Check(FldQry.RowsAffected = 1, 'Cannot update UUID ' + FldQry.Fields[0].ClassName);
 end;

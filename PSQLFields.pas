@@ -151,7 +151,7 @@ function IsEqualGUID(const guid1, guid2: TGUID): Boolean;
 
 implementation
 
-uses {DbConsts,} SysUtils, Math, PSQLDBTables;
+uses SysUtils, Math, PSQLDBTables;
 
 procedure Register;
 begin
@@ -163,7 +163,7 @@ end;
 
 { TPSQLGuidField }
 type
-  TFastGUID = record
+  TFastGUID = packed record
     F0, F1, F2, F3, F4, F5, F6, F7, F8, F9, FA, FB, FC, FD, FE, FF: Byte;
   end;
 
@@ -369,11 +369,13 @@ end;
 
 {$IFNDEF FPC}
 function GUIDToString(const AGUID: TGUID): AnsiString;
+type
+  TPointerInt = {$IFDEF DELPHI_16}NativeInt{$ELSE}Cardinal{$ENDIF};
 var
-  P: Cardinal absolute Result;
+  P: TPointerInt;
 begin
   SetLength(Result, 38);
-  //P := Cardinal(Result);
+  P := TPointerInt(Result);
   PByte(P)^ := Ord('{'); Inc(P);
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).F3]; Inc(P, SizeOf(Word));
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).F2]; Inc(P, SizeOf(Word));
