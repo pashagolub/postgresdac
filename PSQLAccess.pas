@@ -9,7 +9,7 @@ unit PSQLAccess;
 interface
 
 uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
-    {$IFDEF DELPHI_12}PSQLGeomTypes{$ENDIF}
+    {$IFDEF DELPHI_12}PSQLGeomTypes,{$ENDIF}
     {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
     {$IFDEF DELPHI_6}Variants,{$ENDIF}
     {$IFDEF FPC}Variants,{$ENDIF}
