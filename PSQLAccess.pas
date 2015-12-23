@@ -8102,7 +8102,7 @@ var
    BdeType, BdeSubType: integer;
    LogSize: integer;
    LocArray: boolean;
-
+   Status: ExecStatusType;
 const
   sqlShowParameters     = 'SELECT NULLIF(proargnames[g.s],''''),   '+ //proargnames[g.s] > 8.0.0
                           '       proargtypes[g.s],   '+
@@ -8170,12 +8170,15 @@ begin
 
 
   RES := _PQexecute(Self, MinOIDSel);
-  if (PQresultStatus(RES) = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
-   begin
+  Status := PQresultStatus(RES);
+  if (Status = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
+  begin
     ArgNum := StrToInt(RawToString(PQgetvalue(RES,0,0)));
     if ProcOID = 0 then
       ProcOID := StrToIntDef(RawToString(PQgetvalue(RES,0,1)), InvalidOID);
-   end;
+  end
+  else
+   CheckResult();
   PQclear(Res);
 
   if ProcOID * ArgNum = 0 then Exit;

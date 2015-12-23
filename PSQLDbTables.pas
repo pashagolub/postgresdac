@@ -1302,13 +1302,16 @@ constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
     Msg1 : string;
     Msg2 : string;
     Err  : Integer;
+  NativeStatus: string;
   begin
     Msg1 := Engine.MessageStatus;
     Err := Engine.Status;
-    if (Msg1 <> '') and (Err >0) then  Msg1 := Format('PostgreSQL Error Code: (%s)',[IntToStr(Err)])+#13#10+Msg1 else
+    if (Msg1 <> '') and (Err > 0) then
+      Msg1 := Format('PostgreSQL Error Code: (%d)'#13#10'%s', [Err, Msg1])
+    else
     begin
-       Msg2 := GetBDEErrorMessage(ErrorCode);
-       Msg1 := Format('DBI Error Code: (%s)'+#13#10+'%s '+#13#10+'%s',[IntToStr(ErrorCode), Msg1, Msg2]);
+      Msg2 := GetBDEErrorMessage(ErrorCode);
+      Msg1 := Format('DBI Error Code: (%d)'#13#10'%s '#13#10'%s', [ErrorCode, Msg1, Msg2]);
     end;
     Result := Msg1
   end;
@@ -7200,7 +7203,7 @@ begin
    List := TList.Create;
    try
     FParams.Clear;
-    if Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List) = 0 then
+    Check(Engine, Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List));
       for i:=0 to List.Count-1 do
        begin
         Desc := List[i];
