@@ -356,6 +356,8 @@ type
       constructor Create(AOwner: TComponent); override;
       destructor Destroy; override;
 
+      procedure AssignTo(Dest: TPersistent); override;
+
       function  Engine : TPSQLEngine;
       function Execute(const SQL: string; Params: TParams = nil; Cache: Boolean = FALSE; Cursor: phDBICur = nil): Integer;
       function GetBackendPID: Integer;
@@ -1302,7 +1304,6 @@ constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
     Msg1 : string;
     Msg2 : string;
     Err  : Integer;
-  NativeStatus: string;
   begin
     Msg1 := Engine.MessageStatus;
     Err := Engine.Status;
@@ -1447,6 +1448,18 @@ begin
     raise;
   end;
   for I := 0 to High(DataSets) do DataSets[I].CommitUpdates;
+end;
+
+procedure TPSQLDatabase.AssignTo(Dest: TPersistent);
+var DestDB: TPSQLDatabase;
+begin
+  if not (Dest is TPSQLDatabase) then
+    inherited AssignTo(Dest)
+  else
+  begin
+    DestDB := TPSQLDatabase(Dest);
+    DestDB.Params.Assign(Self.Params);
+  end;
 end;
 
 type

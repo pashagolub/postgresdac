@@ -52,6 +52,7 @@ type
     procedure TestPing;
     procedure TestPingEx;
     procedure TestIsThreadSafe;
+    procedure TestSSLConnect;
   end;
 
 var
@@ -179,6 +180,25 @@ begin
     Check(aList.Count = 10, 'SelectStrings by FieldNumber failed');
   finally
     aList.Free;
+  end;
+end;
+
+procedure TestTPSQLDatabase.TestSSLConnect;
+var sslDB: TPSQLDatabase;
+begin
+  sslDB := TPSQLDatabase.Create(nil);
+  try
+    sslDB.Assign(FPSQLDatabase);
+    sslDB.Close;
+    sslDB.SSLMode := sslVerifyCA;
+    sslDB.SSLCert := 'TestData\postgresql.crt';
+    sslDB.SSLKey := 'TestData\postgresql.key';
+    sslDB.SSLRootCert := 'TestData\root.crt';
+    sslDB.Open;
+    Check(sslDB.Connected, 'SSL Connection failed');
+
+  finally
+    FreeAndNil(sslDB);
   end;
 end;
 

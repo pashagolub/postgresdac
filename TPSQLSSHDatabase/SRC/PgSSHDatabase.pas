@@ -43,6 +43,7 @@ type
     FSSHCompressionLevel: integer;
     FSSHTimeout: integer;
     FInitialLocalPort: integer;
+    FShowPLinkConsole: boolean;
 {$IFDEF USE_SSH_WEONLYDO}
     procedure DoOnTunnelUserConnecting(Sender: TObject; const Chan: IChannel; const Hostname: WideString; Port: integer;
       var Allow: WordBool);
@@ -65,9 +66,11 @@ type
   public
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
+
   published
 {$IFDEF USE_SSH_PLINK}
     property PathPLinkExe: String read FPLinkPath write FPLinkPath;
+    property ShowPLinkConsole: boolean read FShowPLinkConsole write FShowPLinkConsole default False;
 {$ENDIF}
     property SSHEnabled: boolean read FSSHEnabled write FSSHEnabled default False;
     property SSHHost: string read FSSHHost write FSSHHost;
@@ -123,6 +126,7 @@ begin
   FSSHPort := 22;
   FInitialLocalPort := 3380;
   CheckIfActiveOnParamChange := False;
+  PathPLinkExe := 'plink' {$IFDEF MSWINDOWS} + '.exe' {$ENDIF};
 end;
 
 destructor TPgSSHDatabase.Destroy;
@@ -244,17 +248,19 @@ var
   ConnectStr: String;
   StartupInfo: TStartupInfo;
   ExCode: LongWord;
-const
-  START_FLAGS: cardinal = CREATE_DEFAULT_ERROR_MODE + NORMAL_PRIORITY_CLASS + CREATE_NO_WINDOW;
+  StartFlags: cardinal;
 begin
   FInitPort := Port;
   FInitHost := Host;
+  StartFlags :=  CREATE_DEFAULT_ERROR_MODE + NORMAL_PRIORITY_CLASS;
+  if not FShowPLinkConsole then
+    StartFlags := StartFlags + CREATE_NO_WINDOW;
   try
     if FSSHEnabled then
     begin
       if not FileExists(FPLinkPath) then
         raise ESSHConnectError.Create('Please specify path to PLink.exe!');
-      ConnectStr := AnsiQuotedStr(FPLinkPath, '"') + ' -ssh ';
+      ConnectStr := AnsiQuotedStr(FPLinkPath, '"') + ' -ssh -batch ';
       if SSHLogin <> '' then
         ConnectStr := ConnectStr + SSHLogin + '@';
       if SSHHost <> '' then
@@ -265,11 +271,11 @@ begin
         ConnectStr := ConnectStr + ' -pw ' + AnsiQuotedStr(SSHPassword, '"');
       if SSHPort > 0 then
         ConnectStr := ConnectStr + Format(' -P %u', [SSHPort]);
-      ConnectStr := ConnectStr + Format(' -N -L %u:%s:%u', [InitialLocalPort, Host, Port]);
+      ConnectStr := ConnectStr + Format(' -v -T -N -L %u:%s:%u', [InitialLocalPort, Host, Port]);
       FillChar(FPlinkProcInfo, SizeOf(TProcessInformation), 0);
       FillChar(StartupInfo, SizeOf(TStartupInfo), 0);
       StartupInfo.cb := SizeOf(TStartupInfo);
-      if CreateProcess(nil, PChar(ConnectStr), nil, nil, False, START_FLAGS, nil, nil, StartupInfo, FPlinkProcInfo) then
+      if CreateProcess(nil, PChar(ConnectStr), nil, nil, False, StartFlags, nil, nil, StartupInfo, FPlinkProcInfo) then
       begin
         WaitForSingleObject(FPlinkProcInfo.hProcess, SSHTimeout);
         GetExitCodeProcess(FPlinkProcInfo.hProcess, ExCode);
@@ -370,10 +376,11 @@ end;
 
 procedure TPgSSHDatabase.ShutdownPlink;
 begin
-  if FPlinkProcInfo.hProcess <> 0 then
+  if FPlinkProcInfo.hProcess > 0 then
   begin
     TerminateProcess(FPlinkProcInfo.hProcess, 0);
     CloseHandle(FPlinkProcInfo.hProcess);
+    ZeroMemory(@FPlinkProcInfo, SizeOf(FPlinkProcInfo));
   end;
 end;
 
