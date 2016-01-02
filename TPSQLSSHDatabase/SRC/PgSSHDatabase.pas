@@ -44,6 +44,7 @@ type
     FSSHTimeout: integer;
     FInitialLocalPort: integer;
     FShowPLinkConsole: boolean;
+    FAddSSHKeyToSystemCache: boolean;
 {$IFDEF USE_SSH_WEONLYDO}
     procedure DoOnTunnelUserConnecting(Sender: TObject; const Chan: IChannel; const Hostname: WideString; Port: integer;
       var Allow: WordBool);
@@ -69,6 +70,7 @@ type
 
   published
 {$IFDEF USE_SSH_PLINK}
+    property AddSSHKeyToSystemCache: boolean read FAddSSHKeyToSystemCache write FAddSSHKeyToSystemCache;
     property PathPLinkExe: String read FPLinkPath write FPLinkPath;
     property ShowPLinkConsole: boolean read FShowPLinkConsole write FShowPLinkConsole default False;
 {$ENDIF}
@@ -97,6 +99,8 @@ type
   procedure Register;
 
 implementation
+
+uses ShellAPI;
 
 {$R SSHDB.DCR}
 
@@ -249,6 +253,24 @@ var
   StartupInfo: TStartupInfo;
   ExCode: LongWord;
   StartFlags: cardinal;
+
+  procedure StartTunnelAndAcceptKey;
+  var ShExecInfo: TShellExecuteInfo;
+  begin
+    FillChar(ShExecInfo, SizeOf(ShExecInfo), 0);
+    ShExecInfo.cbSize := SizeOf(TShellExecuteInfo);
+    ShExecInfo.fMask := SEE_MASK_NOCLOSEPROCESS;
+    ShExecInfo.Wnd := 0;
+    ShExecInfo.lpVerb := nil;
+    ShExecInfo.lpFile := 'cmd.exe';
+    ShExecInfo.lpParameters := PChar(Format('/c echo y | %s -t exit', [ConnectStr]));
+    ShExecInfo.lpDirectory := nil;
+    ShExecInfo.nShow := SW_HIDE;
+    ShExecInfo.hInstApp := 0;
+    ShellExecuteEx(@ShExecInfo);
+    WaitForSingleObject(ShExecInfo.hProcess, INFINITE);
+  end;
+
 begin
   FInitPort := Port;
   FInitHost := Host;
@@ -271,6 +293,8 @@ begin
         ConnectStr := ConnectStr + ' -pw ' + AnsiQuotedStr(SSHPassword, '"');
       if SSHPort > 0 then
         ConnectStr := ConnectStr + Format(' -P %u', [SSHPort]);
+      if FAddSSHKeyToSystemCache then
+        StartTunnelAndAcceptKey();
       ConnectStr := ConnectStr + Format(' -v -T -N -L %u:%s:%u', [InitialLocalPort, Host, Port]);
       FillChar(FPlinkProcInfo, SizeOf(TProcessInformation), 0);
       FillChar(StartupInfo, SizeOf(TStartupInfo), 0);
@@ -280,12 +304,12 @@ begin
         WaitForSingleObject(FPlinkProcInfo.hProcess, SSHTimeout);
         GetExitCodeProcess(FPlinkProcInfo.hProcess, ExCode);
         if ExCode <> STILL_ACTIVE then
-          raise ESSHConnectError.Create('Failed to connect. Check the settings for PLink');
+          raise ESSHConnectError.CreateFmt('Failed to connect. Check the settings for PLink. Exit code: %s', [ExCode]);
       end
       else
       begin
         ShutdownPlink;
-        raise ESSHConnectError.Create('Could not execute PLink.');
+        RaiseLastOSError();
       end;
       if Assigned(FOnTunnelConnected) then
         FOnTunnelConnected(Self);
