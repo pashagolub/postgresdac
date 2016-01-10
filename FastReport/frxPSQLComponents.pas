@@ -47,8 +47,10 @@ type
     FDatabase: TPSQLDatabase;
     function GetUserName: string;
     function GetUserPassword: string;
+    function GetHost : String;
     procedure SetUserName(const Value: string);
     procedure SetUserPassword(const Value: string);
+    procedure SetHost(Value : String);
   protected
     procedure SetConnected(Value: Boolean); override;
     procedure SetDatabaseName(const Value: String); override;
@@ -71,6 +73,7 @@ type
     property LoginPrompt;
     property Params;
     property Connected;
+    property Host : String read GetHost write SetHost;
   end;
 
   TfrxPSQLTable = class(TfrxCustomTable)
@@ -263,6 +266,16 @@ end;
 procedure TfrxPSQLDatabase.SetUserPassword(const Value: string);
 begin
   FDatabase.UserPassword := Value;
+end;
+
+function TfrxPSQLDatabase.GetHost : String;
+begin
+  Result := FDatabase.Host;
+end;
+
+procedure TfrxPSQLDatabase.SetHost(Value : String);
+begin
+  FDatabase.Host := Value;
 end;
 
 procedure TfrxPSQLDatabase.SetLogin(const Login, Password: String);
