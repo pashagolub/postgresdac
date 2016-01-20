@@ -2547,7 +2547,27 @@ procedure TNativeConnect.CheckResult;
 var S: string;
 begin
   S := GetErrorText();
-  if S > '' then raise EPSQLException.CreateMsg(Self, S);
+  if S > '' then
+  begin
+    FErrorSeverity := '';
+    FErrorSQLState := '';
+    FErrorPrimary := '';
+    FErrorDetail := '';
+    FErrorHint := '';
+    FErrorInternalPos := '';
+    FErrorInternalQuery := '';
+    FErrorSourceFile := '';
+    FErrorSourceLine := '';
+    FErrorSourceFunc := '';
+    FErrorContext := '';
+    FErrorPos := '';
+    FErrorSchemaName := '';
+    FErrorTableName := '';
+    FErrorColumnName := '';
+    FErrorDataTypeName := '';
+    FErrorConstraintName := '';
+    raise EPSQLException.CreateMsg(Self, S);
+  end;
 end;
 
 procedure TNativeConnect.CheckResult(FStatement: PPGresult);
@@ -2574,7 +2594,7 @@ begin
      FErrorColumnName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_COLUMN_NAME)));
      FErrorDataTypeName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_DATATYPE_NAME)));
      FErrorConstraintName  := Trim(RawToString(PQresultErrorField(FStatement, PG_DIAG_CONSTRAINT_NAME)));
-     raise EPSQLException.CreateMsg(Self, GetErrorText);
+     raise EPSQLException.CreateMsg(Self, S);
     end;
 end;
 
@@ -2729,25 +2749,32 @@ end;
 
 procedure TNativeConnect.BeginTran(eXIL: eXILType; var hXact: hDBIXact);
 var
-  Result: PPGresult;
+  Res: PPGresult;
+  Status: ExecStatusType;
   TransParam: AnsiString;
 begin
-  if FTransState <> xsActive then
-  begin
-    hXact := hDBIXact(Self);
-    FTransState := xsActive;
-    FTransLevel := eXIL;
-    Result := PQexec(Handle, 'BEGIN');
-    PQclear(Result);
-    TransParam := 'SET TRANSACTION ISOLATION LEVEL ';
-    case FTransLevel of
-      xilDIRTYREAD,
-      xilREADCOMMITTED : TransParam := TransParam + 'READ COMMITTED';
-      xilREPEATABLEREAD: TransParam := TransParam + 'SERIALIZABLE';
-    end;
-    Result := PQexec(Handle, PAnsiChar(TransParam));
-    PQclear(Result);
-    MonitorHook.TRStart(Self, PQresultStatus (Result) = PGRES_COMMAND_OK);
+  if FTransState = xsActive then Exit;
+  hXact := hDBIXact(Self);
+  TransParam := 'START TRANSACTION ISOLATION LEVEL ';
+  case eXIL of
+    xilDIRTYREAD,
+    xilREADCOMMITTED:  TransParam := TransParam + 'READ COMMITTED';
+    xilREPEATABLEREAD: TransParam := TransParam + 'REPEATABLE READ';
+    xilSERIALIZABLE:   TransParam := TransParam + 'SERIALIZABLE';
+  end;
+  Res := PQExec(Handle, PAnsiChar(TransParam));
+  try
+    Status := PQresultStatus(Res);
+    MonitorHook.TRStart(Self,  Status = PGRES_COMMAND_OK);
+    if Status = PGRES_COMMAND_OK then
+    begin
+      FTransState := xsActive;
+      FTransLevel := eXIL;
+    end
+    else
+      CheckResult;
+  finally
+    PQclear(Res);
   end
 end;
 
@@ -7185,20 +7212,20 @@ begin
   if not Assigned(ExceptionPtr) then Exit;
 
   if TObject(ExceptionPtr) is EPSQLException then
-   begin
-     if EPSQLException(ExceptionPtr).BDEErrors then
-       Result := EPSQLException(ExceptionPtr).BDEErrorCode
-     else
-      begin
-       FNativeStatus := EPSQLException(ExceptionPtr).PSQLErrorCode;
-       Result := 1001;
-      end;
-     FNativeMsg := EPSQLException(ExceptionPtr).PSQLErrorMsg;
-     TObject(ExceptionPtr).Free;
-     {$IFDEF DELPHI_7}
-     ReleaseExceptionObject;
-     {$ENDIF}
-   end
+  begin
+    if EPSQLException(ExceptionPtr).BDEErrors then
+      Result := EPSQLException(ExceptionPtr).BDEErrorCode
+    else
+    begin
+      FNativeStatus := EPSQLException(ExceptionPtr).PSQLErrorCode;
+      Result := 1001;
+    end;
+    FNativeMsg := EPSQLException(ExceptionPtr).PSQLErrorMsg;
+    TObject(ExceptionPtr).Free;
+    {$IFDEF DELPHI_7}
+    ReleaseExceptionObject;
+    {$ENDIF}
+  end
   else
    raise TObject(ExceptionPtr);
 end;

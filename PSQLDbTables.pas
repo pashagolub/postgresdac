@@ -248,7 +248,7 @@ type
 
   TDBFlags = set of 0..15;
 
-  TTransIsolation = (tiDirtyRead, tiReadCommitted, tiRepeatableRead);
+  TTransIsolation = (tiDirtyRead, tiReadCommitted, tiRepeatableRead, tiSerializable);
 
 
   TPSQLDBDesignOption = (ddoStoreConnected, ddoStorePassword);
@@ -1322,7 +1322,7 @@ var
 begin
   FErrorCode := ErrorCode;
   if Assigned(Engine.Database) then
-   begin
+  begin
     NC := TNativeConnect(Engine.Database);
     FErrorPos                := NC.FErrorPos;
     FErrorContext            := NC.FErrorContext;
@@ -1341,7 +1341,7 @@ begin
     FErrorColumnName         := NC.FErrorColumnName;
     FErrorDataTypeName       := NC.FErrorDataTypeName;
     FErrorConstraintName     := NC.FErrorConstraintName;
-   end;
+  end;
   Message := GetErrorString;
   if Message = EmptyStr then
     Message := Format('PSQLDAC Interface Error: (%d)',[ErrorCode]);

@@ -1083,7 +1083,8 @@ type
   eXILType = (                          { Transaction isolation levels }
     xilDIRTYREAD,                       { Uncommitted changes read }
     xilREADCOMMITTED,                   { Committed changes, no phantoms }
-    xilREPEATABLEREAD                   { Full read repeatability }
+    xilREPEATABLEREAD,                  { Full read repeatability }
+    xilSERIALIZABLE                     { SERIALIZABLE }
   );
 
   eXEnd = (                             { Transaction end control }
