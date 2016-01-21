@@ -46,12 +46,14 @@ type
                 doSchemaOnly, doVerbose, doNoPrivileges, doDisableDollarQuoting,
                 doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces,
                 doQuoteAllIdentifiers, doNoSecurityLabels, doNoUnloggedTableData,
-                doSerializableDeferrable, doNoSynchronizedSnapshots);
+                doSerializableDeferrable, doNoSynchronizedSnapshots, doIfExists,
+                doEnableRowSecurity);
 
   TDumpOptions = set of TDumpOption;
 
   TDumpStrOption = (dsoSchema, dsoSuperuser, dsoTable, dsoExcludeSchema,
-                    dsoExcludeTable, dsoEncoding, dsoRole, dsoExcludeTableData);
+                    dsoExcludeTable, dsoEncoding, dsoRole, dsoExcludeTableData,
+                    dsoSnapshot);
 
   TDumpFormat = (dfPlain, dfTarArchive, dfCompressedArchive, dfDirectory);
 
@@ -132,6 +134,7 @@ type
     property TableNames: TStrings read FTableNames write SetTableNames;
     property Jobs: cardinal read FJobs write FJobs;
     property Sections: TDumpRestoreSections read FSections write FSections;
+    property Snapshot: string index dsoSnapshot read GetStrOptions write SetStrOptions;
     property AfterDump : TNotifyEvent read FAfterDump write FAfterDump;
     property BeforeDump  : TNotifyEvent read FBeforeDump write FBeforeDump;
     property OnLog: TLogEvent read FOnLog write FOnLog;
@@ -144,12 +147,11 @@ type
 
   TRestoreFormat = (rfAuto, rfTarArchive, rfCompressedArchive, rfDirectory);
 
-  TRestoreOption = (roDataOnly, roClean, roCreate, roExitOnError,
-            roIgnoreVersion, roList, roNoOwner,
-            roSchemaOnly, roVerbose, roNoPrivileges,
-            roDisableTriggers, roUseSetSessionAuthorization,
-            roSingleTransaction, roNoDataForFailedTables,
-            roNoTablespaces, roNoSecurityLabels);
+  TRestoreOption = (roDataOnly, roClean, roCreate, roExitOnError, roIgnoreVersion,
+            roList, roNoOwner, roSchemaOnly, roVerbose, roNoPrivileges,
+            roDisableTriggers, roUseSetSessionAuthorization, roSingleTransaction,
+            roNoDataForFailedTables, roNoTablespaces, roNoSecurityLabels, roIfExists,
+            roEnableRowSecurity);
 
   TRestoreOptions = set of TRestoreOption;
 
@@ -249,7 +251,9 @@ const
    '--no-security-labels',             //doNoSecurityLabels
    '--no-unlogged-table-data',         //doNoUnloggedTableData
    '--serializable-deferrable',        //doSerializableDeferrable
-   '--no-synchronized-snapshots'       //doNoSynchronizedSnapshots
+   '--no-synchronized-snapshots',      //doNoSynchronizedSnapshots
+   '--if-exists',                      //doIfExists
+   '--enable-row-security'             //doEnableRowSecurity
   );
 
   RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -268,18 +272,21 @@ const
    '--single-transaction',             //roSingleTransaction
    '--no-data-for-failed-tables',      //roNoDataForFailedTables
    '--no-tablespaces',                 //roNoTablespaces
-   '--no-security-labels'              //roNoSecurityLabels
+   '--no-security-labels',             //roNoSecurityLabels
+   '--if-exists',                      //roIfExists
+   '--enable-row-security'             //roEnableRowSecurity
    );
 
   DumpCommandLineStrParameters: array[TDumpStrOption] of string =(
-   '--schema=',         //dsoSchema
-   '--superuser=',      //dsoSuperuser
-   '--table=',          //dsoTable
-   '--exclude-schema=',  //dsoExcludeSchema
-   '--exclude-table=',  //dsoExcludeTable
-   '--encoding=',       //dsoEncoding
-   '--role=',           //dsoRole
-   '--exclude-table-data=' //dsoExcludeTableData
+   '--schema=',             //dsoSchema
+   '--superuser=',          //dsoSuperuser
+   '--table=',              //dsoTable
+   '--exclude-schema=',     //dsoExcludeSchema
+   '--exclude-table=',      //dsoExcludeTable
+   '--encoding=',           //dsoEncoding
+   '--role=',               //dsoRole
+   '--exclude-table-data=', //dsoExcludeTableData
+   '--snapshot='            //dsoSnapshot
   );
 
   RestoreCommandLineStrParameters: array[TRestoreStrOption] of string =(
