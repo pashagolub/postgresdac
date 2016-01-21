@@ -39,7 +39,6 @@ contains
   PSQLMonitor in 'PSQLMonitor.pas',
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
-  PSQLMetaData in 'PSQLMetaData.pas',
   PSQLConsts in 'PSQLConsts.pas',
   PSQLCommon in 'PSQLCommon.pas',
   PSQLCopy in 'PSQLCopy.pas',

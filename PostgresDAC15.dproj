@@ -79,7 +79,6 @@
 			<DCCReference Include="PSQLMonitor.pas"/>
 			<DCCReference Include="PSQLTools.pas"/>
 			<DCCReference Include="PSQLDump.pas"/>
-			<DCCReference Include="PSQLMetaData.pas"/>
 			<DCCReference Include="PSQLConsts.pas"/>
 			<DCCReference Include="PSQLCommon.pas"/>
 			<DCCReference Include="PSQLCopy.pas"/>

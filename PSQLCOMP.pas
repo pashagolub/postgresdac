@@ -14,7 +14,7 @@ Uses SysUtils, Classes, Graphics, Controls, Forms, Dialogs,
         PropEdits, ComponentEditors,
      {$ENDIF FPC}
      Db, PSQLFldLinks, PSQLDbTables, PSQLupdsqled, PSQLBatch, PSQLMacroQuery,
-     PSQLMonitor, PSQLTools, PSQLCopy, PSQLMetaData, PSQLDirectQuery, PSQLFields,
+     PSQLMonitor, PSQLTools, PSQLCopy, PSQLDirectQuery, PSQLFields,
      PSQLNotify;
 
 type
@@ -35,13 +35,6 @@ type
 {$ENDIF}
 
     TPSQLTableNamePropertyEditor =  Class(TStringProperty)
-    Public
-      Function  GetAttributes: TPropertyAttributes; Override;
-      Procedure GetValueList(List: TStrings);
-      Procedure GetValues(Proc: TGetStrProc); Override;
-    end;
-
-    TPSQLUserNamePropertyEditor =  Class(TStringProperty)
     Public
       Function  GetAttributes: TPropertyAttributes; Override;
       Procedure GetValueList(List: TStrings);
@@ -457,7 +450,6 @@ begin
     RegisterPropertyEditor(TypeInfo(TFileName), TPSQLCopy, 'TableName', TPSQLTableNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLTable, 'IndexName', TPSQLIndexNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLStoredProc, 'StoredProcName', TPSQLStoredProcNamePropertyEditor);
-    RegisterPropertyEditor(TypeInfo(string), TPSQLUser, 'UserName', TPSQLUserNamePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLTable, 'IndexFieldNames', TPSQLIndexFieldNamesPropertyEditor);
     RegisterPropertyEditor(TypeInfo(TDataSource), TPSQLTable, 'MasterSource', TPSQLDataSourcePropertyEditor);
     RegisterPropertyEditor(TypeInfo(string), TPSQLTable, 'MasterFields', TPSQLTableFieldLinkProperty);
@@ -491,7 +483,7 @@ begin
   RegisterComponents('PostgresDAC',
       [TPSQLDatabase, TPSQLTable, TPSQLQuery, TPSQLStoredProc, TPSQLUpdateSQL, TPSQLNotify,
       TPSQLBatchExecute, TPSQLMacroQuery, TPSQLMonitor, TPSQLDirectQuery,
-      TPSQLTools, TPSQLCopy, {$IFNDEF FPC}TPSQLDump, TPSQLRestore,{$ENDIF} TPSQLUser{$IFNDEF FPC}, TBDE2PSQLDAC{$ENDIF}] );
+      TPSQLTools, TPSQLCopy, {$IFNDEF FPC}TPSQLDump, TPSQLRestore, TBDE2PSQLDAC{$ENDIF}] );
   RegisterComponentEditor(TPSQLDatabase, TPSQLDatabaseEditor);
   {$IFNDEF FPC}{$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}{$ENDIF}
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
@@ -620,37 +612,6 @@ end;
 function TPSQLStoredProcEditor.GetVerbCount: Integer;
 begin
   Result := 1;
-end;
-
-{ TPSQLUserNamePropertyEditor }
-
-function TPSQLUserNamePropertyEditor.GetAttributes: TPropertyAttributes;
-begin
-  Result := [paValueList, paSortList, paMultiSelect];
-end;
-
-procedure TPSQLUserNamePropertyEditor.GetValueList(List: TStrings);
-var
-  User: TPSQLUser;
-begin
-  User := GetComponent(0) as TPSQLUser;
-  if User.Database = nil then raise EDatabaseError.Create('Database property is not set');
-  User.Database.GetUserNames('', List);
-end;
-
-
-procedure TPSQLUserNamePropertyEditor.GetValues(Proc: TGetStrProc);
-var
-  I      : Integer;
-  Values : TStringList;
-begin
-  Values := TStringList.Create;
-  Try
-    GetValueList(Values);
-    for I := 0 to Values.Count - 1 do  Proc(Values[I]);
-  Finally
-    Values.Free;
-  end;
 end;
 
 { TPSQLDataSetEditor }

@@ -53,7 +53,6 @@
     <DCCReference Include="PSQLDump.pas" />
     <DCCReference Include="PSQLExtMask.pas" />
     <DCCReference Include="PSQLMacroQuery.pas" />
-    <DCCReference Include="PSQLMetaData.pas" />
     <DCCReference Include="PSQLMonitor.pas" />
     <DCCReference Include="PSQLTools.pas" />
     <DCCReference Include="PSQLTypes.pas" />
