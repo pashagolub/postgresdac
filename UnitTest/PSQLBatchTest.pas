@@ -56,10 +56,18 @@ end;
 procedure TestTPSQLBatchExecute.TestExecDollarQuoting;
 var IsOK: boolean;
 begin
-  FPSQLBatchExecute.SQL.Text := 'CREATE OR REPLACE FUNCTION return_version() RETURNS text LANGUAGE SQL AS '+
-                                '$_$ SELECT version() $_$;';
+  FPSQLBatchExecute.SQL.Text := 'CREATE OR REPLACE FUNCTION bizdays(date,date) '+
+                          'RETURNS BIGINT '+
+                          'LANGUAGE SQL AS '+
+                          '$_$ '+
+                          'SELECT count(*) FROM '+
+                          '(SELECT extract(''dow'' FROM $1+x) AS dow '+
+                          'FROM generate_series(0,$2-$1) x) AS foo '+
+                          'WHERE dow BETWEEN 1 AND 5; '+
+                          '$_$; ';
+
   FPSQLBatchExecute.ExecSQL;
-  Check(QryDB.SelectString('SELECT return_version()', IsOk) > '', 'Creating function as dollar-quoted string failed');
+  Check(QryDB.SelectString('SELECT bizdays(now, now)', IsOk) > '', 'Creating function as dollar-quoted string failed');
 end;
 
 { TDbSetup }
