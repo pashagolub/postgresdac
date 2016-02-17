@@ -22,6 +22,8 @@ uses
   TestExtensions,
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
   PSQLQueryTest in 'PSQLQueryTest.pas',
+  PSQLBatchTest in 'PSQLBatchTest.pas',
+  PSQLTableTest in 'PSQLTableTest.pas',
   TestHelper in 'TestHelper.pas',
   PSQLFieldsTest in 'PSQLFieldsTest.pas',
   PSQLToolsTest in 'PSQLToolsTest.pas',
@@ -30,9 +32,7 @@ uses
   PSQLNotifyTest in 'PSQLNotifyTest.pas',
   PSQLCopyTest in 'PSQLCopyTest.pas',
   PSQLErrorsTest in 'PSQLErrorsTest.pas',
-  PSQLTypesTest in 'PSQLTypesTest.pas',
-  PSQLBatchTest in 'PSQLBatchTest.pas',
-  PSQLBatch in '..\PSQLBatch.pas';
+  PSQLTypesTest in 'PSQLTypesTest.pas';
 
 {$R *.RES}
 

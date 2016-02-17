@@ -7786,51 +7786,51 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
   AStrictConformity: boolean = False);
 
 
-    procedure SetToLookupKey;
-    var
-      FieldPtr : Pointer;
-      FldNo : Integer;
-      Len : Integer;
-      R   : Longint;
-      I   : Integer;
-      Field : TPSQLField;
-      S : String;
-      Flds  : array of Integer;
-      SFlds : array of String;
+  procedure SetToLookupKey;
+  var
+    FieldPtr : Pointer;
+    FldNo : Integer;
+    Len : Integer;
+    R   : Longint;
+    I   : Integer;
+    Field : TPSQLField;
+    S : String;
+    Flds  : array of Integer;
+    SFlds : array of String;
+  begin
+    S := '';
+    Len := 0;
+    if bDirectKey then
     begin
-      S := '';
-      Len := 0;
-      if bDirectKey then
+      SetLength(Flds,FKeyDesc.iFldsinKey);
+      SetLength(SFlds,FKeyDesc.iFldsinKey);
+      for I := 0 to FKeyDesc.iFldsinKey-1 do
       begin
-         SetLength(Flds,FKeyDesc.iFldsinKey);
-         SetLength(SFlds,FKeyDesc.iFldsinKey);
-         for I := 0 to FKeyDesc.iFldsinKey-1 do
-         begin
-              FldNo := FKeyDesc.aiKeyFld[I];
-              Field := Fields[FKeyDesc.aiKeyFld[I]];
-              Flds[I] := FldNo-1;
-              FieldPtr := pKey;
-              Inc(PAnsiChar(FieldPtr),Len + i);
-              SFlds[I] := FieldVal(FldNo, FieldPtr);
-              Inc(Len, Field.FieldLength);
-        end;
-      end else
-      begin
-             SetLength(Flds,iFields);
-             SetLength(SFlds,iFields);
-             for I := 0 to iFields-1 do
-             begin
-                FldNo := FKeyDesc.aiKeyFld[I];
-                Field := Fields[FKeyDesc.aiKeyFld[I]];
-                Flds[I] := FldNo-1;
-                Field.Buffer := pKey;
-                SFlds[I] := FieldVal(FldNo, Field.FieldValue);
-             end;
+        FldNo := FKeyDesc.aiKeyFld[i];
+        Field := Fields[FKeyDesc.aiKeyFld[i]];
+        Flds[i] := FldNo - 1;
+        FieldPtr := pKey;
+        Inc(PAnsiChar(FieldPtr), Len);
+        SFlds[i] := FieldVal(FldNo, FieldPtr);
+        Inc(Len, Field.NativeSize + 1); // field length in bytes + one byte null indicator
       end;
-      R := findrows(Flds,SFlds,False,iLen,AStrictConformity);
-      CheckParam(R=-1 ,DBIERR_RECNOTFOUND);
-      SettoSeqNo(R+1);
+    end else
+    begin
+      SetLength(Flds,iFields);
+      SetLength(SFlds,iFields);
+      for I := 0 to iFields-1 do
+      begin
+        FldNo := FKeyDesc.aiKeyFld[I];
+        Field := Fields[FKeyDesc.aiKeyFld[I]];
+        Flds[I] := FldNo-1;
+        Field.Buffer := pKey;
+        SFlds[I] := FieldVal(FldNo, Field.FieldValue);
+      end;
     end;
+    R := findrows(Flds,SFlds,False,iLen,AStrictConformity);
+    CheckParam(R=-1 ,DBIERR_RECNOTFOUND);
+    SettoSeqNo(R+1);
+  end;
 
     procedure SetToMasterKey;
     var
