@@ -142,9 +142,9 @@ var
   QueryRes: string;
 begin
   FPSQlCopy.SQL.Text := 'SELECT * FROM generate_series(1, 11)';
-  FileName := 'loglist.txt';
+  FileName := FldDB.SelectStringDef('SHOW data_directory', 'C:') + '/loglist.txt';
   FPSQLCopy.SaveToServerSideFile(FileName);
-  QueryRes := FldDB.SelectStringDef('SELECT now()-s.modification<''10 minutes'' FROM pg_stat_file(' + QuotedStr(FileName) + ') s', 'f');
+  QueryRes := FldDB.SelectStringDef('SELECT now() - s.modification < ''10 minutes'' FROM pg_stat_file(' + QuotedStr(FileName) + ') s', 'f');
   Check(QueryRes = 't');
 end;
 
