@@ -25,7 +25,7 @@
 //---------------------------
 // Delphi/Builder versions
 //---------------------------
-//DELPHI 24 (RX10 Big Ben)
+//DELPHI 24 (RX10.1 Big Ben)
 {$IFDEF VER310}
   {$DEFINE FMX_AVAILABLE}
   {$DEFINE DELPHI_24}
