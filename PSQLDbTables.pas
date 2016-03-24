@@ -629,11 +629,6 @@ type
     function  CreateHandle: HDBICur; virtual;
     function  CreateLookupFilter(Fields: TList; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
-//{$IFDEF DELPHI_17}
-//    procedure DataConvert(Field: TField; Source: TValueBuffer; {$IFDEF DELPHI_18}var{$ENDIF} Dest: TValueBuffer; ToNative: Boolean); override;
-//{$ELSE}
-//    procedure DataConvert(Field: TField; Source, Dest: Pointer; ToNative: Boolean); override;
-//{$ENDIF}
     procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure DeactivateFilters;
     procedure DestroyHandle; virtual;
