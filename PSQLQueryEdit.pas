@@ -78,6 +78,7 @@ type
     procedure CreateSimpleMemo(aSQL: string);
     function GetSelStart: integer;
     procedure SetSelStart(const Value: integer);
+	procedure MemoKeyPress(Sender: TObject; var Key: Char);
   protected
     property QuoteChar: char read FQuoteChar write FQuoteChar;
     property StartTable: string read FStartTable write FStartTable;
@@ -188,6 +189,7 @@ begin
       SynMemoLines.Text := SQL;
       T.GetProperty('OnExit').SetValue(SynMemo, TValue.From<TNotifyEvent>(SQLMemoExit));
       T.GetProperty('OnEnter').SetValue(SynMemo, TValue.From<TNotifyEvent>(SQLMemoEnter));
+      TMemo(SynMemo).OnKeyPress := MemoKeyPress;
       except
         SynMemoUsed := False;
         CreateSimpleMemo(SQL);
@@ -432,6 +434,15 @@ begin
  PopulateTableList();
 end;
 
+procedure TSQLEditForm.MemoKeyPress(Sender: TObject; var Key: Char);
+begin
+  if Key = ^A then
+  begin
+    TMemo(Sender).SelectAll;
+    Key := #0;
+  end;
+end;
+
 procedure TSQLEditForm.CreateSimpleMemo(aSQL: string);
 begin
   SQLMemo := TMemo.Create(Self);
@@ -442,6 +453,7 @@ begin
   SQLMemo.OnEnter := SQLMemoEnter;
   SQLMemo.OnExit := SQLMemoExit;
   SQLMemo.ScrollBars := ssBoth;
+  SQLMemo.OnKeyPress := MemoKeyPress;
   SynMemoLines := SQLMemo.Lines;
 end;
 
