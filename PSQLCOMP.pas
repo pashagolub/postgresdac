@@ -483,7 +483,7 @@ begin
   RegisterComponents('PostgresDAC',
       [TPSQLDatabase, TPSQLTable, TPSQLQuery, TPSQLStoredProc, TPSQLUpdateSQL, TPSQLNotify,
       TPSQLBatchExecute, TPSQLMacroQuery, TPSQLMonitor, TPSQLDirectQuery,
-      TPSQLTools, TPSQLCopy, {$IFNDEF FPC}TPSQLDump, TPSQLRestore, TBDE2PSQLDAC{$ENDIF}] );
+      TPSQLTools, TPSQLCopy {$IFNDEF FPC},TPSQLDump, TPSQLRestore, TBDE2PSQLDAC{$ENDIF}] );
   RegisterComponentEditor(TPSQLDatabase, TPSQLDatabaseEditor);
   {$IFNDEF FPC}{$IFNDEF BCB}RegisterComponentEditor(TPSQLQuery, TPSQLQueryEditor);{$ENDIF}{$ENDIF}
   RegisterComponentEditor(TPSQLUpdateSQL,TPSQLUpdateSQLEditor);
