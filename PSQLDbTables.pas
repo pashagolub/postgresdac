@@ -2711,11 +2711,11 @@ end;
 procedure TPSQLDataSet.ClearBlobCache(Buffer : TRecordBuffer);
 var
   I: Integer;
-  addr: LongWord;
+  addr: NativeUInt;
 begin
   if FCacheBlobs then
   begin
-     addr := LongWord(Buffer) + LongWord(FBlobCacheOfs);
+     addr := NativeUInt(Buffer) + NativeUInt(FBlobCacheOfs);
      for I := 0 to Pred(BlobFieldCount) do
         TBlobDataArray(addr)[ I ] := {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF};
   end;
@@ -3291,11 +3291,11 @@ end;
 
 procedure TPSQLDataSet.SetBlobData(Field : TField; Buffer : TRecordBuffer; Value : TBlobData);
 var
-  addr: LongWord;
+  addr: NativeUInt;
 begin
   if (Buffer = TRecordBuffer(ActiveBuffer)) then
   begin
-     addr := LongWord(Buffer) + LongWord(FBlobCacheOfs);
+     addr := NativeUInt(Buffer) + NativeUInt(FBlobCacheOfs);
      TBlobDataArray(addr)[ Field.Offset ] := Value;
   end;
 end;

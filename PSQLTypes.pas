@@ -119,8 +119,14 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
+
+{$IFNDEF DELPHI_12}
+  type
+    NativeUInt = cardinal;
+{$ENDIF}
+
 {$IFDEF UNDER_DELPHI_6}
-   type
+  type
     PBoolean      = ^Boolean;
     PWordBool     = ^WordBool;
 
