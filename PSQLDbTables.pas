@@ -2715,7 +2715,7 @@ var
 begin
   if FCacheBlobs then
   begin
-     addr := LongWord(Buffer) + FBlobCacheOfs;
+     addr := LongWord(Buffer) + LongWord(FBlobCacheOfs);
      for I := 0 to Pred(BlobFieldCount) do
         TBlobDataArray(addr)[ I ] := {$IFDEF DELPHI_12}nil{$ELSE}''{$ENDIF};
   end;
@@ -3295,7 +3295,7 @@ var
 begin
   if (Buffer = TRecordBuffer(ActiveBuffer)) then
   begin
-     addr := LongWord(Buffer) + FBlobCacheOfs;
+     addr := LongWord(Buffer) + LongWord(FBlobCacheOfs);
      TBlobDataArray(addr)[ Field.Offset ] := Value;
   end;
 end;
