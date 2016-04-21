@@ -17,8 +17,8 @@
         <CompilerPath Value="$(CompPath)"/>
       </Other>
     </CompilerOptions>
-    <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 8.x, 9.x/Pervasive Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL/Pervasive Postgres DB without BDE and ODBC."/>
-    <Version Major="2" Minor="9" Release="4"/>
+    <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 7.x, 8.x, 9.x and EnterpriseDB/Heroku Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL and EnterpriseDB/Heroku Postgres DB without BDE and ODBC."/>
+    <Version Major="3" Minor="1" Release="2"/>
     <Files Count="15">
       <Item1>
         <Filename Value="PSQLCOMP.pas"/>
