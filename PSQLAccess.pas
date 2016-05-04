@@ -14,7 +14,7 @@ uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
     {$IFDEF DELPHI_6}Variants,{$ENDIF}
     {$IFDEF FPC}Variants,{$ENDIF}
     SysUtils;
-    
+
 {$IFDEF DELPHI_12}
   {$NOINCLUDE PSQLGeomTypes}
 {$ENDIF}
@@ -2132,7 +2132,7 @@ begin
     FIELD_TYPE_INT8RANGE,
     FIELD_TYPE_TSRANGE,
     FIELD_TYPE_TSTZRANGE    : TPSQLRange(Dest^) := TPSQLRange(Src^);
-{$ENDIF DELPHI_12}    
+{$ENDIF DELPHI_12}
 
     FIELD_TYPE_BYTEA,
     FIELD_TYPE_OID,
@@ -2199,7 +2199,7 @@ begin
       FIELD_TYPE_INT8RANGE,
       FIELD_TYPE_TSRANGE,
       FIELD_TYPE_TSTZRANGE: TPSQLRange(Dest^) := TPSQLRange(Src^);
-{$ENDIF DELPHI_12}      
+{$ENDIF DELPHI_12}
 
       FIELD_TYPE_OID,
       FIELD_TYPE_BYTEA,
@@ -5407,24 +5407,31 @@ begin
         FAffectedRows := StrToIntDef(string(PQcmdTuples(AStatement)), 0);
         CurrentRecNum := PQntuples(FStatement);
         if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
-          begin
+        begin
            ATempCopyStmt := PQcopyResult(FStatement, PG_COPYRES_TUPLES); //hack because libpq have some bugs. must be eliminated further
            if not Assigned(ATempCopyStmt) then
              raise EPSQLException.CreateMsg(FConnect, 'Refresh for inserted fiels failed, cannot copy results');
            for i := 0 to PQnfields(AStatement) - 1 do
+           begin
+             fname := PQfname(AStatement, i);
+             if PQgetisnull(AStatement, 0, i) = 1 then
+             begin
+               fval := nil;
+               flen := -1;
+             end else
              begin
                fval := PQgetvalue(AStatement, 0, i);
-               fname := PQfname(AStatement, i);
                flen := PQgetlength(AStatement, 0, i);
-               if PQsetvalue(ATempCopyStmt, CurrentRecNum, i, fval, flen) = 0 then
-                 raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
              end;
+             if PQsetvalue(ATempCopyStmt, CurrentRecNum, i, fval, flen) = 0 then
+               raise EPSQLException.CreateFmt('Refresh for inserted fiels "%s" failed', [fname]);
+           end;
            PQclear(FStatement);
            FStatement := ATempCopyStmt;
            RecordState := tsPos;
            SettoSeqNo(RecordCount); //tuple added to the end
            FReFetch := False;
-          end;
+        end;
       except
         MonitorHook.SQLExecute(Self, False);
         raise;
@@ -5482,9 +5489,16 @@ begin
         if (FAffectedRows > 0) and (dsoRefreshModifiedRecordOnly in Options) then
           for i := 0 to PQnfields(AStatement) - 1 do
           begin
-            fval := PQgetvalue(AStatement, 0, i);
             fname := PQfname(AStatement, i);
-            flen := PQgetlength(AStatement, 0, i);
+            if PQgetisnull(AStatement, 0, i) = 1 then
+            begin
+             fval := nil;
+             flen := -1;
+            end else
+            begin
+              fval := PQgetvalue(AStatement, 0, i);
+              flen := PQgetlength(AStatement, 0, i);
+            end;
             if PQsetvalue(FStatement, CurrentRecNum, i, fval, flen) = 0 then
               raise EPSQLException.CreateFmt('Refresh for modifed fiels "%s" failed', [fname]);
           end;
@@ -5550,17 +5564,26 @@ begin
        raise EPSQLException.CreateMsg(FConnect, 'Refresh for deleted fiels failed, cannot copy results');
      j := 0;
      for CurrentRecNum := 0 to RecordCount - 1 do
-      begin
-       if CurrentRecNum = RecNo then Continue; //exclude row from new set and check bounds
+     begin
+       if CurrentRecNum = RecNo then
+         Continue; // exclude row from new set and check bounds
        for i := 0 to PQnfields(FStatement) - 1 do
+       begin
+         if PQgetisnull(FStatement, CurrentRecNum, i) = 1 then
+         begin
+           fval := nil;
+           flen := -1;
+         end
+         else
          begin
            fval := PQgetvalue(FStatement, CurrentRecNum, i);
            flen := PQgetlength(FStatement, CurrentRecNum, i);
-           if PQsetvalue(ATempCopyStmt, j, i, fval, flen) = 0 then
-             raise EPSQLException.CreateFmt('Refresh for deleted fiels failed', []);
          end;
-       inc(j);
-      end;
+         if PQsetvalue(ATempCopyStmt, J, i, fval, flen) = 0 then
+           raise EPSQLException.CreateFmt('Refresh for deleted fiels failed', []);
+       end;
+       INC(J);
+     end;
      PQclear(FStatement);
      FStatement := ATempCopyStmt;
      RecordState := tsPos;
@@ -9760,6 +9783,3 @@ finalization
   {$ENDIF}
 
 end.
-
-
-
