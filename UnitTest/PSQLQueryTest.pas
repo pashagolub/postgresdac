@@ -64,6 +64,11 @@ type
   //fetch on demand
     procedure TestFetchOnDemand;
     procedure TestFetchOnDemandExclusive;
+  //dsoRefreshModifiedRecordOnly
+    procedure TestRefreshModifiedInsert;
+    procedure TestRefreshModifiedInsertNonEmptyTable;
+    procedure TestRefreshModifiedUpdate;
+    procedure TestRefreshModifiedDelete;
   end;
 
 var
@@ -202,6 +207,7 @@ begin
   FPSQLQuery := TPSQLQuery.Create(nil);
   FPSQLQuery.Database := QryDB;
   FPSQLQuery.ParamCheck := False;
+  QryDB.Execute('TRUNCATE requestlive_test');
 end;
 
 procedure TestTPSQLQuery.TearDown;
@@ -305,12 +311,19 @@ begin
 end;
 
 procedure TestTPSQLQuery.TestDelete;
+var aCount: integer;
 begin
+  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+                ' (1, ''test insert1''),' +
+                ' (2, ''test insert2''),' +
+                ' (3, ''test insert3''),' +
+                ' (4, ''test insert4'')');
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
+  aCount := FPSQLQuery.RecordCount;
   FPSQLQuery.Delete;
-  Check(FPSQLQuery.RecordCount = 0, 'TPSQLQuery.Delete failed');
+  Check(FPSQLQuery.RecordCount = aCount - 1, 'TPSQLQuery.Delete failed');
 end;
 
 procedure TestTPSQLQuery.TestEmptyCharAsNullOption;
@@ -443,6 +456,95 @@ begin
           'Multicolumn Lookup failed');
 end;
 
+procedure TestTPSQLQuery.TestRefreshModifiedDelete;
+var anID, aRecordCount: integer;
+begin
+  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+                ' (1, ''test insert1''),' +
+                ' (2, ''test insert2''),' +
+                ' (3, ''test insert3''),' +
+                ' (4, ''test insert4'')');
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Options := FPSQLQuery.Options + [dsoRefreshModifiedRecordOnly];
+  FPSQLQuery.Open;
+  FPSQLQuery.RecNo := Random(FPSQLQuery.RecordCount);
+  anID := FPSQLQuery.FieldByName('id').AsInteger;
+  aRecordCount := FPSQLQuery.RecordCount;
+  FPSQLQuery.Delete;
+  Check(aRecordCount - 1 = FPSQLQuery.RecordCount, 'Nothing deleted');
+  Check(not FPSQLQuery.Locate('id', anID, []), 'Row not deleted properly');
+end;
+
+procedure TestTPSQLQuery.TestRefreshModifiedInsert;
+var RowCount: integer;
+    iVal: integer;
+begin
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Options := FPSQLQuery.Options + [dsoRefreshModifiedRecordOnly];
+  FPSQLQuery.Open;
+  RowCount := FPSQLQuery.RecordCount;
+  FPSQLQuery.Insert;
+  iVal := Random(MaxInt);
+  FPSQLQuery.FieldByName('intf').AsInteger := iVal;
+  FPSQLQuery.FieldByName('string').AsString := 'test test inserted';
+  FPSQLQuery.Post;
+
+  Check(RowCount + 1 = FPSQLQuery.RecordCount, 'Nothing inserted');
+  Check(FPSQLQuery.FieldByName('intf').AsInteger = iVal, 'Integer value is wrong after Insert');
+  Check(FPSQLQuery.FieldByName('string').AsString = 'test test inserted', 'String value is wrong after Insert');
+  Check(FPSQLQuery.FieldByName('datum').IsNull, 'Datum value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('notes').IsNull, 'Notes value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('graphic').IsNull, 'Graphic value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('b_graphic').IsNull, 'b_graphic value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('b').IsNull, 'b value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('floatf').IsNull, 'floatf value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('datef').IsNull, 'datef value must be NULL after Insert');
+  Check(FPSQLQuery.FieldByName('timef').IsNull, 'timef value must be NULL after Insert');
+end;
+
+procedure TestTPSQLQuery.TestRefreshModifiedInsertNonEmptyTable;
+begin
+  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+                ' (1, ''test insert1''),' +
+                ' (2, ''test insert2''),' +
+                ' (3, ''test insert3''),' +
+                ' (4, ''test insert4'')');
+  TestRefreshModifiedInsert();
+end;
+
+procedure TestTPSQLQuery.TestRefreshModifiedUpdate;
+var
+  iVal: Integer;
+begin
+  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+                ' (1, ''test insert1''),' +
+                ' (2, ''test insert2''),' +
+                ' (3, ''test insert3''),' +
+                ' (4, ''test insert4'')');
+  FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
+  FPSQLQuery.RequestLive := True;
+  FPSQLQuery.Options := FPSQLQuery.Options + [dsoRefreshModifiedRecordOnly];
+  FPSQLQuery.Open;
+  FPSQLQuery.RecNo := Random(FPSQLQuery.RecordCount);
+  FPSQLQuery.Edit;
+  iVal := Random(MaxInt);
+  FPSQLQuery.FieldByName('intf').AsInteger := iVal;
+  FPSQLQuery.FieldByName('string').AsString := 'test test updated';
+  FPSQLQuery.Post;
+  Check(FPSQLQuery.FieldByName('intf').AsInteger = iVal, 'Integer value is wrong');
+  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'String value is wrong');
+  Check(FPSQLQuery.FieldByName('datum').IsNull, 'Datum value must be NULL');
+  Check(FPSQLQuery.FieldByName('notes').IsNull, 'Notes value must be NULL');
+  Check(FPSQLQuery.FieldByName('graphic').IsNull, 'Graphic value must be NULL');
+  Check(FPSQLQuery.FieldByName('b_graphic').IsNull, 'b_graphic value must be NULL');
+  Check(FPSQLQuery.FieldByName('b').IsNull, 'b value must be NULL');
+  Check(FPSQLQuery.FieldByName('floatf').IsNull, 'floatf value must be NULL');
+  Check(FPSQLQuery.FieldByName('datef').IsNull, 'datef value must be NULL');
+  Check(FPSQLQuery.FieldByName('timef').IsNull, 'timef value must be NULL');
+end;
+
 procedure TestTPSQLQuery.TestRequired;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test'; //single table query
@@ -514,9 +616,15 @@ end;
 
 procedure TestTPSQLQuery.TestUpdate;
 begin
+  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+                ' (1, ''test insert1''),' +
+                ' (2, ''test insert2''),' +
+                ' (3, ''test insert3''),' +
+                ' (4, ''test insert4'')');
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
+  FPSQLQuery.RecNo := Random(FPSQLQuery.RecordCount);
   FPSQLQuery.Edit;
   FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt);
   FPSQLQuery.FieldByName('string').AsString := 'test test updated';
@@ -524,7 +632,7 @@ begin
   FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
   FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
   FPSQLQuery.Post;
-  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'TPSQLQuery.Edit failed');
+  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'String value is wrong after Update');
 end;
 
 { TDbSetup }
@@ -533,7 +641,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS requestlive_test ' +
+  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
                 '  intf integer NOT NULL,' + //NotNull ->Required
