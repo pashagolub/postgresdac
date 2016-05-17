@@ -7462,65 +7462,68 @@ begin
   end;
 end;
 
-function TNativeDataSet.SetRowPosition(iFields : Integer; LID : Int64; pRecBuffer : Pointer):Boolean;
+function TNativeDataSet.SetRowPosition(iFields: integer; LID: int64; pRecBuffer: Pointer): Boolean;
 var
-  FldNo : Integer;
-  Field : TPSQLField;
-  Item : TPSQLIndex;
-  R   : Longint;
-  I   : Integer;
-  Flds  : array of Integer;
-  SFlds : array of String;
-  K     : Integer;
+  FldNo: integer;
+  Field: TPSQLField;
+  Item: TPSQLIndex;
+  R: LongInt;
+  i: integer;
+  Flds: array of integer;
+  SFlds: array of String;
+  K: integer;
 
 var
-  SS : String;
+  SS: String;
 
 begin
-   if isQuery then iFields := -1;
-   if iFields = -1 then
-   begin
-      K := 1;
-      for I := 0 to Fields.Count-1 do
+  if isQuery and (FOMode = dbiREADONLY) then
+    iFields := -1; // multitable or non-Select SQL query
+
+  if iFields = -1 then
+  begin
+    K := 1;
+    for i := 0 to Fields.Count - 1 do
+    begin
+      Field := Fields[i + 1];
+      Field.Buffer := pRecBuffer;
+      if (Field.FieldType = fldBLOB) or (Field.Description.bCalcField) or
+        (Field.FieldNull and (Field.FieldSubType <> fldstAUTOINC)) or (Field.NativeType = FIELD_TYPE_TIMESTAMP) then
+        Continue;
+      SetLength(Flds, K);
+      SetLength(SFlds, K);
+      Flds[K - 1] := i;
+      if (Field.FieldSubType = fldstAUTOINC) and (LID > 0) then
+        SFlds[K - 1] := inttostr(LID)
+      else
+        SFlds[K - 1] := FieldVal(i + 1, Field.FieldValue);
+      INC(K);
+    end;
+  end
+  else
+  begin
+    Item := FIndexDescs.mIndex[iFields];
+    SetLength(Flds, Item.Description.iFldsInKey);
+    SetLength(SFlds, Item.Description.iFldsInKey);
+    for i := 0 to Item.Description.iFldsInKey - 1 do
+    begin
+      FldNo := Item.Description.aiKeyFld[i];
+      Field := Fields[FldNo];
+      Flds[i] := FldNo - 1;
+      Field.Buffer := pRecBuffer;
+      SS := FieldVal(FldNo, Field.FieldValue);
+      if SS = '' then
       begin
-         Field := Fields[I+1];
-         Field.Buffer := pRecBuffer;
-         if (Field.FieldType = fldBLOB) or
-            (Field.Description.bCalcField) or
-            (Field.FieldNull and (Field.FieldSubType <> fldstAUTOINC)) or
-            (Field.NativeType = FIELD_TYPE_TIMESTAMP) then Continue;
-         SetLength(Flds,K);
-         SetLength(SFlds,K);
-         Flds[K-1] := I;
-         if (Field.FieldSubType = fldstAUTOINC) and (LID > 0) then
-            SFlds[K-1] := IntToStr(LID) else
-            SFlds[K-1] := FieldVal(I+1, Field.FieldValue);
-         Inc(K);
+        if (Field.FieldSubType = fldstAUTOINC) and (LID > 0) then
+          SS := inttostr(LID);
       end;
-   end else
-   begin
-      Item := FIndexDescs.mIndex[iFields];
-      SetLength(Flds,Item.Description.iFldsInKey);
-      SetLength(SFlds,Item.Description.iFldsInKey);
-      for I := 0 to Item.Description.iFldsInKey-1 do
-      begin
-         FldNo := Item.Description.aiKeyFld[I];
-         Field := Fields[FldNo];
-         Flds[I] := FldNo-1;
-         Field.Buffer := pRecBuffer;
-         SS := FieldVal(FldNo, Field.FieldValue);
-         if SS = '' then
-         begin
-            if (Field.FieldSubType = fldstAUTOINC) and (LID > 0) then
-            SS := IntToStr(LID);
-         end;
-         SFlds[I] := SS;
-      end;
-   end;
-   R := FindRows(Flds, SFlds, False, 0);
-   Result := R <> -1;
-   if Result then
-      SettoSeqNo(R + 1);
+      SFlds[i] := SS;
+    end;
+  end;
+  R := findrows(Flds, SFlds, False, 0);
+  Result := R <> -1;
+  if Result then
+    SettoSeqNo(R + 1);
 end;
 
 
@@ -7775,6 +7778,7 @@ begin
     fldINT32: Result := IntToStr(PLongInt(@Buff)^);
     fldINT64: Result := IntToStr(PInt64(@Buff)^);
     fldFLOAT: Result := SysUtils.FloatToStr(PDouble(@Buff)^);
+    //fldBOOL:  Result := ifthen( PSmallInt(@Buff)^ > 0, 'T', 'F');
     fldZSTRING:
               {$IFDEF DELPHI_12}
               if FConnect.IsUnicodeUsed then
