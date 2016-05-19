@@ -71,6 +71,15 @@ type
     procedure TestUpdateRange;
   end;
 
+  TestNativeNumericField = class(TTestCase)
+  public
+    procedure TearDown; override;
+  published
+    procedure TestNumericTypeMapping;
+    procedure TestNumericSelectInt;
+    procedure TestNumericSelectFrac;
+  end;
+
 var
   FldDB: TPSQLDatabase;
   FldQry: TPSQLQuery;
@@ -500,10 +509,49 @@ begin
   Check((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
 end;
 
+{ TestNativeNumericField }
+
+procedure TestNativeNumericField.TearDown;
+begin
+  inherited;
+  //
+end;
+
+procedure TestNativeNumericField.TestNumericSelectFrac;
+const _Num = '98765432100123456789.98765432100123456789';
+var S: string;
+begin
+  FldQry.ParamCheck := False;
+  FldQry.SQL.Text := 'SELECT 98765432100123456789.98765432100123456789 :: numeric';
+  FldQry.Open;
+  S := FldQry.Fields[0].AsString;
+  CheckEqualsString(_Num, S, 'Incorrect value for NUMERIC');
+end;
+
+procedure TestNativeNumericField.TestNumericSelectInt;
+const _Num = '98765432100123456789';
+var S: string;
+begin
+  FldQry.ParamCheck := False;
+  FldQry.SQL.Text := 'SELECT 98765432100123456789 :: numeric(20, 0)';
+  FldQry.Open;
+  S := FldQry.Fields[0].AsString;
+  CheckEqualsString(_Num, S, 'Incorrect value for NUMERIC');
+end;
+
+procedure TestNativeNumericField.TestNumericTypeMapping;
+begin
+  FldQry.ParamCheck := False;
+  FldQry.SQL.Text := 'SELECT 12.13 :: numeric';
+  FldQry.Open;
+  CheckIs(FldQry.Fields[0], TFMTBCDField, 'Incorrect NUMERIC mapping');
+end;
+
 initialization
   //PaGo: Register any test cases with setup decorator
   RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite));
   RegisterTest(TDbSetup.Create(TestGeometricFields.Suite));
   RegisterTest(TDbSetup.Create(TestTPSQLRangeField.Suite));
+  RegisterTest(TDbSetup.Create(TestNativeNumericField.Suite));
 end.
 
