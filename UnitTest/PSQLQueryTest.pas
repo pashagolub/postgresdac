@@ -198,8 +198,8 @@ end;
 procedure TestTPSQLQuery.CheckCorruptedParams;
 begin
   FPSQLQuery.ParamCheck := True;
-  FPSQLQuery.SQL.Text := '6.1.2009 12:12:04';
-  Check(FPSQLQuery.ParamCount = 0, 'Wrong parameters parsing with ParamCheck');
+  FPSQLQuery.SQL.Text := 'SELECT now()::::TIMESTAMP(0) where AField = :AParam';
+  Check(FPSQLQuery.ParamCount = 1, 'Wrong parameters parsing with ParamCheck');
 end;
 
 procedure TestTPSQLQuery.SetUp;
