@@ -9,9 +9,9 @@ unit PSQLAccess;
 interface
 
 uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
-    {$IFDEF DELPHI_12}PSQLGeomTypes,{$ENDIF}
+    {$IFDEF DELPHI_12}PSQLGeomTypes, {$ENDIF}
     {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
-    {$IFDEF DELPHI_6}Variants,{$ENDIF}
+    {$IFDEF DELPHI_6}FmtBcd, Variants,{$ENDIF}
     {$IFDEF FPC}Variants,{$ENDIF}
     SysUtils;
 
@@ -2117,8 +2117,9 @@ begin
     FIELD_TYPE_TIMESTAMP: TDateTime(Dest^):= TimeStampToMSecs(DateTimeToTimeStamp(TDateTime(Src^)));
 
     FIELD_TYPE_FLOAT4,
-    FIELD_TYPE_FLOAT8,
-    FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+    FIELD_TYPE_FLOAT8: Double(Dest^) := Double(Src^);
+
+    FIELD_TYPE_NUMERIC: TBcd(Dest^) := TBcd(Src^);
 
 {$IFDEF DELPHI_12}
     FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
@@ -2184,8 +2185,8 @@ begin
                               end;
                            end;
       FIELD_TYPE_FLOAT4,
-      FIELD_TYPE_FLOAT8,
-      FIELD_TYPE_NUMERIC: Double(Dest^) := Double(Src^);
+      FIELD_TYPE_FLOAT8:  Double(Dest^) := Double(Src^);
+      FIELD_TYPE_NUMERIC: TBcd(Dest^) := TBcd(Src^);
 
 {$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: TPSQLPoint(Dest^) := TPSQLPoint(Src^);
@@ -3123,6 +3124,7 @@ begin
      fldINT32:   Result := IntToStr(LongInt(Src^));
      fldINT64:   Result := IntToStr(Int64(Src^));
      fldFloat:   Result := SQLFloatToStr(Double(Src^));
+     fldFMTBCD:  Result := BcdToStr(TBcd(Src^), PSQL_FS);
      fldZSTRING:
                  case NativeType of
                    FIELD_TYPE_BIT,
@@ -3857,9 +3859,8 @@ begin
         FIELD_TYPE_TIME: Inc(Result,SizeOf(TDateTime));
         FIELD_TYPE_TIMESTAMP: Inc(Result,SizeOf(TDateTime));
         FIELD_TYPE_FLOAT4,
-        FIELD_TYPE_NUMERIC,
-        FIELD_TYPE_FLOAT8:Inc(Result,SizeOf(Double));
-
+        FIELD_TYPE_FLOAT8: Inc(Result, SizeOf(Double));
+        FIELD_TYPE_NUMERIC: Inc(Result, SizeOf(TBcd));
      else
        Inc(Result,FieldMaxSizeInBytes(I));
      end;
@@ -4620,8 +4621,9 @@ begin
       FIELD_TYPE_TIMESTAMP: Result := SizeOf(TDateTime);
 
       FIELD_TYPE_FLOAT4,
-      FIELD_TYPE_NUMERIC,
       FIELD_TYPE_FLOAT8: Result := Sizeof(Double);
+
+      FIELD_TYPE_NUMERIC: Result := SizeOf(TBcd);
 
 {$IFDEF DELPHI_12}
       FIELD_TYPE_POINT: Result := SizeOf(TPSQLPoint);
@@ -5072,8 +5074,8 @@ begin
              FIELD_TYPE_TIME:      TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
              FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
              FIELD_TYPE_FLOAT4,
-             FIELD_TYPE_FLOAT8,
-             FIELD_TYPE_NUMERIC:   Double(Data^) := StrToSQLFloat(FldValue);
+             FIELD_TYPE_FLOAT8:    Double(Data^) := StrToSQLFloat(FldValue);
+             FIELD_TYPE_NUMERIC:   TBcd(Data^) := StrToBcd(FldValue, PSQL_FS);
 {$IFDEF DELPHI_12}
              FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
              FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
@@ -9001,48 +9003,48 @@ procedure TNativeDataSet.InternalSortBy(const Fields: array of Integer;
 var aRecNum: integer;
     i: integer;
 
-    function StringToVariant(S: string; NativeType: oid): variant;
-    begin
-         case NativeType of
-            FIELD_TYPE_INT2,
-            FIELD_TYPE_INT4,
-            FIELD_TYPE_INT8:
-               {$IFDEF DELPHI_5}
-                Result := StrToIntDef(S, 0);
-               {$ELSE}
-                Result := StrToInt64Def(S, 0);
-               {$ENDIF}
-            FIELD_TYPE_FLOAT4,
-            FIELD_TYPE_FLOAT8,
-            FIELD_TYPE_NUMERIC:
-                             try
-                              Result := StrToFloat(S, PSQL_FS);
-                             except
-                              //D5 have no StrToFloatDef
-                              on E: EConvertError do
-                               Result := 0.0;
-                             end;
+  function StringToVariant(S: string; NativeType: oid): variant;
+  begin
+       case NativeType of
+          FIELD_TYPE_INT2,
+          FIELD_TYPE_INT4,
+          FIELD_TYPE_INT8:
+             {$IFDEF DELPHI_5}
+              Result := StrToIntDef(S, 0);
+             {$ELSE}
+              Result := StrToInt64Def(S, 0);
+             {$ENDIF}
+          FIELD_TYPE_FLOAT4,
+          FIELD_TYPE_FLOAT8:
+                           try
+                            Result := StrToFloat(S, PSQL_FS);
+                           except
+                            //D5 have no StrToFloatDef
+                            on E: EConvertError do
+                             Result := 0.0;
+                           end;
+          FIELD_TYPE_NUMERIC:
+                           Result := VarFMTBcdCreate(S, High(Word), High(Word));
+          FIELD_TYPE_BOOL: Result := S[1] = 't';
 
-            FIELD_TYPE_BOOL: Result := S[1] = 't';
+          FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
+                         {$IFDEF DELPHI_5}
+                            Result := StrToIntDef(S, InvalidOid)
+                         {$ELSE}
+                            Result := StrToInt64Def(S, InvalidOid)
+                         {$ENDIF}
+                          else
+                            Result := 0;
+          FIELD_TYPE_TEXT,
+          FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
 
-            FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
-                           {$IFDEF DELPHI_5}
-                              Result := StrToIntDef(S, InvalidOid)
-                           {$ELSE}
-                              Result := StrToInt64Def(S, InvalidOid)
-                           {$ENDIF}
-                            else
-                              Result := 0;
-            FIELD_TYPE_TEXT,
-            FIELD_TYPE_BYTEA: Result := 0; //BLOB's are not comparable
+        else
+           //datetime fields will be compared here also
+           //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
+           Result := S;
+        end;
 
-          else
-             //datetime fields will be compared here also
-             //cause we have ISO output datestyle: yyyy-mm-dd hh:mm:ss[-tz]
-             Result := S;
-          end;
-
-    end;
+  end;
 
     function CustomCmpRecords(Index1, Index2: integer): integer;
     var
@@ -9093,8 +9095,7 @@ var aRecNum: integer;
                                         StrToInt64Def(FVal2, 0);
 
              FIELD_TYPE_FLOAT4,
-             FIELD_TYPE_FLOAT8,
-             FIELD_TYPE_NUMERIC:
+             FIELD_TYPE_FLOAT8:
                               try
                                Result := Sign(StrToFloat(FVal1, PSQL_FS) -
                                         StrToFloat(FVal2, PSQL_FS));
@@ -9103,6 +9104,8 @@ var aRecNum: integer;
                                on E: EConvertError do
                                 Result := 0;
                               end;
+
+             FIELD_TYPE_NUMERIC: Result := BcdCompare(StrToBcd(FVal1), StrToBcd(FVal2));
 
              FIELD_TYPE_BOOL: Result :=  ord(FVal1[1]) -
                                          ord(FVal2[1]);
