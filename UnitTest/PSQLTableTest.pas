@@ -138,14 +138,11 @@ begin
 end;
 
 procedure TestTPSQLTable.TestFindKey;
-var
-  ReturnValue: Boolean;
-  KeyValues: array of TVarRec;
 begin
   FPSQLTable.TableName := 'testtable';
   FPSQLTable.Open;
   FPSQLTable.IndexName := 'pk_testtable';
-  Check(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
+  CheckTrue(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
   // TODO: Validate method results
 end;
 
@@ -162,25 +159,27 @@ procedure TestTPSQLTable.TestGetIndexNames;
 var
   List: TStrings;
 begin
+  List := TStringList.Create;
   // TODO: Setup method call parameters
   FPSQLTable.GetIndexNames(List);
   // TODO: Validate method results
+  List.Free;
 end;
 
 procedure TestTPSQLTable.TestGotoCurrent;
 var
   Table: TPSQLTable;
 begin
+  Table := TPSQLTable.Create(nil);
   // TODO: Setup method call parameters
   FPSQLTable.GotoCurrent(Table);
   // TODO: Validate method results
+  Table.Free;
 end;
 
 procedure TestTPSQLTable.TestGotoKey;
-var
-  ReturnValue: Boolean;
 begin
-  ReturnValue := FPSQLTable.GotoKey;
+  CheckTrue(FPSQLTable.GotoKey);
   // TODO: Validate method results
 end;
 

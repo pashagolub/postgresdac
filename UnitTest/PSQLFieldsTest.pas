@@ -15,7 +15,7 @@ interface
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
   PSQLTypes, SysUtils, DbCommon, Graphics, StdVCL, TestExtensions,
-  Forms, PSQLConnFrm, PSQLFields, PSQLGeomTypes;
+  Forms, PSQLConnFrm, PSQLFields, PSQLGeomTypes, Data.FmtBcd;
 
 type
 
@@ -78,6 +78,7 @@ type
     procedure TestNumericTypeMapping;
     procedure TestNumericSelectInt;
     procedure TestNumericSelectFrac;
+    procedure TestNumericInsert;
   end;
 
 var
@@ -517,15 +518,19 @@ begin
   //
 end;
 
-procedure TestNativeNumericField.TestNumericSelectFrac;
-const _Num = '98765432100123456789.98765432100123456789';
-var S: string;
+procedure TestNativeNumericField.TestNumericInsert;
 begin
+
+end;
+
+procedure TestNativeNumericField.TestNumericSelectFrac;
+var _Num: Tbcd;
+begin
+  _Num := StrToBcd('98765432100123456789.98765432100123456789', PSQL_FS);
   FldQry.ParamCheck := False;
   FldQry.SQL.Text := 'SELECT 98765432100123456789.98765432100123456789 :: numeric';
   FldQry.Open;
-  S := FldQry.Fields[0].AsString;
-  CheckEqualsString(_Num, S, 'Incorrect value for NUMERIC');
+  Check(_Num = FldQry.Fields[0].AsBCD, 'Incorrect value for NUMERIC');
 end;
 
 procedure TestNativeNumericField.TestNumericSelectInt;
