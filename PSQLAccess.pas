@@ -836,6 +836,7 @@ function QuoteIdentifier(IdentifierName: string): string;
 function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
 function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
+function _PQexecPrepared(AConnection: TNativeConnect; AStmName: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
 
 {$IFDEF M_DEBUG}
 function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
@@ -1979,6 +1980,40 @@ begin
   try
     {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
     Result := PQExec(AConnection.Handle, Q);
+  finally
+   FreeMem(Q);
+  end;
+end;
+
+function _PQexecPrepared(AConnection: TNativeConnect; AStmName: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
+var Q: PAnsiChar;
+    S: AnsiString;
+    paramValues: array of PAnsiChar;
+    i: integer;
+begin
+  if AConnection.IsUnicodeUsed then
+    S := UTF8Encode(AStmName)
+  else
+    S := AnsiString(AStmName);
+  GetMem(Q, Length(S) + 1);
+  try
+    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
+    SetLength(paramValues, AParams.Count);
+    for i := 0 to AParams.Count - 1 do
+     begin
+      if AConnection.IsUnicodeUsed then
+        S := UTF8Encode(AParams[i].AsString)
+      else
+        S := AnsiString(AParams[i].AsString);
+      GetMem(paramValues[i], Length(S) + 1);
+      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(paramValues[i], S);
+     end;
+    try
+      Result := PQexecPrepared(AConnection.Handle, Q, AParams.Count, @paramValues[0], nil, nil, AResultFormat);
+    finally
+     for i := 0 to AParams.Count - 1 do
+       FreeMem(paramValues[i]);
+    end;
   finally
    FreeMem(Q);
   end;
