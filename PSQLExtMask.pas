@@ -8,7 +8,7 @@ unit PSQLExtMask;
 
 interface
 
-uses SysUtils;
+uses SysUtils, PSQLTypes;
 
 type
   EExtMaskException = class(Exception);
@@ -20,14 +20,14 @@ type
     FSize: Integer;
   public
     constructor Create(const MaskValue: string; const CaseSensitive: boolean = False;
-                const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?');
+                const MatchAnyChar: AnsiDACChar = '%'; const MatchSingleChar: AnsiDACChar = '?');
     destructor Destroy; override;
     function Matches(const AString: string): Boolean;
   end;
 
 
 function MatchesMask(const AString, Mask: string; const CaseSensitive: boolean = False;
-                     const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?'): Boolean;
+                     const MatchAnyChar: AnsiDACChar = '%'; const MatchSingleChar: AnsiDACChar = '?'): Boolean;
 
 function EscapeMask(const AMask, EscapeChars: string): string;
 
@@ -41,34 +41,38 @@ resourcestring
 
 type
   PMaskSet = ^TMaskSet;
-  TMaskSet = set of AnsiChar;
+  TMaskSet = set of AnsiDACByteChar;
   TMaskStates = (msLiteral, msAny, msSet, msMBCSLiteral);
   TMaskState = record
     SkipTo: Boolean;
     case State: TMaskStates of
-      msLiteral: (Literal: AnsiChar);
+      msLiteral: (Literal: AnsiDACByteChar);
       msAny: ();
       msSet: (
         Negate: Boolean;
         CharSet: PMaskSet);
-      msMBCSLiteral: (LeadByte, TrailByte: AnsiChar);
+      msMBCSLiteral: (LeadByte, TrailByte: AnsiDACByteChar);
   end;
   PMaskStateArray = ^TMaskStateArray;
   TMaskStateArray = array[0..128] of TMaskState;
 
 function InitMaskStates(const Mask: string;
   var MaskStates: array of TMaskState;
-  const MatchAnyChar: Ansichar = '*';
-  const MatchSingleChar: Ansichar = '?'): Integer;
+  const MatchAnyChar: AnsiDACChar = '*';
+  const MatchSingleChar: AnsiDACChar = '?'): Integer;
 var
   I: Integer;
   SkipTo: Boolean;
-  Literal: AnsiChar;
-  LeadByte, TrailByte: AnsiChar;
-  P: PAnsiChar;
+  Literal: AnsiDACByteChar;
+  LeadByte, TrailByte: AnsiDACByteChar;
+  P: PAnsiDACBytesChar;
   Negate: Boolean;
   CharSet: TMaskSet;
   Cards: Integer;
+
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 
   procedure InvalidMask;
   begin
@@ -113,6 +117,7 @@ var
     Reset;
   end;
 
+  {$IFNDEF NEXTGEN}
   procedure ScanSet;
   var
     LastChar: AnsiChar;
@@ -148,8 +153,47 @@ var
     if (P^ <> ']') or (CharSet = []) then InvalidMask;
     WriteScan(msSet);
   end;
+  {$ELSE}
+  procedure ScanSet;
+  var
+    LastChar: Byte;
+    C: Byte;
+  begin
+    Inc(P);
+    if P^ = ord('!') then
+    begin
+      Negate := True;
+      Inc(P);
+    end;
+    LastChar := 0;
+    while not (P^ in [0, ord(']')]) do
+    begin
+      // MBCS characters not supported in msSet!
+      if P^ in LeadBytes then
+         Inc(P)
+      else
+      case P^ of
+        ord('-'):
+          if LastChar = 0 then InvalidMask
+          else
+          begin
+            Inc(P);
+            for C := LastChar to (P^) do
+              Include(CharSet, C);
+          end;
+      else
+        LastChar := (P^);
+        Include(CharSet, LastChar);
+      end;
+      Inc(P);
+    end;
+    if (P^ <> ord(']')) or (CharSet = []) then InvalidMask;
+    WriteScan(msSet);
+  end;
+  {$ENDIF}
 
 begin
+  {$IFNDEF NEXTGEN}
   P := PAnsiChar(AnsiString(Mask));
   I := 0;
   Cards := 0;
@@ -193,22 +237,70 @@ begin
   Literal := #0;
   WriteScan(msLiteral);
   Result := I;
+  {$ELSE}
+  P := M.AsAnsi(Mask).ToPointer;
+  I := 0;
+  Cards := 0;
+  Reset;
+  while P^ <> 0 do
+  begin
+    if P^ = ord(MatchAnyChar) then
+      SkipTo := True
+     else
+      if P^ = ord(MatchSingleChar) then
+        begin
+          if not SkipTo then WriteScan(msAny);
+        end
+      else
+        case P^ of
+          ord('['):  ScanSet;
+          ord('\'):  begin
+                 Inc(P);
+                 If P^ <> 0 then
+                  begin
+                   Literal := P^;
+                   WriteScan(msLiteral);
+                  end;
+                end;
+        else
+          if P^ in LeadBytes then
+          begin
+            LeadByte := P^;
+            Inc(P);
+            TrailByte := P^;
+            WriteScan(msMBCSLiteral);
+          end
+          else
+          begin
+            Literal := P^;
+            WriteScan(msLiteral);
+          end;
+        end;
+    If P^ <> 0 then Inc(P);
+  end;
+  Literal := 0;
+  WriteScan(msLiteral);
+  Result := I;
+  {$ENDIF}
 end;
 
-function MatchesMaskStates(const Filename: ansistring;
+function MatchesMaskStates(const Filename: DACAString;
   const MaskStates: array of TMaskState): Boolean;
 type
   TStackRec = record
-    sP: PAnsiChar;
+    sP: PAnsiDACChar;
     sI: Integer;
   end;
 var
   T: Integer;
   S: array[0..MaxCards - 1] of TStackRec;
   I: Integer;
-  P: PAnsiChar;
+  P: PAnsiDACChar;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 
-  procedure Push(P: PAnsiChar; I: Integer);
+  procedure Push(P: PAnsiDACChar; I: Integer);
   begin
     with S[T] do
     begin
@@ -218,7 +310,7 @@ var
     Inc(T);
   end;
 
-  function Pop(var P: PAnsiChar; var I: Integer): Boolean;
+  function Pop(var P: PAnsiDACChar; var I: Integer): Boolean;
   begin
     if T = 0 then
       Result := False
@@ -234,6 +326,7 @@ var
     end;
   end;
 
+  {$IFNDEF NEXTGEN}
   function Matches(P: PAnsiChar; Start: Integer): Boolean;
   var
     I: Integer;
@@ -277,14 +370,59 @@ var
       end;
     Result := True;
   end;
+  {$ELSE}
+  function Matches(P: PAnsiDACBytesChar; Start: Integer): Boolean;
+  var
+    I: Integer;
+  begin
+    Result := False;
+    for I := Start to High(MaskStates) do
+      with MaskStates[I] do
+      begin
+        if SkipTo then
+        begin
+          case State of
+            msLiteral:
+              while (P^ <> 0) and (P^ <> Literal) do Inc(P);
+            msSet:
+              while (P^ <> 0) and not (Negate xor (P^ in CharSet^)) do Inc(P);
+            msMBCSLiteral:
+              while (P^ <> 0) do
+              begin
+                if (P^ <> LeadByte) then Inc(P, 2)
+                else
+                begin
+                  Inc(P);
+                  if (P^ = TrailByte) then Break;
+                  Inc(P);
+                end;
+              end;
+          end;
+          if P^ <> 0 then Push(@P[1], I);
+        end;
+        case State of
+          msLiteral: if P^ <> Literal then Exit;
+          msSet: if not (Negate xor (P^ in CharSet^)) then Exit;
+          msMBCSLiteral:
+            begin
+              if P^ <> LeadByte then Exit;
+              Inc(P);
+              if P^ <> TrailByte then Exit;
+            end;
+        end;
+        Inc(P);
+      end;
+    Result := True;
+  end;
+  {$ENDIF}
 
 begin
   Result := True;
   T := 0;
-  P := PAnsiChar(Filename);
+  P := {$IFNDEF NEXTGEN}PAnsiChar(Filename){$ELSE}M.AsAnsi(Filename).ToPointer{$ENDIF};
   I := Low(MaskStates);
   repeat
-    if Matches(P, I) then Exit;
+    if Matches(PAnsiDACBytesChar(P), I) then Exit;
   until not Pop(P, I);
   Result := False;
 end;
@@ -300,7 +438,7 @@ end;
 { TExtMask }
 
 constructor TExtMask.Create(const MaskValue: string; const CaseSensitive: boolean = False;
-        const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?');
+        const MatchAnyChar: AnsiDACChar = '%'; const MatchSingleChar: AnsiDACChar = '?');
 var
   A: array[0..0] of TMaskState;
   S: string;
@@ -326,11 +464,11 @@ function TExtMask.Matches(const AString: string): Boolean;
 var S: string;
 begin
   if not FCaseSensitive then S := UpperCase(AString) else S := AString;
-  Result := MatchesMaskStates(AnsiString(S), Slice(PMaskStateArray(FMask)^, FSize));
+  Result := MatchesMaskStates(DACAString(S), Slice(PMaskStateArray(FMask)^, FSize));
 end;
 
 function MatchesMask(const AString, Mask: string; const CaseSensitive: boolean = False;
-                  const MatchAnyChar: Ansichar = '%'; const MatchSingleChar: Ansichar = '?'): Boolean;
+                  const MatchAnyChar: AnsiDACChar = '%'; const MatchSingleChar: AnsiDACChar = '?'): Boolean;
 var
   CMask: TExtMask;
 begin

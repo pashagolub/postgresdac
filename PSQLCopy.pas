@@ -195,8 +195,8 @@ end;
 procedure TCustomPSQLCopy.DoClientSideCopyGet(Stream: TStream);
 var Result: PPGresult;
     LineRes: integer;
-    Buffer: PAnsiChar;
-    S: AnsiString;
+    Buffer: PAnsiDACChar;
+    S: DACAString;
     AConnect: TNativeConnect;
 begin
   if Assigned(FBeforeCopyGet) then
@@ -243,7 +243,7 @@ end;
 procedure TCustomPSQLCopy.DoClientSideCopyPut(Stream: TStream);
 var Result, Result2: PPGresult;
     Count: cardinal;
-    Buffer: array[Word] of AnsiChar;
+    Buffer: array[Word] of AnsiDACByteChar;
     AConnect: TNativeConnect;
 begin
   if Assigned(FBeforeCopyPut) then
@@ -259,7 +259,10 @@ begin
         begin
          Count := Stream.Read(Buffer,Length(Buffer));
          while Count > 0 do
-          if PQputCopyData(AConnect.Handle, Buffer, Count) <= 0 then
+          if PQputCopyData(AConnect.Handle, {$IFNDEF NEXTGEN}
+                                              Buffer
+                                            {$ELSE}PAnsiDACChar(Buffer[0]){$ENDIF},
+                                              Count) <= 0 then
             AConnect.CheckResult(Result)
           else
             Count := Stream.Read(Buffer,Length(Buffer));

@@ -143,7 +143,7 @@ const
 
 procedure Register;
 
-function BadGUIDToGUID(const AStr: AnsiString): AnsiString;
+function BadGUIDToGUID(const AStr: DACAString): DACAString;
 {$IFDEF DELPHI_5}
 function StringToGUID(const AStr: AnsiString): TGUID;
 function IsEqualGUID(const guid1, guid2: TGUID): Boolean;
@@ -264,10 +264,11 @@ const
     $4146, $4246, $4346, $4446, $4546, $4646);
 
 var
-  HexUpperCase, HexLowerCase: Array[AnsiChar] of AnsiChar;
+  HexUpperCase, HexLowerCase: Array[AnsiDACByteChar] of AnsiDACByteChar;
 
 procedure InitHexUpperCase();
 begin
+{$IFNDEF MOBILE}
   HexUpperCase['a'] := 'A';
   HexUpperCase['b'] := 'B';
   HexUpperCase['c'] := 'C';
@@ -292,10 +293,37 @@ begin
   HexUpperCase['7'] := '7';
   HexUpperCase['8'] := '8';
   HexUpperCase['9'] := '9';
+{$ELSE}
+  HexUpperCase[Ord('a')] := Ord('A');
+  HexUpperCase[Ord('b')] := Ord('B');
+  HexUpperCase[Ord('c')] := Ord('C');
+  HexUpperCase[Ord('d')] := Ord('D');
+  HexUpperCase[Ord('e')] := Ord('E');
+  HexUpperCase[Ord('f')] := Ord('F');
+
+  HexUpperCase[Ord('A')] := Ord('A');
+  HexUpperCase[Ord('B')] := Ord('B');
+  HexUpperCase[Ord('C')] := Ord('C');
+  HexUpperCase[Ord('D')] := Ord('D');
+  HexUpperCase[Ord('E')] := Ord('E');
+  HexUpperCase[Ord('F')] := Ord('F');
+
+  HexUpperCase[Ord('0')] := Ord('0');
+  HexUpperCase[Ord('1')] := Ord('1');
+  HexUpperCase[Ord('2')] := Ord('2');
+  HexUpperCase[Ord('3')] := Ord('3');
+  HexUpperCase[Ord('4')] := Ord('4');
+  HexUpperCase[Ord('5')] := Ord('5');
+  HexUpperCase[Ord('6')] := Ord('6');
+  HexUpperCase[Ord('7')] := Ord('7');
+  HexUpperCase[Ord('8')] := Ord('8');
+  HexUpperCase[Ord('9')] := Ord('9');
+{$ENDIF}
 end;
 
 procedure InitHexLowerCase();
 begin
+{$IFNDEF MOBILE}
   HexLowerCase['a'] := 'a';
   HexLowerCase['b'] := 'b';
   HexLowerCase['c'] := 'c';
@@ -320,15 +348,51 @@ begin
   HexLowerCase['7'] := '7';
   HexLowerCase['8'] := '8';
   HexLowerCase['9'] := '9';
+{$ELSE}
+  HexLowerCase[Ord('a')] := Ord('a');
+  HexLowerCase[Ord('b')] := Ord('b');
+  HexLowerCase[Ord('c')] := Ord('c');
+  HexLowerCase[Ord('d')] := Ord('d');
+  HexLowerCase[Ord('e')] := Ord('e');
+  HexLowerCase[Ord('f')] := Ord('f');
+
+  HexLowerCase[Ord('A')] := Ord('a');
+  HexLowerCase[Ord('B')] := Ord('b');
+  HexLowerCase[Ord('C')] := Ord('c');
+  HexLowerCase[Ord('D')] := Ord('d');
+  HexLowerCase[Ord('E')] := Ord('e');
+  HexLowerCase[Ord('F')] := Ord('f');
+
+  HexLowerCase[Ord('0')] := Ord('0');
+  HexLowerCase[Ord('1')] := Ord('1');
+  HexLowerCase[Ord('2')] := Ord('2');
+  HexLowerCase[Ord('3')] := Ord('3');
+  HexLowerCase[Ord('4')] := Ord('4');
+  HexLowerCase[Ord('5')] := Ord('5');
+  HexLowerCase[Ord('6')] := Ord('6');
+  HexLowerCase[Ord('7')] := Ord('7');
+  HexLowerCase[Ord('8')] := Ord('8');
+  HexLowerCase[Ord('9')] := Ord('9');
+{$ENDIF}
+
 end;
 
-function BadGUIDToGUID(const AStr: AnsiString): AnsiString;
+function BadGUIDToGUID(const AStr: DACAString): DACAString;
 var
-  C: PAnsiChar;
+  C: PAnsiDACBytesChar;
+  {$IFDEF MOBILE}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   Result := '{00000000-0000-0000-0000-000000000000}';
   if AStr = '' then Exit;
-  C := PAnsiChar(AStr);
+  {$IFDEF MOBILE}
+  C := M.AsAnsi(AStr).ToPointer;
+  {$ELSE}
+  C := PAnsiDACChar(AStr);
+  {$ENDIF}
+
+  {$IFNDEF MOBILE}
   Result[2] := HexUpperCase[C^]; Inc(C);
   Result[3] := HexUpperCase[C^]; Inc(C);
   Result[4] := HexUpperCase[C^]; Inc(C);
@@ -365,10 +429,49 @@ begin
   Result[35] := HexUpperCase[C^]; Inc(C);
   Result[36] := HexUpperCase[C^]; Inc(C);
   Result[37] := HexUpperCase[C^];
+  {$ELSE}
+  Result[2] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[3] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[4] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[5] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[6] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[7] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[8] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[9] := Chr(HexUpperCase[C^]); Inc(C);
+  Inc(C); // skip -
+  Result[11] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[12] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[13] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[14] := Chr(HexUpperCase[C^]); Inc(C);
+  Inc(C); // skip -
+  Result[16] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[17] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[18] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[19] := Chr(HexUpperCase[C^]); Inc(C);
+  Inc(C); // skip -
+  Result[21] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[22] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[23] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[24] := Chr(HexUpperCase[C^]); Inc(C);
+  Inc(C); // skip -
+  Result[26] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[27] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[28] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[29] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[30] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[31] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[32] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[33] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[34] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[35] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[36] := Chr(HexUpperCase[C^]); Inc(C);
+  Result[37] := Chr(HexUpperCase[C^]);
+
+  {$ENDIF}
 end;
 
 {$IFNDEF FPC}
-function GUIDToString(const AGUID: TGUID): AnsiString;
+function GUIDToString(const AGUID: TGUID): DACAString;
 type
   TPointerInt = {$IFDEF DELPHI_16}NativeInt{$ELSE}Cardinal{$ENDIF};
 var
@@ -401,7 +504,7 @@ begin
 end;
 {$ENDIF}
 
-function StringToGUID(const AStr: AnsiString): TGUID;
+function StringToGUID(const AStr: DACAString): TGUID;
 begin
   if (AStr = '') or (Length(AStr) <> 38) then begin
     Result := GUID_NULL;
@@ -443,7 +546,7 @@ var
   S: String;
 begin
   S := GetAsString();
-  Result := StringToGUID(AnsiString(S));
+  Result := StringToGUID(DACAString(S));
 end;
 
 procedure TPSQLGuidField.SetAsGuid(const Value: TGUID);

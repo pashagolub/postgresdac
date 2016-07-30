@@ -8,8 +8,8 @@ interface
 Uses Classes, SysUtils, Db, PSQLTypes, Math, PSQLDbTables;
 
 type
-  Tv3_Dump = function (AppName: PAnsiChar; LogFileName: PAnsiChar; Params : PAnsiChar): longint; cdecl;
-  Tv3_Restore = function (AppName: PAnsiChar; LogFileName : PAnsiChar; Params : PAnsiChar): longint; cdecl;
+  Tv3_Dump = function (AppName: PAnsiDACChar; LogFileName: PAnsiDACChar; Params : PAnsiDACChar): longint; cdecl;
+  Tv3_Restore = function (AppName: PAnsiDACChar; LogFileName : PAnsiDACChar; Params : PAnsiDACChar): longint; cdecl;
   Tpdmbvm_GetVersionAsInt = function():integer; cdecl;
   Tpdmbvm_SetErrorCallBackProc = procedure(ProcAddr : pointer); cdecl;
   Tpdmbvm_SetLogCallBackProc = procedure(ProcAddr : pointer); cdecl;
@@ -17,7 +17,7 @@ type
   TpdmvmParams = class
   private
     FParams : TStringList;
-    FArr : PAnsiChar;
+    FArr : PAnsiDACChar;
 
     procedure ClearMem();
   public
@@ -27,7 +27,7 @@ type
     procedure Add(aStr : string);
     procedure Clear();
 
-    function GetPCharArray() : PAnsiChar;
+    function GetPCharArray() : PAnsiDACChar;
   end;
 
 
@@ -104,7 +104,7 @@ type
   protected
     procedure CheckDependencies;
     procedure DefineProperties(Filer: TFiler); override;
-    function GetParameters(OutputFileName: string): PAnsiChar;
+    function GetParameters(OutputFileName: string): PAnsiDACChar;
     procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
   public
     constructor Create(Owner : TComponent); override;
@@ -191,7 +191,7 @@ type
   protected
     procedure CheckDependencies;
     procedure DefineProperties(Filer: TFiler); override;
-    function GetParameters(SourceFileName: string): PAnsiChar;
+    function GetParameters(SourceFileName: string): PAnsiDACChar;
     procedure Notification( AComponent: TComponent; Operation: TOperation ); Override;
   public
     constructor Create(Owner : TComponent); override;
@@ -340,7 +340,7 @@ begin
   Result := Format('%d.%d.%d', [Major, Minor, Revision]);
 end;
 
-function StringToAnsiChar(CodePage: Cardinal; Src: WideString): PAnsiChar;
+function StringToAnsiChar(CodePage: Cardinal; Src: {$IFNDEF NEXTGEN}WideString{$ELSE}String{$ENDIF}): PAnsiDACChar;
 var
   Len: integer;
 begin
@@ -357,7 +357,7 @@ begin
         LocaleCharsFromUnicode
      {$ELSE}
         WideCharToMultiByte
-     {$ENDIF}(codePage, 0, PWideChar(Src), Length(Src), PAnsiChar(Result), Len, nil, nil) = 0 then
+     {$ENDIF}(codePage, 0, PWideChar(Src), Length(Src), PAnsiDACChar(Result), Len, nil, nil) = 0 then
     ReallocMem(Result, 0)
   else
     Result[Len] := #0;
@@ -379,17 +379,25 @@ end;
 {$ENDIF}
 {$IFDEF POSIX}
 const
-  CEnvVars: array[0..2] of AnsiString = ('TMPDIR', 'TMP', 'TEMP'); // Do not localize
+  CEnvVars: array[0..2] of DACAString = ('TMPDIR', 'TMP', 'TEMP'); // Do not localize
   CTmpDir = '/tmp'; // Do not localize
 
 var
-  LTempPathVar: PAnsiChar;
+  LTempPathVar: PAnsiDACChar;
   I: Integer;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   { Lookup env variables, in order: TMPDIR, TMP, TEMP }
   for I := Low(CEnvVars) to High(CEnvVars) do
   begin
-    LTempPathVar := getenv(PAnsiChar(CEnvVars[I]));
+    LTempPathVar := getenv({$IFNDEF NEXTGEN}
+                            PAnsiChar(CEnvVars[I])
+                          {$ELSE}
+                            M.AsAnsi(CEnvVars[I]).ToPointer
+                          {$ENDIF}
+                          );
 
     if (LTempPathVar <> nil) and (LTempPathVar^ <> #0) then
     begin
@@ -425,7 +433,7 @@ end;
 {$ENDIF}
 {$IFDEF POSIX}
 var
-  LTempPath: PAnsiChar;
+  LTempPath: PAnsiDACChar;
 begin
   { Obtain a temporary file name }
   LTempPath := tmpnam(nil);
@@ -451,14 +459,14 @@ end;
 
 procedure TpdmvmParams.ClearMem;
 var
-  s : PAnsiChar;
+  s : PAnsiDACChar;
   p : PInteger; //32-bit pointer
 begin
   if FArr <> nil then
   begin
     p := Pointer(FArr);
     repeat
-      s := PAnsiChar(p^);
+      s := PAnsiDACChar(p^);
       if s <> nil then
         FreeMem(s);
       Inc(p);
@@ -482,15 +490,15 @@ begin
   inherited;
 end;
 
-function TpdmvmParams.GetPcharArray: PAnsiChar;
+function TpdmvmParams.GetPcharArray: PAnsiDACChar;
 var
-  s : PAnsiChar;
+  s : PAnsiDACChar;
   p : PInteger; //32-bit pointer
   i : integer;
 begin
   ClearMem();
 
-  GetMem(FArr, SizeOf(PAnsiChar) * (FParams.Count + 1));
+  GetMem(FArr, SizeOf(PAnsiDACChar) * (FParams.Count + 1));
   p := Pointer(FArr);
   for i:=0 to FParams.Count - 1 do
   begin
@@ -512,7 +520,11 @@ var I: integer;
 begin
   inherited Create(Owner);
   FDumpOptions := [];
+  {$IFNDEF NEXTGEN}
   ZeroMemory(@FDumpStrOptions,sizeof(FDumpStrOptions));
+  {$ELSE}
+  FillChar(FDumpStrOptions, sizeof(FDumpStrOptions), 0);
+  {$ENDIF}
   FRewriteFile := True;
   FTableNames := TStringList.Create;
   FExcludeTables := TStringList.Create;
@@ -611,7 +623,7 @@ begin
 		                 'Use a different output format.');
 end;
 
-function TPSQLDump.GetParameters(OutputFileName: string): PAnsiChar;
+function TPSQLDump.GetParameters(OutputFileName: string): PAnsiDACChar;
 var I: TDumpOption;
     J: TDumpStrOption;
     DRS: TDumpRestoreSection;
@@ -753,7 +765,7 @@ begin
   raise EPSQLDumpException.Create(Format('Error with code: %d', [Code]));
 end;
 
-procedure LogCallBackProc(S: PAnsiChar);cdecl;
+procedure LogCallBackProc(S: PAnsiDACChar);cdecl;
 begin
   if Assigned(ProccessOwner) then
      if (ProccessOwner is TPSQLDump) then
@@ -777,12 +789,16 @@ end;
 type UTF8String = AnsiString;
 {$ENDIF}
 
-procedure UpdateEnv(PWD: UTF8String);
+procedure UpdateEnv(PWD: {$IFNDEF NEXTGEN}UTF8String{$ELSE}String{$ENDIF});
 {$IFDEF MSWINDOWS}
 type
-  tputenv = function(NameValue: PAnsiChar): integer; cdecl;
+  tputenv = function(NameValue: PAnsiDACChar): integer; cdecl;
 var
   putenv: tputenv;
+{$ENDIF}
+{$IFDEF NEXTGEN}
+var
+  M: TMarshaller;
 {$ENDIF}
 begin
 {$IFDEF MSWINDOWS}
@@ -798,7 +814,7 @@ begin
     RaiseLastOSError();
     {$ENDIF}
 {$ELSE POSIX}
-  SetEnv('PGPASSWORD', PAnsiChar(PWD), 1);
+  SetEnv('PGPASSWORD', {$IFNDEF NEXTGEN}PAnsiChar(PWD){$ELSE}M.AsAnsi(PWD).ToPointer{$ENDIF}, 1);
 {$ENDIF}
 end;
 
@@ -808,8 +824,8 @@ var
   Result: longint;
   S: string;
 
-  PLog: PAnsiChar;
-  Params: PAnsiChar;
+  PLog: PAnsiDACChar;
+  Params: PAnsiDACChar;
 
   v3_dump: Tv3_dump;
   pdmbvm_GetVersionAsInt : Tpdmbvm_GetVersionAsInt;
@@ -859,7 +875,7 @@ begin
     {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
     {$ENDIF}
-    Result := v3_dump(PAnsiChar(UTF8Encode(ParamStr(0))), PLog, Params);
+    Result := v3_dump(PAnsiDACChar(UTF8Encode(ParamStr(0))), PLog, Params);
 
     case Result of
         0: S := '';
@@ -977,7 +993,11 @@ begin
   FmiParams := TpdmvmParams.Create;
   FRestoreFormat := rfAuto;
   FTableNames := TStringList.Create;
+  {$IFNDEF NEXTGEN}
   ZeroMemory(@FRestoreStrOptions, SizeOf(FRestoreStrOptions));
+  {$ELSE}
+  FillChar(FRestoreStrOptions, SizeOf(FRestoreStrOptions), 0);
+  {$ENDIF}
   if (csDesigning in ComponentState) and Assigned(Owner) then
     for I := Owner.ComponentCount - 1 downto 0 do
       if Owner.Components[I] is TPSQLDatabase then
@@ -1028,7 +1048,7 @@ begin
     FAfterRestore(Self);
 end;
 
-function TPSQLRestore.GetParameters(SourceFileName: string): PAnsiChar;
+function TPSQLRestore.GetParameters(SourceFileName: string): PAnsiDACChar;
 var I: TRestoreOption;
     J: TRestoreStrOption;
     K: Integer;
@@ -1163,9 +1183,9 @@ var
   pdmbvm_SetErrorCallBackProc : Tpdmbvm_SetErrorCallBackProc;
   pdmbvm_SetLogCallBackProc : Tpdmbvm_SetLogCallBackProc;
 
-  PLog: PAnsiChar;
+  PLog: PAnsiDACChar;
   LibName: string;
-  Params: PAnsiChar;
+  Params: PAnsiDACChar;
 begin
   S := '';
   LibName := 'pg_restore.dll';
@@ -1196,7 +1216,7 @@ begin
      end;
 
     if LogFile > '' then
-      PLog := PAnsiChar(UTF8Encode(LogFile))
+      PLog := PAnsiDACChar(UTF8Encode(LogFile))
     else
       PLog := nil;
 
@@ -1207,7 +1227,7 @@ begin
     LogDebugMessage('PARAMSTR', FParamStr);
   {$ENDIF}
 
-    Result := v3_restore(PAnsiChar(UTF8Encode(ParamStr(0))), PLog, Params);
+    Result := v3_restore(PAnsiDACChar(UTF8Encode(ParamStr(0))), PLog, Params);
 
     case Result of
       0: ;// - OK

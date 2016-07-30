@@ -223,7 +223,7 @@ var
   FDBBuffer,
   FMsgBuffer,
   FSQLBuffer,
-  FErrBuffer: PAnsiChar;
+  FErrBuffer: PAnsiDACChar;
 
   FMonitorCount,
   FReaderCount,
@@ -1151,7 +1151,7 @@ begin
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.ReadSQLData();
-  function _ReadStr(Buffer : PAnsiChar; Len : Cardinal) : string;
+  function _ReadStr(Buffer : PAnsiDACChar; Len : Cardinal) : string;
   begin
     {$IFDEF DELPHI_12}
     SetString(Result, PChar(Buffer), Len div sizeof(char));

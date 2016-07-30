@@ -129,14 +129,14 @@ begin
 end;
  
 function TPSQLCustomDirectQuery.FieldIndexByName(aFieldName: string): integer;
-var P: PAnsiChar;
+var P: PAnsiDACChar;
 begin
   CheckOpen();
   P := TNativeConnect(FDatabase.Handle).StringToRaw(aFieldName);
   try
    Result := PQfnumber(FStatement, P);
   finally
-   {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
+   DACAnsiStrDispose(P);
   end;
 end;
  

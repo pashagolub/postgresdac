@@ -170,11 +170,11 @@ type
 
     function IsSSLUsed: boolean;
 
-    function RawToString(S: PAnsiChar): string;
-    function StringToRaw(S: string): PAnsiChar; //need to be free by StrDispose
-    function StringToRawS(S: string): AnsiString;
+    function RawToString(S: PAnsiDACChar): string;
+    function StringToRaw(S: string): PAnsiDACChar; //need to be free by StrDispose
+    function StringToRawS(S: string): DACAString;
 {$IFDEF DELPHI_15}
-    function BinaryToString(S: PAnsiChar; TypeOID: cardinal): string;
+    function BinaryToString(S: PAnsiDACChar; TypeOID: cardinal): string;
 {$ENDIF}
   end;
 
@@ -370,7 +370,7 @@ type
     public
       constructor CreateField(Owner : TCollection; P : FldDesc; P1 :VCHKDesc; FNum, LType, LSize : integer; isArray : Boolean);
 
-      function FieldValue: PAnsiChar;
+      function FieldValue: PAnsiDACChar;
       function FieldValueAsStr: string; //this will be used in SQLs;
 
       property Buffer : Pointer Read FBuffer Write SetBuffer;
@@ -579,7 +579,7 @@ type
       FBlobOpen       : Boolean;
       FSystemNeed     : Boolean;
       FFieldMinSizes  : array of integer; //to decrease FieldMinSize routine access
-      FFieldTypType   : AnsiString; //to store pg_type.typtype
+      FFieldTypType   : DACAString; //to store pg_type.typtype
       FSortingIndex   : array of integer; //filled with SortBy method
       FSortingFields  : string; //"fieldname" ASC|DESC, ...
       FOptions        : TPSQLDatasetOptions;
@@ -637,7 +637,7 @@ type
       function FieldPosInTable(FieldNum: integer): Integer;
       function FieldIsNull(FieldNum: Integer): Boolean;
       function Field(FieldNum: Integer): string;
-      function FieldBuffer(FieldNum: Integer): PAnsiChar;
+      function FieldBuffer(FieldNum: Integer): PAnsiDACChar;
 //      function FieldByName(FieldName: String): string;
       function  GetSQLClause: string;
       function GetBufferSize : integer; Virtual;
@@ -650,7 +650,7 @@ type
       function GetFieldInfo(Index : Integer) : TPGFIELD_INFO;
       procedure ReOpenTable;
       procedure ClearIndexInfo;
-      function GetFieldTypType(Index: integer): AnsiChar;
+      function GetFieldTypType(Index: integer): AnsiDACChar;
      private
       FTableName: string;
       property KeyNumber: SmallInt Read FKeyNumber Write SetKeyNumber;
@@ -752,7 +752,7 @@ type
 
       property Options: TPSQLDatasetOptions read FOptions write FOptions;
 
-      property FieldTypTypes[Index: integer]: AnsiChar read GetFieldTypType;
+      property FieldTypTypes[Index: integer]: AnsiDACChar read GetFieldTypType;
 
       procedure FieldOldValue(AFieldName: string; var AParam: TParam);
       procedure FieldValueFromBuffer(PRecord: Pointer; AFieldName: string; var AParam: TParam; const UnchangedAsNull: boolean);
@@ -1949,8 +1949,11 @@ end;
 {$ENDIF}
 
 function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
-var Q: PAnsiChar;
-    S: AnsiString;
+var Q: PAnsiDACChar;
+    S: DACAString;
+    {$IFDEF NEXTGEN}
+    M: TMarshaller;
+    {$ENDIF}
 begin
 {$IFDEF M_DEBUG}
   LogDebugMessage('SEND', String(AQuery));
@@ -1958,10 +1961,14 @@ begin
   if AConnection.IsUnicodeUsed then
     S := UTF8Encode(AQuery)
   else
-    S := AnsiString(AQuery);
+    S := DACAString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
+    {$IFNDEF NEXTGEN}
+    DACStrCopy(Q, PAnsiChar(S));
+    {$ELSE}
+    DACStrCopy(Q, M.AsAnsi(S).ToPointer);
+    {$ENDIF}
     Result := PQsendQuery(AConnection.Handle, Q);
   finally
     FreeMem(Q);
@@ -1969,16 +1976,23 @@ begin
 end;
 
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
-var Q: PAnsiChar;
-    S: AnsiString;
+var Q: PAnsiDACChar;
+    S: DACAString;
+    {$IFDEF NEXTGEN}
+    M: TMarshaller;
+    {$ENDIF}
 begin
   if AConnection.IsUnicodeUsed then
     S := UTF8Encode(AQuery)
   else
-    S := AnsiString(AQuery);
+    S := DACAString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrPCopy(Q, S);
+    {$IFNDEF NEXTGEN}
+    DACStrCopy(Q, PAnsiChar(S));
+    {$ELSE}
+    DACStrCopy(Q, M.AsAnsi(S).ToPointer);
+    {$ENDIF}
     Result := PQExec(AConnection.Handle, Q);
   finally
    FreeMem(Q);
@@ -1986,27 +2000,39 @@ begin
 end;
 
 function _PQexecPrepared(AConnection: TNativeConnect; AStmName: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
-var Q: PAnsiChar;
-    S: AnsiString;
-    paramValues: array of PAnsiChar;
+var Q: PAnsiDACChar;
+    S: DACAString;
+    paramValues: array of PAnsiDACChar;
     i: integer;
+    {$IFDEF NEXTGEN}
+    M: TMarshaller;
+    {$ENDIF}
 begin
   if AConnection.IsUnicodeUsed then
     S := UTF8Encode(AStmName)
   else
-    S := AnsiString(AStmName);
+    S := DACAString(AStmName);
   GetMem(Q, Length(S) + 1);
   try
-    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
+    {$IFNDEF NEXTGEN}
+    DACStrCopy(Q, PAnsiChar(S));
+    {$ELSE}
+    DACStrCopy(Q, M.AsAnsi(S).ToPointer);
+    {$ENDIF}
+    Result := PQExec(AConnection.Handle, Q);
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
       if AConnection.IsUnicodeUsed then
         S := UTF8Encode(AParams[i].AsString)
       else
-        S := AnsiString(AParams[i].AsString);
+        S := DACAString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
-      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(paramValues[i], S);
+      {$IFNDEF NEXTGEN}
+      DACStrCopy(paramValues[i], PAnsiChar(S));
+      {$ELSE}
+      DACStrCopy(paramValues[i], M.AsAnsi(S).ToPointer);
+      {$ENDIF}
      end;
     try
       Result := PQexecPrepared(AConnection.Handle, Q, AParams.Count, @paramValues[0], nil, nil, AResultFormat);
@@ -2020,27 +2046,38 @@ begin
 end;
 
 function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
-var Q: PAnsiChar;
-    S: AnsiString;
-    paramValues: array of PAnsiChar;
+var Q: PAnsiDACChar;
+    S: DACAString;
+    paramValues: array of PAnsiDACChar;
     i: integer;
+    {$IFDEF NEXTGEN}
+    M: TMarshaller;
+    {$ENDIF}
 begin
   if AConnection.IsUnicodeUsed then
     S := UTF8Encode(AQuery)
   else
-    S := AnsiString(AQuery);
+    S := DACAString(AQuery);
   GetMem(Q, Length(S) + 1);
   try
-    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Q, S);
+    {$IFNDEF NEXTGEN}
+    DACStrCopy(Q, PAnsiChar(S));
+    {$ELSE}
+    DACStrCopy(Q, M.AsAnsi(S).ToPointer);
+    {$ENDIF}
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
       if AConnection.IsUnicodeUsed then
         S := UTF8Encode(AParams[i].AsString)
       else
-        S := AnsiString(AParams[i].AsString);
+        S := DACAString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
-      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(paramValues[i], S);
+      {$IFNDEF NEXTGEN}
+      DACStrCopy(paramValues[i], PAnsiChar(S));
+      {$ELSE}
+      DACStrCopy(paramValues[i], M.AsAnsi(S).ToPointer);
+      {$ENDIF}
      end;
     try
       Result := PQexecParams(AConnection.Handle, Q, AParams.Count, nil, @paramValues[0], nil, nil, AResultFormat);
@@ -2055,9 +2092,12 @@ end;
 
 function _PQConnectDBParams(AParams: TStrings; ExpandDbName: boolean = False): PPGConn;
 var
-  ConnKeywords, ConnValues: packed array of PAnsiChar;
-  K,V: AnsiString;
+  ConnKeywords, ConnValues: packed array of PAnsiDACChar;
+  K,V: DACAString;
   i: integer;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   SetLength(ConnKeywords, AParams.Count + 1);
   SetLength(ConnValues, AParams.Count + 1);
@@ -2065,14 +2105,23 @@ begin
    begin
      K := UTF8Encode(AParams.Names[i]); //since this is connection assume we'll use UTF8
      GetMem(ConnKeywords[i], Length(K) + 1);
-     {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(ConnKeywords[i], K);
+      {$IFNDEF NEXTGEN}
+      DACStrCopy(ConnKeywords[i], PAnsiChar(K));
+      {$ELSE}
+      DACStrCopy(ConnKeywords[i], M.AsAnsi(K).ToPointer);
+      {$ENDIF}
+
      {$IFDEF DELPHI_7}
      V := UTF8Encode(AParams.ValueFromIndex[i]);
      {$ELSE}
      V := UTF8Encode(Copy(AParams[I], Length(K) + 2, MaxInt));
      {$ENDIF}
      GetMem(ConnValues[i], Length(V) + 1);
-     {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(ConnValues[i], V);
+      {$IFNDEF NEXTGEN}
+      DACStrCopy(ConnValues[i], PAnsiChar(V));
+      {$ELSE}
+      DACStrCopy(ConnValues[i], M.AsAnsi(V).ToPointer);
+      {$ENDIF}
    end;
    try
      {$IFDEF M_DEBUG}
@@ -2137,9 +2186,9 @@ end;
 function AdjustNativeField(iField :TPSQLField; Src,Dest: Pointer; Var Blank : Boolean): Word;
 begin
   Result := 0;
-  Blank :=  PAnsiChar(Src)^ = #0;
+  Blank :=  PAnsiDACChar(Src)^ = #0;
   if Blank then Exit;
-  Inc(PAnsiChar(Src));
+  Inc(PAnsiDACChar(Src));
   case iField.NativeType of
     FIELD_TYPE_BOOL:   SmallInt(Dest^) := SmallInt(Src^);
 
@@ -2182,9 +2231,13 @@ function AdjustDelphiField(iField: TPSQLField; Src, Dest: Pointer): Word;
 var
      TimeStamp: TTimeStamp;
 begin
+  {$IFNDEF NEXTGEN}
   ZeroMemory(Dest, iField.NativeSize);
-  PAnsiChar(Dest)^ := #1;
-  Inc(PAnsiChar(Dest), 1);
+  {$ELSE}
+  FillChar(Dest^, iField.NativeSize, 0);
+  {$ENDIF}
+  PAnsiDACChar(Dest)^ := #1;
+  Inc(PAnsiDACChar(Dest), 1);
   Result:=0;
 
   case iField.NativeType of
@@ -2242,15 +2295,23 @@ begin
   else
     {$IFDEF DELPHI_12}
     if iField.NativeDataset.FConnect.IsUnicodeUsed then
+      {$IFNDEF NEXTGEN}
       CopyMemory(Dest, Src, iField.NativeSize)
+      {$ELSE}
+      Move(Src^, Dest^, iField.NativeSize)
+      {$ENDIF}
     else
     {$ENDIF}
-      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLCopy(PAnsiChar(Dest), PAnsiChar(Src), iField.NativeSize);
+      DACStrCopy(PAnsiDACChar(Dest), PAnsiDACChar(Src), iField.NativeSize);
   end;
 
  if Result = 1 then
  begin
+    {$IFNDEF NEXTGEN}
     ZeroMemory(Dest, iField.NativeSize);
+    {$ELSE}
+    FillChar(Dest^, iField.NativeSize, 0);
+    {$ENDIF}
     Result := 0;
  end;
 end;
@@ -2431,7 +2492,7 @@ begin
   OldLoggin := FLoggin;
   if FLoggin then InternalDisconnect;
   with DBOptions do
-    LocHandle := PQconnectdb(PAnsiChar(UTF8Encode((FDirectConnectString))));
+    LocHandle := PQconnectdb(PAnsiDACChar(UTF8Encode((FDirectConnectString))));
   if not Assigned(LocHandle) then Exit;
   LocResult := _PQExecute(Self, SQL);
   if Assigned(LocResult) then
@@ -2459,7 +2520,7 @@ begin
   ConnStr := '';
   for i := 0 to Params.Count - 1 do
     ConnStr := ConnStr + Params[i] + ' ';
-  Result := PQping(PAnsiChar(Utf8Encode(ConnStr)));
+  Result := PQping(PAnsiDACChar(Utf8Encode(ConnStr)));
 end;
 
 procedure TNativeConnect.ProcessDBParams(Params : TStrings);
@@ -2478,7 +2539,7 @@ end;
 procedure TNativeConnect.InternalConnect(ConnParams: TStrings = nil);
 var
    Result: PPGresult;
-   Utf8Encoded: PAnsiChar;
+   Utf8Encoded: PAnsiDACChar;
 begin
  if not FLoggIn then
   try
@@ -2489,7 +2550,7 @@ begin
      FHandle := _PQConnectDBParams(ConnParams)
    else
     begin
-     Utf8Encoded := PAnsiChar(Utf8Encode(FConnectString));
+     Utf8Encoded := PAnsiDACChar(Utf8Encode(FConnectString));
      FHandle := PQconnectdb(Utf8Encoded);
     end;
    FLastOperationTime := GetTickCount - FLastOperationTime;
@@ -2786,7 +2847,10 @@ procedure TNativeConnect.BeginTran(eXIL: eXILType; var hXact: hDBIXact);
 var
   Res: PPGresult;
   Status: ExecStatusType;
-  TransParam: AnsiString;
+  TransParam: DACAString;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   if FTransState = xsActive then Exit;
   hXact := hDBIXact(Self);
@@ -2797,7 +2861,7 @@ begin
     xilREPEATABLEREAD: TransParam := TransParam + 'REPEATABLE READ';
     xilSERIALIZABLE:   TransParam := TransParam + 'SERIALIZABLE';
   end;
-  Res := PQExec(Handle, PAnsiChar(TransParam));
+  Res := PQExec(Handle, {$IFNDEF NEXTGEN}PAnsiChar(TransParam){$ELSE}M.AsAnsi(TransParam).ToPointer{$ENDIF});
   try
     Status := PQresultStatus(Res);
     MonitorHook.TRStart(Self,  Status = PGRES_COMMAND_OK);
@@ -2825,7 +2889,11 @@ end;
 
 procedure TNativeConnect.GetTranInfo(hXact : hDBIXact; pxInfo : pXInfo);
 begin
+  {$IFNDEF NEXTGEN}
   ZeroMemory(pxInfo, Sizeof(pxInfo^));
+  {$ELSE}
+  FillChar(pxInfo^, Sizeof(pxInfo^), 0);
+  {$ENDIF}
   if GetTransactionStatus in [trstACTIVE, trstINTRANS, trstINERROR] then
       FTransState := xsActive;
   pxInfo^.eXState := FTransState;
@@ -3056,11 +3124,11 @@ begin
   if FBuffer <> nil then
   begin
     FData := FBuffer;
-    Inc(PAnsiChar(FData), FDesc.iOffset);
+    Inc(PAnsiDACChar(FData), FDesc.iOffset);
     if FDesc.INullOffset > 0 then
     begin
       FStatus := FBuffer;
-      Inc(PAnsiChar(FStatus), FDesc.iNullOffset);
+      Inc(PAnsiDACChar(FStatus), FDesc.iNullOffset);
     end else
       FStatus := NIL;
   end else
@@ -3081,7 +3149,7 @@ begin
 end;
 
 function TPSQLField.GetNull : Boolean;
-var AVal: PAnsiChar;
+var AVal: PAnsiDACChar;
 begin
   Result := True;
   case NativeType of
@@ -3136,9 +3204,9 @@ begin
   FDesc.iUnused[0] := S;
 end;
 
-function TPSQLField.FieldValue: PAnsiChar;
+function TPSQLField.FieldValue: PAnsiDACChar;
 begin
-   Result := PAnsiChar(PAnsiChar(FData) + FieldNumber - 1);
+   Result := PAnsiDACChar(PAnsiDACChar(FData) + FieldNumber - 1);
 end;
 
 function TPSQLField.FieldValueAsStr: string;
@@ -3151,7 +3219,7 @@ function TPSQLField.FieldValueAsStr: string;
 
 begin
   Src := FieldValue();
-  Inc(PAnsiChar(Src));
+  Inc(PAnsiDACChar(Src));
   case FieldType of
      fldBOOL:    Result := IfThen(SmallInt(Src^) > 0, 'TRUE', 'FALSE');
      fldINT16:   Result := IntToStr(SmallInt(Src^));
@@ -3630,8 +3698,8 @@ begin
                   Result := string(PChar(@Dest))
                 else
                 {$ENDIF}
-                  Result := string(PAnsiChar(@Dest));
-    fldUUID:  Result := string(PAnsiChar(@Dest));
+                  Result := string(PAnsiDACChar(@Dest));
+    fldUUID:  Result := string(PAnsiDACChar(@Dest));
     fldBOOL : Result := PWordBool(@Dest)^;
     fldDATE : begin
                  LongWord(TimeStamp.Date) := PLongWord(@Dest)^;
@@ -3709,7 +3777,7 @@ begin
     Result := Null;
     Case iType Of
       fldZSTRING   : begin
-                       S:= string(PAnsiChar(Offs));
+                       S:= string(PAnsiDACChar(Offs));
                        Result := S;
                        FldType := FT_STRING;
                      end;
@@ -4158,7 +4226,7 @@ end;
 
 procedure TNativeDataSet.DelphiToNative(P: TPSQLField;PRecord: Pointer;pSrc: Pointer);
 begin
-  if pSrc <> nil then AdjustDelphiField(P, pSrc, PAnsiChar(P.Data) + P.FieldNumber - 1);
+  if pSrc <> nil then AdjustDelphiField(P, pSrc, PAnsiDACChar(P.Data) + P.FieldNumber - 1);
 end;
 
 procedure TNativeDataSet.CheckParam(Exp : Boolean;BDECODE : Word);
@@ -4505,7 +4573,11 @@ end;
 
 procedure TNativeDataSet.GetBookMark( P : Pointer );
 begin
+  {$IFNDEF NEXTGEN}
   ZeroMemory(P, BookMarkSize );
+  {$ELSE}
+  FillChar(P^, BookMarkSize, 0 );
+  {$ENDIF}
   with TPSQLBookMark(P^) do
     Position:= RecordNumber+1;
 end;
@@ -4517,7 +4589,11 @@ end;
 
 procedure TNativeDataSet.GetCursorProps( var curProps : CURProps );
 begin
+  {$IFNDEF NEXTGEN}
   ZeroMemory(@curProps, SizeOf(curProps));
+  {$ELSE}
+  FillChar(curProps, SizeOf(curProps), 0 );
+  {$ENDIF}
   With curProps do
   begin
     iFields := FieldCount;
@@ -4617,7 +4693,7 @@ begin
 end;
 
 function TNativeDataSet.FieldIndex(FieldName: String): Integer;
-var P: PAnsiChar;
+var P: PAnsiDACChar;
 begin
    Result := -1;
    if FStatement <> nil then
@@ -4626,7 +4702,7 @@ begin
     try
       Result := PQfnumber(FStatement, P);
     finally
-      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
+      DACAnsiStrDispose(P);
     end;
    end;
 end;
@@ -4698,7 +4774,7 @@ begin
    end;
 end;
 
-function TNativeDataSet.GetFieldTypType(Index: integer): AnsiChar;
+function TNativeDataSet.GetFieldTypType(Index: integer): AnsiDACChar;
 var fCount: integer;
     fTypType: string;
     fTypeOid: oid;
@@ -4706,7 +4782,7 @@ var fCount: integer;
 begin
   fCount := FieldCount();
   if (Length(FFieldTypType) < fCount) then
-    FFieldTypType := StringOfChar(AnsiChar('u'), fCount); //unknown
+    FFieldTypType := StringOfChar(AnsiDACChar('u'), fCount); //unknown
   if FFieldTypType[Index + 1] = 'u' then
    begin
     fTypeOid := FieldType(Index);
@@ -4716,7 +4792,7 @@ begin
       begin
        fTypType := FConnect.SelectStringDirect('SELECT typtype FROM pg_catalog.pg_type WHERE oid = ' + UIntToStr(fTypeOid), IsOK, 0);
        if fTypType > '' then
-         FFieldTypType[Index + 1] := AnsiChar(fTypType[1])
+         FFieldTypType[Index + 1] := AnsiDACChar(fTypType[1])
        else
          FFieldTypType[Index + 1] := 'X'; //failed to obtain
       end;
@@ -4812,7 +4888,7 @@ function TNativeDataSet.FetchRecords(const NumberOfRecs: integer = 1): integer;
 var
   LocResult: PPGResult;
   i: integer;
-  fval: PAnsiChar;
+  fval: PAnsiDACChar;
   flen: Integer;
   CurrentRecNum: Integer;
 const
@@ -4866,7 +4942,7 @@ begin
      Result := PQgetisnull(FStatement,GetRecNo,FieldNum) <> 0;
 end;
 
-function TNativeDataSet.FieldBuffer(FieldNum: Integer): PAnsiChar;
+function TNativeDataSet.FieldBuffer(FieldNum: Integer): PAnsiDACChar;
 begin
   Result := nil;
   if (FStatement = nil) or (PQgetisnull(FStatement, GetRecNo, FieldNum) <> 0) then Exit;
@@ -4901,6 +4977,9 @@ var
         tabOID: cardinal;
         RES: PPGresult;
         sql: String;
+        {$IFDEF NEXTGEN}
+        M: TMarshaller;
+        {$ENDIF}
     const
           tS = ' c.oid = %d AND a.attnum = %d ';
 
@@ -4934,7 +5013,11 @@ var
      if inS > '' then
       begin
         sql := Format(sql, [inS]);
-        Res := PQExec(FConnect.Handle, PAnsiChar(AnsiString(sql)));
+        Res := PQExec(FConnect.Handle, {$IFNDEF NEXTGEN}
+                                          PAnsiChar(AnsiString(sql))
+                                        {$ELSE}
+                                          M.AsAnsi(sql).ToPointer
+                                        {$ENDIF});
         if Assigned(RES) then
          try
           FConnect.CheckResult;
@@ -5066,6 +5149,9 @@ var
   origBuffer: Pointer;
   FldValue : String;
   Data : pointer;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
    if Assigned(FCurrentBuffer) then
    begin
@@ -5090,7 +5176,11 @@ begin
         T.FieldNull := null;
         size := T.NativeSize; //FieldLength
         if null then
+            {$IFNDEF NEXTGEN}
             ZeroMemory(FCurrentBuffer,size)
+            {$ELSE}
+            FillChar(FCurrentBuffer^, size, 0)
+            {$ENDIF}
         else
           begin
            if (T.NativeType <> FIELD_TYPE_OID) and
@@ -5125,12 +5215,20 @@ begin
              FIELD_TYPE_TEXT,
              FIELD_TYPE_BYTEA:     begin
                                       size := SizeOf(TBlobItem);
+                                      {$IFNDEF NEXTGEN}
                                       ZeroMemory(FCurrentBuffer, Size);
-                                      Inc(PAnsiChar(FCurrentBuffer)); //Null byte allocate
-                                      Inc(PAnsiChar(FCurrentBuffer), Size); //Pointer allocate
+                                      {$ELSE}
+                                      FillChar(FCurrentBuffer^, Size, 0);
+                                      {$ENDIF}
+                                      Inc(PAnsiDACChar(FCurrentBuffer)); //Null byte allocate
+                                      Inc(PAnsiDACChar(FCurrentBuffer), Size); //Pointer allocate
                                       Continue;
                                    end;
-             FIELD_TYPE_UUID: {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
+             {$IFNDEF NEXTGEN}
+             FIELD_TYPE_UUID: {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(BadGuidToGuid(AnsiString(FldValue))));
+             {$ELSE}
+             FIELD_TYPE_UUID: DACStrCopy(PAnsiDACChar(Data), M.AsAnsi(BadGuidToGuid(FldValue)).ToPointer);
+             {$ENDIF}
            else
              if dsoTrimCharFields in FOptions then
                FldValue := TrimRight(FldValue);
@@ -5141,12 +5239,16 @@ begin
                StrCopy(PAnsiChar(Data), PAnsiChar(FldValue))
              {$ENDIF}
              else
-              {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
+             {$IFNDEF NEXTGEN}
+                {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrCopy(PAnsiChar(Data), PAnsiChar(AnsiString(FldValue)));
+             {$ELSE}
+                DACStrCopy(PAnsiDACChar(Data), M.AsAnsi(FldValue).ToPointer);
+             {$ENDIF}
            end;
-           Move(Data^, (PAnsiChar(FCurrentBuffer) + 1)^, Size);
-           PAnsiChar(FCurrentBuffer)^ := #1; {null indicator 1=Data 0=null}
+           Move(Data^, (PAnsiDACChar(FCurrentBuffer) + 1)^, Size);
+           PAnsiDACChar(FCurrentBuffer)^ := #1; {null indicator 1=Data 0=null}
         end;
-        Inc(PAnsiChar(FCurrentBuffer), Size + 1); {plus 1 for null byte}
+        Inc(PAnsiDACChar(FCurrentBuffer), Size + 1); {plus 1 for null byte}
      end;
      FreeMem(Data, MaxSize + 1);
      FCurrentBuffer := nil;
@@ -5206,7 +5308,11 @@ end;
 procedure TNativeDataSet.InitRecord(PRecord : Pointer);
 begin
   if PRecord = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDPARAM);
+  {$IFNDEF NEXTGEN}
   ZeroMemory(PRecord, GetWorkBufferSize);
+  {$ELSE}
+  FillChar(PRecord^, GetWorkBufferSize, 0);
+  {$ENDIF}
   FFieldDescs.SetFields(PRecord);
   CurrentBuffer := PRecord;
 end;
@@ -5421,7 +5527,7 @@ var
   OldQueryFlag: boolean;
   KN, i: integer;
   AStatement, ATempCopyStmt: PPGResult;
-  fval, fname: PAnsiChar;
+  fval, fname: PAnsiDACChar;
   flen: integer;
   CurrentRecNum: integer;
 begin
@@ -5503,7 +5609,7 @@ var
   i: integer;
   CurrentRecNum: LongInt;
   AStatement: PPGResult;
-  fval, fname: PAnsiChar;
+  fval, fname: PAnsiDACChar;
   flen: integer;
 begin
   KN := -1;
@@ -5575,7 +5681,7 @@ var
   SQL : String;
   CurrentRecNum: LongInt;
   ATempCopyStmt: PPGResult;
-  fval: PAnsiChar;
+  fval: PAnsiDACChar;
   flen, i, j: integer;
 begin
   if FOMode = dbiREADONLY then
@@ -5774,10 +5880,10 @@ begin
   if not Field.FieldNull then
    begin
     Buff := Field.FieldValue;
-    if PAnsiChar(Buff)^ = #1 then
+    if PAnsiDACChar(Buff)^ = #1 then
      begin
-       PAnsiChar(Buff)^ := #0;
-       Inc(PAnsichar(Buff));
+       PAnsiDACChar(Buff)^ := #0;
+       Inc(PAnsiDACChar(Buff));
        FreeAndNil(TBlobItem(Buff^).Blob);
      end;
    end;
@@ -5808,13 +5914,17 @@ Var
     end;
 
     function ByteaSize(ColumnNumber: Integer):integer;
-    var P: PAnsiChar;
+    var P: PAnsiDACChar;
         i, Len: integer;
     begin
       Result := 0;
       if FieldBuffer(ColumnNumber-1) = nil then Exit;
       P := FieldBuffer(ColumnNumber-1);
-      Len := {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLen(P);
+      {$IFNDEF NEXTGEN}
+        Len := {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLen(P);
+      {$ELSE}
+        Len := Length(MarshaledAString(@P));
+      {$ENDIF}
       Result := 0;
       case FConnect.NativeByteaFormat of
         nbfEscape:
@@ -5852,9 +5962,9 @@ begin
   if not Field.FieldNULL  then
    begin
     Buff := Field.FieldValue;
-    if PAnsiChar(Buff)^ = #1 then
+    if PAnsiDACChar(Buff)^ = #1 then
       begin
-         Inc(PAnsichar(Buff));
+         Inc(PAnsiDACChar(Buff));
          iSize := TBlobItem(Buff^).Blob.Size;
       end
     else
@@ -5873,9 +5983,9 @@ var
 
     function CachedBlobGet(Offset, Length: longint; buff, Dest: pointer): longint;
     begin
-     if PAnsiChar(buff)^ = #1 then
+     if PAnsiDACChar(buff)^ = #1 then
       begin
-        Inc(PAnsiChar(buff));
+        Inc(PAnsiDACChar(buff));
         with TBlobItem(buff^) do
         begin
            Blob.Seek(Offset, 0);
@@ -5933,10 +6043,10 @@ var
             repeat
               if Len > MAX_BLOB_SIZE then
                 N := lo_read(FConnect.Handle, FlocalBHandle,
-                  PAnsiChar(Dest) + L, MAX_BLOB_SIZE)
+                  PAnsiDACChar(Dest) + L, MAX_BLOB_SIZE)
               else
                 N := lo_read(FConnect.Handle, FlocalBHandle,
-                  PAnsiChar(Dest) + L, Len);
+                  PAnsiDACChar(Dest) + L, Len);
               Dec(Len, MAX_BLOB_SIZE);
               Inc(L, N);
             until N < MAX_BLOB_SIZE;
@@ -5944,18 +6054,18 @@ var
           end
           else
             Result := lo_read(FConnect.Handle, FlocalBHandle,
-              PAnsiChar(Dest), ALength);
+              PAnsiDACChar(Dest), ALength);
         end;
       end;
     end;
 
    function ByteaBlobGet(ColumnNumber: Integer; Offset, Length : LongInt; buff, Dest :Pointer)  : LongInt;
-   var P: PAnsiChar;
+   var P: PAnsiDACChar;
        Len: integer;
    begin
      Result := CachedBlobGet(Offset, Length, Buff, Dest);
      if (Result = 0) and
-       Assigned(PAnsiChar(FieldBuffer(columnNumber - 1) + Offset)) then
+       Assigned(PAnsiDACChar(FieldBuffer(columnNumber - 1) + Offset)) then
      begin
        P := PQUnescapeBytea(FieldBuffer(columnNumber - 1), Len);
        try
@@ -5976,9 +6086,9 @@ begin
     Field.Buffer := PRecord;
     if not Field.FieldNull then
       if (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
-        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 , pDest)
+        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiDACChar(Field.Data) + Field.FieldNumber - 1 , pDest)
       else
-        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
+        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiDACChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
   end;
 end;
 
@@ -5988,14 +6098,14 @@ var
 
   procedure BlobPut(ColumnNumber: Integer; Offset, Length : LongInt; pSrc, buff :Pointer);
   begin
-    if PAnsiChar(buff)^ = #0 then
+    if PAnsiDACChar(buff)^ = #0 then
       begin
-        PAnsiChar(buff)^ := #1;
-        Inc(PAnsiChar(buff));
+        PAnsiDACChar(buff)^ := #1;
+        Inc(PAnsiDACChar(buff));
         TBlobItem(buff^).Blob := TMemoryStream.Create;
       end
     else
-      Inc(PAnsiChar(buff));
+      Inc(PAnsiDACChar(buff));
     with TBlobItem(buff^) do
     begin
       Blob.Seek(Offset, 0);
@@ -6010,7 +6120,7 @@ begin
   Field := Fields[FieldNo];
   CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
   Field.Buffer := PRecord;
-  BlobPut(FieldNo, iOffset, iLen, pSrc, PAnsiChar(Field.Data) + Field.FieldNumber-1);
+  BlobPut(FieldNo, iOffset, iLen, pSrc, PAnsiDACChar(Field.Data) + Field.FieldNumber-1);
   Field.FieldChanged := True;
   Field.FieldNull := (iOffset + iLen = 0);
 end;
@@ -6027,6 +6137,9 @@ var
   i: integer;
   byName: boolean;
   MS: {$IFDEF DELPHI_17}TBytesStream{$ELSE}TMemoryStream{$ENDIF};
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 
   function GetDateTime: string;
   var ts: string;
@@ -6122,7 +6235,11 @@ begin
              Value := StrValue(PWideChar(Param.AsString))
            else
            {$ENDIF}
-             Value := StrValue(PAnsiChar(AnsiString(Param.AsString)));
+             {$IFNDEF NEXTGEN}
+             Value := StrValue(PAnsiDACChar(AnsiString(Param.AsString)));
+             {$ELSE}
+             Value := StrValue(M.AsAnsi(Param.AsString).ToPointer);
+             {$ENDIF}
          end;
         end;
       Temp := Temp + Value;
@@ -6140,14 +6257,18 @@ end;
 procedure TNativeDataSet.ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
 var
   i : Word;
-  MKey    : PAnsiChar;
+  MKey    : PAnsiDACChar;
   Field   : TPSQLField;
   bBlank  : Boolean;
   Buffer  : array [0..MAX_CHAR_LEN] of Char;
   iFields : Word;
 begin
   if not Assigned(PRecord) then PRecord := CurrentBuffer;
+  {$IFNDEF NEXTGEN}
   ZeroMemory(pKeyBuf, FKeyDesc.iKeyLen);
+  {$ELSE}
+  FillChar(pKeyBuf^, FKeyDesc.iKeyLen, 0);
+  {$ENDIF}
   MKey := pKeyBuf;
   iFields := FKeyDesc.iFldsinKey;
   for i := 0 to iFields-1 do
@@ -6157,7 +6278,11 @@ begin
       if not bBlank then
         AdjustDelphiField(Field, @Buffer, MKey);
       if bBlank then
+        {$IFNDEF NEXTGEN}
         ZeroMemory(MKey, Field.NativeSize);
+        {$ELSE}
+        FillChar(MKey^, Field.NativeSize, 0);
+        {$ENDIF}
      Inc(MKey, Field.NativeSize + 1);
     end;
 end;
@@ -6166,7 +6291,11 @@ end;
 procedure TNativeDataSet.GetIndexDesc(iIndexSeqNo: Word; var idxDesc: IDXDesc);
 begin
   CheckParam(not(IndexCount > 0) ,DBIERR_NOASSOCINDEX);
+  {$IFNDEF NEXTGEN}
   ZeroMemory(@idxDesc, Sizeof(idxDesc));
+  {$ELSE}
+  FillChar(idxDesc, Sizeof(idxDesc), 0);
+  {$ENDIF}
   if (iIndexSeqNo = 0) and not FGetKeyDesc then
      if KeyNumber <> 0 then iIndexSeqNo := KeyNumber;
   if iIndexSeqNo = 0 then iIndexSeqNo := 1;
@@ -6255,8 +6384,8 @@ var
   WHERE     : String;
   FldVal    : String;
   bBlank    : Boolean;
-  Buff : array[0..MAX_CHAR_LEN] of AnsiChar;
-  CurBuffer : PAnsiChar;
+  Buff : array[0..MAX_CHAR_LEN] of AnsiDACByteChar;
+  CurBuffer : PAnsiDACChar;
   TimeStamp: TTimeStamp;
 begin
     For i := 0 to iFields-1 do
@@ -6267,7 +6396,7 @@ begin
       end;
 
     WHERE := '';
-    CurBuffer := PAnsiChar(pKey);
+    CurBuffer := PAnsiDACChar(pKey);
     for i := 0 to iFields-1 do
     begin
       Field := Fields[FKeyDesc.aiKeyFld[i]];
@@ -6444,11 +6573,11 @@ begin
 end;
 
 procedure TNativeDataSet.AcqTableLock(eLockType: word; bNoWait: boolean);
-const _lockmode: array[TPSQLLockType] of AnsiString = ('ACCESS SHARE', 'ROW SHARE',
+const _lockmode: array[TPSQLLockType] of DACAString = ('ACCESS SHARE', 'ROW SHARE',
         'ROW EXCLUSIVE', 'SHARE UPDATE EXCLUSIVE',
         'SHARE', 'SHARE ROW EXCLUSIVE', 'EXCLUSIVE',
         'ACCESS EXCLUSIVE');
-      _nowait: array[boolean] of AnsiString = ('', 'NOWAIT');
+      _nowait: array[boolean] of DACAString = ('', 'NOWAIT');
 var Res: PPGresult;
 begin
   Res := _PQExecute(FConnect, Format('LOCK TABLE %s IN %s MODE %s', [TableName, _lockmode[TPSQLLockType(eLockType)], _nowait[bNoWait]]));
@@ -7820,7 +7949,7 @@ begin
                 Result := PWideChar(@Buff)
               else
               {$ENDIF}
-                Result := String(PAnsiChar(@Buff));
+                Result := String(PAnsiDACChar(@Buff));
     fldDATE : begin
                  LongWord(TimeStamp.Date) := PLongWord(@Buff)^;
                  TimeStamp.Time := 0;
@@ -7837,7 +7966,7 @@ begin
                  Result := FormatDateTime('mm-dd-yyyy hh:nn:ss',TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(DateD))), PSQL_FS);
               end;
    else
-      Result := string(AnsiString(PAnsiChar(@Buff)));
+      Result := string(DACAString(PAnsiDACChar(@Buff)));
    end;
 end;
 
@@ -7872,7 +8001,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
         Field := Fields[FKeyDesc.aiKeyFld[i]];
         Flds[i] := FldNo - 1;
         FieldPtr := pKey;
-        Inc(PAnsiChar(FieldPtr), Len);
+        Inc(PAnsiDACChar(FieldPtr), Len);
         SFlds[i] := FieldVal(FldNo, FieldPtr);
         Inc(Len, Field.NativeSize + 1); // field length in bytes + one byte null indicator
       end;
@@ -7918,7 +8047,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
           if bDirectKey then
           begin
              FieldPtr := pKey;
-             Inc(PAnsiChar(FieldPtr),Len + i);
+             Inc(PAnsiDACChar(FieldPtr),Len + i);
              SFlds[I] := S+FieldVal(FldNo, FieldPtr);
              Inc(Len, Field.FieldLength);
           end else
@@ -8090,7 +8219,10 @@ end;
 procedure TNativeConnect.BeginBLOBTran;
 var
   Result: PPGresult;
-  TransParam: AnsiString;
+  TransParam: DACAString;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   if (FTransState <> xsActive)
      AND (GetTransactionStatus = trstIDLE)
@@ -8105,7 +8237,7 @@ begin
       xilREADCOMMITTED : TransParam := TransParam + 'READ COMMITTED';
       xilREPEATABLEREAD: TransParam := TransParam + 'SERIALIZABLE';
     end;
-    Result := PQexec(Handle, PAnsiChar(TransParam));
+    Result := PQexec(Handle, {$IFNDEF NEXTGEN}PAnsiChar(TransParam){$ELSE}M.AsAnsi(TransParam).ToPointer{$ENDIF});
     PQclear(Result);
   end
 end;
@@ -8284,7 +8416,11 @@ begin
      for I := 0 to PQntuples(RES)-1 do
       begin
           New(PDesc);
+          {$IFNDEF NEXTGEN}
           ZeroMemory(PDesc,SizeOf(PDesc^));
+          {$ELSE}
+          FillChar(PDesc^,SizeOf(PDesc^), 0);
+          {$ENDIF}
 
           if (PQgetisnull(RES,I,0) = 1) then
             N := 'arg' + IntToStr(I)
@@ -8308,24 +8444,30 @@ begin
   PQclear(RES);
 end;
 
-function TNativeConnect.StringToRaw(S: string): PAnsiChar;
-var _S: AnsiString;
+function TNativeConnect.StringToRaw(S: string): PAnsiDACChar;
+var
+  _S: DACAString;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   _S := StringToRawS(S);
-  {$IFDEF DELPHI_12}
-  Result := AnsiStrAlloc(Length(S) + 1);
-  {$ELSE}
-  Result := StrAlloc(Length(S) + 1);
-  {$ENDIF}
-  {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Result, _S);
+  DACAllocStr(Result, Length(S));
+//  {$IFDEF DELPHI_12}
+//  Result := AnsiStrAlloc(Length(S) + 1);
+//  {$ELSE}
+//  Result := StrAlloc(Length(S) + 1);
+//  {$ENDIF}
+//  {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Result, _S);
+  DACStrCopy(Result, {$IFNDEF NEXTGEN}_S{$ELSE}M.AsAnsi(_S).ToPointer{$ENDIF});
 end;
 
-function TNativeConnect.StringToRawS(S: string): AnsiString;
+function TNativeConnect.StringToRawS(S: string): DACAString;
 begin
  if IsUnicodeUsed then
   Result := UTF8Encode(S)
  else
-  Result := AnsiString(S);
+  Result := DACAString(S);
 end;
 
 function TPSQLEngine.QPrepareProc(hDb: hDBIDb; pszProc: PChar;
@@ -8370,6 +8512,10 @@ end;
 
 
 procedure TNativeConnect.SetCharSet(var ACharSet: string);
+{$IFDEF NEXTGEN}
+var
+  M: TMarshaller;
+{$ENDIF}
 begin
   if (ACharSet = '') or not FLoggin then
    begin
@@ -8377,7 +8523,12 @@ begin
     Exit;
    end;
 
-  PQsetClientEncoding(Handle, PAnsiChar(AnsiString(ACharSet)));
+  PQsetClientEncoding(Handle, {$IFNDEF NEXTGEN}
+                                PAnsiChar(AnsiString(ACharSet))
+                              {$ELSE}
+                                M.AsAnsi(ACharSet).ToPointer
+                              {$ENDIF}
+                              );
 
   ACharSet :=  GetCharSet();
 
@@ -8392,11 +8543,19 @@ var
    RES : PPGresult;
    i: integer;
    CREC: string;
+  {$IFDEF NEXTGEN}
+    M: TMarshaller;
+  {$ENDIF}
 begin
   InternalConnect;
   List.Clear;
   Sql := Format('SELECT pg_encoding_to_char(num.n) FROM generate_series(0,%d) as num(n)', [MAX_ENCODING_ID]);
-  RES := PQexec(Handle, PAnsiChar(AnsiString(Sql)));
+  RES := PQexec(Handle, {$IFNDEF NEXTGEN}
+                                PAnsiChar(AnsiString(Sql))
+                              {$ELSE}
+                                M.AsAnsi(Sql).ToPointer
+                              {$ENDIF}
+                              );
   if Assigned(RES) then
    try
     CheckResult;
@@ -8482,7 +8641,10 @@ function TNativeDataSet.GetLastInsertID(const KeyNumber: integer): integer;
 var
   S: string;
   i: integer;
-    RES: PPGresult;
+  RES: PPGresult;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   Result := -1;
   S := FFieldDescs.Field[KeyNumber+1].FieldDefault;
@@ -8492,7 +8654,12 @@ begin
   else
    Exit;
   S := 'SELECT ' + S;
-  Res := PQExec(FConnect.Handle,PAnsiChar(AnsiString(S)));
+  Res := PQExec(FConnect.Handle, {$IFNDEF NEXTGEN}
+                                  PAnsiChar(AnsiString(S))
+                                  {$ELSE}
+                                  M.AsAnsi(S).ToPointer
+                                  {$ENDIF}
+                                  );
   if Assigned(RES) then
    try
     FConnect.CheckResult;
@@ -8693,7 +8860,7 @@ end;
 
 procedure TNativeDataSet.FieldOldValue(AFieldName: string; var AParam: TParam);
 var AFNum, Len: integer;
-    FVal: PAnsiChar;
+    FVal: PAnsiDACChar;
 begin
  AFNum := FieldIndex(AnsiQuotedStr(AFieldName, '"'));
  if AFNum = -1 then Exit;
@@ -8740,7 +8907,7 @@ begin
     Fld.Buffer:= PRecord;
     if CompareText(Fld.FieldName, AFieldName)<>0 then Continue;
     Src := Fld.FieldValue;
-    Inc(PAnsiChar(Src));
+    Inc(PAnsiDACChar(Src));
     if not Fld.FieldChanged and not UnchangedAsNull then //field was not changed, we put there old value
      begin
       FieldOldValue(AFieldName, AParam);
@@ -8769,11 +8936,11 @@ begin
                               AParam.AsString := PWideChar(Src)
                             else
                             {$ENDIF}
-                              AParam.AsString := String(PAnsiChar(Src));
+                              AParam.AsString := String(PAnsiDACChar(Src));
                             if (Fld.NativeType = FIELD_TYPE_BIT) or (Fld.NativeType = FIELD_TYPE_VARBIT) then
                              AParam.AsString := 'B' + AParam.AsString;
                        end;
-           fldUUID:    AParam.AsString := String(PAnsiChar(Src));
+           fldUUID:    AParam.AsString := String(PAnsiDACChar(Src));
            fldBLOB:    if Fld.NativeBLOBType = nbtOID then
                           begin
                             AParam.AsInteger := StrToUInt(BlobValue(Src, Fld));
@@ -8836,13 +9003,21 @@ function TNativeConnect.SetTimeout(const Timeout: cardinal): cardinal;
 var
    S : String;
    RES : PPGresult;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   Result := 0;
   if GetserverVersionAsInt <= 070302 then
    Exit;
   InternalConnect;
   S := Format('SELECT set_config(''statement_timeout'', ''%d'', false)',[Timeout]);
-  RES := PQexec(Handle, PAnsiChar(AnsiString(S)));
+  RES := PQexec(Handle, {$IFNDEF NEXTGEN}
+                          PAnsiChar(AnsiString(S))
+                        {$ELSE}
+                          M.AsAnsi(S).ToPointer
+                        {$ENDIF}
+                        );
   if Assigned(RES) then
    try
     CheckResult;
@@ -9325,18 +9500,18 @@ begin
 end;
 
 function TNativeDataSet.UuidValue(P : Pointer; NeedQuote: boolean = True): string;
-var AVal: PAnsiChar;
+var AVal: PAnsiDACChar;
 begin
   Result := '';
   if not Assigned(P) then Exit;
-  AVal := PAnsiChar(P);
+  AVal := PAnsiDACChar(P);
   Result := FConnect.RawToString(AVal);
   if NeedQuote then Result := '''' + Result + '''';
 end;
 
 function TNativeDataSet.StrValue(P : Pointer; NeedQuote: boolean = True):String;
 var
-   Buffer, AVal : PAnsiChar;
+   Buffer, AVal : PAnsiDACChar;
    SZ, Err : Integer;
 begin
   Result := '';
@@ -9344,10 +9519,10 @@ begin
    begin
     {$IFDEF DELPHI_12}
     if FConnect.IsUnicodeUsed then
-     AVal := PAnsiChar(FConnect.StringToRawS(PWideChar(P)))
+     AVal := PAnsiDACChar(FConnect.StringToRawS(PWideChar(P)))
     else
     {$ENDIF}
-     AVal := PAnsiChar(P);
+     AVal := PAnsiDACChar(P);
 
     if not NeedQuote then
      begin
@@ -9355,10 +9530,19 @@ begin
       Exit;
      end;
 
-    SZ := {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLen(AVal);
+    {$IFNDEF NEXTGEN}
+    SZ := {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrLen(AVal);
+    {$ELSE}
+    SZ := Length(MarshaledAString(@AVal)); //1 byte for #0 character
+    {$ENDIF}
+
     GetMem(Buffer, 2*SZ+1);
     try
+    {$IFNDEF NEXTGEN}
     ZeroMemory(Buffer, 2*SZ+1);
+    {$ELSE}
+    FillChar(Buffer^, 2*SZ+1, 0);
+    {$ENDIF}
     PQEscapeStringConn(FConnect.Handle, Buffer, AVal, SZ, Err);
     if Err > 0 then
      FConnect.CheckResult;
@@ -9371,7 +9555,7 @@ end;
 
 function TNativeDataSet.MemoValue(P : Pointer; NeedQuote: boolean = True):String;
 var
-   Buffer : PAnsiChar;
+   Buffer : PAnsiDACChar;
    SZ : Integer;
 begin
   Result := '';
@@ -9380,7 +9564,11 @@ begin
     if TBlobItem(P^).Blob.Size = 0 then exit;
     SZ := TBlobItem(P^).Blob.Size + SizeOf(Char); //null termination
     GetMem(Buffer, SZ);
+    {$IFNDEF NEXTGEN}
     ZeroMemory(Buffer,SZ);
+    {$ELSE}
+    FillChar(Buffer^,SZ, 0);
+    {$ENDIF}
     TBlobItem(P^).Blob.Seek(0,0);
     TBlobItem(P^).Blob.Read(Buffer^, SZ);
     Result := StrValue(Buffer, NeedQuote);
@@ -9395,7 +9583,7 @@ end;
 
 function TNativeDataset.BlobValue(MS: TStream; isBytea: boolean; NeedEscape: Boolean = True): string;
 var
-   Buffer, PEsc : PAnsiChar;
+   Buffer, PEsc : PAnsiDACChar;
    SZ : Integer;
    Res : LongInt;
    Off, BlSZ: Integer;
@@ -9424,7 +9612,11 @@ begin
 
   SZ := MS.Size;
   GetMem(Buffer, SZ + 1);
+  {$IFNDEF NEXTGEN}
   ZeroMemory(Buffer, SZ + 1);
+  {$ELSE}
+  FillChar(Buffer^, SZ + 1, 0);
+  {$ENDIF}
   MS.Seek(0,0);
   MS.Read(Buffer^, SZ);
   if isBytea then
@@ -9497,7 +9689,7 @@ begin
         Params[i].AsString := Field(j);
 end;
 
-function TNativeConnect.RawToString(S: PAnsiChar): string;
+function TNativeConnect.RawToString(S: PAnsiDACChar): string;
 begin
  if IsUnicodeUsed then
 {$IFDEF DELPHI_12}
@@ -9528,7 +9720,7 @@ begin
   end;
 end;
 
-function TNativeConnect.BinaryToString(S: PAnsiChar; TypeOID: cardinal): string;
+function TNativeConnect.BinaryToString(S: PAnsiDACChar; TypeOID: cardinal): string;
 begin
   case TypeOID of
     FIELD_TYPE_INT4:
@@ -9572,11 +9764,19 @@ end;
 procedure TNativeConnect.CancelBackend(PID: Integer);
 var
    RES: PPGresult;
-   sql: AnsiString;
+   sql: DACAString;
+   {$IFDEF NEXTGEN}
+   M: TMarshaller;
+   {$ENDIF}
 begin
   InternalConnect;
-  sql := AnsiString(Format('SELECT pg_cancel_backend(%u)',[PID]));
-  RES := PQexec(Handle, PAnsiChar(sql));
+  sql := DACAString(Format('SELECT pg_cancel_backend(%u)',[PID]));
+  RES := PQexec(Handle, {$IFNDEF NEXTGEN}
+                          PAnsiChar(sql)
+                        {$ELSE}
+                          M.AsAnsi(sql).ToPointer
+                        {$ENDIF}
+                          );
   try
     CheckResult;
   finally
@@ -9634,7 +9834,7 @@ function TNativeConnect.SelectStringDirect(pszQuery: string;
   var IsOk: boolean; pszFieldName : string): string;
 var
 	Stmt : PPGresult;
-  P: PAnsiChar;
+  P: PAnsiDACChar;
 begin
   Result := '';
 	InternalConnect;
@@ -9647,7 +9847,8 @@ begin
             (PQntuples(Stmt) > 0);
     if IsOK then
       Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)));
-    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
+
+    DACAnsiStrDispose(P);
   finally
    PQClear(Stmt);
   end;
@@ -9768,7 +9969,7 @@ function TNativeConnect.SelectStringsDirect(pszQuery: string;
   aList: TStrings; pszFieldName: string): string;
 var
 	Stmt : PPGresult;
-  P: PAnsiChar;
+  P: PAnsiDACChar;
   i, ColNum: integer;
   IsOK: boolean;
 begin
@@ -9792,7 +9993,7 @@ begin
       end
     else
       CheckResult;
-    {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrDispose(P);
+    DACAnsiStrDispose(P);
   finally
    PQClear(Stmt);
   end;
