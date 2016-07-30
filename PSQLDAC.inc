@@ -22,6 +22,9 @@
   {$MODE DELPHI}
 {$ENDIF}
 
+{$IFDEF ANDROID} {$DEFINE MOBILE} {$ENDIF}
+{$IFDEF IOS} {$DEFINE MOBILE} {$ENDIF}
+
 //---------------------------
 // Delphi/Builder versions
 //---------------------------

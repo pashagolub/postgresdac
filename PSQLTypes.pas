@@ -1752,6 +1752,19 @@ type
     TFieldArray = array[0..255] of Integer;
     TTrueArray = Set of AnsiChar;
     TFalseArray = Set of AnsiChar;
+
+/////////////////////////////////////////////////////////////////////////////
+//          COMPATIBILITY TYPES                                            //
+/////////////////////////////////////////////////////////////////////////////
+type
+  PAnsiDACChar = {$IFDEF MOBILE}MarshaledAString{$ELSE}PAnsiChar{$ENDIF};
+  PAnsiDACBytesChar = {$IFDEF MOBILE}PByte{$ELSE}PAnsiChar{$ENDIF};
+  AnsiDACChar = {$IFDEF MOBILE}Char{$ELSE}AnsiChar{$ENDIF};
+  DACAString = {$IFDEF MOBILE}String{$ELSE}AnsiString{$ENDIF};
+  DACABytesString = {$IFDEF MOBILE}TBytes{$ELSE}AnsiString{$ENDIF};
+  AnsiDACByteChar = {$IFDEF MOBILE}Byte{$ELSE}AnsiChar{$ENDIF};
+  DACPointerInt = NativeInt;
+
 /////////////////////////////////////////////////////////////////////////////
 //                        TPgSQLFilter TYPES AND CONST                     //
 /////////////////////////////////////////////////////////////////////////////
