@@ -8459,7 +8459,12 @@ begin
 //  Result := StrAlloc(Length(S) + 1);
 //  {$ENDIF}
 //  {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Result, _S);
-  DACStrCopy(Result, {$IFNDEF NEXTGEN}_S{$ELSE}M.AsAnsi(_S).ToPointer{$ENDIF});
+  DACStrCopy(Result, {$IFNDEF NEXTGEN}
+                        PAnsiDACChar(_S)
+                      {$ELSE}
+                        M.AsAnsi(_S).ToPointer
+                      {$ENDIF}
+                      );
 end;
 
 function TNativeConnect.StringToRawS(S: string): DACAString;
