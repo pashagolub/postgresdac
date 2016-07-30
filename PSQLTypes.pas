@@ -1982,6 +1982,15 @@ function GetTickCount: LongWord; //thanks to Indy project
 {$ENDIF}
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
+{$IFDEF MOBILE}
+function DACAnsiStrBufSize(const Str: PAnsiDACChar): Cardinal;
+function DACStrLCopy(Dest: PAnsiDACChar; const Source: PAnsiDACChar; MaxLen: Cardinal): PAnsiDACChar;
+function DACStrBufSize(const Str: PAnsiDACChar): Cardinal;
+procedure DACAllocStr(Source: PAnsiDACChar; var Dest: PAnsiDACChar);
+{$ENDIF}
+
+
+
 implementation
 
 uses PSQLDbTables, PSQLAccess
@@ -3371,6 +3380,51 @@ begin
       DBIERR_UPDATEABORT: Result :='Update aborted.';       //13062
    end;
 end;
+
+{$IFDEF MOBILE}
+// Working with PAnsiChar for Mobile platform
+
+function DACAnsiStrBufSize(const Str: PAnsiDACChar): Cardinal;
+var
+  P: PAnsiDACChar;
+begin
+  P := Str;
+  Dec(P, SizeOf(Cardinal));
+  Result := Cardinal(Pointer(P)^) - SizeOf(Cardinal);
+end;
+
+function DACStrLCopy(Dest: PAnsiDACChar; const Source: PAnsiDACChar; MaxLen: Cardinal): PAnsiDACChar;
+var
+  Len: Cardinal;
+begin
+  Result := Dest;
+  Len := Length(Source);
+  if Len > MaxLen then
+    Len := MaxLen;
+  Move(Source^, Dest^, Len);
+  Dest[Len] := #0;
+end;
+
+function DACStrBufSize(const Str: PAnsiDACChar): Cardinal;
+var
+  P: PAnsiDACChar;
+begin
+  P := Str;
+  Dec(P, SizeOf(Cardinal));
+  Result := Cardinal(Pointer(P)^) - SizeOf(Cardinal);
+end;
+
+procedure DACAllocStr(Source: PAnsiDACChar; var Dest: PAnsiDACChar);
+var
+  i: integer;
+begin
+  i := Length(String(Source));
+  GetMem(Dest, i+1);
+  move(Source[0],Dest[0], i);
+  Dest[i] := #0;
+end;
+{$ENDIF}
+
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;
