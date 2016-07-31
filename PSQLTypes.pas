@@ -16,8 +16,8 @@ uses {$IFDEF FPC}LCLIntf,{$ENDIF}
      {$IFDEF DELPHI_12}, SqlTimSt, PSQLGeomTypes{$ENDIF}
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
+     {$IFDEF ANDROID}, System.IOUtils {$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
-
 {$IFDEF DELPHI_12}
   {$NOINCLUDE PSQLGeomTypes}
 {$ENDIF}
@@ -3122,7 +3122,6 @@ begin
 end;
 
 procedure LoadPSQLLibrary(LibPQPath: string = '');
-
   function GetPSQLProc( ProcName : string ) : pointer;
   begin
     Result := GetProcAddress( SQLLibraryHandle, PChar(ProcName));
@@ -3130,7 +3129,6 @@ procedure LoadPSQLLibrary(LibPQPath: string = '');
     if not Assigned(Result) then
      LogDebugMessage('PROC', Format('No entry address for procedure <b>"%s"</b>', [ProcName]));
     {$ENDIF}
-
   end;
 
 begin
@@ -3140,6 +3138,14 @@ begin
   {$ENDIF}
    if ( SQLLibraryHandle <= HINSTANCE_ERROR ) then
    begin
+      // we must think about some property
+      {$IFDEF ANDROID}
+      //internal path
+      LibPQPath := TPath.Combine(TPath.GetDocumentsPath, LibPQPath);
+      //external path
+     // LibPQPath := TPath.Combine(TPath.GetSharedDocumentsPath, LibPQPath);
+     {$ENDIF}
+
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
