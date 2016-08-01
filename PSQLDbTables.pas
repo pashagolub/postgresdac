@@ -270,7 +270,7 @@ type
       FExclusive: Boolean;
       FReadOnly: Boolean;
       FRefCount: Integer;
-      FHandle: HDBIDB;
+      FHandle: DAChDBIDb;
       FParams: TStrings;
       FStmtList: TList;
       FOwner: string;
@@ -312,7 +312,7 @@ type
       procedure SetHost(const Value : string);
       procedure SetKeepConnection(Value: Boolean);
       procedure SetExclusive(Value: Boolean);
-      procedure SetHandle(Value: HDBIDB);
+      procedure SetHandle(Value: DAChDBIDb);
       procedure SetParams(Value: TStrings);
       procedure SetReadOnly(Value: Boolean);
       procedure SetDummyStr(Value: string);
@@ -399,7 +399,7 @@ type
       procedure RollbackToSavepoint(const Name: string);
 
       property DataSets[Index: Integer]: TPSQLDataSet read GetDataSet;
-      property Handle: HDBIDB read FHandle write SetHandle;
+      property Handle: DAChDBIDb read FHandle write SetHandle;
       property InTransaction: Boolean read GetInTransaction;
       property IsUnicodeUsed: Boolean read GetIsUnicodeUsed;
       property IsSSLUsed: Boolean read GetIsSSLUsed;
@@ -557,7 +557,7 @@ type
     procedure InitBufferPointers(GetProps: Boolean);
     function RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint; stdcall;
     procedure SetBlobData(Field: TField; Buffer: TRecordBuffer; Value: TBlobData);
-    function GetDBHandle: HDBIDB;
+    function GetDBHandle: DAChDBIDb;
     procedure SetUpdateMode(const Value: TUpdateMode);
     procedure SetAutoRefresh(const Value: Boolean);
     procedure SetDatabase(Value : TPSQLDatabase);
@@ -795,7 +795,7 @@ type
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
-    property DBHandle: HDBIDB read GetDBHandle;
+    property DBHandle: DAChDBIDb read GetDBHandle;
     property Handle: HDBICur read GetHandle;
     property ExpIndex: Boolean read FExpIndex;
     property KeySize: integer read FKeySize;
@@ -1821,12 +1821,15 @@ procedure TPSQLDatabase.DoConnect;
 const
   OpenModes: array[Boolean] of DbiOpenMode = (dbiReadWrite, dbiReadOnly);
   ShareModes: array[Boolean] of DbiShareMode = (dbiOpenShared, dbiOpenExcl);
+var
+  s: String;
 begin
   if FHandle = nil then
   begin
     InitEngine;
     if LoginPrompt then Login(FParams);
     OEMConv := FOEMConvert;
+    s:= FParams.Text;
     Check(Engine, Engine.OpenDatabase(FParams, FUseSingleLineConnInfo, FHandle));
     Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
     Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
@@ -1927,7 +1930,7 @@ begin
   FParams.Values['password'] := Value;
 end;
 
-procedure TPSQLDatabase.SetHandle(Value: HDBIDB);
+procedure TPSQLDatabase.SetHandle(Value: DAChDBIDb);
 begin
   if Connected then Close;
   if Value <> nil then
@@ -4749,7 +4752,7 @@ begin
   Close;
 end;
 
-function TPSQLDataSet.GetDBHandle: HDBIDB;
+function TPSQLDataSet.GetDBHandle: DAChDBIDb;
 begin
   if FDatabase <> nil then
   begin
@@ -5394,7 +5397,7 @@ procedure TPSQLQuery.GetStatementHandle(SQLText: PChar);
 const
   DataType: array[Boolean] of LongInt = (Ord(wantCanned), Ord(wantLive));
 var
-  DBh : HDBIDB;
+  DBh : DAChDBIDb;
 begin
   DBh := DBHandle;
   Check(Engine,Engine.QAlloc(DBH, hDBIStmt(FHandle)));
@@ -5800,7 +5803,7 @@ var
   IndexID: Word;
   OpenMode: DbiOpenMode;
   RetCode: Word;
-  DBH : HDBIDB;
+  DBH : DAChDBIDb;
 
   procedure FillAddonProps;
   begin

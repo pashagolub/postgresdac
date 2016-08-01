@@ -178,33 +178,35 @@ type
 {$ENDIF}
   end;
 
+  DAChDBIDb = {$IFNDEF NEXTGEN}hDBIDb{$ELSE}TNativeConnect{$ENDIF};
+
   {Postgres Engine}
   TPSQLEngine =  Class(TBaseObject)
     private
-      FDatabase                : hDBIDb;
+      FDatabase                : DAChDBIDb;
       FNativeStatus            : Integer;
       FNativeMsg               : string;
-      function GetDatabase: hDBIDb;
-      procedure SetDatabase(H : hDBIDb);
+      function GetDatabase: DAChDBIDb;
+      procedure SetDatabase(H : DAChDBIDb);
     public
       constructor Create(P : TObject; Container : TContainer);
       Destructor Destroy; Override;
       property Status: Integer Read  FNativeStatus;
       property MessageStatus : String read FNativeMsg;
-      property Database: hDBIDb Read  GetDatabase Write SetDatabase;
-      function IsSqlBased(hDb: hDBIDB): Boolean;
+      property Database: DAChDBIDb Read  GetDatabase Write SetDatabase;
+      function IsSqlBased(hDb: DAChDBIDb): Boolean;
       function Ping(Params: TStrings; var PingResult: TPingStatus): DBIResult;
-      function OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb: hDBIDb): DBIResult;
-      function CloseDatabase(var hDb : hDBIDb) : DBIResult;
-      function OpenTable(hDb: hDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word; eOpenMode: DBIOpenMode;
+      function OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb: DAChDBIDb): DBIResult;
+      function CloseDatabase(var hDb : DAChDBIDb) : DBIResult;
+      function OpenTable(hDb: DAChDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word; eOpenMode: DBIOpenMode;
                           eShareMode: DBIShareMode; var hCursor: hDBICur; AnOptions: TPSQLDatasetOptions;
                           Limit, Offset : Integer): DBIResult;
-      function OpenStoredProcParams(hDb: hDBIDb;pszPName: string; ProcOID:cardinal; List : TList): DBIResult;
-      function OpenStoredProcList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
-      function OpenTableList(hDb: hDBIDb; pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
-      function OpenUserList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
-      function OpenSchemaList(hDb: hDBIDb; pszWild: string; SystemSchemas: Boolean; List : TStrings): DBIResult;
-      function OpenTablespaceList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
+      function OpenStoredProcParams(hDb: DAChDBIDb;pszPName: string; ProcOID:cardinal; List : TList): DBIResult;
+      function OpenStoredProcList(hDb: DAChDBIDb; pszWild: string; List : TStrings): DBIResult;
+      function OpenTableList(hDb: DAChDBIDb; pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
+      function OpenUserList(hDb: DAChDBIDb; pszWild: string; List : TStrings): DBIResult;
+      function OpenSchemaList(hDb: DAChDBIDb; pszWild: string; SystemSchemas: Boolean; List : TStrings): DBIResult;
+      function OpenTablespaceList(hDb: DAChDBIDb; pszWild: string; List : TStrings): DBIResult;
       function SetToBookMark(hCur: hDBICur; pBookMark : Pointer) : DBIResult;
       function CompareBookMarks(hCur: hDBICur; pBookMark1, pBookMark2 : Pointer;var CmpBkmkResult : CmpBkmkRslt): DBIResult;
       function GetNextRecord(hCursor: hDBICur;eLock: DBILockType;pRecBuff: Pointer;pRecProps: pRECProps): DBIResult;
@@ -217,10 +219,10 @@ type
       function TruncateBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iLen: Longint): DBIResult;
       function FreeBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word): DBIResult;
       function CloseBlob(hCursor: hDBICur; FieldNo: Word): DBIResult;
-      function BeginTran(hDb: hDBIDb; eXIL: eXILType; var hXact: hDBIXact): DBIResult;
-      function EndTran(hDb: hDBIDb; hXact: hDBIXact; eEnd : eXEnd): DBIResult;
-      function GetTranInfo(hDb: hDBIDb;hXact: hDBIXact; pxInfo: pXInfo): DBIResult;
-      function GetTranStatus(hDb: hDBIDb; var TranStatus: TTransactionStatusType): DBIResult;
+      function BeginTran(hDb: DAChDBIDb; eXIL: eXILType; var hXact: hDBIXact): DBIResult;
+      function EndTran(hDb: DAChDBIDb; hXact: hDBIXact; eEnd : eXEnd): DBIResult;
+      function GetTranInfo(hDb: DAChDBIDb;hXact: hDBIXact; pxInfo: pXInfo): DBIResult;
+      function GetTranStatus(hDb: DAChDBIDb; var TranStatus: TTransactionStatusType): DBIResult;
       function GetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Pointer;iMaxLen: integer; var iLen: integer): DBIResult;
       function SetEngProp(hObj: hDBIObj;iProp: Longint;PropValue: Longint): DBIResult;
       function GetVchkDesc(hCursor: hDBICur;iValSeqNo: Word; var pvalDesc: VCHKDesc): DBIResult;
@@ -247,59 +249,59 @@ type
       function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
-      function QExecDirect(hDb: hDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
-      function QAlloc(hDb: hDBIDb;var hStmt: hDBIStmt): DBIResult;
+      function QExecDirect(hDb: DAChDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
+      function QAlloc(hDb: DAChDBIDb;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
       function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
       function QFree(var hStmt: hDBIStmt): DBIResult;
-      function QPrepareProc (hDb: hDBIDb; pszProc: PChar; hParams: pointer; var hStmt: hDBIStmt): DBIResult;
+      function QPrepareProc (hDb: DAChDBIDb; pszProc: PChar; hParams: pointer; var hStmt: hDBIStmt): DBIResult;
       function QSetProcParams (hStmt: hDBIStmt; Params: TParams): DBIResult;
       function QGetProcParams (hStmt: hDBIStmt; Params: TParams): DBIResult;
       function QuerySetParams(hStmt: hDBIStmt;Params : TParams; SQLText : String): DBIResult;
       function CheckError : DBIResult;
-      function GetDatabases(hDb: hDBIdb; pszWild: string; List : TStrings):DBIResult;
-      function GetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
-      function GetCharacterSets(hDb : hDBIDb; List: TStrings):DBIResult;
-      function SetCharacterSet(hDb : hDBIDb; var CharSet : string): DBIResult;
-      function SetErrorVerbosity(hDb : hDBIDb; const ErrorVerbosity: TErrorVerbosity): DBIResult;
-      function GetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal): DBIResult;
-      function SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal): DBIResult;
-      function OpenFieldList(hDb: hDBIDb; pszTableName: string; pszDriverType: string; bPhyTypes: Boolean; var hCur: hDBICur): DBIResult;
-      function OpenIndexList(hDb: hDBIDb; pszTableName: string; pszDriverType: string; var hCur: hDBICur): DBIResult;
-      function EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : string; pszDriverType : string): DBIResult;
+      function GetDatabases(hDb: DAChDBIDb; pszWild: string; List : TStrings):DBIResult;
+      function GetCharacterSet(hDb : DAChDBIDb; var CharSet : string):DBIResult;
+      function GetCharacterSets(hDb : DAChDBIDb; List: TStrings):DBIResult;
+      function SetCharacterSet(hDb : DAChDBIDb; var CharSet : string): DBIResult;
+      function SetErrorVerbosity(hDb : DAChDBIDb; const ErrorVerbosity: TErrorVerbosity): DBIResult;
+      function GetCommandTimeout(hDb : DAChDBIDb; var Timeout : cardinal): DBIResult;
+      function SetCommandTimeout(hDb : DAChDBIDb; var Timeout : cardinal): DBIResult;
+      function OpenFieldList(hDb: DAChDBIDb; pszTableName: string; pszDriverType: string; bPhyTypes: Boolean; var hCur: hDBICur): DBIResult;
+      function OpenIndexList(hDb: DAChDBIDb; pszTableName: string; pszDriverType: string; var hCur: hDBICur): DBIResult;
+      function EmptyTable(hDb: DAChDBIDb; hCursor : hDBICur; pszTableName : string; pszDriverType : string): DBIResult;
       function SetRange(hCursor : hDBICur;bKeyItself: Boolean;iFields1: Word;iLen1: Word;pKey1: Pointer;bKey1Incl: Boolean;
                         iFields2: Word;iLen2: Word;pKey2: Pointer;bKey2Incl: Boolean): DBIResult;
       function ResetRange(hCursor : hDBICur) : DBIResult;
       function SwitchToIndex(hCursor : hDBICur; pszIndexName, pszTagName : string; iIndexId : Word; bCurrRec : Boolean) : DBIResult;
       function ExtractKey(hCursor: hDBICur;PRecord: Pointer;pKeyBuf: Pointer): DBIResult;
       function GetRecordForKey(hCursor: hDBICur; bDirectKey: Boolean; iFields: integer; iLen: integer; pKey: Pointer; pRecBuff: Pointer; AStrictConformity: boolean = False): DBIResult;
-      function AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;var IdxDesc: IDXDesc;pszKeyviolName: string): DBIResult;
-      function DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;pszIndexName: string;pszIndexTagName: string;iIndexId: Word): DBIResult;
+      function AddIndex(hDb: DAChDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;var IdxDesc: IDXDesc;pszKeyviolName: string): DBIResult;
+      function DeleteIndex(hDb: DAChDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;pszIndexName: string;pszIndexTagName: string;iIndexId: Word): DBIResult;
       function GetIndexDesc(hCursor: hDBICur;iIndexSeqNo: Word;var idxDesc: IDXDesc): DBIResult;
       function GetIndexDescs(hCursor: hDBICur; idxDescs: TIDXDescList): DBIResult;
       function TranslateRecordStructure(pszSrcDriverType: PChar; iFlds: Word; pfldsSrc: pFLDDesc; pszDstDriverType: PChar; pszLangDriver: PChar;pfldsDst: pFLDDesc; bCreatable: Boolean): DBIResult;
-      function TableExists(hDb: hDBIDb; pszTableName: string): DBIResult;
+      function TableExists(hDb: DAChDBIDb; pszTableName: string): DBIResult;
       function AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
       function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Boolean;iFields: integer;iLen: integer;pBuff: Pointer): DBIResult;
       function CloneCursor(hCurSrc: hDBICur;bReadOnly: Boolean;bUniDirectional: Boolean;var   hCurNew: hDBICur): DBIResult;
       function SetToCursor(hDest, hSrc : hDBICur) : DBIResult;
-      function OpenPGNotify(hDb: hDBIDb; var hNotify: hDBIObj): DBIResult;
+      function OpenPGNotify(hDb: DAChDBIDb; var hNotify: hDBIObj): DBIResult;
       function ClosePGNotify(var hNotify : hDBIObj) : DBIResult;
       function ListenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function UnlistenTo(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function DoNotify(hNotify : hDBIObj; pszEvent: string) : DBIResult;
       function DoNotifyEx(hNotify : hDBIObj; pszChannel: string; pszPayload: string) : DBIResult;
       function CheckEvents(hNotify : hDBIObj; var Pid : Integer; var pszOutPut, pszPayload : String)  : DBIResult;
-      function GetBackendPID(hDb: hDBIDb; var PID: Integer): DBIResult;
-      function GetServerVersion(hDb: hDBIDb; var ServerVersion: string): DBIResult;
-      function GetUserProps(hDb: hDBIDb; const UserName: string;
+      function GetBackendPID(hDb: DAChDBIDb; var PID: Integer): DBIResult;
+      function GetServerVersion(hDb: DAChDBIDb; var ServerVersion: string): DBIResult;
+      function GetUserProps(hDb: DAChDBIDb; const UserName: string;
                 var SuperUser, CanCreateDB, CanUpdateSysCatalogs: boolean;
                 var UserID: integer; var ValidUntil: string):DBIResult;
-      function GetDBProps(hDB: hDBIDB; const DB: string;
+      function GetDBProps(hDB: DAChDBIDb; const DB: string;
                         var Owner, Tablespace: string;
                         var IsTemplate: boolean;
                         var DBOid: cardinal; var Comment: string):DBIResult;
-      function GetTableProps(hDB: hDBIDB; const TableName: string; var Owner,
+      function GetTableProps(hDB: DAChDBIDb; const TableName: string; var Owner,
                         Comment, Tablespace: string; var HasOIDs: boolean;
                         var TableOid: cardinal):DBIResult;
       function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; AParam: TParam): DBIResult;
@@ -309,23 +311,23 @@ type
       function GetFieldOrigin(hCursor: hDBICur; const FieldNum: integer): string;
 
       function CheckBuffer(hCursor: hDBICur; PRecord: Pointer): DBIResult;
-      function Reset(hDb: hDBIDb): DBIResult;
-      function CancelBackend(hDb: hDBIdb; PID: Integer): DBIResult;
-      function SelectStringDirect(hDb: hDBIDb;
+      function Reset(hDb: DAChDBIDb): DBIResult;
+      function CancelBackend(hDb: DAChDBIDb; PID: Integer): DBIResult;
+      function SelectStringDirect(hDb: DAChDBIDb;
                                   pszQuery : PChar;
                                   var IsOk : boolean;
                                   var aResult : string;
                                   aFieldNumber : integer):DBIResult;overload;
-      function SelectStringDirect(hDb: hDBIDb;
+      function SelectStringDirect(hDb: DAChDBIDb;
                                   pszQuery : PChar;
                                   var IsOk : boolean;
                                   var aResult : string;
                                   aFieldName : string):DBIResult;overload;
-      function SelectStringsDirect(hDb: hDBIDb;
+      function SelectStringsDirect(hDb: DAChDBIDb;
                                   pszQuery : PChar;
                                   aList : TStrings;
                                   aFieldNumber : integer):DBIResult;overload;
-      function SelectStringsDirect(hDb: hDBIDb;
+      function SelectStringsDirect(hDb: DAChDBIDb;
                                   pszQuery : PChar;
                                   aList : TStrings;
                                   aFieldName : string):DBIResult;overload;
@@ -2110,7 +2112,6 @@ begin
       {$ELSE}
       DACStrCopy(ConnKeywords[i], M.AsAnsi(K).ToPointer);
       {$ENDIF}
-
      {$IFDEF DELPHI_7}
      V := UTF8Encode(AParams.ValueFromIndex[i]);
      {$ELSE}
@@ -2129,6 +2130,7 @@ begin
      {$ENDIF}
      ConnKeywords[High(ConnKeywords)] := nil;
      ConnValues[High(ConnValues)] := nil;
+
      Result := PQconnectdbParams(@ConnKeywords[0], @ConnValues[0], ord(ExpandDbName));
    finally
      for i := 0 to AParams.Count - 1 do
@@ -6735,7 +6737,7 @@ end;
 constructor TPSQLEngine.Create(P : TObject; Container : TContainer);
 begin
   Inherited Create(P, Container);
-  FDatabase := hDBIDb(Self);
+  FDatabase := DAChDBIDb(Self);
 end;
 
 Destructor TPSQLEngine.Destroy;
@@ -6744,23 +6746,23 @@ begin
   Inherited Destroy;
 end;
 
-function TPSQLEngine.GetDatabase : hDBIDb;
+function TPSQLEngine.GetDatabase : DAChDBIDb;
 begin
   Result := FDatabase;
 end;
 
-procedure TPSQLEngine.SetDatabase( H : hDBIDb );
+procedure TPSQLEngine.SetDatabase( H : DAChDBIDb );
 begin
   if H = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
   FDatabase := H;
 end;
 
-function TPSQLEngine.IsSqlBased(hDb : hDBIDB) : Boolean;
+function TPSQLEngine.IsSqlBased(hDb : DAChDBIDb) : Boolean;
 begin
   Result   := True;
 end;
 
-function TPSQLEngine.OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb : hDBIDb): DBIResult;
+function TPSQLEngine.OpenDatabase(Params : TStrings; UseSinleLineConnInfo: boolean; var hDb : DAChDBIDb): DBIResult;
 Var
   DB : TNativeConnect;
 begin
@@ -6781,7 +6783,7 @@ begin
       FreeAndNil(DB);
       raise;
     end;
-    hDb := hDBIDb(DB);
+    hDb := DAChDBIDb(DB);
     Database := hDb;
     Result := DBIERR_NONE;
   except
@@ -6789,7 +6791,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.CloseDatabase(var hDb : hDBIDb) : DBIResult;
+function TPSQLEngine.CloseDatabase(var hDb : DAChDBIDb) : DBIResult;
 begin
   try
     Database := hDb;
@@ -6802,7 +6804,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenTable(hDb: hDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word;
+function TPSQLEngine.OpenTable(hDb: DAChDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word;
          eOpenMode: DBIOpenMode;eShareMode: DBIShareMode; var hCursor: hDBICur;
          AnOptions: TPSQLDatasetOptions; Limit, Offset : Integer): DBIResult;
 begin
@@ -6815,7 +6817,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenStoredProcList(hDb: hDBIDb;pszWild: string; List : TStrings): DBIResult;
+function TPSQLEngine.OpenStoredProcList(hDb: DAChDBIDb;pszWild: string; List : TStrings): DBIResult;
 begin
   try
     Database := hDb;
@@ -6826,7 +6828,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenTableList(hDb: hDBIDb;pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
+function TPSQLEngine.OpenTableList(hDb: DAChDBIDb;pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
 begin
   try
     Database := hDb;
@@ -6837,7 +6839,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenSchemaList(hDb: hDBIDb; pszWild: string; SystemSchemas: Boolean; List : TStrings): DBIResult;
+function TPSQLEngine.OpenSchemaList(hDb: DAChDBIDb; pszWild: string; SystemSchemas: Boolean; List : TStrings): DBIResult;
 begin
   try
     Database := hDb;
@@ -6848,7 +6850,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenUserList(hDb: hDBIDb; pszWild: string; List : TStrings): DBIResult;
+function TPSQLEngine.OpenUserList(hDb: DAChDBIDb; pszWild: string; List : TStrings): DBIResult;
 begin
   try
     Database := hDb;
@@ -7062,7 +7064,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.BeginTran(hDb: hDBIDb; eXIL: eXILType; var hXact: hDBIXact): DBIResult;
+function TPSQLEngine.BeginTran(hDb: DAChDBIDb; eXIL: eXILType; var hXact: hDBIXact): DBIResult;
 begin
   try
     Database := hDb;
@@ -7073,7 +7075,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.EndTran(hDb: hDBIDb;hXact : hDBIXact; eEnd : eXEnd): DBIResult;
+function TPSQLEngine.EndTran(hDb: DAChDBIDb;hXact : hDBIXact; eEnd : eXEnd): DBIResult;
 begin
   try
    Database := hDb;
@@ -7084,7 +7086,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetTranInfo(hDb : hDBIDb; hXact : hDBIXact; pxInfo : pXInfo): DBIResult;
+function TPSQLEngine.GetTranInfo(hDb : DAChDBIDb; hXact : hDBIXact; pxInfo : pXInfo): DBIResult;
 begin
   try
     Database := hDb;
@@ -7096,7 +7098,7 @@ begin
 end;
 
 
-function TPSQLEngine.GetTranStatus(hDb: hDBIDb; var TranStatus: TTransactionStatusType): DBIResult;
+function TPSQLEngine.GetTranStatus(hDb: DAChDBIDb; var TranStatus: TTransactionStatusType): DBIResult;
 begin
   try
     Database := hDb;
@@ -7291,7 +7293,7 @@ begin
   Result := rslt;
 end;
 
-function TPSQLEngine.QExecDirect(hDb : hDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
+function TPSQLEngine.QExecDirect(hDb : DAChDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
 begin
   try
     Database := hDb;
@@ -7302,7 +7304,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.QAlloc(hDb: hDBIDb; var hStmt: hDBIStmt): DBIResult;
+function TPSQLEngine.QAlloc(hDb: DAChDBIDb; var hStmt: hDBIStmt): DBIResult;
 begin
   try
     Database := hDb;
@@ -7417,7 +7419,7 @@ begin
    raise TObject(ExceptionPtr);
 end;
 
-function TPSQLEngine.GetDatabases(hDb: hDBIdb; pszWild: string; List : TStrings):DBIResult;
+function TPSQLEngine.GetDatabases(hDb: DAChDBIDb; pszWild: string; List : TStrings):DBIResult;
 begin
   try
     Database := hDb;
@@ -7428,7 +7430,7 @@ begin
    end;
 end;
 
-function TPSQLEngine.GetCharacterSet(hDb : hDBIDb; var CharSet : string):DBIResult;
+function TPSQLEngine.GetCharacterSet(hDb : DAChDBIDb; var CharSet : string):DBIResult;
 begin
    try
      Database := hDb;
@@ -7442,7 +7444,7 @@ end;
 ///////////////////////////////////////////////////////////////////////////////
 //                  Reserver for TPSQLTable                                 //
 ///////////////////////////////////////////////////////////////////////////////
-function TPSQLEngine.OpenFieldList(hDb: hDBIDb; pszTableName: string; pszDriverType: string; bPhyTypes: Boolean; var hCur: hDBICur): DBIResult;
+function TPSQLEngine.OpenFieldList(hDb: DAChDBIDb; pszTableName: string; pszDriverType: string; bPhyTypes: Boolean; var hCur: hDBICur): DBIResult;
 begin
   try
     Database := hDb;
@@ -7453,7 +7455,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenIndexList(hDb: hDBIDb;pszTableName: string; pszDriverType: string; var hCur: hDBICur): DBIResult;
+function TPSQLEngine.OpenIndexList(hDb: DAChDBIDb;pszTableName: string; pszDriverType: string; var hCur: hDBICur): DBIResult;
 begin
   try
     Database := hDb;
@@ -7464,7 +7466,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.EmptyTable(hDb: hDBIDb; hCursor : hDBICur; pszTableName : string; pszDriverType : string): DBIResult;
+function TPSQLEngine.EmptyTable(hDb: DAChDBIDb; hCursor : hDBICur; pszTableName : string; pszDriverType : string): DBIResult;
 begin
   try
     Database := hDb;
@@ -7526,7 +7528,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.AddIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;var IdxDesc: IDXDesc;pszKeyviolName : string): DBIResult;
+function TPSQLEngine.AddIndex(hDb: DAChDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;var IdxDesc: IDXDesc;pszKeyviolName : string): DBIResult;
 begin
   try
     Database := hDb;
@@ -7537,7 +7539,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.DeleteIndex(hDb: hDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;pszIndexName: string;pszIndexTagName: string;iIndexId: Word): DBIResult;
+function TPSQLEngine.DeleteIndex(hDb: DAChDBIDb;hCursor: hDBICur;pszTableName: string;pszDriverType: string;pszIndexName: string;pszIndexTagName: string;iIndexId: Word): DBIResult;
 begin
   try
     Database := hDb;
@@ -7590,7 +7592,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.TableExists(hDb: hDBIDb; pszTableName: string): DBIResult;
+function TPSQLEngine.TableExists(hDb: DAChDBIDb; pszTableName: string): DBIResult;
 begin
    try
      Database := hDb;
@@ -7712,7 +7714,7 @@ begin
 end;
 
 {PSQLNotify}
-function TPSQLEngine.OpenPGNotify(hDb: hDBIDb; var hNotify: hDBIObj): DBIResult;
+function TPSQLEngine.OpenPGNotify(hDb: DAChDBIDb; var hNotify: hDBIObj): DBIResult;
 Var
   ANotify : TNativePGNotify;
 begin
@@ -7789,7 +7791,7 @@ begin
    end;
 end;
 
-function TPSQLEngine.GetBackendPID(hDb: hDBIDb; var PID: Integer): DBIResult;
+function TPSQLEngine.GetBackendPID(hDb: DAChDBIDb; var PID: Integer): DBIResult;
 begin
    try
     Database := hDb;
@@ -7867,7 +7869,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetServerVersion(hDb: hDBIDb;
+function TPSQLEngine.GetServerVersion(hDb: DAChDBIDb;
   var ServerVersion: string): DBIResult;
 begin
   try
@@ -7879,7 +7881,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetUserProps(hDb: hDBIDb; const UserName: string;
+function TPSQLEngine.GetUserProps(hDb: DAChDBIDb; const UserName: string;
                 var SuperUser, CanCreateDB,
                   CanUpdateSysCatalogs: boolean; var UserID: integer;
                 var ValidUntil: string):DBIResult;
@@ -7894,7 +7896,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetDBProps(hDB: hDBIDB; const DB: string;
+function TPSQLEngine.GetDBProps(hDB: DAChDBIDb; const DB: string;
                         var Owner, Tablespace: string;
                         var IsTemplate: boolean;
                         var DBOid: cardinal; var Comment: string):DBIResult;
@@ -8297,7 +8299,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.OpenStoredProcParams(hDb: hDBIDb; pszPName: string;
+function TPSQLEngine.OpenStoredProcParams(hDb: DAChDBIDb; pszPName: string;
   ProcOID: cardinal; List: TList): DBIResult;
 begin
   try
@@ -8475,7 +8477,7 @@ begin
   Result := DACAString(S);
 end;
 
-function TPSQLEngine.QPrepareProc(hDb: hDBIDb; pszProc: PChar;
+function TPSQLEngine.QPrepareProc(hDb: DAChDBIDb; pszProc: PChar;
   hParams: pointer; var hStmt: hDBIStmt): DBIResult;
 var SQLText,ParStr: string;
     i: integer;
@@ -8579,7 +8581,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.SetCharacterSet(hDb: hDBIDb; var CharSet: string): DBIResult;
+function TPSQLEngine.SetCharacterSet(hDb: DAChDBIDb; var CharSet: string): DBIResult;
 begin
    try
      Database := hDb;
@@ -8590,7 +8592,7 @@ begin
    end;
 end;
 
-function TPSQLEngine.SetErrorVerbosity(hDb : hDBIDb; const ErrorVerbosity: TErrorVerbosity): DBIResult;
+function TPSQLEngine.SetErrorVerbosity(hDb : DAChDBIDb; const ErrorVerbosity: TErrorVerbosity): DBIResult;
 begin
    try
      Database := hDb;
@@ -8601,7 +8603,7 @@ begin
    end;
 end;
 
-function TPSQLEngine.SetCommandTimeout(hDb : hDBIDb; var Timeout : cardinal):DBIResult;
+function TPSQLEngine.SetCommandTimeout(hDb : DAChDBIDb; var Timeout : cardinal):DBIResult;
 begin
    try
      Database := hDb;
@@ -8612,7 +8614,7 @@ begin
    end;
 end;
 
-function TPSQLEngine.GetCharacterSets(hDb: hDBIDb;
+function TPSQLEngine.GetCharacterSets(hDb: DAChDBIDb;
   List: TStrings): DBIResult;
 begin
    try
@@ -8819,7 +8821,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetTableProps(hDB: hDBIDB; const TableName: string;
+function TPSQLEngine.GetTableProps(hDB: DAChDBIDb; const TableName: string;
   var Owner, Comment, Tablespace: string; var HasOIDs: boolean;
   var TableOid: cardinal): DBIResult;
 begin
@@ -9032,7 +9034,7 @@ begin
    end;
 end;
 
-function TPSQLEngine.GetCommandTimeout(hDb: hDBIDb;
+function TPSQLEngine.GetCommandTimeout(hDb: DAChDBIDb;
   var Timeout: cardinal): DBIResult;
 begin
    try
@@ -9462,7 +9464,7 @@ begin
 end;
 //<< pasha_golub 10.08.06
 
-function TPSQLEngine.OpenTablespaceList(hDb: hDBIDb; pszWild: string;
+function TPSQLEngine.OpenTablespaceList(hDb: DAChDBIDb; pszWild: string;
   List: TStrings): DBIResult;
 begin
   try
@@ -9744,7 +9746,7 @@ begin
   PQreset(FHandle);
 end;
 
-function TPSQLEngine.Reset(hDb: hDBIDb): DBIResult;
+function TPSQLEngine.Reset(hDb: DAChDBIDb): DBIResult;
 begin
    try
     Database := hDb;
@@ -9755,7 +9757,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.CancelBackend(hDb: hDBIdb; PID: Integer): DBIResult;
+function TPSQLEngine.CancelBackend(hDb: DAChDBIDb; PID: Integer): DBIResult;
 begin
    try
      Database := hDb;
@@ -9789,7 +9791,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.SelectStringDirect(hDb: hDBIDb; pszQuery: PChar;
+function TPSQLEngine.SelectStringDirect(hDb: DAChDBIDb; pszQuery: PChar;
   var IsOk: boolean; var aResult: string;
   aFieldNumber: integer): DBIResult;
 begin
@@ -9801,7 +9803,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.SelectStringDirect(hDb: hDBIDb; pszQuery: PChar;
+function TPSQLEngine.SelectStringDirect(hDb: DAChDBIDb; pszQuery: PChar;
   var IsOk: boolean; var aResult: string; aFieldName: string): DBIResult;
 begin
   try
@@ -9917,7 +9919,7 @@ begin
   Result := TNativeDataset(hCursor).FieldOrigin(FieldNum);
 end;
 
-function TPSQLEngine.SelectStringsDirect(hDb: hDBIDb; pszQuery: PChar;
+function TPSQLEngine.SelectStringsDirect(hDb: DAChDBIDb; pszQuery: PChar;
   aList: TStrings; aFieldNumber: integer): DBIResult;
 begin
   try
@@ -9928,7 +9930,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.SelectStringsDirect(hDb: hDBIDb; pszQuery: PChar;
+function TPSQLEngine.SelectStringsDirect(hDb: DAChDBIDb; pszQuery: PChar;
   aList: TStrings; aFieldName: string): DBIResult;
 begin
   try

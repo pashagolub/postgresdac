@@ -501,7 +501,7 @@ type
 //  included in a user's program, and user may already have that type
 //  defined.  Pqbool, on the other hand, is unlikely to be used.
 
-  PPAnsiChar = ^PAnsiDACChar;
+  PPAnsiDACChar = ^PAnsiDACChar;
 
   PQprintOpt = packed record
     header:    Byte;	   { print output field headings and row count }
@@ -513,7 +513,7 @@ type
     fieldSep:  PAnsiDACChar;	   { field separator }
     tableOpt:  PAnsiDACChar;      { insert to HTML <table ...> }
     caption:   PAnsiDACChar;	   { HTML <caption> }
-    fieldName: PPAnsiChar; 	   { null terminated array of repalcement field names }
+    fieldName: PPAnsiDACChar; 	   { null terminated array of repalcement field names }
   end;
 
   PPQprintOpt = ^PQprintOpt;
@@ -544,9 +544,9 @@ type
   TPQisthreadsafe  = function(): Integer; cdecl;
   TPQconnectdb     = function(ConnInfo: PAnsiDACChar): PPGconn; cdecl; //blocking manner
   TPQconnectStart  = function(ConnInfo: PAnsiDACChar): PPGconn; cdecl; //non-blocking manner
-  TPQconnectdbParams = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): PPGconn; cdecl; //blocking manner
+  TPQconnectdbParams = function(Keywords: PPAnsiDACChar; Values: PPAnsiDACChar; ExpandDBName: integer): PPGconn; cdecl; //blocking manner
   TPQping          = function(ConnInfo: PAnsiDACChar): TPingStatus; cdecl;
-  TPQpingParams    = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): TPingStatus;
+  TPQpingParams    = function(Keywords: PPAnsiDACChar; Values: PPAnsiDACChar; ExpandDBName: integer): TPingStatus;
   TPQconnectPoll   = function (Handle : PPGconn): PollingStatusType; cdecl;
   TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PAnsiDACChar): PPGconn; cdecl;
   TPQconndefaults  = function: PPQconninfoOption; cdecl;
@@ -579,7 +579,7 @@ type
   TPQexecPrepared  = function(Handle: PPGconn;
                               StmtName: PAnsiDACChar;
                               nParams: integer;
-                              paramValues: PPAnsiChar;
+                              paramValues: PPAnsiDACChar;
                               paramLengths: PInteger;
                               paramFormats: PInteger;
                               resultFormat: integer): PPGresult; cdecl;
@@ -590,7 +590,7 @@ type
                               Query: PAnsiDACChar;
                               nParams: integer;
                               paramTypes: POid;
-                              paramValues: PPAnsiChar;
+                              paramValues: PPAnsiDACChar;
                               paramLengths: PInteger;
                               paramFormats: PInteger;
                               resultFormat: integer): PPGresult; cdecl;
@@ -614,7 +614,7 @@ type
                               NBytes: Integer): Integer; cdecl;
   TPQendcopy       = function(Handle: PPGconn): Integer; cdecl;
   TPQgetCopyData   = function(Handle: PPGConn;
-                              Buffer: PPAnsiChar;
+                              Buffer: PPAnsiDACChar;
                               Async: integer = 0): Integer; cdecl;
   TPQputCopyData   = function(Handle: PPGConn;
                               Buffer: PAnsiDACChar;
