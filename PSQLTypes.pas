@@ -1991,7 +1991,7 @@ function DACAnsiStrAlloc(Size: Cardinal): PAnsiDACChar;
 procedure DACAnsiStrDispose(Str: PAnsiDACChar);
 
 function DACStrCopy(Dest: PAnsiDACChar; const Source: PAnsiDACChar; MaxLen: Cardinal = 0): PAnsiDACChar;
-procedure DACAllocStr(Dest: PAnsiDACChar; Len: Integer);
+procedure DACAllocStr(var Dest: PAnsiDACChar; Len: Integer);
 
 {$IFDEF MOBILE}
 function DACAnsiStrBufSize(const Str: PAnsiDACChar): Cardinal;
@@ -3453,7 +3453,7 @@ begin
   {$ENDIF}
 end;
 
-procedure DACAllocStr(Dest: PAnsiDACChar; Len: Integer);
+procedure DACAllocStr(var Dest: PAnsiDACChar; Len: Integer);
 //{$IFDEF NEXTGEN}
 //var
 //  i: integer;
