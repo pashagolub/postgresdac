@@ -33,7 +33,6 @@ type
   public
     procedure SetUp; override;
     procedure TearDown; override;
-  published
     procedure TestAddIndex;
     procedure TestApplyRange;
     procedure TestCancelRange;
@@ -43,7 +42,6 @@ type
     procedure TestEditRangeEnd;
     procedure TestEditRangeStart;
     procedure TestEmptyTable;
-    procedure TestFindKey;
     procedure TestFindNearest;
     procedure TestGetIndexNames;
     procedure TestGotoCurrent;
@@ -53,6 +51,8 @@ type
     procedure TestSetRange;
     procedure TestSetRangeEnd;
     procedure TestSetRangeStart;
+  published
+    procedure TestFindKey;
   end;
 
 var
@@ -146,7 +146,6 @@ begin
   FPSQLTable.Open;
   FPSQLTable.IndexName := 'pk_testtable';
   Check(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
-  // TODO: Validate method results
 end;
 
 procedure TestTPSQLTable.TestFindNearest;
