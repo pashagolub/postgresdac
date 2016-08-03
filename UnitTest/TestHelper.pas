@@ -1,18 +1,27 @@
 unit TestHelper;
-
 interface
 
-uses Classes, SysUtils, PSQLDbTables, Forms, PSQLConnFrm, Controls;
+uses Classes, SysUtils, PSQLDbTables
+{$IFNDEF DUNITX}
+,Forms, PSQLConnFrm, Controls, TestFramework
+{$ELSE}
+,DUnitX.TestFramework
+{$ENDIF};
 
 procedure ComponentToFile(Component: TComponent; Name: string);
 procedure FileToComponent(Name: string; Component: TComponent);
 procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
 
+procedure DACIsTrue(Condition: Boolean);
+procedure DACCheck(Condition: Boolean; Msg: String);
+
 implementation
 
 procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
+{$IFNDEF DUNITX}
 var
   Frm: TPSQLConnForm;
+{$ENDIF}
 begin
   DB := TPSQLDatabase.Create(nil);
   if FileExists(ConfFileName) then
@@ -22,6 +31,7 @@ begin
   except
     on E: EPSQLDatabaseError do //nothing, failed connection
   end;
+{$IFNDEF DUNITX}
   Application.CreateForm(TPSQLConnForm, Frm);
   try
     with Frm do
@@ -39,6 +49,7 @@ begin
    Frm.Free;
   end;
   DB.Open;
+{$ENDIF}
 end;
 
 procedure ComponentToFile(Component: TComponent; Name: string);
@@ -52,7 +63,11 @@ begin
     StrStream := TFileStream.Create(Name, fmCreate);
     try
       BinStream.WriteComponent(Component);
+      {$IFNDEF NEXTGEN}
       BinStream.Seek(0, soFromBeginning);
+      {$ELSE}
+      BinStream.Position := 0;
+      {$ENDIF}
       ObjectBinaryToText(BinStream, StrStream);
     finally
       StrStream.Free;
@@ -72,15 +87,36 @@ begin
     BinStream := TMemoryStream.Create;
     try
       ObjectTextToBinary(StrStream, BinStream);
+      {$IFNDEF NEXTGEN}
       BinStream.Seek(0, soFromBeginning);
+      {$ELSE}
+      BinStream.Position := 0;
+      {$ENDIF}
       BinStream.ReadComponent(Component);
-
     finally
       BinStream.Free;
     end;
   finally
     StrStream.Free;
   end;
+end;
+
+procedure DACIsTrue(Condition: Boolean);
+begin
+  {$IFNDEF DUNITX}
+  Check(Condition);
+  {$ELSE}
+  Assert.IsTrue(Condition);
+  {$ENDIF}
+end;
+
+procedure DACCheck(Condition: Boolean; Msg: String);
+begin
+  {$IFNDEF DUNITX}
+  Check(Condition, Msg);
+  {$ELSE}
+  Assert.IsTrue(Condition, Msg);
+  {$ENDIF}
 end;
 
 end.
