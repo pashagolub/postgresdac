@@ -63,6 +63,8 @@ type
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
+    [TearDownFixture]
+    procedure TearDownFixture;
     {$ENDIF}
   end;
 
@@ -83,6 +85,8 @@ type
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
+    [TearDownFixture]
+    procedure TearDownFixture;
     {$ENDIF}
   end;
 
@@ -108,6 +112,8 @@ type
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
+    [TearDownFixture]
+    procedure TearDownFixture;
     {$ENDIF}
   end;
 
@@ -127,9 +133,12 @@ type
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
+    [TearDownFixture]
+    procedure TearDownFixture;
     {$ENDIF}
   end;
   procedure InternalSetUp;
+  procedure InternalTearDown;
 
 var
   FldDB: TPSQLDatabase;
@@ -151,8 +160,14 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLGuidField.SetupFixture;
 begin
+  FldDB := MainForm.Database;
   InternalSetUp;
 end;
+procedure TestTPSQLGuidField.TearDownFixture;
+begin
+  InternalTearDown;
+end;
+
 {$ENDIF}
 
 procedure TestTPSQLGuidField.TearDown;
@@ -313,8 +328,8 @@ begin
   inherited;
   FldDB.Close;
   ComponentToFile(FldDB, 'PSQLQueryTest.conf');
-  FldQry.Free;
-  FldDB.Free;
+  FldDb.Free;
+  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -323,7 +338,12 @@ end;
 {$IFDEF DUNITX}
 procedure TestGeometricFields.SetupFixture;
 begin
+  FldDB := MainForm.Database;
   InternalSetUp;
+end;
+procedure TestGeometricFields.TearDownFixture;
+begin
+  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -403,7 +423,12 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLRangeField.SetupFixture;
 begin
+  FldDB := MainForm.Database;
   InternalSetUp;
+end;
+procedure TestTPSQLRangeField.TearDownFixture;
+begin
+  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -577,7 +602,12 @@ end;
 {$IFDEF DUNITX}
 procedure TestNativeNumericField.SetupFixture;
 begin
+  FldDB := MainForm.Database;
   InternalSetUp;
+end;
+procedure TestNativeNumericField.TearDownFixture;
+begin
+  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -625,7 +655,6 @@ end;
 
 procedure InternalSetUp;
 begin
-  FldDB := MainForm.Database;
   FldQry := TPSQLQuery.Create(nil);
   FldQry.Database := FldDB;
   FldQry.ParamCheck := False;
@@ -636,6 +665,11 @@ begin
                 'id int4 PRIMARY KEY, numr numrange, '+
                 'intr int4range, dater daterange, '+
                 'tsr tsrange, tstzr tstzrange)');
+end;
+
+procedure InternalTearDown;
+begin
+  FldQry.Free;
 end;
 
 initialization

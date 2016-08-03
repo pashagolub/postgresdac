@@ -287,6 +287,7 @@ procedure TestTPSQLQuery.TestAsTime;
 var ClientTime, ServerTime: TTime;
   minutes: integer;
 begin
+ minutes := 0;
  FPSQLQuery.SQL.Text := 'SELECT LOCALTIME';
  FPSQLQuery.Open;
  ClientTime := Time();
@@ -694,6 +695,7 @@ end;
 
 procedure TestTPSQLQuery.InternalSetUp;
 begin
+  QryDB.Execute('SET TimeZone to DEFAULT'); // for the complex timezone -04:30
   QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required

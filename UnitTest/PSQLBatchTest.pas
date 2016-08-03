@@ -99,6 +99,7 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLBatchExecute.SetupFixture;
 begin
+  QryDB := MainForm.Database;
   InternalSetUp;
 end;
 {$ENDIF}
