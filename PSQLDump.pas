@@ -1186,6 +1186,9 @@ var
   PLog: PAnsiDACChar;
   LibName: string;
   Params: PAnsiDACChar;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
 begin
   S := '';
   LibName := 'pg_restore.dll';
@@ -1214,9 +1217,12 @@ begin
       ProccessOwner := Self;
       pdmbvm_SetLogCallBackProc(@LogCallBackProc);
      end;
-
     if LogFile > '' then
+      {$IFNDEF MOBILE}
       PLog := PAnsiDACChar(UTF8Encode(LogFile))
+      {$ELSE}
+      PLog := PAnsiDACChar(M.AsAnsi(LogFile))
+      {$ENDIF}
     else
       PLog := nil;
 
