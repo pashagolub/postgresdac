@@ -1,5 +1,7 @@
 program PDACTest_DUnitX;
 
+{$R *.dres}
+
 uses
   System.StartUpCopy,
   FMX.Forms,
@@ -9,7 +11,12 @@ uses
   PSQLQueryTest in 'PSQLQueryTest.pas',
   PSQLBatchTest in 'PSQLBatchTest.pas',
   PSQLTableTest in 'PSQLTableTest.pas',
-  PSQLFieldsTest in 'PSQLFieldsTest.pas';
+  PSQLFieldsTest in 'PSQLFieldsTest.pas',
+  PSQLToolsTest in 'PSQLToolsTest.pas',
+  PSQLBlobsTest in 'PSQLBlobsTest.pas',
+  PSQLDumpTest in 'PSQLDumpTest.pas',
+  PSQLNotifyTest in 'PSQLNotifyTest.pas',
+  PSQLCopyTest in 'PSQLCopyTest.pas';
 
 {$R *.res}
 

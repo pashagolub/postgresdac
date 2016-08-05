@@ -316,6 +316,15 @@
         <DCCReference Include="PSQLBatchTest.pas"/>
         <DCCReference Include="PSQLTableTest.pas"/>
         <DCCReference Include="PSQLFieldsTest.pas"/>
+        <DCCReference Include="PSQLToolsTest.pas"/>
+        <DCCReference Include="PSQLBlobsTest.pas"/>
+        <DCCReference Include="PSQLDumpTest.pas"/>
+        <DCCReference Include="PSQLNotifyTest.pas"/>
+        <DCCReference Include="PSQLCopyTest.pas"/>
+        <RcItem Include="TestData\test.bmp">
+            <ResourceType>RCDATA</ResourceType>
+            <ResourceId>test_bmp</ResourceId>
+        </RcItem>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -360,6 +369,12 @@
                 <DeployFile LocalName="Win32\Debug\PDACTest_DUnitX.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>PDACTest_DUnitX.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="TestData\test.bmp" Configuration="Debug" Class="ProjectFile">
+                    <Platform Name="Win32">
+                        <RemoteDir>.\</RemoteDir>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
