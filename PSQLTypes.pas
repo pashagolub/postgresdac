@@ -3420,6 +3420,8 @@ begin
 end;
 
 procedure DACAnsiStrDispose(Str: PAnsiDACChar);
+var
+  len: integer;
 begin
 {$IFNDEF NEXTGEN}
 {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}strdispose(Str);
@@ -3427,6 +3429,7 @@ begin
 if Str <> nil then
   begin
     Dec(Str, SizeOf(Cardinal));
+    len := Cardinal(Pointer(Str)^);
     FreeMem(Str, Cardinal(Pointer(Str)^));
   end;
 {$ENDIF}

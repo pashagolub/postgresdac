@@ -841,7 +841,7 @@ function _PQExecuteParams(AConnection: TNativeConnect; AQuery: string; AParams: 
 function _PQexecPrepared(AConnection: TNativeConnect; AStmName: string; AParams: TParams; AResultFormat: integer = 0): PPGResult;
 
 {$IFDEF M_DEBUG}
-function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
+function PQExec(Handle: PPGconn; AQuery: PAnsiDACChar): PPGresult;
 procedure LogDebugMessage(MsgType, Msg: string);
 
 var SessionStart: cardinal;
@@ -895,13 +895,13 @@ begin
   WriteLn(F,'<TR><TD>',GetTickCount() - SessionStart,'&nbsp;ms</TD><TD><b>', MsgType, '</b></TD><TD><PRE>',Msg,'</PRE></TD><TR>');
 end;
 
-function PQConnectDB(ConnInfo: PAnsiChar): PPGconn;
+function PQConnectDB(ConnInfo: PAnsiDACChar): PPGconn;
 begin
   Result := PSQLTypes.PQConnectDB(ConnInfo);
   LogDebugMessage('CONN', String(ConnInfo));
 end;
 
-function PQExec(Handle: PPGconn; AQuery: PAnsiChar): PPGresult;
+function PQExec(Handle: PPGconn; AQuery: PAnsiDACChar): PPGresult;
 begin
   Result := PSQLTypes.PQexec(Handle,AQuery);
   LogDebugMessage('EXEC', String(AQuery));
@@ -925,7 +925,7 @@ begin
   LogDebugMessage('loCl', 'fd = '+inttostr(fd));
 end;
 
-function PQerrorMessage(Handle: PPGconn): PAnsiChar;
+function PQerrorMessage(Handle: PPGconn): PAnsiDACChar;
 begin
   Result := PSQLTypes.PQerrorMessage(Handle);
   LogDebugMessage('ERR ', string(Result));
@@ -4695,7 +4695,8 @@ begin
 end;
 
 function TNativeDataSet.FieldIndex(FieldName: String): Integer;
-var P: PAnsiDACChar;
+var
+  P: PAnsiDACChar;
 begin
    Result := -1;
    if FStatement <> nil then
@@ -7715,15 +7716,15 @@ end;
 
 {PSQLNotify}
 function TPSQLEngine.OpenPGNotify(hDb: DAChDBIDb; var hNotify: hDBIObj): DBIResult;
-Var
-  ANotify : TNativePGNotify;
+//Var
+//  ANotify : TNativePGNotify;
 begin
   try
     hNotify := nil;
     Database := hDB;
-    ANotify := TNativePGNotify.Create(TNativeConnect(Database));
-    if ANotify = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
-    hNotify := hDBIObj(ANotify);
+    {ANotify} hNotify := hDBIObj(TNativePGNotify.Create(TNativeConnect(Database)));
+    if hNotify = nil then raise EPSQLException.CreateBDE(DBIERR_INVALIDHNDL);
+//    hNotify := hDBIObj(ANotify);
     Result := DBIERR_NONE;
   except
     Result := CheckError;
@@ -8993,7 +8994,7 @@ end;
 procedure TNativeConnect.SetErrorVerbosity(const ErrorVerbosity: TErrorVerbosity);
 var OldEV: TErrorVerbosity;
 {$IFDEF M_DEBUG}
-const EVNames: array[TErrorVerbosity] of ansistring = ('TERSE', 'DEFAULT', 'VERBOSE');
+const EVNames: array[TErrorVerbosity] of DACAString = ('TERSE', 'DEFAULT', 'VERBOSE');
 {$ENDIF}
 begin
   if FLoggin then
@@ -9520,13 +9521,20 @@ function TNativeDataSet.StrValue(P : Pointer; NeedQuote: boolean = True):String;
 var
    Buffer, AVal : PAnsiDACChar;
    SZ, Err : Integer;
+   {$IFDEF NEXTGEN}
+   M: TMarshaller;
+   {$ENDIF}
 begin
   Result := '';
   if P <> nil then
    begin
     {$IFDEF DELPHI_12}
     if FConnect.IsUnicodeUsed then
+     {$IFNDEF NEXTGEN}
      AVal := PAnsiDACChar(FConnect.StringToRawS(PWideChar(P)))
+     {$ELSE}
+     AVal := M.AsAnsi(FConnect.StringToRawS(PWideChar(P))).ToPointer
+     {$ENDIF}
     else
     {$ENDIF}
      AVal := PAnsiDACChar(P);
@@ -9842,13 +9850,22 @@ function TNativeConnect.SelectStringDirect(pszQuery: string;
 var
 	Stmt : PPGresult;
   P: PAnsiDACChar;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
+  i: integer;
 begin
   Result := '';
 	InternalConnect;
 
 	Stmt := _PQExecute(Self, pszQuery);
   try
+    {$IFNDEF NEXTGEN}
     P := StringToRaw(pszFieldName);
+    {$ELSE}
+    P :=  M.AsAnsi(pszFieldName).ToPointer;
+    {$ENDIF}
+    i:= Length(P);
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (PQfnumber(Stmt, P) > -1) and
             (PQntuples(Stmt) > 0);
@@ -9979,13 +9996,21 @@ var
   P: PAnsiDACChar;
   i, ColNum: integer;
   IsOK: boolean;
+  {$IFDEF NEXTGEN}
+  M: TMarshaller;
+  {$ENDIF}
+
 begin
   Result := '';
 	InternalConnect;
 
 	Stmt := _PQExecute(Self, pszQuery);
   try
+    {$IFNDEF NEXTGEN}
     P := StringToRaw(pszFieldName);
+    {$ELSE}
+    P := M.AsAnsi(pszFieldName).ToPointer;
+    {$ENDIF}
     ColNum := PQfnumber(Stmt, P);
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (ColNum > -1) and

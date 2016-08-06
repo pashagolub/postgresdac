@@ -607,8 +607,8 @@ type
     procedure AllocCachedUpdateBuffers(Allocate: Boolean);
     procedure AllocKeyBuffers;
 {$IFDEF NEXTGEN}
-    function AllocRecBuf: TRecBuf; virtual;
-    procedure FreeRecBuf(var Buffer: TRecBuf); virtual;
+    function AllocRecBuf: TRecBuf; override;
+    procedure FreeRecBuf(var Buffer: TRecBuf); override;
 {$ELSE}
     function  AllocRecordBuffer: TRecordBuffer; override;
     procedure FreeRecordBuffer(var Buffer: TRecordBuffer); override;
@@ -2752,16 +2752,16 @@ var
   Status: DBIResult;
 begin
   case GetMode of
-    gmCurrent: Status := Engine.GetRecord(FHandle, dbiNoLock, Pointer(Buffer), @FRecProps);
-    gmNext:    Status := Engine.GetNextRecord(FHandle, dbiNoLock, Pointer(Buffer), @FRecProps);
-    gmPrior:   Status := Engine.GetPriorRecord(FHandle, dbiNoLock, Pointer(Buffer), @FRecProps);
+    gmCurrent: Status := Engine.GetRecord(FHandle, dbiNoLock, {$IFNDEF NEXTGEN}Buffer{$ELSE}Pointer(Buffer){$ENDIF}, @FRecProps);
+    gmNext:    Status := Engine.GetNextRecord(FHandle, dbiNoLock, {$IFNDEF NEXTGEN}Buffer{$ELSE}Pointer(Buffer){$ENDIF}, @FRecProps);
+    gmPrior:   Status := Engine.GetPriorRecord(FHandle, dbiNoLock, {$IFNDEF NEXTGEN}Buffer{$ELSE}Pointer(Buffer){$ENDIF}, @FRecProps);
   else
     Status := DBIERR_NONE;
   end;
   case Status of
     DBIERR_NONE:
       begin
-        with PRecInfo(Buffer + FRecInfoOfs)^ do
+        with PRecInfo({$IFDEF NEXTGEN}DACPointerInt{$ENDIF}(Buffer) + FRecInfoOfs)^ do
         begin
           UpdateStatus := TUpdateStatus(FRecProps.iRecStatus);
           BookmarkFlag := bfCurrent;
@@ -2776,7 +2776,7 @@ begin
         {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED OFF}{$ENDIF}
         GetCalcFields(Buffer);
         {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED ON}{$ENDIF}
-        Check(Engine, Engine.GetBookmark(FHandle, Pointer(Buffer + FBookmarkOfs)));
+        Check(Engine, Engine.GetBookmark(FHandle, {$IFNDEF NEXTGEN}Buffer{$ELSE}PByte(Buffer){$ENDIF} + FBookmarkOfs));
         Result := grOK;
       end;
     DBIERR_BOF: Result := grBOF;
