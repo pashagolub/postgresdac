@@ -645,7 +645,7 @@ type
     function  GetRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
     procedure InitRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}); override;
 {$IFDEF NEXTGEN}
-    procedure InternalGotoBookmark(Bookmark: TBookmark); overload; virtual;
+    procedure InternalGotoBookmark(Bookmark: TBookmark); override;
 {$ELSE}
     procedure InternalGotoBookmark(Bookmark: Pointer); override;
 {$ENDIF}
