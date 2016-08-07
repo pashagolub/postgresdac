@@ -92,6 +92,7 @@ begin
   FPSQLCopy.DataFormat := cfCSV;
   FPSQLCopy.LoadFromStream(FRSTestTask);
   DACIsTrue(FPSQLCopy.RowsAffected > 0);
+  FRSTestTask.Position := 0;
 end;
 {$ENDIF}
 
@@ -125,7 +126,11 @@ begin
     FPSQLCopy.LoadFromStrings(Strings);
     DACIsTrue(FPSQLCopy.RowsAffected = Strings.Count);
   finally
+    {$IFNDEF DUNITX}
     Strings.Free;
+    {$ELSE}
+    Strings.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -139,7 +144,11 @@ begin
     FPSQLCopy.SaveToStrings(Strings);
     DACCheck(Strings.Count = 10, 'SaveToStrings failed');
   finally
+    {$IFNDEF DUNITX}
     Strings.Free;
+    {$ELSE}
+    Strings.DisposeOf;
+    {$ENDIF}
   end;
 end;
 

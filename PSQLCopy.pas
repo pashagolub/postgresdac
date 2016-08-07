@@ -198,6 +198,9 @@ var Result: PPGresult;
     Buffer: PAnsiDACChar;
     S: DACAString;
     AConnect: TNativeConnect;
+    {$IFDEF NEXTGEN}
+    M: TMarshaller;
+    {$ENDIF}
 begin
   if Assigned(FBeforeCopyGet) then
     FBeforeCopyGet(Self);
@@ -216,7 +219,9 @@ begin
           if (LineRes > 0) and Assigned(Buffer) then
            begin
             S := Copy(Buffer,1,LineRes);
-            Stream.Write(Pointer(S)^,length(S));
+            Stream.Write(Pointer(
+              {$IFNDEF NEXTGEN}S{$ELSE}M.AsAnsi(S).ToPointer{$ENDIF}
+              )^,length(S));
            end;
           if Buffer <> nil then
             PQfreemem (Buffer);
@@ -257,11 +262,13 @@ begin
       Stream.Position := 0;
       if PQresultStatus(Result) = PGRES_COPY_IN then
         begin
-         Count := Stream.Read(Buffer,Length(Buffer));
+         Count := Stream.Read(Buffer[0], Length(Buffer));
          while Count > 0 do
           if PQputCopyData(AConnect.Handle, {$IFNDEF NEXTGEN}
-                                              Buffer
-                                            {$ELSE}PAnsiDACChar(Buffer[0]){$ENDIF},
+                                            Buffer
+                                            {$ELSE}
+                                            @Buffer
+                                            {$ENDIF},
                                               Count) <= 0 then
             AConnect.CheckResult(Result)
           else
