@@ -188,6 +188,7 @@ begin
     FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
     FPSQLQuery.Open;
     FPSQLQuery.First;
+
     DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = 0, 'byteaf field must be empty');
     DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = 0, 'oidf field must be empty');
     DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).AsString = '', 'memof field must be empty');
@@ -281,7 +282,6 @@ begin
     DACCheck(FPSQLQuery.FieldByName('oidf') is TBlobField, 'Wrong field class for oidf');
     DACCheck(FPSQLQuery.FieldByName('memof') is TBlobField, 'Wrong field class for memof');
     FPSQLQuery.Insert;
-
     {$IFNDEF DUNITX}
     (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
     (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromFile('TestData\test.bmp');

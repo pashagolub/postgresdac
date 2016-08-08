@@ -4637,9 +4637,7 @@ begin
   FStatement := nil;
   if not Assigned(FConnect) or not (FConnect.FLoggin) then  Exit;
   FLastOperationTime := GetTickCount;
-
   FStatement := _PQExecute(FConnect, SQLQuery);
-
   if FStatement <> nil  then
   begin
     try
@@ -5926,7 +5924,7 @@ Var
       {$IFNDEF NEXTGEN}
         Len := {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrLen(P);
       {$ELSE}
-        Len := Length(MarshaledAString(@P));
+        Len := Length(MarshaledAString(P));
       {$ENDIF}
       Result := 0;
       case FConnect.NativeByteaFormat of
@@ -6164,7 +6162,7 @@ begin
   i := 0;
   while SQLText <> '' do
   begin
-    if (Temp <> '') and CharInSet(SQLText[1], [' ',#9]) then Temp := Temp + ' ';
+    if (Temp <> '') and CharInSet(SQLText[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], [' ',#9]) then Temp := Temp + ' ';
     GetToken(SQLText, Token);
     //Added: handle of ? params
     if (Token = ':') or (Token = '?') then
@@ -6173,14 +6171,14 @@ begin
       if Token = ':' then
        begin
          GetToken(SQLText, Token);
-         if (length(Token) = 1) and CharInSet(Token[1], [':','=']) then //handling of double colon & assignment
+         if (length(Token) = 1) and CharInSet(Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], [':','=']) then //handling of double colon & assignment
           begin
            Temp := Temp + Token;
            Continue;
           end;
          ByName := True;
        end;
-      if (Token <> '') and (Token[1] = '[') then
+      if (Token <> '') and (Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = '[') then
       begin
          if Token[Length(Token)] = ']' then
             Token := Copy(Token, 2, Length(Token)-2)

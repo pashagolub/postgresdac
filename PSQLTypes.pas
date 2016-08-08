@@ -2846,7 +2846,7 @@ var
   P: Integer;
   Quote: string;
 begin
-  P := 1;
+  P := {$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF};
   Token  := '';
   if Buffer = '' then Exit;
   while CharInSet(Buffer[P], [' ',#9]) do
@@ -2881,9 +2881,8 @@ begin
     end;
   end;
 ExitProc:
-  Delete(Buffer, 1, P-1);
+  Delete(Buffer, 1, {$IFNDEF NEXTGEN}P-1{$ELSE}P{$ENDIF});
 end;
-
 function GetInArrayField(FieldType : Word): boolean;
 var
   I : Integer;
