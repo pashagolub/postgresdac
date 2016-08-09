@@ -20,6 +20,16 @@ uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
 {$ENDIF}
 
 type
+  {$IFDEF NEXTGEN}
+  TPListObject = class
+  private
+    FValue: Integer;
+  public
+    class operator Implicit(obj: TPListObject): Integer;
+    constructor Create(Value: Integer); overload;
+  end;
+  {$ENDIF}
+
   {Forward declaration}
   TNativeConnect = class;
 
@@ -8292,7 +8302,16 @@ begin
      for I := 0 to PQntuples(RES)-1 do
      begin
         CREC := RawToString(PQgetvalue(RES,I,1));
+        RawToString(PQGetValue(Res,I,0));
+        {$IFNDEF NEXTGEN}
         List.AddObject(CREC,TOBject(strtoint(RawToString(PQGetValue(Res,I,0)))));
+        {$ELSE}
+        //this needs for eliminating "segmentation fault" during cast Integer to TObject
+        // (we increase ref for Integer - this is incorrect with ARC!)
+        List.AddObject(CREC, TObject(
+                      TPListObject.Create(strtoint(RawToString(PQGetValue(Res,I,0))))
+                      ));
+        {$ENDIF}
      end;
     end;
   finally
@@ -10031,6 +10050,20 @@ begin
   end;
 end;
 
+
+{$IFDEF NEXTGEN}
+{ TPListObject }
+
+constructor TPListObject.Create(Value: Integer);
+begin
+  FValue := Value;
+end;
+
+class operator TPListObject.Implicit(obj: TPListObject): Integer;
+begin
+  Result := obj.FValue;
+end;
+{$ENDIF}
 
 initialization
 
