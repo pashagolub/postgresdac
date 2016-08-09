@@ -650,7 +650,7 @@ begin
   {$IFNDEF DUNITX}
   CheckIs(FldQry.Fields[0], TFMTBCDField, 'Incorrect NUMERIC mapping');
   {$ELSE}
-  Assert.InheritsFrom(FldQry.Fields[0].ClassType,TFMTBCDField, 'Incorrect NUMERIC mapping');
+  Assert.InheritsFrom(FldQry.Fields[0].ClassType, TFMTBCDField, 'Incorrect NUMERIC mapping');
   {$ENDIF}
 end;
 
