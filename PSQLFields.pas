@@ -430,6 +430,7 @@ begin
   Result[36] := HexUpperCase[C^]; Inc(C);
   Result[37] := HexUpperCase[C^];
   {$ELSE}
+  Result[1] := Chr(HexUpperCase[C^]); Inc(C);
   Result[2] := Chr(HexUpperCase[C^]); Inc(C);
   Result[3] := Chr(HexUpperCase[C^]); Inc(C);
   Result[4] := Chr(HexUpperCase[C^]); Inc(C);
@@ -437,23 +438,23 @@ begin
   Result[6] := Chr(HexUpperCase[C^]); Inc(C);
   Result[7] := Chr(HexUpperCase[C^]); Inc(C);
   Result[8] := Chr(HexUpperCase[C^]); Inc(C);
-  Result[9] := Chr(HexUpperCase[C^]); Inc(C);
   Inc(C); // skip -
+  Result[10] := Chr(HexUpperCase[C^]); Inc(C);
   Result[11] := Chr(HexUpperCase[C^]); Inc(C);
   Result[12] := Chr(HexUpperCase[C^]); Inc(C);
   Result[13] := Chr(HexUpperCase[C^]); Inc(C);
-  Result[14] := Chr(HexUpperCase[C^]); Inc(C);
   Inc(C); // skip -
+  Result[15] := Chr(HexUpperCase[C^]); Inc(C);
   Result[16] := Chr(HexUpperCase[C^]); Inc(C);
   Result[17] := Chr(HexUpperCase[C^]); Inc(C);
   Result[18] := Chr(HexUpperCase[C^]); Inc(C);
-  Result[19] := Chr(HexUpperCase[C^]); Inc(C);
   Inc(C); // skip -
+  Result[20] := Chr(HexUpperCase[C^]); Inc(C);
   Result[21] := Chr(HexUpperCase[C^]); Inc(C);
   Result[22] := Chr(HexUpperCase[C^]); Inc(C);
   Result[23] := Chr(HexUpperCase[C^]); Inc(C);
-  Result[24] := Chr(HexUpperCase[C^]); Inc(C);
   Inc(C); // skip -
+  Result[25] := Chr(HexUpperCase[C^]); Inc(C);
   Result[26] := Chr(HexUpperCase[C^]); Inc(C);
   Result[27] := Chr(HexUpperCase[C^]); Inc(C);
   Result[28] := Chr(HexUpperCase[C^]); Inc(C);
@@ -464,8 +465,7 @@ begin
   Result[33] := Chr(HexUpperCase[C^]); Inc(C);
   Result[34] := Chr(HexUpperCase[C^]); Inc(C);
   Result[35] := Chr(HexUpperCase[C^]); Inc(C);
-  Result[36] := Chr(HexUpperCase[C^]); Inc(C);
-  Result[37] := Chr(HexUpperCase[C^]);
+  Result[36] := Chr(HexUpperCase[C^]);
 
   {$ENDIF}
 end;
@@ -476,9 +476,12 @@ type
   TPointerInt = {$IFDEF DELPHI_16}NativeInt{$ELSE}Cardinal{$ENDIF};
 var
   P: TPointerInt;
+  PA: PAnsiDACChar;
 begin
-  SetLength(Result, 38);
-  P := TPointerInt(Result);
+ // SetLength(Result, 38);
+ // P := TPointerInt(Result);
+  PA := DACAnsiStrAlloc(38);
+  P := TPointerInt(PA);
   PByte(P)^ := Ord('{'); Inc(P);
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).F3]; Inc(P, SizeOf(Word));
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).F2]; Inc(P, SizeOf(Word));
@@ -501,35 +504,40 @@ begin
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).FE]; Inc(P, SizeOf(Word));
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).FF]; Inc(P, SizeOf(Word));
   PByte(P)^ := Ord('}');
+
+  Result := PA;
+  DACAnsiStrDispose(PA);
 end;
 {$ENDIF}
 
 function StringToGUID(const AStr: DACAString): TGUID;
+const
+  strIndexOffset = {$IFNDEF NEXTGEN}0{$ELSE}1{$ENDIF};
 begin
   if (AStr = '') or (Length(AStr) <> 38) then begin
     Result := GUID_NULL;
     Exit;
   end;
-  TFastGUID(Result).F3 := Hex2IntHash[Byte(AStr[2])] shl 4 or Hex2IntHash[Byte(AStr[3])];
-  TFastGUID(Result).F2 := Hex2IntHash[Byte(AStr[4])] shl 4 or Hex2IntHash[Byte(AStr[5])];
-  TFastGUID(Result).F1 := Hex2IntHash[Byte(AStr[6])] shl 4 or Hex2IntHash[Byte(AStr[7])];
-  TFastGUID(Result).F0 := Hex2IntHash[Byte(AStr[8])] shl 4 or Hex2IntHash[Byte(AStr[9])];
+  TFastGUID(Result).F3 := Hex2IntHash[Byte(AStr[2-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[3-strIndexOffset])];
+  TFastGUID(Result).F2 := Hex2IntHash[Byte(AStr[4-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[5-strIndexOffset])];
+  TFastGUID(Result).F1 := Hex2IntHash[Byte(AStr[6-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[7-strIndexOffset])];
+  TFastGUID(Result).F0 := Hex2IntHash[Byte(AStr[8-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[9-strIndexOffset])];
   //-
-  TFastGUID(Result).F5 := Hex2IntHash[Byte(AStr[11])] shl 4 or Hex2IntHash[Byte(AStr[12])];
-  TFastGUID(Result).F4 := Hex2IntHash[Byte(AStr[13])] shl 4 or Hex2IntHash[Byte(AStr[14])];
+  TFastGUID(Result).F5 := Hex2IntHash[Byte(AStr[11-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[12-strIndexOffset])];
+  TFastGUID(Result).F4 := Hex2IntHash[Byte(AStr[13-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[14-strIndexOffset])];
   //-
-  TFastGUID(Result).F7 := Hex2IntHash[Byte(AStr[16])] shl 4 or Hex2IntHash[Byte(AStr[17])];
-  TFastGUID(Result).F6 := Hex2IntHash[Byte(AStr[18])] shl 4 or Hex2IntHash[Byte(AStr[19])];
+  TFastGUID(Result).F7 := Hex2IntHash[Byte(AStr[16-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[17-strIndexOffset])];
+  TFastGUID(Result).F6 := Hex2IntHash[Byte(AStr[18-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[19-strIndexOffset])];
   //-
-  TFastGUID(Result).F8 := Hex2IntHash[Byte(AStr[21])] shl 4 or Hex2IntHash[Byte(AStr[22])];
-  TFastGUID(Result).F9 := Hex2IntHash[Byte(AStr[23])] shl 4 or Hex2IntHash[Byte(AStr[24])];
+  TFastGUID(Result).F8 := Hex2IntHash[Byte(AStr[21-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[22-strIndexOffset])];
+  TFastGUID(Result).F9 := Hex2IntHash[Byte(AStr[23-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[24-strIndexOffset])];
   //-
-  TFastGUID(Result).FA := Hex2IntHash[Byte(AStr[26])] shl 4 or Hex2IntHash[Byte(AStr[27])];
-  TFastGUID(Result).FB := Hex2IntHash[Byte(AStr[28])] shl 4 or Hex2IntHash[Byte(AStr[29])];
-  TFastGUID(Result).FC := Hex2IntHash[Byte(AStr[30])] shl 4 or Hex2IntHash[Byte(AStr[31])];
-  TFastGUID(Result).FD := Hex2IntHash[Byte(AStr[32])] shl 4 or Hex2IntHash[Byte(AStr[33])];
-  TFastGUID(Result).FE := Hex2IntHash[Byte(AStr[34])] shl 4 or Hex2IntHash[Byte(AStr[35])];
-  TFastGUID(Result).FF := Hex2IntHash[Byte(AStr[36])] shl 4 or Hex2IntHash[Byte(AStr[37])];
+  TFastGUID(Result).FA := Hex2IntHash[Byte(AStr[26-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[27-strIndexOffset])];
+  TFastGUID(Result).FB := Hex2IntHash[Byte(AStr[28-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[29-strIndexOffset])];
+  TFastGUID(Result).FC := Hex2IntHash[Byte(AStr[30-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[31-strIndexOffset])];
+  TFastGUID(Result).FD := Hex2IntHash[Byte(AStr[32-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[33-strIndexOffset])];
+  TFastGUID(Result).FE := Hex2IntHash[Byte(AStr[34-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[35-strIndexOffset])];
+  TFastGUID(Result).FF := Hex2IntHash[Byte(AStr[36-strIndexOffset])] shl 4 or Hex2IntHash[Byte(AStr[37-strIndexOffset])];
 end;
 
 function IsEqualGUID(const guid1, guid2: TGUID): Boolean;

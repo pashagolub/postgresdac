@@ -211,7 +211,8 @@ begin
 end;
 
 procedure TestTPSQLGuidField.TestGUIDField;
-var G1, G2: TGUID;
+var
+  G1, G2: TGUID;
 begin
   G1 := StringToGuid('{35c6c84e-4157-466c-0091-31a4714aca34}');
   FldQry.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
@@ -226,7 +227,8 @@ begin
 end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert;
-var G: TGUID;
+var
+  G: TGUID;
 begin
   FldQry.RequestLive := True;
   FldQry.SQL.Text := 'SELECT * FROM uuid_test_case_table';
@@ -235,9 +237,8 @@ begin
   DACCheck(CreateGUID(G) = 0, 'GUID generation failed');
   PSQLAccess.LogDebugMessage('GUID generated value:', G.ToString);
   if FldQry.Fields[0] is TGUIDField then
-
-  if not (dsoUseGUIDField in FldQry.Options) then
-   TGUIDField(FldQry.Fields[0]).AsGuid := G
+    if not (dsoUseGUIDField in FldQry.Options) then
+      TGUIDField(FldQry.Fields[0]).AsGuid := G
   else
    (FldQry.Fields[0] as TPSQLGUIDField).AsGuid := G;
   FldQry.Post;

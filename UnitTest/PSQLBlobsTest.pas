@@ -137,7 +137,7 @@ begin
   DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
   {$ENDIF}
 
-  DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(DACAString), 'Failed to read memof.BlobSize');
+  DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(AnsiDACByteChar), 'Failed to read memof.BlobSize');
   FPSQLQuery.Close;
 end;
 
