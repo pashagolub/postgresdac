@@ -6020,7 +6020,7 @@ begin
   FillChar(IndexDesc, SizeOf(IndexDesc), 0);
   with IndexDesc do
   begin
-    Move(Name[1], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
+    Move(Name[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
     //szName      := Copy(Name, 1, length(Name));
     bPrimary    := ixPrimary in Options;
     bUnique     := ixUnique in Options;

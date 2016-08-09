@@ -1709,7 +1709,7 @@ var
         PChar(FormatStr), Buffer, SizeOf(Buffer)) <> 0 then
       begin
         Result := Buffer;
-        if (Count = 1) and (Result[1] = '0') then
+        if (Count = 1) and (Result[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = '0') then
           Result := Copy(Result, 2, Length(Result)-1);
       end;
     end;
@@ -2156,7 +2156,7 @@ begin
   Result := IdentifierName;
   if IdentifierName = '' then
     Exit;
-  if Result[1] <> '"' then
+  if Result[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] <> '"' then
     Result := '"' + Result;
   if Result[length(Result)] <> '"' then
     Result := Result + '"';
@@ -6185,9 +6185,9 @@ begin
          else
             Token := Copy(Token, 2, Length(Token)-1);
       end else
-      if (Token <> '') and CharInSet(Token[1], ['"','''']) then
+      if (Token <> '') and CharInSet(Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], ['"','''']) then
       begin
-         if Token[1] = Token[Length(Token)] then
+         if Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = Token[Length(Token)] then
             Token := Copy(Token, 2, Length(Token)-2)
          else
             Token := Copy(Token, 2, Length(Token)-1);
@@ -6329,6 +6329,7 @@ var
   //S     : ShortString;
   Found : Boolean;
   Desc  : IDXDesc;
+  s: String;
 begin
   Found := False;
   FGetKeyDesc := TRUE;
@@ -6336,6 +6337,7 @@ begin
      iIndexId := 1;
      Repeat
        GetIndexDesc ( iIndexId, Desc );
+       s:=  Desc.szName;
        if Desc.szName = pszIndexName then
        begin
          Found := TRUE;
@@ -8149,7 +8151,7 @@ var
 
           FIELD_TYPE_BOOL: begin
                             BoolChar := IfThen(S1 = '', 'F', 'T');
-                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[1]));
+                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]));
                            end
 
           else
@@ -8433,7 +8435,7 @@ begin
           PDesc^.uFldType := BdeType;
           PDesc^.uSubType := BdeSubType;
           N := RawToString(PQgetvalue(RES,I,2));
-          case N[1] of
+          case N[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] of
            'o': PDesc^.eParamType := paramOUT;
            'b': PDesc^.eParamType := paramINOUT;
           else
@@ -9239,7 +9241,7 @@ var aRecNum: integer;
                                Result := 0.0;
                              end;
 
-            FIELD_TYPE_BOOL: Result := S[1] = 't';
+            FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
 
             FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                            {$IFDEF DELPHI_5}
@@ -9320,8 +9322,8 @@ var aRecNum: integer;
                                 Result := 0;
                               end;
 
-             FIELD_TYPE_BOOL: Result :=  ord(FVal1[1]) -
-                                         ord(FVal2[1]);
+             FIELD_TYPE_BOOL: Result :=  ord(FVal1[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]) -
+                                         ord(FVal2[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]);
 
              FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                                Result := StrToIntDef(FVal1, InvalidOid) -
@@ -9925,7 +9927,7 @@ end;
 
 procedure TPSQLIndex.SetIndexName(const Value: string);
 begin
- Move(Value[1], FDesc.szName, (Min(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
+ Move(Value[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], FDesc.szName, (Min(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
 end;
 
 function TPSQLEngine.GetFieldOrigin(hCursor: hDBICur;
