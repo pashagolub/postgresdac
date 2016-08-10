@@ -870,7 +870,7 @@ begin
       pdmbvm_SetLogCallBackProc(@LogCallBackProc);
      end;
     PLog := StringToAnsiChar(CP_ACP, LogFile);
-    UpdateEnv(UTF8Encode(FDatabase.UserPassword));
+    UpdateEnv({$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(FDatabase.UserPassword)));
     Params := GetParameters(TargetFile);
     {$IFDEF M_DEBUG}
     LogDebugMessage('PARAMSTR', FParamStr);
@@ -1226,7 +1226,7 @@ begin
     else
       PLog := nil;
 
-    UpdateEnv(UTF8Encode(FDatabase.UserPassword));
+    UpdateEnv({$IFDEF NEXTGEN}string{$ENDIF}(UTF8Encode(FDatabase.UserPassword)));
     Params := GetParameters(SourceFile);
 
   {$IFDEF M_DEBUG}

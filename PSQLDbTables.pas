@@ -11,6 +11,7 @@ uses  SysUtils, Classes, Db,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
       {$IFDEF DELPHI_6}Variants,{$ENDIF}
       {$IFDEF FPC}Variants,{$ENDIF}
+      {$IFDEF NEXTGEN}Generics.Collections,{$ENDIF}
       {$IFDEF DELPHI_17}System.Types, System.Generics.Collections,{$ENDIF}
       PSQLAccess, PSQLTypes;
 
@@ -7244,11 +7245,11 @@ var
   Desc: ^SPParamDesc;
   ParamName: string;
   ParamDataType: TFieldType;
-  List : TList;
+  List : TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
   i:integer;
 begin
    if not FNeedRefreshParams or not FDatabase.Connected then Exit;
-   List := TList.Create;
+   List := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
    try
     FParams.Clear;
     Check(Engine, Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List));

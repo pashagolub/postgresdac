@@ -218,7 +218,7 @@ begin
           LineRes := PQgetCopyData(AConnect.Handle, @Buffer);
           if (LineRes > 0) and Assigned(Buffer) then
            begin
-            S := Copy(Buffer,1,LineRes);
+            S := {$IFDEF NEXTGEN}string{$ENDIF}(Copy(Buffer,1,LineRes));
             Stream.Write(Pointer(
               {$IFNDEF NEXTGEN}S{$ELSE}M.AsAnsi(S).ToPointer{$ENDIF}
               )^,length(S));

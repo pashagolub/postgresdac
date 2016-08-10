@@ -13,11 +13,13 @@ uses {$IFDEF FPC}LCLIntf,{$ENDIF}
       {$IFDEF DELPHI_12}, AnsiStrings{$ENDIF}
      {$ENDIF}
 
+
      {$IFDEF DELPHI_12}, SqlTimSt, PSQLGeomTypes{$ENDIF}
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF ANDROID}, System.IOUtils {$ENDIF}
-     {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
+     {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF}
+     {$IFDEF NEXTGEN}, Generics.Collections{$ENDIF};
 {$IFDEF DELPHI_12}
   {$NOINCLUDE PSQLGeomTypes}
 {$ENDIF}
@@ -1856,7 +1858,7 @@ type
   {TContainer Object}
   TContainer = Class(TObject)
     Private
-      FItems : TList;
+      FItems : TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
     Public
       constructor Create;
       Destructor Destroy; Override;
@@ -2312,7 +2314,7 @@ end;
 constructor TContainer.Create;
 begin
   Inherited Create;
-  FItems := TList.Create;
+  FItems := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
 end;
 
 Destructor TContainer.Destroy;
@@ -3419,8 +3421,6 @@ begin
 end;
 
 procedure DACAnsiStrDispose(Str: PAnsiDACChar);
-var
-  len: integer;
 begin
 {$IFNDEF NEXTGEN}
 {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}strdispose(Str);
@@ -3428,7 +3428,6 @@ begin
 if Str <> nil then
   begin
     Dec(Str, SizeOf(Cardinal));
-    len := Cardinal(Pointer(Str)^);
     FreeMem(Str, Cardinal(Pointer(Str)^));
   end;
 {$ENDIF}

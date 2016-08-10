@@ -289,14 +289,11 @@ end;
 
 procedure TestTPSQLQuery.TestAsTime;
 var ClientTime, ServerTime: TTime;
-  minutes: integer;
 begin
- minutes := 0;
  FPSQLQuery.SQL.Text := 'SELECT LOCALTIME';
  FPSQLQuery.Open;
  ClientTime := Time();
  ServerTime := TimeOf(FPSQLQuery.Fields[0].AsDateTime);
- minutes := MinutesBetween(ClientTime, ServerTime);
  DACCheck(MinutesBetween(ClientTime, ServerTime) < 5, 'Field value AsTime is incorrect');
  FPSQLQuery.Close
 end;

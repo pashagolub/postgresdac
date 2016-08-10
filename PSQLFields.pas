@@ -505,7 +505,7 @@ begin
   PWord(P)^ := Int2HexHash[TFastGUID(AGUID).FF]; Inc(P, SizeOf(Word));
   PByte(P)^ := Ord('}');
 
-  Result := PA;
+  Result := {$IFDEF NEXTGEN}String{$ENDIF}(PA);
   DACAnsiStrDispose(PA);
 end;
 {$ENDIF}

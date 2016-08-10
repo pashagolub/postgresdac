@@ -13,6 +13,7 @@ uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
     {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
     {$IFDEF DELPHI_6}Variants,{$ENDIF}
     {$IFDEF FPC}Variants,{$ENDIF}
+    {$IFDEF NEXTGEN}Generics.Collections,{$ENDIF}
     SysUtils;
 
 {$IFDEF DELPHI_12}
@@ -116,7 +117,8 @@ type
     procedure CheckResult(FStatement: PPGresult); overload;
     function GetErrorText: String; {Get Error text}
     function Success: Boolean;
-    procedure StoredProcParams(pszPName: string; ProcOID: cardinal; List:TList);
+    procedure StoredProcParams(pszPName: string; ProcOID: cardinal;
+      List: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF});
     procedure StoredProcList(pszWild : string; List : TStrings);
     procedure TableList(pszWild : string; SystemTables: Boolean; List : TStrings);
     procedure UserList(pszWild : string; List : TStrings);
@@ -211,7 +213,8 @@ type
       function OpenTable(hDb: DAChDBIDb; pszTableName: string; pszIndexName: string; iIndexId: Word; eOpenMode: DBIOpenMode;
                           eShareMode: DBIShareMode; var hCursor: hDBICur; AnOptions: TPSQLDatasetOptions;
                           Limit, Offset : Integer): DBIResult;
-      function OpenStoredProcParams(hDb: DAChDBIDb;pszPName: string; ProcOID:cardinal; List : TList): DBIResult;
+      function OpenStoredProcParams(hDb: DAChDBIDb;pszPName: string; ProcOID:cardinal;
+        List : TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}): DBIResult;
       function OpenStoredProcList(hDb: DAChDBIDb; pszWild: string; List : TStrings): DBIResult;
       function OpenTableList(hDb: DAChDBIDb; pszWild: string; SystemTables: Boolean; List : TStrings): DBIResult;
       function OpenUserList(hDb: DAChDBIDb; pszWild: string; List : TStrings): DBIResult;
@@ -1971,7 +1974,7 @@ begin
   LogDebugMessage('SEND', String(AQuery));
 {$ENDIF}
   if AConnection.IsUnicodeUsed then
-    S := UTF8Encode(AQuery)
+    S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AQuery))
   else
     S := DACAString(AQuery);
   GetMem(Q, Length(S) + 1);
@@ -1995,7 +1998,7 @@ var Q: PAnsiDACChar;
     {$ENDIF}
 begin
   if AConnection.IsUnicodeUsed then
-    S := UTF8Encode(AQuery)
+    S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AQuery))
   else
     S := DACAString(AQuery);
   GetMem(Q, Length(S) + 1);
@@ -2021,7 +2024,7 @@ var Q: PAnsiDACChar;
     {$ENDIF}
 begin
   if AConnection.IsUnicodeUsed then
-    S := UTF8Encode(AStmName)
+    S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AStmName))
   else
     S := DACAString(AStmName);
   GetMem(Q, Length(S) + 1);
@@ -2036,7 +2039,7 @@ begin
     for i := 0 to AParams.Count - 1 do
      begin
       if AConnection.IsUnicodeUsed then
-        S := UTF8Encode(AParams[i].AsString)
+        S := {$IFDEF NEXTGEN}string{$ENDIF}(UTF8Encode(AParams[i].AsString))
       else
         S := DACAString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
@@ -2067,7 +2070,7 @@ var Q: PAnsiDACChar;
     {$ENDIF}
 begin
   if AConnection.IsUnicodeUsed then
-    S := UTF8Encode(AQuery)
+    S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AQuery))
   else
     S := DACAString(AQuery);
   GetMem(Q, Length(S) + 1);
@@ -2081,7 +2084,7 @@ begin
     for i := 0 to AParams.Count - 1 do
      begin
       if AConnection.IsUnicodeUsed then
-        S := UTF8Encode(AParams[i].AsString)
+        S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AParams[i].AsString))
       else
         S := DACAString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
@@ -2115,7 +2118,7 @@ begin
   SetLength(ConnValues, AParams.Count + 1);
   for i := 0 to AParams.Count - 1 do
    begin
-     K := UTF8Encode(AParams.Names[i]); //since this is connection assume we'll use UTF8
+     K := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AParams.Names[i])); //since this is connection assume we'll use UTF8
      GetMem(ConnKeywords[i], Length(K) + 1);
       {$IFNDEF NEXTGEN}
       DACStrCopy(ConnKeywords[i], PAnsiChar(K));
@@ -2123,7 +2126,7 @@ begin
       DACStrCopy(ConnKeywords[i], M.AsAnsi(K).ToPointer);
       {$ENDIF}
      {$IFDEF DELPHI_7}
-     V := UTF8Encode(AParams.ValueFromIndex[i]);
+     V := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AParams.ValueFromIndex[i]));
      {$ELSE}
      V := UTF8Encode(Copy(AParams[I], Length(K) + 2, MaxInt));
      {$ENDIF}
@@ -8320,7 +8323,7 @@ begin
 end;
 
 function TPSQLEngine.OpenStoredProcParams(hDb: DAChDBIDb; pszPName: string;
-  ProcOID: cardinal; List: TList): DBIResult;
+  ProcOID: cardinal; List: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}): DBIResult;
 begin
   try
     Database := hDb;
@@ -8332,7 +8335,7 @@ begin
 end;
 
 procedure TNativeConnect.StoredProcParams(pszPName: string; ProcOID: cardinal;
-  List: TList);
+  List: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF});
 var
    PDesc: ^SPParamDesc;
    N: string;
@@ -8486,7 +8489,7 @@ end;
 function TNativeConnect.StringToRawS(S: string): DACAString;
 begin
  if IsUnicodeUsed then
-  Result := UTF8Encode(S)
+  Result := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(S))
  else
   Result := DACAString(S);
 end;
@@ -8896,7 +8899,7 @@ begin
                      FVal := PQUnescapeBytea(FieldBuffer(AFNum),Len);
                      try
                   {$IFDEF DELPHI_17}
-                      AParam.SetBlobData(BytesOf(FVal[0]), Len);
+                      AParam.SetBlobData(BytesOf({$IFDEF NEXTGEN}String{$ENDIF}(FVal[0])), Len);
                   {$ELSE}
                       AParam.SetBlobData(FVal, Len);
                   {$ENDIF}
