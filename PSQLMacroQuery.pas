@@ -15,7 +15,11 @@ const
 
 type
 {$IFNDEF FPC}
+  {$IFNDEF NEXTGEN}
   TCharSet = TSysCharSet;
+  {$ELSE}
+  TCharSet = array of Char;
+  {$ENDIF}
 {$ENDIF}
 
 { TPSQLMacroQuery }
@@ -94,15 +98,27 @@ function IsDataSetEmpty(DataSet: TDataSet): Boolean;
 
 implementation
 
+{$IFDEF NEXTGEN}
+uses Character;
+{$ENDIF}
+
 { Parse SQL utility routines }
 function NameDelimiter(C: Char; Delims: TCharSet): Boolean;
 begin
+{$IFNDEF NEXTGEN}
   Result := CharInSet(C, [' ', ',', ';', ')', #13, #10] + Delims);
+{$ELSE}
+  Result := C.IsInArray([' ', ',', ';', ')', #13, #10]) or C.IsInArray(Delims);
+{$ENDIF}
 end;
 
 function IsLiteral(C: Char): Boolean;
 begin
+{$IFNDEF NEXTGEN}
   Result := CharInSet(C, ['''', '"']);
+{$ELSE}
+  Result := C.IsInArray(['''', '"']);
+{$ENDIF}
 end;
 
 procedure CreateQueryParams(List: TParams; const Value: PChar; Macro: Boolean;

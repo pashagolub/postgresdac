@@ -1236,7 +1236,8 @@ implementation
 
 uses
   {$IFDEF DELPHI_10}DBClient, {$ENDIF}
-  PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
+  PSQLDirectQuery, Math, PSQLFields, PSQLNotify
+  {$IFDEF NEXTGEN}, System.Character{$ENDIF};
 
 //NoticeProcessor callback function
 procedure NoticeProcessor(arg: Pointer; mes: PAnsiDACChar);
@@ -7416,7 +7417,11 @@ end;
 
 function TPSQLParams.ParseSQL(SQL: string; DoCreate: Boolean): string;
 const
-  Literals = ['''', '"', '`'];
+  {$IFNDEF NEXTGEN}
+  Literals = ['''', '"', '`']
+  {$ELSE}
+  Literals : array of Char = ['''', '"', '`']
+  {$ENDIF};
 var
   Value, CurPos, StartPos: PChar;
   CurChar: Char;
@@ -7426,12 +7431,20 @@ var
 
   function NameDelimiter: Boolean;
   begin
+    {$IFNDEF NEXTGEN}
     Result := CharInSet(CurChar, [' ', ',', ';', ')', #13, #10]);
+    {$ELSE}
+    Result := CurChar.IsInArray([' ', ',', ';', ')', #13, #10]);
+    {$ENDIF}
   end;
 
   function IsLiteral: Boolean;
   begin
+    {$IFNDEF NEXTGEN}
     Result := CharInSet(CurChar, Literals);
+    {$ELSE}
+    Result := CurChar.IsInArray(Literals);
+    {$ENDIF}
   end;
 
   function StripLiterals(Buffer: PChar): string;
@@ -7441,10 +7454,18 @@ var
 
     procedure StripChar;
     begin
+    {$IFNDEF NEXTGEN}
       if CharInSet(TempBuf^, Literals) then
+    {$ELSE}
+      if TempBuf^.IsInArray(Literals) then
+    {$ENDIF}
       begin
         StrMove(TempBuf, TempBuf + 1, Len - 1);
+    {$IFNDEF NEXTGEN}
         if CharInSet((TempBuf + (Len-2))^, Literals) then
+    {$ELSE}
+        if (TempBuf + (Len-2))^.IsInArray(Literals) then
+    {$ENDIF}
           (TempBuf + Len-2)^ := #0;
       end;
     end;
@@ -7462,6 +7483,7 @@ var
   end;
 
 begin
+
   Result := SQL;
   Value := PChar(Result);
   if DoCreate then Clear;
@@ -7470,7 +7492,12 @@ begin
   EmbeddedLiteral := False;
   repeat
     CurChar := CurPos^;
-    if (CurChar = ':') and not Literal and not CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+    if (CurChar = ':') and not Literal and
+    {$IFNDEF NEXTGEN}
+      not CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+    {$ELSE}
+      not (CurPos + 1)^.IsInArray([':', '=', ' ', ',', ';', #9, #13, #10]) then
+    {$ENDIF}
     begin
       StartPos := CurPos;
       while (CurChar <> #0) and (Literal or not NameDelimiter) do
@@ -7498,7 +7525,12 @@ begin
       StrMove(StartPos, CurPos, StrLen(CurPos) + 1);
       CurPos := StartPos;
     end
-    else if (CurChar = ':') and not Literal and CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+    else if (CurChar = ':') and not Literal and
+      {$IFNDEF NEXTGEN}
+       CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+      {$ELSE}
+       ((CurPos + 1)^.IsInArray([':', '=', ' ', ',', ';', #9, #13, #10])) then
+      {$ENDIF}
       StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
     else if IsLiteral then Literal := Literal xor True;
     Inc(CurPos);

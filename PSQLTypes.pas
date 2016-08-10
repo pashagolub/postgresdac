@@ -2007,7 +2007,8 @@ implementation
 
 uses PSQLDbTables, PSQLAccess
      {$IFDEF DELPHI_6}, StrUtils{$ENDIF}
-     {$IFDEF FPC}, StrUtils{$ENDIF};
+     {$IFDEF FPC}, StrUtils{$ENDIF}
+     {$IFDEF NEXTGEN}, Character{$ENDIF};
 
 type
   T4 = 0..3;
@@ -2634,8 +2635,13 @@ begin
           Exit;
         end else
         begin
+        {$IFNDEF NEXTGEN}
            if not CharInSet(p^, ['(',')']) then
               while CharInSet(p^, [' ', #10, #13, ',']) do Inc(p) else
+        {$ELSE}
+           if not p^.IsInArray(['(',')']) then
+              while p^.IsInArray([' ', #10, #13, ',']) do Inc(p) else
+        {$ENDIF}
            begin
               BracketCount := 1;
               repeat
@@ -2666,7 +2672,11 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
+        {$IFNDEF NEXTGEN}
           while CharInSet(p^, ['=','<','>']) do Inc(p);
+        {$ELSE}
+          while p^.IsInArray(['=','<','>']) do Inc(p);
+        {$ENDIF}
           SetString(Token, TokenStart, p - TokenStart);
           Result := stPredicate;
           Exit;
@@ -2678,7 +2688,11 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
+        {$IFNDEF NEXTGEN}
           while CharInSet(p^, ['0'..'9','.']) do Inc(p);
+        {$ELSE}
+          while p^.IsInArray(['0', '1', '2','3','4','5','6','7','8','9','.']) do Inc(p);
+        {$ENDIF}
           SetString(Token, TokenStart, p - TokenStart);
           Result := stNumber;
           Exit;
@@ -2804,7 +2818,11 @@ begin
    else
     begin
       for Idx := Length(Value) downto Length(Value) - TIMEZONELEN do //crop timezone information "+\-dd:dd"
+        {$IFNDEF NEXTGEN}
         if CharInSet(Value[Idx], ['+', '-']) then
+        {$ELSE}
+        if Value[Idx].IsInArray(['+', '-']) then
+        {$ENDIF}
         begin
           Value := Copy(Value, 1, Idx - 1);
           Break;
@@ -2851,7 +2869,11 @@ begin
   P := {$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF};
   Token  := '';
   if Buffer = '' then Exit;
+  {$IFNDEF NEXTGEN}
   while CharInSet(Buffer[P], [' ',#9]) do
+  {$LSE}
+  while Buffer[P].IsInArray([' ',#9]) do
+  {$ENDIF}
   begin
     Inc(P);
     if Length(Buffer) < P then  goto ExitProc;
@@ -2862,7 +2884,11 @@ begin
     Inc(P);
     goto ExitProc;
   end;
+  {$IFNDEF NEXTGEN}
   if CharInSet(Buffer[P], ['"','''']) then
+  {$ELSE}
+  if Buffer[P].IsInArray(['"','''']) then
+  {$ENDIF}
   begin
     Quote  := Buffer[P];
     Token  := Quote;
@@ -2879,7 +2905,12 @@ begin
     begin
       Token := Token + Buffer[P];
       Inc(P);
-      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0) or CharInSet(Buffer[P], ['"','''']) then Break;
+      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0)
+        {$IFNDEF NEXTGEN}
+        or CharInSet(Buffer[P], ['"','''']) then Break;
+        {$ELSE}
+        or Buffer[P].IsInArray(['"','''']) then Break;
+        {$ENDIF}
     end;
   end;
 ExitProc:

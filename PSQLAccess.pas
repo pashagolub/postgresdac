@@ -883,6 +883,7 @@ uses PSQLDbTables, PSQLMonitor,
      {$IFDEF MSWINDOWS}Windows,{$ENDIF}
      {$IFNDEF FPC}DbConsts,{$ENDIF}
      {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings,{$ENDIF}{$ENDIF}
+     {$IFDEF NEXTGEN}Character,{$ENDIF}
      PSQLExtMask, PSQLFields;
 
 {**************************************************************************}
@@ -6175,7 +6176,12 @@ begin
   i := 0;
   while SQLText <> '' do
   begin
-    if (Temp <> '') and CharInSet(SQLText[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], [' ',#9]) then Temp := Temp + ' ';
+    if (Temp <> '') and
+    {$IFNDEF NEXTGEN}
+      CharInSet(SQLText[1], [' ',#9]) then Temp := Temp + ' ';
+    {$ELSE}
+      SQLText[0].IsInArray([' ',#9]) then Temp := Temp + ' ';
+    {$ENDIF}
     GetToken(SQLText, Token);
     //Added: handle of ? params
     if (Token = ':') or (Token = '?') then
@@ -6184,7 +6190,12 @@ begin
       if Token = ':' then
        begin
          GetToken(SQLText, Token);
-         if (length(Token) = 1) and CharInSet(Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], [':','=']) then //handling of double colon & assignment
+         if (length(Token) = 1) and
+          {$IFNDEF NEXTGEN}
+            CharInSet(Token[1], [':','=']) then //handling of double colon & assignment
+          {$ELSE}
+            Token[0].IsInArray([':','=']) then //handling of double colon & assignment
+          {$ENDIF}
           begin
            Temp := Temp + Token;
            Continue;
@@ -6198,7 +6209,12 @@ begin
          else
             Token := Copy(Token, 2, Length(Token)-1);
       end else
-      if (Token <> '') and CharInSet(Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], ['"','''']) then
+      if (Token <> '') and
+        {$IFNDEF NEXTGEN}
+        CharInSet(Token[1], ['"','''']) then
+        {$ELSE}
+        Token[0].IsInArray(['"','''']) then
+        {$ENDIF}
       begin
          if Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = Token[Length(Token)] then
             Token := Copy(Token, 2, Length(Token)-2)
