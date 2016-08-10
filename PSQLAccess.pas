@@ -8475,12 +8475,6 @@ var
 begin
   _S := StringToRawS(S);
   DACAllocStr(Result, Length(S));
-//  {$IFDEF DELPHI_12}
-//  Result := AnsiStrAlloc(Length(S) + 1);
-//  {$ELSE}
-//  Result := StrAlloc(Length(S) + 1);
-//  {$ENDIF}
-//  {$IFDEF DELPHI_18}{$IFNDEF NEXTGEN}System.AnsiStrings.{$ENDIF}{$ENDIF}StrPCopy(Result, _S);
   DACStrCopy(Result, {$IFNDEF NEXTGEN}
                         PAnsiDACChar(_S)
                       {$ELSE}
@@ -9869,29 +9863,22 @@ function TNativeConnect.SelectStringDirect(pszQuery: string;
 var
 	Stmt : PPGresult;
   P: PAnsiDACChar;
-  {$IFDEF NEXTGEN}
-  M: TMarshaller;
-  {$ENDIF}
-  i: integer;
 begin
   Result := '';
 	InternalConnect;
 
 	Stmt := _PQExecute(Self, pszQuery);
   try
-    {$IFNDEF NEXTGEN}
     P := StringToRaw(pszFieldName);
-    {$ELSE}
-    P :=  M.AsAnsi(pszFieldName).ToPointer;
-    {$ENDIF}
-    i:= Length(P);
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (PQfnumber(Stmt, P) > -1) and
             (PQntuples(Stmt) > 0);
     if IsOK then
       Result := RawToString(PQgetvalue(Stmt,0,PQfnumber(Stmt, P)));
 
+    {$IFNDEF NEXTGEN}
     DACAnsiStrDispose(P);
+    {$ENDIF}
   finally
    PQClear(Stmt);
   end;
@@ -10015,21 +10002,13 @@ var
   P: PAnsiDACChar;
   i, ColNum: integer;
   IsOK: boolean;
-  {$IFDEF NEXTGEN}
-  M: TMarshaller;
-  {$ENDIF}
-
 begin
   Result := '';
 	InternalConnect;
 
 	Stmt := _PQExecute(Self, pszQuery);
   try
-    {$IFNDEF NEXTGEN}
     P := StringToRaw(pszFieldName);
-    {$ELSE}
-    P := M.AsAnsi(pszFieldName).ToPointer;
-    {$ENDIF}
     ColNum := PQfnumber(Stmt, P);
     IsOK := (PQresultStatus(Stmt) = PGRES_TUPLES_OK) and
             (ColNum > -1) and
@@ -10044,7 +10023,9 @@ begin
       end
     else
       CheckResult;
+    {$IFNDEF NEXTGEN}
     DACAnsiStrDispose(P);
+    {$ENDIF}
   finally
    PQClear(Stmt);
   end;
