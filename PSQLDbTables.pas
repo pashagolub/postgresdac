@@ -188,7 +188,7 @@ type
 {$IFDEF DELPHI_12}
   TPSQLLookupList = class(TLookupList)
   private
-    FList: TList;
+    FList: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -273,7 +273,7 @@ type
       FRefCount: Integer;
       FHandle: DAChDBIDb;
       FParams: TStrings;
-      FStmtList: TList;
+      FStmtList: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
       FOwner: string;
       FIsTemplate: boolean;
       FTablespace: string;
@@ -284,8 +284,8 @@ type
       FOnAdd: TNotifyEvent;
       FOnLogin: TBaseDatabaseLoginEvent;
       FOnNotice: TDatabaseNoticeEvent;
-      FNotifyList: TList;  //List of notify
-      FDirectQueryList : TList;
+      FNotifyList: TList{$IFDEF NEXTGEN}<TObject>{$ENDIF};  //List of notify
+      FDirectQueryList : TList{$IFDEF NEXTGEN}<TObject>{$ENDIF};
       FCheckIfActiveOnParamChange: boolean;
       FSSLMode: TSSLMode;
       FErrorVerbosity: TErrorVerbosity;
@@ -628,7 +628,7 @@ type
     function  CreateFuncFilter(FilterFunc: Pointer;
       Priority: Integer): HDBIFilter;
     function  CreateHandle: HDBICur; virtual;
-    function  CreateLookupFilter(Fields: TList; const Values: Variant;
+    function  CreateLookupFilter(Fields: TList{$IFDEF NEXTGEN}<TField>{$ENDIF}; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
     procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure DeactivateFilters;
@@ -1230,7 +1230,7 @@ procedure Check(Engine : TPSQLEngine; Status: Word);
 procedure NoticeProcessor(arg: Pointer; mes: PAnsiDACChar); cdecl;
 
 var
-   DBList : TList;
+   DBList : TList{$IFDEF NEXTGEN}<TPSQLDatabase>{$ENDIF};
 
 implementation
 
@@ -1401,8 +1401,8 @@ begin
   SetSSLMode(sslPrefer);
   FTransIsolation := tiReadCommitted;
   AddDatabase(Self);
-  FNotifyList := TList.Create;
-  FDirectQueryList := TList.Create;
+  FNotifyList := TList{$IFDEF NEXTGEN}<TObject>{$ENDIF}.Create;
+  FDirectQueryList := TList{$IFDEF NEXTGEN}<TObject>{$ENDIF}.Create;
   FCheckIfActiveOnParamChange := True; //SSH Tunneling stuff
   SetConnectionTimeout(15);
   FDatabaseID := InvalidOid;
@@ -1518,7 +1518,7 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = nil;
     Info: PStmtInfo;
   begin
     if not Assigned(FStmtList) then
-      FStmtList := TList.Create;
+      FStmtList := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
     Result := nil;
     HashCode := GetHashCode(SQL);
     for i := 0 to FStmtList.Count - 1 do
@@ -3978,7 +3978,7 @@ begin
   Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, nil, PFGENFilter(FilterFunc), Result));
 end;
 
-function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
+function TPSQLDataSet.CreateLookupFilter(Fields: TList{$IFDEF NEXTGEN}<TField>{$ENDIF}; const Values: Variant;
   Options: TLocateOptions; Priority: Integer): HDBIFilter;
 var
   I: Integer;
@@ -5050,7 +5050,7 @@ destructor TPSQLQuery.Destroy;
 begin
   Destroying;
   Disconnect;
-  SQL.Free;
+  {$IFNDEF NEXTGEN}SQL.Free{$ELSE}SQL.DisposeOf{$ENDIF};
   FParams.Free;
   FDataLink.Free;
   StrDispose(SQLBinary);
@@ -6631,7 +6631,7 @@ begin
 {$IFNDEF NEXTGEN}
   Result := PAnsiChar(AnsiString(FTableName));
 {$ELSE}
-  Result := PAnsiDACChar(FTableName);
+  Result := PAnsiDACChar(Pointer(FTableName));
 {$ENDIF}
 end;
 
@@ -7551,7 +7551,7 @@ end;
 constructor TPSQLLookupList.Create;
 begin
   inherited;
-  FList := TList.Create;
+  FList := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
 end;
 
 destructor TPSQLLookupList.Destroy;
@@ -7607,7 +7607,7 @@ initialization
     SaveInitProc := InitProc;
     InitProc := @InitDBTables;
    end;
-  DBList := TList.Create;
+  DBList := TList{$IFDEF NEXTGEN}<TPSQLDatabase>{$ENDIF}.Create;
 
 finalization
 

@@ -113,7 +113,7 @@ end;
 destructor TPSQLTools.Destroy;
 begin
   FQuery.Free;
-  ColumnList.Free;
+  {$IFNDEF NEXTGEN}ColumnList.Free{$ELSE}ColumnList.DisposeOf{$ENDIF};
   inherited;
 end;
 
