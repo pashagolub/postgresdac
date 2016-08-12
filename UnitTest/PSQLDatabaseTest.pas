@@ -178,7 +178,11 @@ begin
     FPSQLDatabase.SelectStrings(aSQL, aList, aFieldName);
     DACCheck(aList.Count = 10, 'SelectStrings by FieldName failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -195,7 +199,11 @@ begin
     FPSQLDatabase.SelectStrings(aSQL, aList, aFieldNumber);
     DACCheck(aList.Count = 10, 'SelectStrings by FieldNumber failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -214,7 +222,11 @@ begin
     sslDB.Open;
     DACCheck(sslDB.Connected, 'SSL Connection failed');
   finally
+    {$IFNDEF NEXTGEN}
     FreeAndNil(sslDB);
+    {$ELSE}
+    sslDB.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -236,7 +248,11 @@ begin
     FPSQLDatabase.GetCharsets(aList);
     DACCheck(aList.Count > 0, 'GetCharsets failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -251,7 +267,11 @@ begin
     FPSQLDatabase.GetDatabases(Pattern, aList);
     DACCheck(aList.Count > 0, 'GetDatabases failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -272,7 +292,11 @@ begin
     FPSQLDatabase.GetSchemaNames(Pattern, not SystemSchemas, List);
     DACCheck(List.Count <= Count, 'GetSchemaNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     List.Free;
+    {$ELSE}
+    List.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -287,7 +311,11 @@ begin
     FPSQLDatabase.GetStoredProcNames(Pattern, aList);
     DACCheck(aList.Count > 0, 'GetStoredProcNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -308,7 +336,11 @@ begin
     FPSQLDatabase.GetTableNames(Pattern, not SystemTables, List);
     DACCheck(List.Count <= Count, 'GetTableNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     List.Free;
+    {$ELSE}
+    List.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -323,7 +355,11 @@ begin
     FPSQLDatabase.GetTablespaces(Pattern, aList);
     DACCheck(aList.Count > 0, 'GetTablespaces failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -338,7 +374,11 @@ begin
     FPSQLDatabase.GetUserNames(Pattern, aList);
     DACCheck(aList.Count > 0, 'GetUserNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -361,16 +401,29 @@ begin
     ConnParams.Assign(FPSQLDatabase.Params);
     DACCheck(FPSQLDatabase.Ping() = pstOK, 'PingEx failed');
   finally
+    {$IFNDEF NEXTGEN}
     ConnParams.Free;
+    {$ELSE}
+    ConnParams.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
 procedure TestTPSQLDatabase.TestPlainConnInfoConnect;
+var
+  oldUseSingleLine: Boolean;
 begin
   FPSQLDatabase.Close;
+  oldUseSingleLine := FPSQLDatabase.UseSingleLineConnInfo;
   FPSQLDatabase.UseSingleLineConnInfo := True;
+  try
   FPSQLDatabase.Open;
   DACCheck(FPSQLDatabase.Connected, 'Failed to connect using PQconnectdb');
+  finally
+    FPSQLDatabase.Close;
+    FPSQLDatabase.UseSingleLineConnInfo := oldUseSingleLine;
+    FPSQLDatabase.Open
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestReset;

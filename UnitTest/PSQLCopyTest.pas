@@ -106,7 +106,11 @@ begin
     FPSQLCopy.SaveToStream(Stream);
     DACIsTrue(Stream.Size > 0);
   finally
+    {$IFNDEF NEXTGEN}
     Stream.Free;
+    {$ELSE}
+    Stream.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -161,7 +165,11 @@ end;
 
 procedure TestTCustomPSQLCopy.InternalTearDown;
 begin
+  {$IFNDEF DUNITX}
   FPSQLCopy.Free;
+  {$ELSE}
+  FPSQLCopy.DisposeOf;
+  {$ENDIF}
 end;
 
 {$IFDEF DUNITX}

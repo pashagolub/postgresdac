@@ -96,7 +96,11 @@ end;
 
 procedure TestTPSQLNotify.InternalTearDown;
 begin
+{$IFNDEF NEXTGEN}
   TestNotify.Free;
+{$ELSE}
+  TestNotify.DisposeOf;
+{$ENDIF}
   if not MsgReceived then Status('Simple notify message lost');
   if not MsgReceivedEx then Status('Payload notify message lost');
 end;
@@ -122,7 +126,11 @@ end;
 
 procedure TestTPSQLNotify.TearDown;
 begin
+{$IFNDEF NEXTGEN}
   FPSQLNotify.Free;
+{$ELSE}
+  FPSQLNotify.DisposeOf;
+{$ENDIF}
   FPSQLNotify := nil;
 end;
 

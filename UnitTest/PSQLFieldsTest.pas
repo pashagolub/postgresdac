@@ -39,6 +39,10 @@ type
   {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
   // Test methods for class TPSQLGuidField
   TestTPSQLGuidField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  {$IFDEF DUNITX}
+  private
+    FCharset: string;
+  {$ENDIF}
   public
     {$IFNDEF DUNITX}
     procedure TearDown; override;
@@ -160,14 +164,15 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLGuidField.SetupFixture;
 begin
+  FCharset := MainForm.Database.CharSet;
   FldDB := MainForm.Database;
   InternalSetUp;
 end;
 procedure TestTPSQLGuidField.TearDownFixture;
 begin
   InternalTearDown;
+  MainForm.Database.CharSet := FCharset;
 end;
-
 {$ENDIF}
 
 procedure TestTPSQLGuidField.TearDown;
@@ -553,7 +558,6 @@ begin
   DACCheck(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
   DACCheck(R.LowerBound.AsInteger = 1, 'Wrong lower bound value');
   DACCheck(R.UpperBound.AsInteger = 3, 'Wrong upper bound value');
-
 end;
 
 procedure TestTPSQLRangeField.TestSelectUpperInfinityRange;
@@ -670,7 +674,11 @@ end;
 
 procedure InternalTearDown;
 begin
+{$IFNDEF NEXTGEN}
   FldQry.Free;
+{$ELSE}
+  FldQry.DisposeOf;
+{$ENDIF}
 end;
 
 initialization

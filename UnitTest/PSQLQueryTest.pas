@@ -238,12 +238,12 @@ end;
 
 procedure TestTPSQLQuery.TearDown;
 begin
-{$IFNDEF DUNITX}
+{$IFNDEF NEXTGEN}
   FPSQLQuery.Free;
-  FPSQLQuery := nil;
 {$ELSE}
   FPSQLQuery.DisposeOf;
 {$ENDIF};
+  FPSQLQuery := nil;
 end;
 
 procedure TestTPSQLQuery.TestAsBoolean;
@@ -409,7 +409,7 @@ begin
     Assert.WillRaise(TestFetchOnDemand, EDatabaseError, 'Open should failed for non-exsclusive use of Database');
     {$ENDIF}
   finally
-    {$IFNDEF DUNITX}
+    {$IFNDEF NEXTGEN}
     FreeAndNil(Q);
     {$ELSE}
     Q.DisposeOf;

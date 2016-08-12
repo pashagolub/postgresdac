@@ -90,7 +90,11 @@ end;
 
 procedure TestTPSQLTools.InternalTearDown;
 begin
+{$IFNDEF NEXTGEN}
   Tools.Free;
+{$ELSE}
+  Tools.DisposeOf;
+{$ENDIF}
 end;
 
 procedure TestTPSQLTools.SetUp;

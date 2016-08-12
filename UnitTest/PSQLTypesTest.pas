@@ -62,7 +62,11 @@ begin
    for i := 0 to SL.Count - 1 do
      DACCheck(not IsValidIP(SL[i]), 'incorrect ' + SL[i]);
  finally
+  {$IFNDEF NEXTGEN}
    SL.Free;
+  {$ELSE}
+   SL.DisposeOf;
+  {$ENDIF}
  end;
 end;
 
@@ -87,8 +91,8 @@ end;
 
 procedure TestPSQLTypes.TearDownFixture;
 begin
-  FRSCorrectIP.Free;
-  FRSInCorrectIP.Free;
+  FRSCorrectIP.DisposeOf;
+  FRSInCorrectIP.DisposeOf;
 end;
 {$ENDIF}
 

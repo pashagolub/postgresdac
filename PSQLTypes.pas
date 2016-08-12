@@ -2871,7 +2871,7 @@ begin
   if Buffer = '' then Exit;
   {$IFNDEF NEXTGEN}
   while CharInSet(Buffer[P], [' ',#9]) do
-  {$LSE}
+  {$ELSE}
   while Buffer[P].IsInArray([' ',#9]) do
   {$ENDIF}
   begin

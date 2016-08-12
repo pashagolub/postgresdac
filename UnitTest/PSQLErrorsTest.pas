@@ -56,12 +56,12 @@ implementation
 
 uses TestHelper, MainF;
 
-{$IFDEF DUNITX}
 procedure TestTPSQLErrors.InternalSetUp;
 begin
   QryDB.ErrorVerbosity := evVERBOSE;
 end;
 
+{$IFDEF DUNITX}
 procedure TestTPSQLErrors.SetupFixture;
 begin
   QryDb := MainForm.Database;
@@ -110,7 +110,11 @@ begin
      end;
     end;
   finally
+    {$IFNDEF NEXTGEN}
     D.Free;
+    {$ELSE}
+    D.DisposeOf;
+    {$ENDIF}
   end;
 end;
 

@@ -38,7 +38,8 @@ type
   TestTPSQLBlobs = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     {$IFDEF DUNITX}
-    FRSTestBmp : TResourceStream;
+    FRSTestBmp: TResourceStream;
+    FCharSet: string;
     {$ENDIF}
     FPSQLQuery: TPSQLQuery;
     FPSQLUpdate: TPSQLUpdateSQL;
@@ -105,7 +106,11 @@ end;
 
 procedure TestTPSQLBlobs.TearDown;
 begin
+{$IFNDEF NEXTGEN}
   FPSQLQuery.Free;
+{$ELSE}
+  FPSQLQuery.DisposeOf;
+{$ENDIF}
   FPSQLQuery := nil;
 end;
 
@@ -193,7 +198,11 @@ begin
     DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = 0, 'oidf field must be empty');
     DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).AsString = '', 'memof field must be empty');
   finally
+    {$IFNDEF NEXTGEN}
     MS.Free;
+    {$ELSE}
+    MS.DisposeOf;
+    {$ENDIF}
     FPSQLQuery.Close;
   end;
 end;
@@ -265,7 +274,7 @@ begin
   finally
     FPSQLQuery.Close;
     {$IFDEF DUNITX}
-    FS.Free;
+    FS.DisposeOf;
     {$ENDIF}
   end;
 end;
@@ -298,7 +307,11 @@ begin
     DACCheck(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL');
     FPSQLQuery.Close;
   finally
+    {$IFNDEF NEXTGEN}
     FreeAndNil(FPSQLUpdate);
+    {$ELSE}
+    FPSQLQuery.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -326,12 +339,13 @@ procedure TestTPSQLBlobs.SetupFixture;
 begin
   FRsTestBmp := TResourceStream.Create(HInstance, 'test_bmp', RT_RCDATA);
   FRSTestBmp.Position := 0;
-
+  FCharSet := MainForm.Database.CharSet;
   QryDB := MainForm.Database;
   InternalSetUp;
 end;
 procedure TestTPSQLBlobs.TearDownFixture;
 begin
+  MainForm.Database.CharSet := FCharSet; //restore charset;
   FRSTestBmp.Free;
 end;
 {$ENDIF}
