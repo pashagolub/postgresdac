@@ -228,17 +228,12 @@ var
   PSQL_FS              : TFormatSettings;
 
 type
-//  {$IFDEF ANDROID}
-//  PAnsiChar = PByte;
-//  AnsiChar = Byte;
-//  AnsiString = TBytes;
-//  {$ENDIF}
 
 
   TPSQLDACAbout = class
   end;
 
- TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
+  TPSQLDatasetSortCompare = function(Dataset: TObject; Value1, Value2: Variant;
       FieldIndex: integer): Integer;
 
 //////////////////////////////////////////////////////////////////
@@ -411,24 +406,24 @@ type
   TDynOidArray = array of Oid;
 
   ConnStatusType = (
-  CONNECTION_OK,
-  CONNECTION_BAD,
-  //Non-blocking mode only below here
-	CONNECTION_STARTED,			// Waiting for connection to be made
-	CONNECTION_MADE,			// Connection OK; waiting to send
-	CONNECTION_AWAITING_RESPONSE,		// Waiting for a response from the postmaster
-	CONNECTION_AUTH_OK,			// Received authentication; waiting for backend startup
-	CONNECTION_SETENV,			// Negotiating environment
-	CONNECTION_SSL_STARTUP,		// Negotiating SSL
-	CONNECTION_NEEDED			// Internal state: connect() needed
+    CONNECTION_OK,
+    CONNECTION_BAD,
+    //Non-blocking mode only below here
+    CONNECTION_STARTED,			// Waiting for connection to be made
+    CONNECTION_MADE,			// Connection OK; waiting to send
+    CONNECTION_AWAITING_RESPONSE,		// Waiting for a response from the postmaster
+    CONNECTION_AUTH_OK,			// Received authentication; waiting for backend startup
+    CONNECTION_SETENV,			// Negotiating environment
+    CONNECTION_SSL_STARTUP,		// Negotiating SSL
+    CONNECTION_NEEDED			// Internal state: connect() needed
   );
 
   PollingStatusType = (
-	PGRES_POLLING_FAILED,
-	PGRES_POLLING_READING,		// These two indicate that one may
-	PGRES_POLLING_WRITING,		// use select before polling again
-	PGRES_POLLING_OK,
-	PGRES_POLLING_ACTIVE		// unused; keep for awhile for backwards compatibility
+    PGRES_POLLING_FAILED,
+    PGRES_POLLING_READING,		// These two indicate that one may
+    PGRES_POLLING_WRITING,		// use select before polling again
+    PGRES_POLLING_OK,
+    PGRES_POLLING_ACTIVE		// unused; keep for awhile for backwards compatibility
 	);
 
   ExecStatusType = (
@@ -482,10 +477,6 @@ type
 //  unlikely to change.
 //  NOTE: in Postgres 6.4 and later, the be_pid is the notifying backend's,
 //  whereas in earlier versions it was always your own backend's PID.
- { PGnotify = packed record
-    relname: array [0..NAMEDATALEN-1] of Char; // name of relation containing data
-    be_pid:  Integer;			       // process id of backend
-  end;}
   PPGnotify = ^PGnotify;
   PGnotify = packed record
     relname: PAnsiDACChar; // name of relation containing data
