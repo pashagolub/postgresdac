@@ -27,7 +27,7 @@ type
     procedure SetSql(Value: TStringList);
   protected
     procedure Notification(AComponent: TComponent; Operation: TOperation); override;
-    function BatchExecSql(Sql: {$IFNDEF NEXTGEN}WideString{$ELSE}String{$ENDIF}): LongInt;
+    function BatchExecSql(Sql: String): LongInt;
   public
     constructor Create(AOwner: TComponent); override;
     destructor  Destroy; override;
@@ -73,7 +73,7 @@ begin
     FDatabase   := nil;
 end;
 
-function TPSQLBatchExecute.BatchExecSql(Sql: {$IFNDEF NEXTGEN}WideString{$ELSE}String{$ENDIF}): LongInt;
+function TPSQLBatchExecute.BatchExecSql(Sql: String): LongInt;
 var
   Buffer, Token, Text: {$IFDEF FPC}ansistring{$ELSE}string{$ENDIF};
   StmtNo : Integer;
