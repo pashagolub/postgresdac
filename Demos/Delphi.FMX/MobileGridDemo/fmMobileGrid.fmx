@@ -1,0 +1,72 @@
+object Form1: TForm1
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object Connect: TButton
+    Position.X = 176.000000000000000000
+    Position.Y = 32.000000000000000000
+    Size.Width = 105.000000000000000000
+    Size.Height = 33.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 2
+    Text = 'Connect'
+    OnClick = ConnectClick
+  end
+  object Grid1: TGrid
+    Align = Bottom
+    CanFocus = True
+    ClipChildren = True
+    Position.Y = 88.000000000000000000
+    Size.Width = 640.000000000000000000
+    Size.Height = 392.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 3
+    Viewport.Width = 636.000000000000000000
+    Viewport.Height = 367.000000000000000000
+  end
+  object PSQLTable1: TPSQLTable
+    Database = PSQLDatabase1
+    Options = [dsoUseGUIDField]
+    ReadOnly = True
+    TableName = '"test"'
+    Left = 104
+    Top = 24
+  end
+  object PSQLDatabase1: TPSQLDatabase
+    CharSet = 'UTF8'
+    Params.Strings = (
+      'connect_timeout=15'
+      'dbname=Test'
+      'user=pasha'
+      'password=farata'
+      'hostaddr=192.168.1.3'
+      'port=5437'
+      'sslmode=prefer')
+    Left = 24
+    Top = 24
+  end
+  object BindSourceDB1: TBindSourceDB
+    DataSet = PSQLTable1
+    ScopeMappings = <>
+    Left = 304
+    Top = 224
+  end
+  object BindingsList1: TBindingsList
+    Methods = <>
+    OutputConverters = <>
+    Left = 468
+    Top = 13
+    object LinkGridToDataSourceBindSourceDB1: TLinkGridToDataSource
+      Category = 'Quick Bindings'
+      DataSource = BindSourceDB1
+      GridControl = Grid1
+      Columns = <>
+    end
+  end
+end
