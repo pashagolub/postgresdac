@@ -551,6 +551,10 @@ type
     FAllowSequenced : Boolean;  //Add by Nicolas Ring
     FSortFieldNames: string;
     FOptions: TPSQLDatasetOptions;
+    {$IFDEF NEXTGEN}
+    FSetToRecBookm: TBookmark;
+    {$ENDIF}
+
     procedure ClearBlobCache(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
     function GetActiveRecBuf(var RecBuf: TRecordBuffer): Boolean;
     function GetBlobData(Field: TField; Buffer: TRecordBuffer): TBlobData;
@@ -642,9 +646,10 @@ type
 {$IFDEF DELPHI_17}
     procedure GetBookmarkData(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Data: TBookmark); override;
 {$ENDIF DELPHI_17}
-    function  GetBookmarkFlag(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}): TBookmarkFlag; override;
+    function GetBookmarkFlag(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}): TBookmarkFlag; override;
     function  GetRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
     procedure InitRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}); override;
+
 {$IFDEF NEXTGEN}
     procedure InternalGotoBookmark(Bookmark: TBookmark); override;
 {$ELSE}
@@ -2388,6 +2393,10 @@ begin
 
   FOptions := [dsoUseGUIDField];
 
+  {$IFDEF MOBILE}
+  SetLength(FSetToRecBookm, SizeOf(TBookMark));
+  {$ENDIF}
+
   if (csDesigning in ComponentState) and Assigned(AOwner) and (DBList.Count > 0) then
    begin
     for I := DBList.Count - 1 downto 0 do
@@ -3476,7 +3485,12 @@ end;
 
 procedure TPSQLDataSet.InternalSetToRecord(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
 begin
+{$IFNDEF NEXTGEN}
   InternalGotoBookmark(Pointer(Buffer + FBookmarkOfs));
+{$ELSE}
+  Move(Pointer(DACPointerInt(Buffer) + FBookmarkOfs)^, FSetToRecBookm[0], SizeOf(TBookMark));
+  InternalGotoBookmark(FSetToRecBookm);
+{$ENDIF}
 end;
 
 function TPSQLDataSet.GetBookmarkFlag(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}) : TBookmarkFlag;
