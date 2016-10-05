@@ -33,10 +33,8 @@ type
   {$ENDIF}
 
   // Test methods for class TPSQLErrors
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLErrors = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
-  private
-    procedure InternalSetUp;
   published
     procedure TestFailedConnect;
     procedure TestSyntaxError;
@@ -54,9 +52,9 @@ var
 
 implementation
 
-uses TestHelper, MainF;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
-procedure TestTPSQLErrors.InternalSetUp;
+procedure InternalSetUp;
 begin
   QryDB.ErrorVerbosity := evVERBOSE;
 end;
