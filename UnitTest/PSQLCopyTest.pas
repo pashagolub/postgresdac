@@ -17,7 +17,7 @@ interface
 uses
   PSQLAccess, Classes, PSQLCopy, PSQLDbTables, PSQLTypes, SysUtils
   {$IFNDEF DUNITX}
-  ,TestFramework, TestExtensions;
+  ,TestFramework, TestExtensions
   {$ELSE}
   , DUnitX.TestFramework, Types
   {$ENDIF};
@@ -33,14 +33,12 @@ type
   {$ENDIF}
 
   // Test methods for class TCustomPSQLCopy
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTCustomPSQLCopy = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     {$IFDEF DUNITX}
     FRSTestTask : TResourceStream;
     {$ENDIF}
-    procedure InternalSetUp;
-    procedure InternalTearDown;
   published
     procedure TestLoadFromStream;
     procedure TestSaveToStream;
@@ -156,14 +154,14 @@ begin
   end;
 end;
 
-procedure TestTCustomPSQLCopy.InternalSetUp;
+procedure InternalSetUp;
 begin
   FPSQLCopy := TPSQLCopy.Create(nil);
   FPSQLCopy.Database := FldDB;
   FldDB.Execute('CREATE TEMP TABLE server_tasks(process text, PID int4, session varchar, session_num int4, memory varchar)');
 end;
 
-procedure TestTCustomPSQLCopy.InternalTearDown;
+procedure InternalTearDown;
 begin
   {$IFNDEF DUNITX}
   FPSQLCopy.Free;
