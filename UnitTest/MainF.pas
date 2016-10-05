@@ -14,7 +14,8 @@ uses
   PSQLFMXConnFrm, TestHelper;
 
 type
-TPSQLRunner = {$IFDEF MOBILE}TMobileGUITestRunner{$ELSE}TGUIXTestRunner{$ENDIF};
+  TPSQLRunner = {$IFDEF MOBILE}TMobileGUITestRunner{$ELSE}TGUIXTestRunner{$ENDIF};
+
   TMainForm = class(TForm)
     BtnStart: TButton;
     procedure BtnStartClick(Sender: TObject);
