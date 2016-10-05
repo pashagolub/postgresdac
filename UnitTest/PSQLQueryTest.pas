@@ -39,11 +39,11 @@ type
   {$ENDIF}
 
   // Test methods for class TPSQLQuery
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLQuery = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     FPSQLQuery: TPSQLQuery;
-    procedure InternalSetUp;
+
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -102,7 +102,32 @@ var
 
 implementation
 
-uses TestHelper{$IFNDEF DELPHI_5}, DateUtils{$ENDIF}, MainF;
+uses TestHelper{$IFNDEF DELPHI_5}, DateUtils{$ENDIF}{$IFDEF DUNITX}, MainF{$ENDIF};
+
+procedure InternalSetUp;
+begin
+  QryDB.Execute('SET TimeZone to DEFAULT'); // for the complex timezone -04:30
+  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
+                '(' +
+                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
+                '  intf integer NOT NULL,' + //NotNull ->Required
+                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
+                '  datum timestamp without time zone,' + //not Required etc.
+                '  notes text,' +
+                '  graphic oid,' +
+                '  b_graphic bytea,' +
+                '  b boolean,' +
+                '  floatf real,' +
+                '  datef date,' +
+                '  timef time' +
+                ')');
+  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
+                '(' +
+                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
+                '  intf integer NOT NULL,' + //NotNull ->Required
+                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
+                '  datum timestamp without time zone)'); //not Required.
+end;
 
 {$IFDEF DELPHI_5}
 const
@@ -679,6 +704,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
+  InternalSetUp;
 end;
 
 procedure TDbSetup.TearDown;
@@ -697,31 +723,6 @@ begin
   InternalSetUp;
 end;
 {$ENDIF}
-
-procedure TestTPSQLQuery.InternalSetUp;
-begin
-  QryDB.Execute('SET TimeZone to DEFAULT'); // for the complex timezone -04:30
-  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone,' + //not Required etc.
-                '  notes text,' +
-                '  graphic oid,' +
-                '  b_graphic bytea,' +
-                '  b boolean,' +
-                '  floatf real,' +
-                '  datef date,' +
-                '  timef time' +
-                ')');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone)'); //not Required.
-end;
 
 initialization
 {$IFNDEF DUNITX}
