@@ -37,7 +37,7 @@ type
   {$ENDIF}
 
   // Test methods for class TPSQLDatabase
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLDatabase = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   published
     procedure HookUp;
@@ -76,7 +76,7 @@ type
 
 implementation
 
-uses TestHelper, MainF;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
 procedure TestTPSQLDatabase.HookUp;
 begin
