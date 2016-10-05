@@ -2,18 +2,26 @@ unit TestHelper;
 interface
 
 uses Classes, SysUtils, PSQLDbTables
-{$IFNDEF DUNITX}
-,Forms, PSQLConnFrm, Controls, TestFramework
-{$ELSE}
-,DUnitX.TestFramework
-{$ENDIF};
+  {$IFNDEF DUNITX}
+  ,Forms, PSQLConnFrm, Controls, TestFramework
+  {$ELSE}
+  ,DUnitX.TestFramework
+  {$ENDIF};
+
+type
+  TDACTestCase = class helper for TTestCase
+  public
+    procedure DACCheck(Condition: Boolean; Msg: String);
+    procedure DACIsTrue(Condition: Boolean);
+  end;
 
 procedure ComponentToFile(Component: TComponent; Name: string);
 procedure FileToComponent(Name: string; Component: TComponent);
 procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
 
-procedure DACIsTrue(Condition: Boolean);
-procedure DACCheck(Condition: Boolean; Msg: String);
+//procedure DACIsTrue(Condition: Boolean);
+//procedure DACCheck(Condition: Boolean; Msg: String);
+
 
 implementation
 
@@ -58,6 +66,7 @@ var
   BinStream: TMemoryStream;
   StrStream: TFileStream;
 begin
+
   BinStream := TMemoryStream.Create;
   try
     StrStream := TFileStream.Create(Name, fmCreate);
@@ -101,7 +110,7 @@ begin
   end;
 end;
 
-procedure DACIsTrue(Condition: Boolean);
+procedure TDACTestCase.DACIsTrue(Condition: Boolean);
 begin
   {$IFNDEF DUNITX}
   Check(Condition);
@@ -110,7 +119,7 @@ begin
   {$ENDIF}
 end;
 
-procedure DACCheck(Condition: Boolean; Msg: String);
+procedure TDACTestCase.DACCheck(Condition: Boolean; Msg: String);
 begin
   {$IFNDEF DUNITX}
   Check(Condition, Msg);
