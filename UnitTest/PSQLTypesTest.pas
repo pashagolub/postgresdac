@@ -6,7 +6,7 @@ unit PSQLTypesTest;
 interface
 
 uses
-  Classes, SysUtils, PSQLTypes
+  Classes, SysUtils, PSQLTypes, TestHelper
   {$IFNDEF DUNITX}
   , TestFramework, Math, Windows
   {$ELSE}
@@ -16,11 +16,13 @@ uses
 type
 
   // Test methods for PSQLTypes
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestPSQLTypes = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
+  {$IFDEF DUNITX}
     FRSCorrectIP: TResourceStream;
     FRSInCorrectIP: TResourceStream;
+  {$ENDIF}
   public
    procedure HiddenProc;
   published
@@ -36,11 +38,7 @@ type
 
 implementation
 
-{$IFDEF DUNITX}
-uses TestHelper;
-{$ENDIF}
 { TestPSQLTypes }
-
 procedure TestPSQLTypes.CheckIsValidIP;
 var SL: TStrings;
     i: integer;
