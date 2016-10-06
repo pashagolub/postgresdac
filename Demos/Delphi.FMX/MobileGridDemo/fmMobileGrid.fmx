@@ -8,6 +8,17 @@ object Form1: TForm1
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   DesignerMasterStyle = 0
+  object Memo1: TMemo
+    Touch.InteractiveGestures = [Pan, LongTap, DoubleTap]
+    DataDetectorTypes = []
+    Align = Client
+    Size.Width = 640.000000000000000000
+    Size.Height = 480.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 7
+    Viewport.Width = 636.000000000000000000
+    Viewport.Height = 476.000000000000000000
+  end
   object Connect: TButton
     Position.X = 176.000000000000000000
     Position.Y = 32.000000000000000000
@@ -18,25 +29,12 @@ object Form1: TForm1
     Text = 'Connect'
     OnClick = ConnectClick
   end
-  object Grid1: TGrid
-    Align = Bottom
-    CanFocus = True
-    ClipChildren = True
+  object Label1: TLabel
     Position.Y = 88.000000000000000000
-    Size.Width = 640.000000000000000000
-    Size.Height = 392.000000000000000000
+    Size.Width = 289.000000000000000000
+    Size.Height = 41.000000000000000000
     Size.PlatformDefault = False
-    TabOrder = 3
-    Viewport.Width = 636.000000000000000000
-    Viewport.Height = 367.000000000000000000
-  end
-  object PSQLTable1: TPSQLTable
-    Database = PSQLDatabase1
-    Options = [dsoUseGUIDField]
-    ReadOnly = True
-    TableName = '"test"'
-    Left = 104
-    Top = 24
+    Text = 'Label1'
   end
   object PSQLDatabase1: TPSQLDatabase
     CharSet = 'UTF8'
@@ -51,22 +49,12 @@ object Form1: TForm1
     Left = 24
     Top = 24
   end
-  object BindSourceDB1: TBindSourceDB
-    DataSet = PSQLTable1
-    ScopeMappings = <>
-    Left = 304
-    Top = 224
-  end
-  object BindingsList1: TBindingsList
-    Methods = <>
-    OutputConverters = <>
-    Left = 468
-    Top = 13
-    object LinkGridToDataSourceBindSourceDB1: TLinkGridToDataSource
-      Category = 'Quick Bindings'
-      DataSource = BindSourceDB1
-      GridControl = Grid1
-      Columns = <>
-    end
+  object PSQLQuery1: TPSQLQuery
+    Database = PSQLDatabase1
+    Options = [dsoUseGUIDField]
+    SQL.Strings = (
+      'SELECT * FROM "test"')
+    Left = 88
+    Top = 24
   end
 end

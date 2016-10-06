@@ -2,20 +2,18 @@ inherited Form1_SmXhdpiPh: TForm1_SmXhdpiPh
   ClientHeight = 375
   ClientWidth = 250
   DesignerMasterStyle = 0
-  inherited Connect: TButton
+  inherited Connect: TButton [0]
     Position.X = 64.000000000000000000
     Position.Y = 16.000000000000000000
     Size.Height = 81.000000000000000000
   end
-  inherited Grid1: TGrid
-    Position.Y = 133.000000000000000000
-    Size.Width = 250.000000000000000000
-    Size.Height = 242.000000000000000000
-    Viewport.Width = 250.000000000000000000
-    Viewport.Height = 210.000000000000000000
+  inherited Label1: TLabel [1]
+    Position.X = 304.000000000000000000
   end
-  inherited PSQLTable1: TPSQLTable
-    Left = 16
-    Top = 72
+  inherited Memo1: TMemo [2]
+    Size.Width = 250.000000000000000000
+    Size.Height = 375.000000000000000000
+    Viewport.Width = 242.000000000000000000
+    Viewport.Height = 367.000000000000000000
   end
 end

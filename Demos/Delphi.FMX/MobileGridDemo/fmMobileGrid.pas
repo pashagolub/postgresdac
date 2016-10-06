@@ -8,17 +8,15 @@ uses
   FMX.Grid.Style, Data.Bind.EngExt, Fmx.Bind.DBEngExt, Fmx.Bind.Grid,
   System.Bindings.Outputs, Fmx.Bind.Editors, Data.Bind.Components,
   Data.Bind.Grid, Data.Bind.DBScope, FMX.ScrollBox, FMX.Grid,
-  FMX.Controls.Presentation, FMX.StdCtrls, Data.DB, PSQLDbTables;
+  FMX.Controls.Presentation, FMX.StdCtrls, Data.DB, PSQLDbTables, FMX.Memo;
 
 type
   TForm1 = class(TForm)
-    PSQLTable1: TPSQLTable;
     PSQLDatabase1: TPSQLDatabase;
     Connect: TButton;
-    Grid1: TGrid;
-    BindSourceDB1: TBindSourceDB;
-    BindingsList1: TBindingsList;
-    LinkGridToDataSourceBindSourceDB1: TLinkGridToDataSource;
+    Label1: TLabel;
+    PSQLQuery1: TPSQLQuery;
+    Memo1: TMemo;
     procedure ConnectClick(Sender: TObject);
   private
     { Private declarations }
@@ -38,7 +36,11 @@ implementation
 
 procedure TForm1.ConnectClick(Sender: TObject);
 begin
-  PSQLTable1.Open;
+  PSQLDatabase1.Open;
+  Label1.Text := PSQLDatabase1.ServerVersion;
+  PSQLQuery1.Open;
+  while not PSQLQuery1.Eof do
+    Memo1.Lines.Append(PSQLQuery1.Fields[0].AsString);
 end;
 
 end.

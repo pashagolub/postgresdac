@@ -161,7 +161,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
-        <DCCReference Include="Unit1.pas">
+        <DCCReference Include="fmMobileGrid.pas">
             <Form>Form1</Form>
             <FormType>fmx</FormType>
         </DCCReference>
