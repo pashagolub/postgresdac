@@ -51,11 +51,6 @@ type
     procedure TestPingEx;
     procedure TestIsThreadSafe;
     procedure TestSSLConnect;
-
-    {$IFDEF DUNITX}
-    [SetupFixture]
-    procedure SetupFixture;
-    {$ENDIF}
   end;
 
 implementation
@@ -383,7 +378,7 @@ begin
   ConnParams := TStringList.Create;
   try
     ConnParams.Assign(TestDBSetup.Database.Params);
-    DACCheck(TestDBSetup.Database.Ping() = pstOK, 'PingEx failed');
+    DACCheck(TestDBSetup.Database.Ping(ConnParams) = pstOK, 'PingEx failed');
   finally
     {$IFNDEF NEXTGEN}
     ConnParams.Free;
@@ -395,40 +390,46 @@ end;
 
 procedure TestTPSQLDatabase.TestPlainConnInfoConnect;
 var
-  oldUseSingleLine: Boolean;
+  TempDB: TPSQLDatabase;
 begin
-  TestDBSetup.Database.Close;
-  oldUseSingleLine := TestDBSetup.Database.UseSingleLineConnInfo;
-  TestDBSetup.Database.UseSingleLineConnInfo := True;
+  TempDB := TPSQLDatabase.Create(nil);
+  TempDB.Assign(TestDBSetup.Database);
+
+  TempDB.UseSingleLineConnInfo := True;
   try
-  TestDBSetup.Database.Open;
-  DACCheck(TestDBSetup.Database.Connected, 'Failed to connect using PQconnectdb');
+    TempDB.Open;
+    DACCheck(TempDB.Connected, 'Failed to connect using PQconnectdb');
   finally
-    TestDBSetup.Database.Close;
-    TestDBSetup.Database.UseSingleLineConnInfo := oldUseSingleLine;
-    TestDBSetup.Database.Open
+    TempDB.Free;
   end;
 end;
 
 procedure TestTPSQLDatabase.TestReset;
+var
+  TempDB: TPSQLDatabase;
 begin
-  TestDBSetup.Database.Reset;
+  TempDB := TPSQLDatabase.Create(nil);
+  TempDB.Assign(TestDBSetup.Database);
+
+  TempDB.UseSingleLineConnInfo := True;
+  try
+    TempDB.Open;
+    DACCheck(TempDB.Connected, 'Failed to connect using PQconnectdb');
+    TempDB.Reset;
+    DACCheck(TempDB.Connected, 'Failed to reset using PQreset');
+  finally
+    TempDB.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestRollback;
 begin
   TestDBSetup.Database.StartTransaction;
   DACCheck(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
-  TestDBSetup.Database.Execute('CREATE TEMP TABLE foo()');
+  TestDBSetup.Database.Execute('CREATE TEMP TABLE bar()');
   TestDBSetup.Database.Rollback;
   DACCheck(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to ROLLBACK transaction');
 end;
-
-{$IFDEF DUNITX}
-procedure TestTPSQLDatabase.SetupFixture;
-begin
-end;
-{$ENDIF}
 
 initialization
 

@@ -582,5 +582,6 @@ InjectCode=1
 InjectInfo=1
 InjectOptions=1
 loEnableMMDebugMode=1
+loOnlyUnderDebugger=0
 ProjectID="{13D8D756-A3E6-4C28-9206-77262E53776F}"
 EurekaLog Last Line -->
