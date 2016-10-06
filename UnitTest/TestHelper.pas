@@ -301,7 +301,6 @@ begin
   Result.AddTest(TestTPSQLQuery.Suite);
   Result.AddTest(TestTPSQLTable.Suite);
   Result.AddTest(TestTPSQLBlobs.Suite);
-  Result.AddTest(TestPSQLTypes.Suite);
   Result.AddTest(TestTPSQLErrors.Suite);
   Result.AddTest(TestTCustomPSQLCopy.Suite);
   Result.AddTest(TestTPSQLGuidField.Suite);
