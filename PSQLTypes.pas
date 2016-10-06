@@ -8,6 +8,7 @@ interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
      Classes, SysUtils
+     {$IFDEF DELPHI_6}, FmtBcd{$ENDIF}
      {$IFDEF DELPHI_12}, SqlTimSt, PSQLGeomTypes{$ENDIF}
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
@@ -2965,11 +2966,14 @@ begin
                          LogSize := TIMESTAMPTZLEN + 1;
                       end;
     FIELD_TYPE_FLOAT4,
-    FIELD_TYPE_NUMERIC,
     FIELD_TYPE_FLOAT8:
                       begin
                          BdeType := fldFLOAT;
                          LogSize := Sizeof(Double);
+                      end;
+    FIELD_TYPE_NUMERIC: begin
+                         BdeType := fldFMTBCD;
+                         LogSize := Sizeof(TBcd);
                       end;
     FIELD_TYPE_MONEY: begin
                          BdeType := fldZSTRING;
@@ -3059,8 +3063,9 @@ begin
     ValChk.iFldNum := Count;
     DataLen := Info.FieldMaxSize;
     FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
-    if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8) or
-       (Info.Fieldtype = FIELD_TYPE_NUMERIC) then
+    if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8)
+      // (Info.Fieldtype = FIELD_TYPE_NUMERIC)
+      then
     begin
       iUnits1  := 32;
       iUnits2  := Hi(LogSize);
@@ -3074,7 +3079,7 @@ begin
       iUnits2  := 0;
       iLen     := LogSize;
     end;
-    if (iFldType = fldINT32) and (Pos('nextval(', Info.FieldDefault) > 0)  then iSubType := fldstAUTOINC;
+    if (iFldType = fldINT32) and (Pos('nextval(', Info.FieldDefault) > 0) then iSubType := fldstAUTOINC;
     iOffset := Offset;
     efldvVchk := fldvUNKNOWN;
     if Info.FieldDefault <> '' then ValChk.bHasDefVal := True;

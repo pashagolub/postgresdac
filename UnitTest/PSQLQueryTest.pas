@@ -15,7 +15,7 @@ interface
 uses
   TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
   PSQLTypes, SysUtils, DbCommon, {$IFNDEF DELPHI_5}Variants,{$ENDIF} Graphics, StdVCL, TestExtensions,
-  Forms, PSQLConnFrm;
+  Forms, PSQLConnFrm, Data.FmtBcd;
 
 type
   //Setup decorator
@@ -380,7 +380,9 @@ begin
 end;
 
 procedure TestTPSQLQuery.TestInsert;
+var _Num: TBcd;
 begin
+  _Num := StrToBcd('98765432100123456789.98765432100123456789', PSQL_FS);
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
@@ -390,8 +392,10 @@ begin
   FPSQLQuery.FieldByName('datum').AsDateTime := Now();
   FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
   FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
+  FPSQLQuery.FieldByName('numf').AsBCD := _Num;
   FPSQLQuery.Post;
   Check(FPSQLQuery.RecordCount = 1, 'TPSQLQuery.Insert failed');
+  Check(_Num = FPSQLQuery.FieldByName('numf').AsBCD, 'Incorrect value for NUMERIC');
 end;
 
 procedure TestTPSQLQuery.TestLocateInt;
@@ -615,7 +619,9 @@ begin
 end;
 
 procedure TestTPSQLQuery.TestUpdate;
+var _Num: TBcd;
 begin
+  _Num := StrToBcd('98765432100123456789.98765432100123456789', PSQL_FS);
   QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
@@ -631,8 +637,10 @@ begin
   FPSQLQuery.FieldByName('datum').AsDateTime := Now();
   FPSQLQuery.FieldByName('b').AsBoolean := Boolean(Random(1));
   FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
+  FPSQLQuery.FieldByName('numf').AsBCD := _Num;
   FPSQLQuery.Post;
-  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'String value is wrong after Update');
+  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'Incorrect value for VARCHAR after Update');
+  Check(_Num = FPSQLQuery.FieldByName('numf').AsBCD, 'Incorrect value for NUMERIC after Update');
 end;
 
 { TDbSetup }
@@ -641,7 +649,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
+  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
                 '  intf integer NOT NULL,' + //NotNull ->Required
@@ -653,7 +661,8 @@ begin
                 '  b boolean,' +
                 '  floatf real,' +
                 '  datef date,' +
-                '  timef time' +
+                '  timef time,' +
+                '  numf numeric' +
                 ')');
   QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
                 '(' +
