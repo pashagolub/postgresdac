@@ -180,6 +180,7 @@ begin
                 'byteaf bytea,' +
                 'oidf oid,'  +
                 'memof text)');
+  TestDBSetup.Database.Execute('CREATE TEMP TABLE server_tasks(process text, PID int4, session varchar, session_num int4, memory varchar)');
 end;
 
 procedure TTestDBSetup.TearDown;

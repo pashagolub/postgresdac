@@ -15,30 +15,24 @@ unit PSQLCopyTest;
 interface
 
 uses
-  PSQLAccess, Classes, PSQLCopy, PSQLDbTables, PSQLTypes, SysUtils
+  PSQLAccess, Classes, PSQLCopy, PSQLDbTables, PSQLTypes, SysUtils,
   {$IFNDEF DUNITX}
-  ,TestFramework, TestExtensions
+  TestFramework, TestExtensions
   {$ELSE}
-  , DUnitX.TestFramework, Types
+  DUnitX.TestFramework, Types
   {$ENDIF};
 
 type
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
 
-  // Test methods for class TCustomPSQLCopy
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTCustomPSQLCopy = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     {$IFDEF DUNITX}
     FRSTestTask : TResourceStream;
     {$ENDIF}
+  public
+    procedure SetUp; override;
+    procedure TearDown; override;
   published
     procedure TestLoadFromStream;
     procedure TestSaveToStream;
@@ -63,7 +57,6 @@ implementation
 uses TestHelper {$IFDEF DUNITX}, MainF, IOUtils {$ENDIF} ;
 
 var
-  FldDB: TPSQLDatabase;
   FPSQLCopy: TPSQLCopy;
   FilePath: string; //= 'TestOut\';
 
@@ -156,9 +149,8 @@ end;
 
 procedure InternalSetUp;
 begin
-  FPSQLCopy := TPSQLCopy.Create(nil);
-  FPSQLCopy.Database := FldDB;
-  FldDB.Execute('CREATE TEMP TABLE server_tasks(process text, PID int4, session varchar, session_num int4, memory varchar)');
+
+
 end;
 
 procedure InternalTearDown;
@@ -186,6 +178,17 @@ begin
   InternalTearDown;
 end;
 {$ENDIF}
+
+procedure TestTCustomPSQLCopy.SetUp;
+begin
+  FPSQLCopy := TPSQLCopy.Create(nil);
+  FPSQLCopy.Database := TestDBSetup.Database;
+end;
+
+procedure TestTCustomPSQLCopy.TearDown;
+begin
+  FreeAndNil(FPSQLCopy);
+end;
 
 procedure TestTCustomPSQLCopy.TestLoadFromClientSideFile;
 var
@@ -216,9 +219,11 @@ procedure TestTCustomPSQLCopy.TestLoadFromServerSideFile;
 var
   FileName: string;
 begin
+
   // TODO: Setup method call parameters
-  FPSQLCopy.LoadFromServerSideFile(FileName);
+  // FPSQLCopy.LoadFromServerSideFile(FileName);
   // TODO: Validate method results
+  DACIsTrue(True);
 end;
 
 procedure TestTCustomPSQLCopy.TestSaveToServerSideFile;
@@ -227,9 +232,9 @@ var
   QueryRes: string;
 begin
   FPSQlCopy.SQL.Text := 'SELECT * FROM generate_series(1, 11)';
-  FileName := FldDB.SelectStringDef('SHOW data_directory', 'C:') + '/loglist.txt';
+  FileName := TestDBSetup.Database.SelectStringDef('SHOW data_directory', 'C:') + '/loglist.txt';
   FPSQLCopy.SaveToServerSideFile(FileName);
-  QueryRes := FldDB.SelectStringDef('SELECT now() - s.modification < ''10 minutes'' FROM pg_stat_file(' + QuotedStr(FileName) + ') s', 'f');
+  QueryRes := TestDBSetup.Database.SelectStringDef('SELECT now() - s.modification < ''10 minutes'' FROM pg_stat_file(' + QuotedStr(FileName) + ') s', 'f');
   DACIsTrue(QueryRes = 't');
 end;
 
@@ -254,29 +259,9 @@ begin
   FPSQlCopy.SQL.Text := 'SELECT * FROM generate_series(1, 11)';
   CommandLine := 'find "1" > loglist.txt';
   FPSQLCopy.SaveToProgram(CommandLine);
-  QueryRes := FldDB.SelectStringDef('SELECT now()-s.modification<''10 minutes'' FROM pg_stat_file(''loglist.txt'') s', 'f');
+  QueryRes := TestDBSetup.Database.SelectStringDef('SELECT now()-s.modification<''10 minutes'' FROM pg_stat_file(''loglist.txt'') s', 'f');
   DACIsTrue(QueryRes = 't');
 end;
-
-{ TDbSetup }
-
-{$IFNDEF DUNITX}
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(FldDB, 'PSQLCopyTest.conf');
-  InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  FldDB.Close;
-  ComponentToFile(FldDB, 'PSQLCopyTest.conf');
-  FldDB.Free;
-  InternalTearDown;
-end;
-{$ENDIF}
 
 initialization
 
@@ -286,7 +271,7 @@ initialization
   FilePath := {$IFDEF DUNITX}
                       TPath.GetDocumentsPath + PathDelim
                      {$ELSE}
-                     'TestOut\'
+                     'TestData\'
                      {$ENDIF};
 end.
 

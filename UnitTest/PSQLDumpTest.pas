@@ -83,7 +83,6 @@ type
     procedure TestRestoreFromFileToDB;
     procedure TestRestoreFromFileToFile;
     procedure TestRestoreFromDirectoryToFile;
-    procedure TestRestoreNonASCIIName;
   end;
 
 var
@@ -105,6 +104,12 @@ begin
   FPSQLDump.Database := TestDBSetup.Database;
   FPSQLDump.Options := [doVerbose];
   FPSQLDump.OnLibraryLoad := LoadLibrary;
+  DumpPath := {$IFDEF DUNITX}
+                        TPath.GetDocumentsPath + PathDelim
+                     {$ELSE}
+                     'TestOutput\'
+                     {$ENDIF};
+  DumpFileName:= DumpPath + 'TestDumpToFile.backup';
 end;
 
 procedure TestTPSQLDump.TearDown;
@@ -296,6 +301,12 @@ begin
   FPSQLRestore.Database := TestDBSetup.Database;
   FPSQLRestore.Options := [roVerbose];
   FPSQLRestore.OnLibraryLoad := LoadLibrary;
+  DumpPath := {$IFDEF DUNITX}
+                        TPath.GetDocumentsPath + PathDelim
+                     {$ELSE}
+                     'TestOutput\'
+                     {$ENDIF};
+  DumpFileName:= DumpPath + 'TestDumpToFile.backup';
 end;
 
 procedure TestTPSQLRestore.TearDown;
@@ -351,33 +362,11 @@ begin
   DACCheck(FileExists(LogFileName), 'Log file empty');
 end;
 
-procedure TestTPSQLRestore.TestRestoreNonASCIIName;
-var
-  LogFileName: string;
-  FileName: string;
-begin
-  LogFileName := DumpPath + 'ћ≥й–есторе”крањнськийЋог.log';
-  FileName := DumpPath + 'ћ≥й”крањнськийƒамп.backup';
-  FPSQLRestore.OutputFileName := DumpPath + 'ћ≥й–есторе”крањнський—крипт.sql';
-  FPSQLRestore.RestoreFromFile(FileName, LogFileName);
-  DACCheck(FileExists(DumpFileName), 'Dump file empty');
-  DACCheck(FileExists(FPSQLRestore.OutputFileName), 'Output file empty');
-  DACCheck(FileExists(LogFileName), 'Log file empty');
-end;
-
 initialization
 
 {$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLDump);
   TDUnitX.RegisterTestFixture(TestTPSQLRestore);
 {$ENDIF}
-  DumpPath := {$IFDEF DUNITX}
-                        TPath.GetDocumentsPath + PathDelim
-                     {$ELSE}
-                     'TestOut\'
-                     {$ENDIF};
-  DumpFileName:= DumpPath + 'TestDumpToFile.backup';
-
 
 end.
-
