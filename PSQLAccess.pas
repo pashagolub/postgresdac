@@ -5892,15 +5892,12 @@ begin
   Field := Fields[FieldNo];
   CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
   Field.Buffer := PRecord;
-  if not Field.FieldNull then
+  Buff := Field.FieldValue;
+  if PAnsiDACChar(Buff)^ = #1 then //blob stream was created
    begin
-    Buff := Field.FieldValue;
-    if PAnsiDACChar(Buff)^ = #1 then
-     begin
-       PAnsiDACChar(Buff)^ := #0;
-       Inc(PAnsiDACChar(Buff));
-       FreeAndNil(TBlobItem(Buff^).Blob);
-     end;
+     PAnsiDACChar(Buff)^ := #0;
+     Inc(PAnsiDACChar(Buff));
+     FreeAndNil(TBlobItem(Buff^).Blob);
    end;
   CloseBlob(FieldNo);
 end;
