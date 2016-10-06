@@ -200,15 +200,16 @@ end;
 
 procedure TestTPSQLBlobs.TestMemoEmptyValue;
 begin
+  //compatibility issue: memos with empty strings are evaulated as NULLs
   FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
   FPSQLQuery.Insert;
   (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := '';
-  DACCheck(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL before Post with empty text value');
+  DACCheck(FPSQLQuery.FieldByName('memof').IsNull, 'memof field must NULL before Post with empty text value');
   FPSQLQuery.Post;
   FPSQLQuery.First;
-  DACCheck(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL after Post with empty text value');
+  DACCheck(FPSQLQuery.FieldByName('memof').IsNull, 'memof field must NULL after Post with empty text value');
   FPSQLQuery.Close;
 end;
 
