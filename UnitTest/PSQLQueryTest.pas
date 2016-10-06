@@ -29,21 +29,10 @@ uses
 
 type
 
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
-
-  // Test methods for class TPSQLQuery
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLQuery = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     FPSQLQuery: TPSQLQuery;
-
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -97,36 +86,12 @@ type
     {$ENDIF}
   end;
 
-var
-  QryDB: TPSQLDatabase;
-
 implementation
 
 uses TestHelper{$IFNDEF DELPHI_5}, DateUtils{$ENDIF}{$IFDEF DUNITX}, MainF{$ENDIF};
 
 procedure InternalSetUp;
 begin
-  QryDB.Execute('SET TimeZone to DEFAULT'); // for the complex timezone -04:30
-  QryDB.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone,' + //not Required etc.
-                '  notes text,' +
-                '  graphic oid,' +
-                '  b_graphic bytea,' +
-                '  b boolean,' +
-                '  floatf real,' +
-                '  datef date,' +
-                '  timef time' +
-                ')');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone)'); //not Required.
 end;
 
 {$IFDEF DELPHI_5}
@@ -256,9 +221,9 @@ end;
 procedure TestTPSQLQuery.SetUp;
 begin
   FPSQLQuery := TPSQLQuery.Create(nil);
-  FPSQLQuery.Database := QryDB;
+  FPSQLQuery.Database := TestDBSetup.Database;
   FPSQLQuery.ParamCheck := False;
-  QryDB.Execute('TRUNCATE requestlive_test');
+  TestDBSetup.Database.Execute('TRUNCATE requestlive_test');
 end;
 
 procedure TestTPSQLQuery.TearDown;
@@ -368,7 +333,7 @@ end;
 procedure TestTPSQLQuery.TestDelete;
 var aCount: integer;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -424,7 +389,7 @@ begin
   Q := TPSQLQuery.Create(nil);
   try
     Q.SQL.Text := 'SELECT 1';
-    Q.Database := QryDB;
+    Q.Database := TestDBSetup.Database;
     Q.Open;
     FPSQLQuery.SQL.Text := 'SELECT g.s, repeat($$Pg$$, 25000) FROM generate_series(1, 250) g(s)';
     FPSQLQuery.Options := FPSQLQuery.Options + [dsoFetchOnDemand];
@@ -522,7 +487,7 @@ end;
 procedure TestTPSQLQuery.TestRefreshModifiedDelete;
 var anID, aRecordCount: integer;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -569,7 +534,7 @@ end;
 
 procedure TestTPSQLQuery.TestRefreshModifiedInsertNonEmptyTable;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -581,7 +546,7 @@ procedure TestTPSQLQuery.TestRefreshModifiedUpdate;
 var
   iVal: Integer;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -679,7 +644,7 @@ end;
 
 procedure TestTPSQLQuery.TestUpdate;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -698,24 +663,6 @@ begin
   DACCheck(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'String value is wrong after Update');
 end;
 
-{$IFNDEF DUNITX}
-{ TDbSetup }
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
-  InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Free;
-end;
-{$ENDIF}
-
 {$IFDEF DUNITX}
 procedure TestTPSQLQuery.SetupFixture;
 begin
@@ -725,10 +672,7 @@ end;
 {$ENDIF}
 
 initialization
-{$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLQuery.Suite, 'Database Setup'));
-{$ELSE}
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLQuery);
 {$ENDIF}
 

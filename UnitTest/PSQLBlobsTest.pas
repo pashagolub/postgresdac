@@ -34,7 +34,7 @@ type
   {$ENDIF}
 
   // Test methods for class TPSQLQuery
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLBlobs = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     {$IFDEF DUNITX}
@@ -263,7 +263,7 @@ begin
     DACCheck(FileExists(OutputPathStr), 'oidf cannot save file to disk');
 
     {$IFNDEF DUNITX}
-    DACCheck(FileSize('TestData\test.bmp') = FileSize(OutputPathStr));
+    DACCheck(FileSize('TestData\test.bmp') = FileSize(OutputPathStr), 'file sizes differs');
     {$ELSE}
     FS.LoadFromFile(OutputPathStr);
     DACIsTrue(FRSTestBmp.Size = FS.Size);
@@ -322,7 +322,7 @@ procedure TDbSetup.SetUp;
 begin
   inherited;
   SetUpTestDatabase(QryDB, 'PSQLBlobs.conf');
-  InternalSetUp;
+  (Test as TestTPSQLBlobs).InternalSetUp;
 end;
 
 procedure TDbSetup.TearDown;
@@ -351,10 +351,7 @@ end;
 {$ENDIF}
 
 initialization
- {$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLBlobs.Suite, 'Database Setup'));
-{$ELSE}
+ {$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLBlobs);
 {$ENDIF}
 

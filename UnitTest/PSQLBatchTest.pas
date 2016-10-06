@@ -19,28 +19,17 @@ interface
 uses
   PSQLTypes, Classes, PSQLDbTables, SysUtils, PSQLBatch
   {$IFNDEF DUNITX}
-    ,TestFramework, Db, Windows, TestExtensions,
-    Forms, PSQLConnFrm
+    ,TestFramework, TestExtensions
   {$ELSE}
     ,DUnitX.TestFramework
   {$ENDIF};
 
 type
 
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
-
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLBatchExecute = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
-  strict private
+  private
     FPSQLBatchExecute: TPSQLBatchExecute;
-    procedure InternalSetUp;
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -59,41 +48,18 @@ type
     {$ENDIF}
   end;
 
-var
-  QryDB: TPSQLDatabase;
-
 implementation
 
-uses TestHelper, MainF;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
-procedure TestTPSQLBatchExecute.InternalSetUp;
+procedure InternalSetUp;
 begin
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS requestlive_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone,' + //not Required etc.
-                '  notes text,' +
-                '  graphic oid,' +
-                '  b_graphic bytea,' +
-                '  b boolean,' +
-                '  floatf real,' +
-                '  datef date,' +
-                '  timef time' +
-                ')');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone)'); //not Required.
 end;
 
 procedure TestTPSQLBatchExecute.SetUp;
 begin
   FPSQLBatchExecute := TPSQLBatchExecute.Create(nil);
-  FPSQLBatchExecute.Database := QryDB;
+  FPSQLBatchExecute.Database := TestDBSetup.Database;
 end;
 
 {$IFDEF DUNITX}
@@ -124,32 +90,11 @@ begin
                           '$_$; ';
 
   FPSQLBatchExecute.ExecSQL;
-  DACCheck(QryDB.SelectString('SELECT bizdays(now, now)', IsOk) > '', 'Creating function as dollar-quoted string failed');
+  DACCheck(TestDBSetup.Database.SelectString('SELECT bizdays(now, now)', IsOk) > '', 'Creating function as dollar-quoted string failed');
 end;
-
-{ TDbSetup }
-{$IFNDEF DUNITX}
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLBatchTest.conf');
-  InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLBatchTest.conf');
-  QryDB.Free;
-end;
-{$ENDIF}
 
 initialization
-{$IFNDEF DUNITX}
-  // Register any test cases with the test runner
-  RegisterTest(TDbSetup.Create(TestTPSQLBatchExecute.Suite, 'TPSQLBatchExecute tests'));
-{$ELSE}
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLBatchExecute);
 {$ENDIF}
 end.

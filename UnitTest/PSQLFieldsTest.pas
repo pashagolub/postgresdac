@@ -17,27 +17,16 @@ interface
 
 uses
   PSQLFields, PSQLGeomTypes, PSQLAccess, PSQLDbTables, PSQLTypes, Db,
-  Classes, SysUtils
+  Classes, SysUtils,
   {$IFNDEF DUNITX}
-  ,TestFramework, Windows, ExtCtrls, Controls, DbCommon,
-  Graphics, StdVCL, TestExtensions, Forms, PSQLConnFrm
+  TestFramework, TestExtensions
   {$ELSE}
-    ,DUnitX.TestFramework
+  DUnitX.TestFramework
   {$ENDIF};
 
 type
 
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
-
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
-  // Test methods for class TPSQLGuidField
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLGuidField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   {$IFDEF DUNITX}
   private
@@ -73,7 +62,7 @@ type
   end;
 
   // Test methods for class TPSQLPointField
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestGeometricFields = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   public
     {$IFNDEF DUNITX}
@@ -95,7 +84,7 @@ type
   end;
 
   // Test methods for class TPSQLRangeField
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLRangeField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   public
     {$IFNDEF DUNITX}
@@ -121,7 +110,7 @@ type
     {$ENDIF}
   end;
 
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestNativeNumericField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   public
     {$IFNDEF DUNITX}
@@ -145,12 +134,11 @@ type
   procedure InternalTearDown;
 
 var
-  FldDB: TPSQLDatabase;
   FldQry: TPSQLQuery;
 
 implementation
 
-uses TestHelper, Math, MainF;
+uses TestHelper, Math{$IFDEF DUNITX}, MainF{$ENDIF};
 
 {$IFDEF DELPHI_5}
 function CoCreateGuid(out guid: TGUID): HResult; stdcall; external 'ole32.dll' name 'CoCreateGuid';
@@ -199,16 +187,20 @@ end;
 
 procedure TestTPSQLGuidField.TestGUIDDelete_ASCII;
 begin
-  fldDB.CharSet := 'SQL_ASCII';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
-  TestGUIDDelete;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
-  TestGUIDDelete;
+  TestDBSetup.Database.CharSet := 'SQL_ASCII';
+  try
+    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestGUIDDelete;
+    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestGUIDDelete;
+  finally
+    TestDBSetup.Database.CharSet := 'UNICODE';
+  end;
 end;
 
 procedure TestTPSQLGuidField.TestGUIDDelete_UTF8;
 begin
-  fldDB.CharSet := 'UNICODE';
+  TestDBSetup.Database.CharSet := 'UNICODE';
   FldQry.Options := FldQry.Options + [dsoUseGUIDField];
   TestGUIDDelete;
   FldQry.Options := FldQry.Options - [dsoUseGUIDField];
@@ -252,16 +244,20 @@ end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert_ASCII;
 begin
-  fldDB.CharSet := 'SQL_ASCII';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
-  TestGUIDInsert;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
-  TestGUIDInsert;
+  TestDBSetup.Database.CharSet := 'SQL_ASCII';
+  try
+    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestGUIDInsert;
+    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestGUIDInsert;
+  finally
+    TestDBSetup.Database.CharSet := 'UNICODE';
+  end;
 end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert_UTF8;
 begin
-  fldDB.CharSet := 'UNICODE';
+  TestDBSetup.Database.CharSet := 'UNICODE';
   FldQry.Options := FldQry.Options + [dsoUseGUIDField];
   TestGUIDInsert;
   FldQry.Options := FldQry.Options - [dsoUseGUIDField];
@@ -286,16 +282,20 @@ end;
 
 procedure TestTPSQLGuidField.TestGUIDUpdate_ASCII;
 begin
-  fldDB.CharSet := 'SQL_ASCII';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
-  TestGUIDUpdate;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
-  TestGUIDUpdate;
+  TestDBSetup.Database.CharSet := 'SQL_ASCII';
+  try
+    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestGUIDUpdate;
+    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestGUIDUpdate;
+  finally
+    TestDBSetup.Database.CharSet := 'UNICODE';
+  end;
 end;
 
 procedure TestTPSQLGuidField.TestGUIDUpdate_UTF8;
 begin
-  fldDB.CharSet := 'UNICODE';
+  TestDBSetup.Database.CharSet := 'UNICODE';
   FldQry.Options := FldQry.Options + [dsoUseGUIDField];
   TestGUIDUpdate;
   FldQry.Options := FldQry.Options - [dsoUseGUIDField];
@@ -304,40 +304,25 @@ end;
 
 procedure TestTPSQLGuidField.TestGUIDField_ASCII;
 begin
-  fldDB.CharSet := 'SQL_ASCII';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
-  TestGUIDField;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
-  TestGUIDField;
+  TestDBSetup.Database.CharSet := 'SQL_ASCII';
+  try
+    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestGUIDField;
+    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestGUIDField;
+  finally
+    TestDBSetup.Database.CharSet := 'UNICODE';
+  end;
 end;
 
 procedure TestTPSQLGuidField.TestGUIDField_UTF8;
 begin
-  fldDB.CharSet := 'UNICODE';
+  TestDBSetup.Database.CharSet := 'UNICODE';
   FldQry.Options := FldQry.Options + [dsoUseGUIDField];
   TestGUIDField;
   FldQry.Options := FldQry.Options - [dsoUseGUIDField];
   TestGUIDField;
 end;
-
-{ TDbSetup }
-{$IFNDEF DUNITX}
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(FldDB, 'PSQLQueryTest.conf');
-  InternalSetUp
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  FldDB.Close;
-  ComponentToFile(FldDB, 'PSQLQueryTest.conf');
-  FldDb.Free;
-  InternalTearDown;
-end;
-{$ENDIF}
 
 { TestTPSQLPointField }
 
@@ -661,15 +646,8 @@ end;
 procedure InternalSetUp;
 begin
   FldQry := TPSQLQuery.Create(nil);
-  FldQry.Database := FldDB;
+  FldQry.Database := TestDBSetup.Database;
   FldQry.ParamCheck := False;
-  FldDB.Execute('SET TimeZone to ''America/Caracas'''); // for the complex timezone -04:30
-  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS uuid_test_case_table(uuidf uuid NOT NULL PRIMARY KEY)');
-  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS geometry_test_case_table(id int4 PRIMARY KEY, p point, c circle, b box, l lseg)');
-  FldDB.Execute('CREATE TEMP TABLE IF NOT EXISTS range_test_case_table('+
-                'id int4 PRIMARY KEY, numr numrange, '+
-                'intr int4range, dater daterange, '+
-                'tsr tsrange, tstzr tstzrange)');
 end;
 
 procedure InternalTearDown;
@@ -682,17 +660,18 @@ begin
 end;
 
 initialization
-{$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLGuidField.Suite));
-  RegisterTest(TDbSetup.Create(TestGeometricFields.Suite));
-  RegisterTest(TDbSetup.Create(TestTPSQLRangeField.Suite));
-  RegisterTest(TDbSetup.Create(TestNativeNumericField.Suite));
-{$ELSE}
+
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLGuidField);
   TDUnitX.RegisterTestFixture(TestGeometricFields);
   TDUnitX.RegisterTestFixture(TestTPSQLRangeField);
   TDUnitX.RegisterTestFixture(TestNativeNumericField);
 {$ENDIF}
+  InternalSetUp();
+
+finalization
+
+  InternalTearDown();
+
 end.
 

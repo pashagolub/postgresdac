@@ -15,12 +15,11 @@ unit PSQLNotifyTest;
 interface
 
 uses
-  Classes, PSQLNotify, PSQLTypes, PSQLAccess, PSQLDbTables
+  Classes, PSQLNotify, PSQLTypes, PSQLAccess, PSQLDbTables,
   {$IFNDEF DUNITX}
-  , TestFramework,
-  TestExtensions
+  TestFramework, TestExtensions
   {$ELSE}
-  , DUnitX.TestFramework
+  DUnitX.TestFramework
   {$ENDIF};
 
 type
@@ -29,20 +28,7 @@ type
     class procedure NotifyHandlerEx(Sender: TObject; Channel: string; Payload: string; ProcessID : Integer);
   end;
 
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  public
-//    procedure NotifyHandler(Sender: TObject; Event: string; ProcessID : Integer);
-//    procedure NotifyHandlerEx(Sender: TObject; Channel: string; Payload: string; ProcessID : Integer);
-  end;
-  {$ENDIF}
-
-  // Test methods for class TPSQLNotify
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLNotify = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     FPSQLNotify: TPSQLNotify;
@@ -75,23 +61,22 @@ type
   end;
 
 var
-  NotifyDb: TPSQLDatabase;
   TestNotify: TPSQLNotify;
   MsgReceived, MsgReceivedEx: boolean;
 
 implementation
 
-uses TestHelper, SysUtils, MainF;
+uses TestHelper, SysUtils{$IFDEF DUNITX}, MainF{$ENDIF};
 
 procedure TestTPSQLNotify.InternalSetUp;
 begin
   TestNotify := TPSQLNotify.Create(nil);
-  TestNotify.Database := NotifyDb;
+  TestNotify.Database := TestDBSetup.Database;
   TestNotify.ListenList.CommaText := 'first,second,third,custom';
   TestNotify.OnNotify := THandlerClass.NotifyHandler;
   TestNotify.OnNotifyEx := THandlerClass.NotifyHandlerEx;
   TestNotify.Active := True;
-  DACCheck(NotifyDB.ServerVersionAsInt > 090000, 'Server version less then 9.0 to test Payload functionality');
+  DACCheck(TestDBSetup.Database.ServerVersionAsInt > 090000, 'Server version less then 9.0 to test Payload functionality');
 end;
 
 procedure TestTPSQLNotify.InternalTearDown;
@@ -108,7 +93,7 @@ end;
 procedure TestTPSQLNotify.SetUp;
 begin
   FPSQLNotify := TPSQLNotify.Create(nil);
-  FPSQLNotify.Database := NotifyDb;
+  FPSQLNotify.Database := TestDBSetup.Database;
   FPSQLNotify.ListenList.CommaText := 'first,second,third';
 end;
 
@@ -193,30 +178,10 @@ begin
   DACCheck(FPSQLNotify.ListenList.Count = 0, 'UnlistenAll doesn''t clear events');
 end;
 
-{$IFNDEF DUNITX}
-{ TDbSetup }
-
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(NotifyDb, 'PSQLNotify.conf');
-  InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  NotifyDb.Close;
-  ComponentToFile(NotifyDb, 'PSQLNotify.conf');
-  NotifyDb.Free;
-  InternalTearDown;
-end;
-{$ENDIF}
-
 class procedure THandlerClass.NotifyHandler(Sender: TObject; Event: string;
   ProcessID: Integer);
 begin
-  if NotifyDb.GetBackendPID = ProcessID then //it's ours
+  if TestDBSetup.Database.GetBackendPID = ProcessID then //it's ours
     if not MsgReceived then
       MsgReceived := (Event = 'first');
 end;
@@ -224,7 +189,7 @@ end;
 class procedure THandlerClass.NotifyHandlerEx(Sender: TObject; Channel,
   Payload: string; ProcessID: Integer);
 begin
-  if NotifyDb.GetBackendPID = ProcessID then //it's ours
+  if TestDBSetup.Database.GetBackendPID = ProcessID then //it's ours
    begin
     if not MsgReceived then
       MsgReceived := (Channel = 'first');
@@ -234,10 +199,7 @@ begin
 end;
 
 initialization
- {$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLNotify.Suite, 'Database Setup'));
-{$ELSE}
+ {$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLNotify);
 {$ENDIF}
 

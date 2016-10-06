@@ -279,10 +279,8 @@ end;
 {$ENDIF}
 
 initialization
- {$IFNDEF DUNITX}
-  // Register any test cases with the test runner
-  RegisterTest(TDbSetup.Create(TestTCustomPSQLCopy.Suite, 'Database Setup'));
-{$ELSE}
+
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTCustomPSQLCopy);
 {$ENDIF}
   FilePath := {$IFDEF DUNITX}

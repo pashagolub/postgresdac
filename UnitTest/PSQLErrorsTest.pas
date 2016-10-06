@@ -15,24 +15,15 @@ unit PSQLErrorsTest;
 interface
 
 uses
-  PSQLTypes, Classes, SysUtils, PSQLDbTables
+  PSQLTypes, Classes, SysUtils, PSQLDbTables,
   {$IFNDEF DUNITX}
-  ,TestFramework, Db, Windows, Math, PSQLAboutFrm, TestExtensions
+  TestFramework, TestExtensions
   {$ELSE}
-  , DUnitX.TestFramework, ioUtils
+  DUnitX.TestFramework, ioUtils
   {$ENDIF};
 
 type
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
 
-  // Test methods for class TPSQLErrors
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLErrors = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   published
@@ -46,7 +37,6 @@ type
   end;
 
 var
-  QryDb: TPSQLDatabase;
   FilePath: string;
   ErrorsFileName: string;
 
@@ -56,25 +46,24 @@ uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
 procedure InternalSetUp;
 begin
-  QryDB.ErrorVerbosity := evVERBOSE;
+
 end;
 
 {$IFDEF DUNITX}
 procedure TestTPSQLErrors.SetupFixture;
 begin
-  QryDb := MainForm.Database;
-  InternalSetUp;
+
 end;
 {$ENDIF}
 
 procedure TestTPSQLErrors.TestConstraintViolation;
 begin
- if QryDB.ServerVersionAsInt < 090300 then Exit; //feature unsupported
- qryDB.Execute('CREATE TABLE IF NOT EXISTS aa (a int PRIMARY KEY);');
+ if TestDBSetup.Database.ServerVersionAsInt < 090300 then Exit; //feature unsupported
+ TestDBSetup.Database.Execute('CREATE TABLE IF NOT EXISTS aa (a int PRIMARY KEY);');
  try
-   qryDB.Execute('INSERT INTO aa VALUES (1)');
+   TestDBSetup.Database.Execute('INSERT INTO aa VALUES (1)');
    try
-     qryDB.Execute('INSERT INTO aa VALUES (1)');
+     TestDBSetup.Database.Execute('INSERT INTO aa VALUES (1)');
    except
      on E: EPSQLDatabaseError do
      begin
@@ -85,7 +74,7 @@ begin
      end;
    end;
  finally
-   qryDB.Execute('DROP TABLE aa CASCADE')
+   TestDBSetup.Database.Execute('DROP TABLE aa CASCADE')
  end;
 end;
 
@@ -119,7 +108,7 @@ end;
 procedure TestTPSQLErrors.TestSyntaxError;
 begin
  try
-   qryDb.Execute('SOMETHING STUPID');
+   TestDBSetup.Database.Execute('SOMETHING STUPID');
  except
    on E: EPSQLDatabaseError do
    begin
@@ -130,30 +119,9 @@ begin
  end;
 end;
 
-{$IFNDEF DUNITX}
-{ TDbSetup }
-
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLErrors.conf');
-  InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLErrors.conf');
-  QryDB.Free;
-end;
-{$ENDIF}
-
 initialization
- {$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLErrors.Suite, 'Database Setup'));
-{$ELSE}
+
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLErrors);
 {$ENDIF}
   FilePath := {$IFDEF DUNITX}

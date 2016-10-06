@@ -19,28 +19,17 @@ uses
   Db, PSQLDump, PSQLTypes, SysUtils, PSQLDbTables, Classes
   {$IFDEF DELPHI_15}, IOUtils{$ELSE}, FileCtrl{$ENDIF}
   {$IFNDEF DUNITX}
-  ,TestFramework, Windows, Math, PSQLAboutFrm, TestExtensions
+  ,TestFramework, Math, TestExtensions
   {$ELSE}
   , DUnitX.TestFramework
   {$ENDIF};
 
 type
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
 
-  // Test methods for class TPSQLDump
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLDump = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     FPSQLDump: TPSQLDump;
-    procedure InternalSetUp;
-    procedure InternalTearDown;
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -75,7 +64,7 @@ type
   end;
 
   // Test methods for class TPSQLRestore
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLRestore = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     FPSQLRestore: TPSQLRestore;
@@ -98,27 +87,12 @@ type
   end;
 
 var
-  QryDb: TPSQLDatabase;
   DumpPath: string; //= 'TestOut\';
   DumpFileName: string; //= 'TestDumpToFile.backup';
 
 implementation
 
-uses TestHelper, MainF;
-
-procedure TestTPSQLDump.InternalSetUp;
-begin
-  FPSQLDump := TPSQLDump.Create(nil);
-  FPSQLDump.Database := QryDb;
-  FPSQLDump.Options := [doVerbose];
-  FPSQLDump.OnLibraryLoad := LoadLibrary;
-end;
-
-procedure TestTPSQLDump.InternalTearDown;
-begin
-  FPSQLDump.Free;
-  FPSQLDump := nil;
-end;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
 procedure TestTPSQLDump.LoadLibrary(Sender: TObject; var FileName: string);
 begin
@@ -127,10 +101,16 @@ end;
 
 procedure TestTPSQLDump.SetUp;
 begin
+  FPSQLDump := TPSQLDump.Create(nil);
+  FPSQLDump.Database := TestDBSetup.Database;
+  FPSQLDump.Options := [doVerbose];
+  FPSQLDump.OnLibraryLoad := LoadLibrary;
 end;
 
 procedure TestTPSQLDump.TearDown;
 begin
+  FPSQLDump.Free;
+  FPSQLDump := nil;
 end;
 
 procedure TestTPSQLDump.TestDumpToStream;
@@ -186,7 +166,6 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLDump.SetupFixture;
 begin
-  QryDb := MainForm.Database;
   InternalSetUp;
 end;
 
@@ -221,22 +200,23 @@ begin
 end;
 
 procedure TestTPSQLDump.TestDumpNonASCIIName;
-var OldDb: string;
+var TempDb: TPSQLDatabase;
     DoesDbExist: boolean;
 begin
-  QryDb.SelectString('SELECT TRUE FROM pg_database WHERE datname = ''ћо€”крањнськаЅазочка''', DoesDbExist);
+  TestDBSetup.Database.SelectString('SELECT TRUE FROM pg_database WHERE datname = ''ћо€”крањнськаЅазочка''', DoesDbExist);
   if not DoesDbExist then
-    QryDb.Execute('CREATE DATABASE "ћо€”крањнськаЅазочка"');
-  oldDB := QryDb.DatabaseName;
+    TestDBSetup.Database.Execute('CREATE DATABASE "ћо€”крањнськаЅазочка"');
+  TempDb := TPSQLDatabase.Create(nil);
   try
-    QryDb.Close;
-    QryDb.DatabaseName := 'ћо€”крањнськаЅазочка';
+    TempDb.Assign(TestDBSetup.Database);
+    TempDb.DatabaseName := 'ћо€”крањнськаЅазочка';
     DumpFileName := DumpPath + 'ћ≥й”крањнськийƒамп.backup';
+    FPSQLDump.Database := TempDB;
     FPSQLDump.DumpFormat := dfCompressedArchive;
     TestDumpToFileLogFile(DumpPath + 'ћ≥й”крањнськийƒамп.log');
   finally
-    QryDb.Close;
-    QryDb.DatabaseName := OldDb;
+    TempDb.Close;
+    TempDb.Free;
   end;
 end;
 
@@ -313,7 +293,7 @@ end;
 procedure TestTPSQLRestore.SetUp;
 begin
   FPSQLRestore := TPSQLRestore.Create(nil);
-  FPSQLRestore.Database := QryDb;
+  FPSQLRestore.Database := TestDBSetup.Database;
   FPSQLRestore.Options := [roVerbose];
   FPSQLRestore.OnLibraryLoad := LoadLibrary;
 end;
@@ -344,14 +324,14 @@ var
   Log: TStrings;
   FileName: string;
 begin
-  QryDb.Execute('CREATE DATABASE restore_test TEMPLATE template0;');
+  TestDBSetup.Database.Execute('CREATE DATABASE restore_test TEMPLATE template0;');
   Log := TStringList.Create;
   try
     FileName := DumpFileName;
     FPSQLRestore.DBName := 'restore_test';
     FPSQLRestore.RestoreFromFile(FileName, Log);
   finally
-    QryDb.Execute('DROP DATABASE restore_test;');
+    TestDBSetup.Database.Execute('DROP DATABASE restore_test;');
     Log.SaveToFile(DumpPath + 'RestoreFromFile.log');
     Log.Free;
   end;
@@ -385,30 +365,9 @@ begin
   DACCheck(FileExists(LogFileName), 'Log file empty');
 end;
 
-{$IFNDEF DUNITX}
-{ TDbSetup }
-
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLDump.conf');
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLDump.conf');
-  QryDB.Free;
-end;
-{$ENDIF}
-
 initialization
-  //PaGo: Register any test cases with setup decorator
- {$IFNDEF DUNITX}
-  RegisterTest(TDbSetup.Create(TestTPSQLDump.Suite, 'Database Setup'));
-  RegisterTest(TDbSetup.Create(TestTPSQLRestore.Suite, 'Database Setup'));
-{$ELSE}
+
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLDump);
   TDUnitX.RegisterTestFixture(TestTPSQLRestore);
 {$ENDIF}

@@ -15,33 +15,19 @@ unit PSQLTableTest;
 interface
 
 uses
-  PSQLAccess, PSQLDbTables, PSQLTypes, Classes, Db
+  PSQLAccess, PSQLDbTables, PSQLTypes, Classes, Db,
   {$IFNDEF DUNITX}
-    ,TestFramework,  System.Generics.Collections, System.Types,
-    SysUtils, DbCommon, Variants, TestExtensions,
-    Forms, PSQLConnFrm
+  TestFramework, TestExtensions
   {$ELSE}
-    ,DUnitX.TestFramework
+  DUnitX.TestFramework
   {$ENDIF};
 
 type
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
 
-
-  // Test methods for class TPSQLTable
-
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLTable = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
-  strict private
+  private
     FPSQLTable: TPSQLTable;
-    procedure InternalSetUp;
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -78,27 +64,18 @@ type
     {$ENDIF}
   end;
 
-var
-  QryDB: TPSQLDatabase;
-
 implementation
 
-uses TestHelper, MainF;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
-procedure TestTPSQLTable.InternalSetUp;
+procedure InternalSetUp;
 begin
-  QryDB := MainForm.Database;
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS testtable' +
-                '(  col1 character varying(10) NOT NULL,' +
-                '  col2 character varying(10) NOT NULL,' +
-                '  CONSTRAINT pk_testtable PRIMARY KEY (col1, col2) )');
-  QryDB.Execute('INSERT INTO testtable VALUES (''10'', ''20''), (''11'', ''21'')' );
 end;
 
 procedure TestTPSQLTable.SetUp;
 begin
   FPSQLTable := TPSQLTable.Create(nil);
-  FPSQLTable.Database := QryDB;
+  FPSQLTable.Database := TestDBSetup.Database;
 end;
 
 {$IFDEF DUNITX}
@@ -258,29 +235,8 @@ begin
   // TODO: Validate method results
 end;
 
-{ TDbSetup }
-{$IFNDEF DUNITX}
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLTableTest.conf');
-  InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLTableTest.conf');
-  QryDB.Free;
-end;
-{$ENDIF}
-
 initialization
-{$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLTable.Suite, 'Database Setup'));
-{$ELSE}
+{$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLTable);
 {$ENDIF}
 end.

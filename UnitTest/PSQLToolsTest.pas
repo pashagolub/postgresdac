@@ -16,35 +16,21 @@ unit PSQLToolsTest;
 interface
 
 uses
-  PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, PSQLTools
+  PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, PSQLTools,
   {$IFNDEF DUNITX}
-  , TestFramework, Db, Windows, ExtCtrls, Controls, Classes,
-  DbCommon, Graphics, StdVCL, TestExtensions,
-  Forms, PSQLConnFrm
+  TestFramework, TestExtensions
   {$ELSE}
-    ,DUnitX.TestFramework
+  DUnitX.TestFramework
   {$ENDIF};
 
 type
 
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
-
-  // Test methods for class TPSQLGuidField
-  {$IFNDEF DUNITX}[TestFixture]{$ENDIF}
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLTools = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
-  private
-    procedure InternalSetUp;
-    procedure InternalTearDown;
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
+    procedure TearDown; override;
     {$ELSE}
     [Setup]
     procedure SetUp;
@@ -64,31 +50,17 @@ type
   end;
 
 var
-  toolsDB: TPSQLDatabase;
   Tools: TPSQLTools;
 
 implementation
 
-uses TestHelper, MainF;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
-procedure TestTPSQLTools.InternalSetUp;
-var
-  i: Integer;
+procedure InternalSetUp;
 begin
-  Tools := TPSQLTools.Create(nil);
-  Tools.Database := toolsDB;
-  Tools.Verbose := True;
-  toolsDB.Execute('CREATE TEMP TABLE tools_test_case_table(' +
-                'id SERIAL NOT NULL PRIMARY KEY,'  +
-                'sfield TEXT DEFAULT now()::text,' +
-                'tfield timestamp DEFAULT now(),'  +
-                'rfield real DEFAULT random())');
-  toolsDB.Execute('CREATE INDEX rfield_idx ON tools_test_case_table (rfield)');
-  for i := 0 to 100 do
-    toolsDB.Execute('INSERT INTO tools_test_case_table DEFAULT VALUES');
 end;
 
-procedure TestTPSQLTools.InternalTearDown;
+procedure InternalTearDown;
 begin
 {$IFNDEF NEXTGEN}
   Tools.Free;
@@ -99,6 +71,9 @@ end;
 
 procedure TestTPSQLTools.SetUp;
 begin
+  Tools := TPSQLTools.Create(nil);
+  Tools.Database := TestDBSetup.Database;
+  Tools.Verbose := True;
   Tools.TableName := 'tools_test_case_table';
 end;
 
@@ -113,6 +88,11 @@ begin
   InternalTearDown;
 end;
 {$ENDIF}
+
+procedure TestTPSQLTools.TearDown;
+begin
+  Tools.Free;
+end;
 
 procedure TestTPSQLTools.TestAnalyze;
 begin
@@ -161,31 +141,8 @@ begin
   DACCheck(Tools.Execute, 'Cannot execute VACUUM');
 end;
 
-{ TDbSetup }
-
-{$IFNDEF DUNITX}
-procedure TDbSetup.SetUp;
-var i: integer;
-begin
-  inherited;
-  SetUpTestDatabase(toolsDB, 'PSQLToolsTest.conf');
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  toolsDB.Close;
-  ComponentToFile(toolsDB, 'PSQLToolsTest.conf');
-  toolsDB.Free;
-  InternalTearDown;
-end;
-{$ENDIF}
-
 initialization
- {$IFNDEF DUNITX}
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLTools.Suite, 'Database Setup'));
-{$ELSE}
+ {$IFDEF DUNITX}
   TDUnitX.RegisterTestFixture(TestTPSQLTools);
 {$ENDIF}
 
