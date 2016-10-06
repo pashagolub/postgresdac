@@ -1,0 +1,16 @@
+﻿[PSQLDatabase1]
+Coordinates=146,78,110,36
+
+[Connect]
+Coordinates=370,30,62,58
+
+[]
+Coordinates=190,100,46,58
+Visible=True
+
+[PSQLQuery1]
+Coordinates=72,1,90,58
+
+[Label1]
+Coordinates=0,0,53,58
+

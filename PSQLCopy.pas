@@ -195,9 +195,12 @@ end;
 procedure TCustomPSQLCopy.DoClientSideCopyGet(Stream: TStream);
 var Result: PPGresult;
     LineRes: integer;
-    Buffer: PAnsiChar;
-    S: AnsiString;
+    Buffer: PAnsiDACChar;
+    S: DACAString;
     AConnect: TNativeConnect;
+    {$IFDEF NEXTGEN}
+    M: TMarshaller;
+    {$ENDIF}
 begin
   if Assigned(FBeforeCopyGet) then
     FBeforeCopyGet(Self);
@@ -215,8 +218,10 @@ begin
           LineRes := PQgetCopyData(AConnect.Handle, @Buffer);
           if (LineRes > 0) and Assigned(Buffer) then
            begin
-            S := Copy(Buffer,1,LineRes);
-            Stream.Write(Pointer(S)^,length(S));
+            S := {$IFDEF NEXTGEN}string{$ENDIF}(Copy(Buffer,1,LineRes));
+            Stream.Write(Pointer(
+              {$IFNDEF NEXTGEN}S{$ELSE}M.AsAnsi(S).ToPointer{$ENDIF}
+              )^,length(S));
            end;
           if Buffer <> nil then
             PQfreemem (Buffer);
@@ -243,7 +248,7 @@ end;
 procedure TCustomPSQLCopy.DoClientSideCopyPut(Stream: TStream);
 var Result, Result2: PPGresult;
     Count: cardinal;
-    Buffer: array[Word] of AnsiChar;
+    Buffer: array[Word] of AnsiDACByteChar;
     AConnect: TNativeConnect;
 begin
   if Assigned(FBeforeCopyPut) then
@@ -257,9 +262,14 @@ begin
       Stream.Position := 0;
       if PQresultStatus(Result) = PGRES_COPY_IN then
         begin
-         Count := Stream.Read(Buffer,Length(Buffer));
+         Count := Stream.Read(Buffer[0], Length(Buffer));
          while Count > 0 do
-          if PQputCopyData(AConnect.Handle, Buffer, Count) <= 0 then
+          if PQputCopyData(AConnect.Handle, {$IFNDEF NEXTGEN}
+                                            Buffer
+                                            {$ELSE}
+                                            @Buffer
+                                            {$ENDIF},
+                                              Count) <= 0 then
             AConnect.CheckResult(Result)
           else
             Count := Stream.Read(Buffer,Length(Buffer));

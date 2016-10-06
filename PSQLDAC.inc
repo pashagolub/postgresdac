@@ -22,6 +22,14 @@
   {$MODE DELPHI}
 {$ENDIF}
 
+{$IFDEF ANDROID} {$DEFINE MOBILE} {$ENDIF}
+{$IFDEF IOS} {$DEFINE MOBILE} {$ENDIF}
+
+
+{$UNDEF MACOS_OR_MOBILE}
+{$IFDEF MACOS}{$DEFINE MACOS_OR_MOBILE}{$ENDIF}
+{$IFDEF MOBILE}{$DEFINE MACOS_OR_MOBILE}{$ENDIF}
+
 //---------------------------
 // Delphi/Builder versions
 //---------------------------

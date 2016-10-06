@@ -9,7 +9,8 @@ uses
   SysUtils, {$IFDEF FPC}LCLIntf,{$ENDIF}{$IFDEF MSWINDOWS} Windows, Messages,{$ENDIF}
   Classes, PSQLAccess, DB, PSQLDbTables, PSQLTypes
   {$IFDEF DELPHI_16}, System.SyncObjs{$ENDIF}
-  {$IFDEF DELPHI_17}, System.Types{$ENDIF};
+  {$IFDEF DELPHI_17}, System.Types{$ENDIF}
+  {$IFDEF NEXTGEN}, Generics.Collections{$ENDIF};
 
 const
   {$IFNDEF MSWINDOWS}
@@ -162,7 +163,7 @@ type
   TMonitorWriterThread = class(TThread)
   private
     StopExec: boolean;
-    FMonitorMsgs : TList;
+    FMonitorMsgs : TList{$IFDEF NEXTGEN}<TObject>{$ENDIF};
   protected
     procedure Lock;
     Procedure Unlock;
@@ -181,7 +182,7 @@ type
   TMonitorReaderThread = class(TThread)
   private
     st : TPSQLTraceObject;
-    FMonitors : TList;
+    FMonitors : TList{$IFDEF NEXTGEN}<TPSQLCustomMonitor>{$ENDIF};
   protected
     procedure BeginRead;
     procedure EndRead;
@@ -208,6 +209,7 @@ const
   cDefaultTimeout = 1000; // 1 second
 
 var
+  {$IFNDEF NEXTGEN}
   FAppSharedBuf,
   FDBSharedBuf,
   FMsgSharedBuf,
@@ -219,14 +221,18 @@ var
   FReadEvent,
   FReadFinishedEvent : THandle;
 
+  {$ENDIF}
+
   FAppBuffer,
   FDBBuffer,
   FMsgBuffer,
   FSQLBuffer,
-  FErrBuffer: PAnsiChar;
+  FErrBuffer: PAnsiDACChar;
 
   FMonitorCount,
+  {$IFNDEF NEXTGEN}
   FReaderCount,
+  {$ENDIF}
   FTraceDataType,
   FQPrepareReaderCount,
   FQExecuteReaderCount,
@@ -241,8 +247,10 @@ var
   FExecOK: PInteger;
 //  FBufferSize : PInteger;
   FTimeStamp  : PDateTime;
+  {$IFNDEF NEXTGEN}
   FReserved   : PByte;
   FReserved1  : PByte;
+  {$ENDIF}
 
   FPSQLWriterThread : TMonitorWriterThread;
   FPSQLReaderThread : TMonitorReaderThread;
@@ -795,7 +803,7 @@ end;
 constructor TMonitorWriterThread.Create;
 begin
   StopExec := False;
-  FMonitorMsgs := TList.Create;
+  FMonitorMsgs := TList{$IFDEF NEXTGEN}<TObject>{$ENDIF}.Create;
   inherited Create(False);
   if FMonitorCount^ = 0 then
  {$WARNINGS OFF}
@@ -1095,7 +1103,7 @@ begin
    inherited Create(true);
 {$IFDEF MSWINDOWS}
    st := TPSQLTraceObject.Create('', '', '', '', tfMisc, True);
-   FMonitors := TList.Create;
+   FMonitors := TList{$IFDEF NEXTGEN}<TPSQLCustomMonitor>{$ENDIF}.Create;
    InterlockedIncrement(FMonitorCount^);
    if Suspended then
  {$WARNINGS OFF}
@@ -1151,7 +1159,7 @@ begin
 end;
 //----------------------------------------------------------------------------------------------------------------------
 procedure TMonitorReaderThread.ReadSQLData();
-  function _ReadStr(Buffer : PAnsiChar; Len : Cardinal) : string;
+  function _ReadStr(Buffer : PAnsiDACChar; Len : Cardinal) : string;
   begin
     {$IFDEF DELPHI_12}
     SetString(Result, PChar(Buffer), Len div sizeof(char));

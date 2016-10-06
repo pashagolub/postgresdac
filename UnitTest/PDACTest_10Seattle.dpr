@@ -1,4 +1,4 @@
-program PDACTest_10Seattle;
+program PDACTest_DUnitX;
 {
 
   Delphi DUnit Test Project

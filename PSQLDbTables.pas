@@ -11,6 +11,7 @@ uses  SysUtils, Classes, Db,
       {$IFDEF DELPHI_9}DbCommon{$ELSE}PSQLCommon{$ENDIF},
       {$IFDEF DELPHI_6}Variants,{$ENDIF}
       {$IFDEF FPC}Variants,{$ENDIF}
+      {$IFDEF NEXTGEN}Generics.Collections,{$ENDIF}
       {$IFDEF DELPHI_17}System.Types, System.Generics.Collections,{$ENDIF}
       PSQLAccess, PSQLTypes;
 
@@ -187,7 +188,7 @@ type
 {$IFDEF DELPHI_12}
   TPSQLLookupList = class(TLookupList)
   private
-    FList: TList;
+    FList: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
   public
     constructor Create; override;
     destructor Destroy; override;
@@ -270,9 +271,9 @@ type
       FExclusive: Boolean;
       FReadOnly: Boolean;
       FRefCount: Integer;
-      FHandle: HDBIDB;
+      FHandle: DAChDBIDb;
       FParams: TStrings;
-      FStmtList: TList;
+      FStmtList: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
       FOwner: string;
       FIsTemplate: boolean;
       FTablespace: string;
@@ -283,8 +284,8 @@ type
       FOnAdd: TNotifyEvent;
       FOnLogin: TBaseDatabaseLoginEvent;
       FOnNotice: TDatabaseNoticeEvent;
-      FNotifyList: TList;  //List of notify
-      FDirectQueryList : TList;
+      FNotifyList: TList{$IFDEF NEXTGEN}<TObject>{$ENDIF};  //List of notify
+      FDirectQueryList : TList{$IFDEF NEXTGEN}<TObject>{$ENDIF};
       FCheckIfActiveOnParamChange: boolean;
       FSSLMode: TSSLMode;
       FErrorVerbosity: TErrorVerbosity;
@@ -312,7 +313,7 @@ type
       procedure SetHost(const Value : string);
       procedure SetKeepConnection(Value: Boolean);
       procedure SetExclusive(Value: Boolean);
-      procedure SetHandle(Value: HDBIDB);
+      procedure SetHandle(Value: DAChDBIDb);
       procedure SetParams(Value: TStrings);
       procedure SetReadOnly(Value: Boolean);
       procedure SetDummyStr(Value: string);
@@ -399,7 +400,7 @@ type
       procedure RollbackToSavepoint(const Name: string);
 
       property DataSets[Index: Integer]: TPSQLDataSet read GetDataSet;
-      property Handle: HDBIDB read FHandle write SetHandle;
+      property Handle: DAChDBIDb read FHandle write SetHandle;
       property InTransaction: Boolean read GetInTransaction;
       property IsUnicodeUsed: Boolean read GetIsUnicodeUsed;
       property IsSSLUsed: Boolean read GetIsSSLUsed;
@@ -530,13 +531,13 @@ type
     FRecBufSize: integer;
     FBlockBufOfs: Integer;
     FLastParentPos: Integer;
-    FBlockReadBuf: PAnsiChar;
+    FBlockReadBuf: PAnsiDACChar;
     {$IFNDEF FPC}
     FBlockBufSize: Integer;
     FBlockBufCount: Integer;
     FBlockReadCount: Integer;
     {$ENDIF}
-    FOldBuffer : TRecordBuffer;
+    FOldBuffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF};
     FParentDataSet: TPSQLDataSet;
     FUpdateObject: TPSQLSQLUpdateObject;
     {$IFNDEF FPC}
@@ -550,14 +551,18 @@ type
     FAllowSequenced : Boolean;  //Add by Nicolas Ring
     FSortFieldNames: string;
     FOptions: TPSQLDatasetOptions;
-    procedure ClearBlobCache(Buffer: TRecordBuffer);
+    {$IFDEF NEXTGEN}
+    FSetToRecBookm: TBookmark;
+    {$ENDIF}
+
+    procedure ClearBlobCache(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
     function GetActiveRecBuf(var RecBuf: TRecordBuffer): Boolean;
     function GetBlobData(Field: TField; Buffer: TRecordBuffer): TBlobData;
-    function GetOldRecord: PAnsiChar;
+    function GetOldRecord: PAnsiDACChar;
     procedure InitBufferPointers(GetProps: Boolean);
     function RecordFilter(RecBuf: Pointer; RecNo: Integer): Smallint; stdcall;
     procedure SetBlobData(Field: TField; Buffer: TRecordBuffer; Value: TBlobData);
-    function GetDBHandle: HDBIDB;
+    function GetDBHandle: DAChDBIDb;
     procedure SetUpdateMode(const Value: TUpdateMode);
     procedure SetAutoRefresh(const Value: Boolean);
     procedure SetDatabase(Value : TPSQLDatabase);
@@ -607,8 +612,8 @@ type
     procedure AllocCachedUpdateBuffers(Allocate: Boolean);
     procedure AllocKeyBuffers;
 {$IFDEF NEXTGEN}
-    function AllocRecBuf: TRecBuf; virtual;
-    procedure FreeRecBuf(var Buffer: TRecBuf); virtual;
+    function AllocRecBuf: TRecBuf; override;
+    procedure FreeRecBuf(var Buffer: TRecBuf); override;
 {$ELSE}
     function  AllocRecordBuffer: TRecordBuffer; override;
     procedure FreeRecordBuffer(var Buffer: TRecordBuffer); override;
@@ -616,7 +621,7 @@ type
     function  CachedUpdateCallBack(CBInfo: Pointer): CBRType;
     procedure CheckCachedUpdateMode;
     procedure CheckSetKeyMode;
-    procedure ClearCalcFields(Buffer: TRecordBuffer); override;
+    procedure ClearCalcFields(Buffer:{$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}); override;
     procedure CloseCursor; override;
 {$IFDEF DELPHI_12}
     procedure CreateFields; override;
@@ -627,7 +632,7 @@ type
     function  CreateFuncFilter(FilterFunc: Pointer;
       Priority: Integer): HDBIFilter;
     function  CreateHandle: HDBICur; virtual;
-    function  CreateLookupFilter(Fields: TList; const Values: Variant;
+    function  CreateLookupFilter(Fields: TList{$IFDEF NEXTGEN}<TField>{$ENDIF}; const Values: Variant;
       Options: TLocateOptions; Priority: Integer): HDBIFilter;
     procedure DataEvent(Event: TDataEvent; Info: TDataEventInfo); override;
     procedure DeactivateFilters;
@@ -639,19 +644,20 @@ type
     procedure GetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
 {$ENDIF}
 {$IFDEF DELPHI_17}
-    procedure GetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark); override;
+    procedure GetBookmarkData(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Data: TBookmark); override;
 {$ENDIF DELPHI_17}
-    function  GetBookmarkFlag(Buffer: TRecordBuffer): TBookmarkFlag; override;
-    function  GetRecord(Buffer: TRecordBuffer; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
-    procedure InitRecord(Buffer: TRecordBuffer); override;
+    function GetBookmarkFlag(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}): TBookmarkFlag; override;
+    function  GetRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult; override;
+    procedure InitRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}); override;
+
 {$IFDEF NEXTGEN}
-    procedure InternalGotoBookmark(Bookmark: TBookmark); overload; virtual;
+    procedure InternalGotoBookmark(Bookmark: TBookmark); override;
 {$ELSE}
     procedure InternalGotoBookmark(Bookmark: Pointer); override;
 {$ENDIF}
 
-    procedure InternalInitRecord(Buffer: TRecordBuffer); override;
-    procedure InternalSetToRecord(Buffer: TRecordBuffer); override;
+    procedure InternalInitRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}); override;
+    procedure InternalSetToRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}); override;
     function  GetCanModify: Boolean; override;
 {$IFNDEF FPC}
     function  GetFieldFullName(Field: TField): string; override;
@@ -680,7 +686,7 @@ type
     function  GetUpdateRecordSet: TUpdateRecordTypes;
     {$ENDIF}
     function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
-    procedure InternalAddRecord(Buffer: {$IFDEF NEXTGEN}TRecBuf{$ELSE}Pointer{$ENDIF}; Append: Boolean); override;
+    procedure InternalAddRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Append: Boolean); override;
     procedure InternalCancel; override;
     procedure InternalClose; override;
     procedure InternalDelete; override;
@@ -712,9 +718,9 @@ type
     procedure SetBookmarkData(Buffer: TRecordBuffer; Data: Pointer); override;
     {$ENDIF}
     {$IFDEF DELPHI_17}
-    procedure SetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark); override;
+    procedure SetBookmarkData(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Data: TBookmark); override;
     {$ENDIF DELPHI_17}
-    procedure SetBookmarkFlag(Buffer: TRecordBuffer; Value: TBookmarkFlag); override;
+    procedure SetBookmarkFlag(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Value: TBookmarkFlag); override;
     procedure SetCachedUpdates(Value: Boolean);
     function  SetCursorRange: Boolean;
     {$IFNDEF NEXTGEN}
@@ -771,7 +777,7 @@ type
     procedure CommitUpdates;
     procedure FetchAll;
     procedure FlushBuffers;
-    function GetCurrentRecord(Buffer: TRecordBuffer): Boolean; override;
+    function GetCurrentRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}): Boolean; override;
     {$IFNDEF FPC}
     function GetBlobFieldData(FieldNo: Integer; var Buffer: TBlobByteData): Integer; override;
     {$ENDIF}
@@ -795,7 +801,7 @@ type
     function CheckOpen(Status: Word): Boolean;
     procedure CloseDatabase(Database: TPSQLDatabase);
     procedure GetDatabaseNames(List: TStrings);
-    property DBHandle: HDBIDB read GetDBHandle;
+    property DBHandle: DAChDBIDb read GetDBHandle;
     property Handle: HDBICur read GetHandle;
     property ExpIndex: Boolean read FExpIndex;
     property KeySize: integer read FKeySize;
@@ -950,7 +956,7 @@ type
     procedure InitFieldDefs; override;
     function GetFileName: string;
     function GetTableType: TTableType;
-    function NativeTableName: PAnsiChar;
+    function NativeTableName: PAnsiDACChar;
     procedure PrepareCursor; override;
     procedure UpdateIndexDefs; override;
     procedure SetOptions(const Value: TPSQLDatasetOptions); override;
@@ -1226,19 +1232,20 @@ type
 	end;
 
 procedure Check(Engine : TPSQLEngine; Status: Word);
-procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar); cdecl;
+procedure NoticeProcessor(arg: Pointer; mes: PAnsiDACChar); cdecl;
 
 var
-   DBList : TList;
+   DBList : TList{$IFDEF NEXTGEN}<TPSQLDatabase>{$ENDIF};
 
 implementation
 
 uses
   {$IFDEF DELPHI_10}DBClient, {$ENDIF}
-  PSQLDirectQuery, Math, PSQLFields, PSQLNotify;
+  PSQLDirectQuery, Math, PSQLFields, PSQLNotify
+  {$IFDEF NEXTGEN}, System.Character{$ENDIF};
 
 //NoticeProcessor callback function
-procedure NoticeProcessor(arg: Pointer; mes: PAnsiChar);
+procedure NoticeProcessor(arg: Pointer; mes: PAnsiDACChar);
 var s:string;
 begin
  if Assigned(TPSQLDatabase(Arg).FOnNotice) then
@@ -1400,8 +1407,8 @@ begin
   SetSSLMode(sslPrefer);
   FTransIsolation := tiReadCommitted;
   AddDatabase(Self);
-  FNotifyList := TList.Create;
-  FDirectQueryList := TList.Create;
+  FNotifyList := TList{$IFDEF NEXTGEN}<TObject>{$ENDIF}.Create;
+  FDirectQueryList := TList{$IFDEF NEXTGEN}<TObject>{$ENDIF}.Create;
   FCheckIfActiveOnParamChange := True; //SSH Tunneling stuff
   SetConnectionTimeout(15);
   FDatabaseID := InvalidOid;
@@ -1517,7 +1524,7 @@ function TPSQLDatabase.Execute(const SQL: string; Params: TParams = nil;
     Info: PStmtInfo;
   begin
     if not Assigned(FStmtList) then
-      FStmtList := TList.Create;
+      FStmtList := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
     Result := nil;
     HashCode := GetHashCode(SQL);
     for i := 0 to FStmtList.Count - 1 do
@@ -1821,12 +1828,15 @@ procedure TPSQLDatabase.DoConnect;
 const
   OpenModes: array[Boolean] of DbiOpenMode = (dbiReadWrite, dbiReadOnly);
   ShareModes: array[Boolean] of DbiShareMode = (dbiOpenShared, dbiOpenExcl);
+var
+  s: String;
 begin
   if FHandle = nil then
   begin
     InitEngine;
     if LoginPrompt then Login(FParams);
     OEMConv := FOEMConvert;
+    s:= FParams.Text;
     Check(Engine, Engine.OpenDatabase(FParams, FUseSingleLineConnInfo, FHandle));
     Check(Engine, Engine.GetServerVersion(FHandle, FServerVersion));
     Check(Engine, Engine.SetCharacterSet(FHandle, FCharSet));
@@ -1927,7 +1937,7 @@ begin
   FParams.Values['password'] := Value;
 end;
 
-procedure TPSQLDatabase.SetHandle(Value: HDBIDB);
+procedure TPSQLDatabase.SetHandle(Value: DAChDBIDb);
 begin
   if Connected then Close;
   if Value <> nil then
@@ -2383,6 +2393,10 @@ begin
 
   FOptions := [dsoUseGUIDField];
 
+  {$IFDEF MOBILE}
+  SetLength(FSetToRecBookm, SizeOf(TBookMark));
+  {$ENDIF}
+
   if (csDesigning in ComponentState) and Assigned(AOwner) and (DBList.Count > 0) then
    begin
     for I := DBList.Count - 1 downto 0 do
@@ -2677,12 +2691,12 @@ begin
 end;
 
 {$IFDEF NEXTGEN}
-function TDataSet.AllocRecBuf: TRecBuf;
+function TPSQLDataSet.AllocRecBuf: TRecBuf;
 begin
-  Result := AllocMem(FRecBufSize);
+  Result := NativeInt(AllocMem(FRecBufSize));
 end;
 
-procedure TDataSet.FreeRecBuf(var Buffer: TRecBuf);
+procedure TPSQLDataSet.FreeRecBuf(var Buffer: TRecBuf);
 begin
   TArray<Byte>(Buffer) := nil;
 end;
@@ -2703,12 +2717,12 @@ begin
 end;
 {$ENDIF NEXTGEN}
 
-procedure TPSQLDataSet.InternalInitRecord(Buffer : TRecordBuffer);
+procedure TPSQLDataSet.InternalInitRecord(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
 begin
-  Engine.InitRecord(FHandle, Buffer);
+  Engine.InitRecord(FHandle, Pointer(Buffer));
 end;
 
-procedure TPSQLDataSet.ClearBlobCache(Buffer : TRecordBuffer);
+procedure TPSQLDataSet.ClearBlobCache(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
 var
   I: Integer;
   addr: NativeUInt;
@@ -2721,16 +2735,16 @@ begin
   end;
 end;
 
-procedure TPSQLDataSet.ClearCalcFields(Buffer : TRecordBuffer);
+procedure TPSQLDataSet.ClearCalcFields(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
 begin
  {$IFDEF DELPHI_12}
-  FillChar(Buffer[FRecordSize], CalcFieldsSize, 0)
+  FillChar(PByte(Buffer)[FRecordSize], CalcFieldsSize, 0)
  {$ELSE}
   FillChar(Buffer[FRecordSize], CalcFieldsSize, 0);
  {$ENDIF}
 end;
 
-procedure TPSQLDataSet.InitRecord(Buffer : TRecordBuffer);
+procedure TPSQLDataSet.InitRecord(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
 begin
   {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED OFF}{$ENDIF}
   Inherited InitRecord(Buffer);
@@ -2744,21 +2758,21 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetRecord(Buffer: TRecordBuffer; GetMode: TGetMode; DoCheck: Boolean): TGetResult;
+function TPSQLDataSet.GetRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; GetMode: TGetMode; DoCheck: Boolean): TGetResult;
 var
   Status: DBIResult;
 begin
   case GetMode of
-    gmCurrent: Status := Engine.GetRecord(FHandle, dbiNoLock, Buffer, @FRecProps);
-    gmNext:    Status := Engine.GetNextRecord(FHandle, dbiNoLock, Buffer, @FRecProps);
-    gmPrior:   Status := Engine.GetPriorRecord(FHandle, dbiNoLock, Buffer, @FRecProps);
+    gmCurrent: Status := Engine.GetRecord(FHandle, dbiNoLock, {$IFNDEF NEXTGEN}Buffer{$ELSE}Pointer(Buffer){$ENDIF}, @FRecProps);
+    gmNext:    Status := Engine.GetNextRecord(FHandle, dbiNoLock, {$IFNDEF NEXTGEN}Buffer{$ELSE}Pointer(Buffer){$ENDIF}, @FRecProps);
+    gmPrior:   Status := Engine.GetPriorRecord(FHandle, dbiNoLock, {$IFNDEF NEXTGEN}Buffer{$ELSE}Pointer(Buffer){$ENDIF}, @FRecProps);
   else
     Status := DBIERR_NONE;
   end;
   case Status of
     DBIERR_NONE:
       begin
-        with PRecInfo(Buffer + FRecInfoOfs)^ do
+        with PRecInfo({$IFDEF NEXTGEN}DACPointerInt{$ENDIF}(Buffer) + FRecInfoOfs)^ do
         begin
           UpdateStatus := TUpdateStatus(FRecProps.iRecStatus);
           BookmarkFlag := bfCurrent;
@@ -2773,7 +2787,7 @@ begin
         {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED OFF}{$ENDIF}
         GetCalcFields(Buffer);
         {$IFDEF DELPHI_18}{$WARN SYMBOL_DEPRECATED ON}{$ENDIF}
-        Check(Engine, Engine.GetBookmark(FHandle, Buffer + FBookmarkOfs));
+        Check(Engine, Engine.GetBookmark(FHandle, {$IFNDEF NEXTGEN}Buffer{$ELSE}PByte(Buffer){$ENDIF} + FBookmarkOfs));
         Result := grOK;
       end;
     DBIERR_BOF: Result := grBOF;
@@ -2784,17 +2798,17 @@ begin
   end;
 end;
 
-function TPSQLDataSet.GetCurrentRecord(Buffer: TRecordBuffer): Boolean;
+function TPSQLDataSet.GetCurrentRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}): Boolean;
 begin
   if not IsEmpty and (GetBookmarkFlag(ActiveBuffer) = bfCurrent) then
   begin
     UpdateCursorPos;
-    Result := (Engine.GetRecord(FHandle, dbiNoLock, Buffer, nil) = DBIERR_NONE);
+    Result := (Engine.GetRecord(FHandle, dbiNoLock, Pointer(Buffer), nil) = DBIERR_NONE);
   end else
     Result := FALSE;
 end;
 
-function TPSQLDataSet.GetOldRecord: PAnsiChar;
+function TPSQLDataSet.GetOldRecord: PAnsiDACChar;
 begin
   UpdateCursorPos();
 
@@ -2802,7 +2816,7 @@ begin
   try
     AllocCachedUpdateBuffers(True);
     Check(Engine, Engine.GetRecord(FHandle, dbiNoLock, FUpdateCBBuf.pOldRecBuf, nil));
-    Result := PAnsiChar(FUpdateCBBuf.pOldRecBuf);
+    Result := PAnsiDACChar(FUpdateCBBuf.pOldRecBuf);
     AllocCachedUpdateBuffers(False);
   finally
     SetBoolProp(Engine, Handle, curDELAYUPDGETOLDRECORD, FALSE);
@@ -2875,7 +2889,7 @@ begin
       {$ENDIF}
 
     dsBrowse: if IsEmpty then
-                 RecBuf := nil
+                 Pointer(RecBuf) := nil
               else
                 {$IFDEF DELPHI_12}
                 RecBuf := TRecordBuffer(ActiveBuffer);
@@ -2912,7 +2926,7 @@ begin
       {$ENDIF}
 
     dsNewValue: if FInUpdateCallback then
-                   RecBuf := FUpdateCBBuf.pNewRecBuf
+                   Pointer(RecBuf) := FUpdateCBBuf.pNewRecBuf
                 else
                   {$IFDEF DELPHI_12}
                   RecBuf := TRecordBuffer(ActiveBuffer);
@@ -2921,7 +2935,7 @@ begin
                   {$ENDIF}
 
     dsOldValue: if FInUpdateCallback then
-                   RecBuf := FUpdateCBBuf.pOldRecBuf
+                   Pointer(RecBuf) := FUpdateCBBuf.pOldRecBuf
                 else
                    {$IFDEF DELPHI_12}
                     RecBuf := TRecordBuffer(GetOldRecord);
@@ -2930,9 +2944,9 @@ begin
                    {$ENDIF}
 
   else
-    RecBuf := nil;
+    Pointer(RecBuf) := nil;
   end;
-  Result := RecBuf <> nil;
+  Result := Pointer(RecBuf) <> nil;
 end;
 
 procedure TPSQLDataSet.AddFieldDesc(FieldDescs: TFLDDescList; var DescNo: Integer;
@@ -3067,19 +3081,19 @@ begin
     {$ENDIF}
   else
     if not GetActiveRecBuf(RecBuf) then Exit;
-  Status := Engine.OpenBlob(FHandle, RecBuf, FieldNo, dbiReadOnly);
+  Status := Engine.OpenBlob(FHandle, Pointer(RecBuf), FieldNo, dbiReadOnly);
   if (Status <> DBIERR_NONE) then
     Exit;
   try
-    Status := Engine.GetBlobSize(FHandle, RecBuf, FieldNo, Result);
+    Status := Engine.GetBlobSize(FHandle, Pointer(RecBuf), FieldNo, Result);
     if (Status <> DBIERR_NONE) or (Result = 0) then Exit;
     if  (High(Buffer) <= Result)  then
       SetLength(Buffer, Trunc(Result + Result div 4));
-    Status := Engine.GetBlob(FHandle, RecBuf, FieldNo, 0, Result, Buffer, Result);
+    Status := Engine.GetBlob(FHandle, Pointer(RecBuf), FieldNo, 0, Result, Buffer, Result);
   finally
     if (Status  <> DBIERR_NONE) then
       Result := 0;
-    Engine.FreeBlob(FHandle, RecBuf, FieldNo);
+    Engine.FreeBlob(FHandle, Pointer(RecBuf), FieldNo);
     if DoCheck then
       Check(Engine, Status)
   end;
@@ -3109,6 +3123,7 @@ begin
 end;
 {$ENDIF}
 
+{$IFNDEF NEXTGEN}
 function TPSQLDataSet.GetFieldData(FieldNo: Integer; Buffer: Pointer): Boolean;
 var
   IsBlank: Boolean;
@@ -3133,13 +3148,6 @@ begin
     end
   end;
 end;
-
-{$IFDEF DELPHI_12}
-function TPSQLDataSet.GetFieldDefsClass: TFieldDefsClass;
-begin
-  Result := TPSQLFieldDefs;
-end;
-{$ENDIF}
 
 function TPSQLDataSet.GetFieldData(Field: TField; Buffer: Pointer): Boolean;
 var
@@ -3166,10 +3174,19 @@ begin
   end;
 end;
 
+{$ENDIF}
+
+{$IFDEF DELPHI_12}
+function TPSQLDataSet.GetFieldDefsClass: TFieldDefsClass;
+begin
+  Result := TPSQLFieldDefs;
+end;
+{$ENDIF}
+
 {$IFDEF DELPHI_17}
 function TPSQLDataSet.GetFieldData(Field: TField; {$IFDEF DELPHI_18}var{$ENDIF} Buffer: TValueBuffer): Boolean;
 var
-  RecBuf: PByte;
+  RecBuf: TRecordBuffer;//PByte;
 begin
   if Field.FieldNo > 0 then
     Result := GetFieldData(Field.FieldNo, Buffer)
@@ -3177,15 +3194,15 @@ begin
   begin
     if State = dsBlockRead then
     begin
-      RecBuf := PByte(TempBuffer);
+      RecBuf := {PByte}TRecordBuffer(TempBuffer);
       Result := True;
     end else
       Result := GetActiveRecBuf(RecBuf);
     if Result and (State in [dsBrowse, dsEdit, dsInsert, dsCalcFields, dsBlockRead]) then
     begin
-      Result := Boolean(RecBuf[FRecordSize + Field.Offset]);
+      Result := Boolean(PByte(RecBuf)[FRecordSize + Field.Offset]);
       if Result and (Buffer <> nil) then
-        Move(RecBuf[FRecordSize + Field.Offset + 1], Buffer[0], Field.DataSize);
+        Move(PByte(RecBuf)[FRecordSize + Field.Offset + 1], Buffer[0], Field.DataSize);
     end;
   end;
 end;
@@ -3193,7 +3210,7 @@ end;
 function TPSQLDataSet.GetFieldData(FieldNo: Integer; {$IFDEF DELPHI_18}var{$ENDIF} Buffer: TValueBuffer): Boolean;
 var
   IsBlank: Boolean;
-  RecBuf: PByte;
+  RecBuf: TRecordBuffer;//PByte;
   Status: DBIResult;
 begin
   if BlockReadSize > 0 then
@@ -3207,7 +3224,7 @@ begin
     Result := GetActiveRecBuf(RecBuf);
     if Result then
     begin
-      Check(Engine, Engine.GetField(FHandle, FieldNo, RecBuf, Buffer, IsBlank));
+      Check(Engine, Engine.GetField(FHandle, FieldNo, Pointer(RecBuf), Buffer, IsBlank));
       Result := not IsBlank;
     end
   end;
@@ -3217,7 +3234,7 @@ end;
 {$IFDEF DELPHI_17}
 procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: TValueBuffer);
 var
-  RecBuf: PByte;
+  RecBuf: TRecordBuffer;//PByte;
 begin
   if not (State in dsWriteModes) then DatabaseError(SNotEditing, Self);
   if (State = dsSetKey) and ((Field.FieldNo < 0) or (FIndexFieldCount > 0) and
@@ -3230,19 +3247,20 @@ begin
       DatabaseErrorFmt(SFieldReadOnly, [Field.DisplayName]);
     Field.Validate(Buffer);
     if Field.FieldKind <> fkInternalCalc then
-      Check(Engine, Engine.PutField(FHandle, Field.FieldNo, RecBuf, @Buffer[0]));
+      Check(Engine, Engine.PutField(FHandle, Field.FieldNo, Pointer(RecBuf), @Buffer[0]));
   end
   else {fkCalculated, fkLookup}
   begin
-    Boolean(RecBuf[FRecordSize + Field.Offset]) := NativeUInt(Buffer) > 0; //was LongBool(Buffer)
-    if Boolean(RecBuf[FRecordSize + Field.Offset]) then
-      Move(Buffer[0], RecBuf[FRecordSize + Field.Offset + 1], Field.DataSize);
+    Boolean(PByte(RecBuf)[FRecordSize + Field.Offset]) := NativeUInt(Buffer) > 0; //was LongBool(Buffer)
+    if Boolean(PByte(RecBuf)[FRecordSize + Field.Offset]) then
+      Move(Buffer[0], PByte(RecBuf)[FRecordSize + Field.Offset + 1], Field.DataSize);
   end;
   if not (State in [dsCalcFields, dsFilter, dsNewValue]) then
     DataEvent(deFieldChange, Longint(Field));
 end;
 {$ENDIF}
 
+{$IFNDEF NEXTGEN}
 procedure TPSQLDataSet.SetFieldData(Field: TField; Buffer: Pointer);
 var
   RecBuf: TRecordBuffer;
@@ -3283,6 +3301,7 @@ begin
       DataEvent(deFieldChange, Longint(Field));
   end;
 end;
+{$ENDIF}
 
 function TPSQLDataSet.GetBlobData(Field : TField; Buffer : TRecordBuffer) : TBlobData;
 begin
@@ -3348,10 +3367,10 @@ end;
 
 procedure TPSQLDataSet.InternalEdit;
 begin
-  FOldBuffer := AllocRecordBuffer;
-  Move(Pointer(ActiveBuffer)^, FOldBuffer[0], FRecBufSize);
+  FOldBuffer := {$IFNDEF NEXTGEN}AllocRecordBuffer{$ELSE}AllocRecBuf{$ENDIF};
+  Move(Pointer(ActiveBuffer)^, PByte(FOldBuffer)[0], FRecBufSize);
   Check(Engine, Engine.GetRecord(FHandle, dbiWriteLock, Pointer(ActiveBuffer), nil));
-  ClearBlobCache(Pointer(ActiveBuffer));
+  ClearBlobCache({$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}(ActiveBuffer));
 end;
 
 procedure TPSQLDataSet.InternalInsert;
@@ -3378,12 +3397,17 @@ begin
       {$ENDIF}//pasha_golub 10.08.06
       
       if State = dsEdit then
-        Check(Engine, Engine.ModifyRecord(FHandle,FOldBuffer, Pointer(ActiveBuffer), TRUE,RecNo))
+        Check(Engine, Engine.ModifyRecord(FHandle, Pointer(FOldBuffer), Pointer(ActiveBuffer), TRUE,RecNo))
       else
         if State = dsInsert then
           Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, Pointer(ActiveBuffer)));
     end; //else
-  if assigned(fOldBuffer) then  FreeRecordBuffer(FOldBuffer);
+  if assigned(Pointer(fOldBuffer)) then
+  {$IFNDEF NEXTGEN}
+    FreeRecordBuffer(FOldBuffer);
+  {$ELSE}
+    FreeRecBuf(FOldBuffer);
+  {$ENDIF}
 end;
 
 procedure TPSQLDataSet.InternalDelete;
@@ -3432,19 +3456,23 @@ procedure TPSQLDataSet.InternalCancel;
 begin
   if State = dsEdit then
     Engine.RelRecordLock(FHandle, FALSE);
-  if assigned(fOldBuffer) then
+  if assigned(Pointer(fOldBuffer)) then
+    {$IFNDEF NEXTGEN}
     FreeRecordBuffer(FOldBuffer);
+    {$ELSE}
+    FreeRecBuf(fOldBuffer);
+    {$ENDIF}
 end;
 
-procedure TPSQLDataSet.InternalAddRecord(Buffer: {$IFDEF NEXTGEN}TRecBuf{$ELSE}Pointer{$ENDIF}; Append: Boolean);
+procedure TPSQLDataSet.InternalAddRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Append: Boolean);
 begin
   if Append then
-    Check(Engine, Engine.AppendRecord(FHandle, Buffer))  else
-    Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, Buffer));
+    Check(Engine, Engine.AppendRecord(FHandle, Pointer(Buffer)))  else
+    Check(Engine, Engine.InsertRecord(FHandle, dbiNoLock, Pointer(Buffer)));
 end;
 
 {$IFDEF NEXTGEN}
-procedure TPSQLDataSet.InternalGotoBookmark(Bookmark: TBookmark); overload; virtual;
+procedure TPSQLDataSet.InternalGotoBookmark(Bookmark: TBookmark);
 begin
   Check(Engine, Engine.SetToBookmark(FHandle, Bookmark));
 end;
@@ -3455,42 +3483,51 @@ begin
 end;
 {$ENDIF}
 
-procedure TPSQLDataSet.InternalSetToRecord(Buffer : TRecordBuffer);
+procedure TPSQLDataSet.InternalSetToRecord(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF});
 begin
-  InternalGotoBookmark(Buffer + FBookmarkOfs);
+{$IFNDEF NEXTGEN}
+  InternalGotoBookmark(Pointer(Buffer + FBookmarkOfs));
+{$ELSE}
+  Move(Pointer(DACPointerInt(Buffer) + FBookmarkOfs)^, FSetToRecBookm[0], SizeOf(TBookMark));
+  InternalGotoBookmark(FSetToRecBookm);
+{$ENDIF}
 end;
 
-function TPSQLDataSet.GetBookmarkFlag(Buffer : TRecordBuffer) : TBookmarkFlag;
+function TPSQLDataSet.GetBookmarkFlag(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}) : TBookmarkFlag;
 begin
   Result := PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag;
 end;
 
-procedure TPSQLDataSet.SetBookmarkFlag(Buffer : TRecordBuffer; Value : TBookmarkFlag);
+procedure TPSQLDataSet.SetBookmarkFlag(Buffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Value : TBookmarkFlag);
 begin
   PRecInfo(Buffer + FRecInfoOfs).BookmarkFlag := Value;
 end;
 
+{$IFNDEF NEXTGEN}
 procedure TPSQLDataSet.GetBookmarkData(Buffer : TRecordBuffer; Data : Pointer);
 begin
   Move(Buffer[FBookmarkOfs], Data^, BookmarkSize);
 end;
+{$ENDIF}
 
 {$IFDEF DELPHI_17}
-procedure TPSQLDataSet.GetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark);
+procedure TPSQLDataSet.GetBookmarkData(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Data: TBookmark);
 begin
-  Move(Buffer[FBookmarkOfs], Data[0], BookmarkSize);
+  Move(PByte(Buffer)[FBookmarkOfs], Data[0], BookmarkSize);
 end;
 {$ENDIF DELPHI_17}
 
+{$IFNDEF NEXTGEN}
 procedure TPSQLDataSet.SetBookmarkData(Buffer : TRecordBuffer; Data : Pointer);
 begin
   Move(Data^, Buffer[FBookmarkOfs], BookmarkSize);
 end;
+{$ENDIF}
 
 {$IFDEF DELPHI_17}
-procedure TPSQLDataSet.SetBookmarkData(Buffer: TRecordBuffer; Data: TBookmark);
+procedure TPSQLDataSet.SetBookmarkData(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Data: TBookmark);
 begin
-  Move(Data[0], Buffer[FBookmarkOfs], BookmarkSize);
+  Move(Data[0], PByte(Buffer)[FBookmarkOfs], BookmarkSize);
 end;
 {$ENDIF DELPHI_17}
 
@@ -3707,7 +3744,7 @@ end;
 function TPSQLDataSet.InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
 begin
   FillChar(Buffer^, SizeOf(TKeyBuffer) + FRecordSize, 0);
-  Engine.InitRecord(FHandle, PAnsiChar(Buffer) + SizeOf(TKeyBuffer));
+  Engine.InitRecord(FHandle, PAnsiDACChar(Buffer) + SizeOf(TKeyBuffer));
   Result := Buffer;
 end;
 
@@ -3719,8 +3756,8 @@ end;
 function TPSQLDataSet.SetCursorRange: Boolean;
 var
   RangeStart, RangeEnd: PKeyBuffer;
-  StartKey, EndKey: PAnsiChar;
-  IndexBuffer: PAnsiChar;
+  StartKey, EndKey: PAnsiDACChar;
+  IndexBuffer: PAnsiDACChar;
   UseStartKey, UseEndKey, UseKey: Boolean;
 begin
    Result := FALSE;
@@ -3734,7 +3771,7 @@ begin
       RangeStart := FKeyBuffers[kiRangeStart];
       if RangeStart.Modified then
       begin
-        StartKey := PAnsiChar(RangeStart) + SizeOf(TKeyBuffer);
+        StartKey := PAnsiDACChar(RangeStart) + SizeOf(TKeyBuffer);
         UseStartKey := Engine.ExtractKey(Handle, StartKey, IndexBuffer) = 0;
       end
       else
@@ -3742,7 +3779,7 @@ begin
       RangeEnd := FKeyBuffers[kiRangeEnd];
       if RangeEnd.Modified then
       begin
-        EndKey := PAnsiChar(RangeEnd) + SizeOf(TKeyBuffer);
+        EndKey := PAnsiDACChar(RangeEnd) + SizeOf(TKeyBuffer);
         UseEndKey := (Engine.ExtractKey(Handle, EndKey, IndexBuffer + KeySize) = 0);
       end
       else
@@ -3956,7 +3993,7 @@ begin
   Check(Engine, Engine.AddFilter(FHandle, Integer(Self), Priority, FALSE, nil, PFGENFilter(FilterFunc), Result));
 end;
 
-function TPSQLDataSet.CreateLookupFilter(Fields: TList; const Values: Variant;
+function TPSQLDataSet.CreateLookupFilter(Fields: TList{$IFDEF NEXTGEN}<TField>{$ENDIF}; const Values: Variant;
   Options: TLocateOptions; Priority: Integer): HDBIFilter;
 var
   I: Integer;
@@ -4731,7 +4768,7 @@ begin
   Close;
 end;
 
-function TPSQLDataSet.GetDBHandle: HDBIDB;
+function TPSQLDataSet.GetDBHandle: DAChDBIDb;
 begin
   if FDatabase <> nil then
   begin
@@ -4852,14 +4889,20 @@ begin
 end;
 
 { TPSQLDataSet.IProviderSupport }
-procedure TPSQLDataSet.PSGetAttributes(List : TList);
+procedure TPSQLDataSet.PSGetAttributes(List: {$IFDEF DELPHI_19}TPacketAttributeList{$ELSE}TList{$ENDIF});
 var
-  Attr: PPacketAttribute;
+  Attr: {$IFNDEF NEXTGEN}PPacketAttribute{$ELSE}TPacketAttribute{$ENDIF};
 begin
   inherited PSGetAttributes(List); //29.11.2007
+  {$IFNDEF NEXTGEN}
   New(Attr);
+  {$ENDIF}
   List.Add(Attr);
+  {$IFNDEF NEXTGEN}
   with Attr^ do
+  {$ELSE}
+  with Attr do
+  {$ENDIF}
   begin
     Name := 'LCID';
     Value := Integer(-1);
@@ -5022,7 +5065,7 @@ destructor TPSQLQuery.Destroy;
 begin
   Destroying;
   Disconnect;
-  SQL.Free;
+  {$IFNDEF NEXTGEN}SQL.Free{$ELSE}SQL.DisposeOf{$ENDIF};
   FParams.Free;
   FDataLink.Free;
   StrDispose(SQLBinary);
@@ -5370,7 +5413,7 @@ procedure TPSQLQuery.GetStatementHandle(SQLText: PChar);
 const
   DataType: array[Boolean] of LongInt = (Ord(wantCanned), Ord(wantLive));
 var
-  DBh : HDBIDB;
+  DBh : DAChDBIDb;
 begin
   DBh := DBHandle;
   Check(Engine,Engine.QAlloc(DBH, hDBIStmt(FHandle)));
@@ -5411,10 +5454,10 @@ end;
 
 
 {$IFNDEF FPC}
-procedure TPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields: TList);
+procedure TPSQLQuery.GetDetailLinkFields(MasterFields, DetailFields: TList{$IFDEF NEXTGEN}<TField>{$ENDIF});
 
   function AddFieldToList(const FieldName: string; DataSet: TDataSet;
-    List: TList): Boolean;
+    List: TList{$IFDEF NEXTGEN}<TField>{$ENDIF}): Boolean;
   var
     Field: TField;
   begin
@@ -5776,7 +5819,7 @@ var
   IndexID: Word;
   OpenMode: DbiOpenMode;
   RetCode: Word;
-  DBH : HDBIDB;
+  DBH : DAChDBIDb;
 
   procedure FillAddonProps;
   begin
@@ -5993,7 +6036,7 @@ begin
   FillChar(IndexDesc, SizeOf(IndexDesc), 0);
   with IndexDesc do
   begin
-    Move(Name[1], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
+    Move(Name[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
     //szName      := Copy(Name, 1, length(Name));
     bPrimary    := ixPrimary in Options;
     bUnique     := ixUnique in Options;
@@ -6251,7 +6294,7 @@ end;
 function TPSQLTable.GotoKey: Boolean;
 var
   KeyBuffer: PKeyBuffer;
-  IndexBuffer, RecBuffer: PAnsiChar;
+  IndexBuffer, RecBuffer: PAnsiDACChar;
   UseKey: Boolean;
 begin
   CheckBrowseMode;
@@ -6260,7 +6303,7 @@ begin
   KeyBuffer := GetKeyBuffer(kiLookup);
   IndexBuffer := AllocMem(KeySize);
   try
-    RecBuffer := PAnsiChar(KeyBuffer) + SizeOf(TKeyBuffer);
+    RecBuffer := PAnsiDACChar(KeyBuffer) + SizeOf(TKeyBuffer);
     UseKey := Engine.ExtractKey(Handle, RecBuffer, IndexBuffer) = 0;
     if UseKey then RecBuffer := IndexBuffer;
     Result := Engine.GetRecordForKey(Handle, UseKey, KeyBuffer^.FieldCount, 0, RecBuffer, nil,True) = 0;
@@ -6275,7 +6318,7 @@ procedure TPSQLTable.GotoNearest;
 var
   SearchCond: DBISearchCond;
   KeyBuffer: PKeyBuffer;
-  IndexBuffer, RecBuffer: PAnsiChar;
+  IndexBuffer, RecBuffer: PAnsiDACChar;
   UseKey: Boolean;
 begin
   CheckBrowseMode;
@@ -6286,7 +6329,7 @@ begin
     SearchCond := keySEARCHGEQ;
   IndexBuffer := AllocMem(KeySize);
   try
-    RecBuffer := PAnsiChar(KeyBuffer) + SizeOf(TKeyBuffer);
+    RecBuffer := PAnsiDACChar(KeyBuffer) + SizeOf(TKeyBuffer);
     UseKey := Engine.ExtractKey(Handle,RecBuffer,IndexBuffer) = 0;
     if UseKey then RecBuffer := IndexBuffer;
 
@@ -6598,9 +6641,13 @@ begin
   Result := ttDefault;
 end;
 
-function TPSQLTable.NativeTableName: PAnsiChar;
+function TPSQLTable.NativeTableName: PAnsiDACChar;
 begin
+{$IFNDEF NEXTGEN}
   Result := PAnsiChar(AnsiString(FTableName));
+{$ELSE}
+  Result := PAnsiDACChar(Pointer(FTableName));
+{$ENDIF}
 end;
 
 procedure TPSQLTable.SetExclusive(Value: Boolean);
@@ -6877,7 +6924,7 @@ begin
         Result := Count;
       if Result > 0 then
       begin
-        Move(PAnsiChar(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer, Result);
+        Move(PAnsiDACChar(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer, Result);
         Inc(FPosition, Result);
       end;
     end else
@@ -6893,7 +6940,7 @@ begin
             begin
               FCacheSize := FPosition + Result;
               SetLength(FBlobData, FCacheSize);
-              Move(Buffer, PAnsiChar(FBlobData)[FPosition], Result);
+              Move(Buffer, PAnsiDACChar(FBlobData)[FPosition], Result);
               if FCacheSize = Size then
               begin
                 FDataSet.SetBlobData(FField, FBuffer, FBlobData);
@@ -7213,11 +7260,11 @@ var
   Desc: ^SPParamDesc;
   ParamName: string;
   ParamDataType: TFieldType;
-  List : TList;
+  List : TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
   i:integer;
 begin
    if not FNeedRefreshParams or not FDatabase.Connected then Exit;
-   List := TList.Create;
+   List := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
    try
     FParams.Clear;
     Check(Engine, Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List));
@@ -7384,7 +7431,11 @@ end;
 
 function TPSQLParams.ParseSQL(SQL: string; DoCreate: Boolean): string;
 const
-  Literals = ['''', '"', '`'];
+  {$IFNDEF NEXTGEN}
+  Literals = ['''', '"', '`']
+  {$ELSE}
+  Literals : array of Char = ['''', '"', '`']
+  {$ENDIF};
 var
   Value, CurPos, StartPos: PChar;
   CurChar: Char;
@@ -7394,12 +7445,20 @@ var
 
   function NameDelimiter: Boolean;
   begin
+    {$IFNDEF NEXTGEN}
     Result := CharInSet(CurChar, [' ', ',', ';', ')', #13, #10]);
+    {$ELSE}
+    Result := CurChar.IsInArray([' ', ',', ';', ')', #13, #10]);
+    {$ENDIF}
   end;
 
   function IsLiteral: Boolean;
   begin
+    {$IFNDEF NEXTGEN}
     Result := CharInSet(CurChar, Literals);
+    {$ELSE}
+    Result := CurChar.IsInArray(Literals);
+    {$ENDIF}
   end;
 
   function StripLiterals(Buffer: PChar): string;
@@ -7409,10 +7468,18 @@ var
 
     procedure StripChar;
     begin
+    {$IFNDEF NEXTGEN}
       if CharInSet(TempBuf^, Literals) then
+    {$ELSE}
+      if TempBuf^.IsInArray(Literals) then
+    {$ENDIF}
       begin
         StrMove(TempBuf, TempBuf + 1, Len - 1);
+    {$IFNDEF NEXTGEN}
         if CharInSet((TempBuf + (Len-2))^, Literals) then
+    {$ELSE}
+        if (TempBuf + (Len-2))^.IsInArray(Literals) then
+    {$ENDIF}
           (TempBuf + Len-2)^ := #0;
       end;
     end;
@@ -7430,6 +7497,7 @@ var
   end;
 
 begin
+
   Result := SQL;
   Value := PChar(Result);
   if DoCreate then Clear;
@@ -7438,7 +7506,12 @@ begin
   EmbeddedLiteral := False;
   repeat
     CurChar := CurPos^;
-    if (CurChar = ':') and not Literal and not CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+    if (CurChar = ':') and not Literal and
+    {$IFNDEF NEXTGEN}
+      not CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+    {$ELSE}
+      not (CurPos + 1)^.IsInArray([':', '=', ' ', ',', ';', #9, #13, #10]) then
+    {$ENDIF}
     begin
       StartPos := CurPos;
       while (CurChar <> #0) and (Literal or not NameDelimiter) do
@@ -7466,7 +7539,12 @@ begin
       StrMove(StartPos, CurPos, StrLen(CurPos) + 1);
       CurPos := StartPos;
     end
-    else if (CurChar = ':') and not Literal and CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+    else if (CurChar = ':') and not Literal and
+      {$IFNDEF NEXTGEN}
+       CharInSet((CurPos + 1)^, [':', '=', ' ', ',', ';', #9, #13, #10]) then
+      {$ELSE}
+       ((CurPos + 1)^.IsInArray([':', '=', ' ', ',', ';', #9, #13, #10])) then
+      {$ENDIF}
       StrMove(CurPos, CurPos + 1, StrLen(CurPos) + 1)
     else if IsLiteral then Literal := Literal xor True;
     Inc(CurPos);
@@ -7519,7 +7597,7 @@ end;
 constructor TPSQLLookupList.Create;
 begin
   inherited;
-  FList := TList.Create;
+  FList := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
 end;
 
 destructor TPSQLLookupList.Destroy;
@@ -7575,7 +7653,7 @@ initialization
     SaveInitProc := InitProc;
     InitProc := @InitDBTables;
    end;
-  DBList := TList.Create;
+  DBList := TList{$IFDEF NEXTGEN}<TPSQLDatabase>{$ENDIF}.Create;
 
 finalization
 

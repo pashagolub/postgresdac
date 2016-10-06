@@ -13,25 +13,32 @@ unit PSQLQueryTest;
 interface
 
 uses
-  TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, {$IFNDEF DELPHI_5}Variants,{$ENDIF} Graphics, StdVCL, TestExtensions,
-  Forms, PSQLConnFrm, Data.FmtBcd;
+  PSQLAccess, Classes, PSQLDbTables, PSQLTypes, SysUtils, Db, Data.FmtBcd,
+  {$IFNDEF DELPHI_5}Variants{$ENDIF}
+  {$IFNDEF DUNITX}
+    ,TestFramework, Windows, ExtCtrls, Controls, DbCommon,
+    Graphics, StdVCL, TestExtensions,
+    Forms, PSQLConnFrm
+  {$ELSE}
+    ,DUnitX.TestFramework
+  {$ENDIF};
 
 type
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
 
-  // Test methods for class TPSQLQuery
-  TestTPSQLQuery = class(TTestCase)
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
+  TestTPSQLQuery = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
     FPSQLQuery: TPSQLQuery;
   public
+    {$IFNDEF DUNITX}
     procedure SetUp; override;
     procedure TearDown; override;
+    {$ELSE}
+    [Setup]
+    procedure SetUp;
+    [TearDown]
+    procedure TearDown;
+    {$ENDIF}
   published
   //parameters
     procedure CheckCorruptedParams;
@@ -69,14 +76,19 @@ type
     procedure TestRefreshModifiedInsertNonEmptyTable;
     procedure TestRefreshModifiedUpdate;
     procedure TestRefreshModifiedDelete;
+    {$IFDEF DUNITX}
+    [SetupFixture]
+    procedure SetupFixture;
+    {$ENDIF}
   end;
-
-var
-  QryDB: TPSQLDatabase;
 
 implementation
 
-uses TestHelper{$IFNDEF DELPHI_5}, DateUtils{$ENDIF};
+uses TestHelper{$IFNDEF DELPHI_5}, DateUtils{$ENDIF}{$IFDEF DUNITX}, MainF{$ENDIF};
+
+procedure InternalSetUp;
+begin
+end;
 
 {$IFDEF DELPHI_5}
 const
@@ -199,20 +211,24 @@ procedure TestTPSQLQuery.CheckCorruptedParams;
 begin
   FPSQLQuery.ParamCheck := True;
   FPSQLQuery.SQL.Text := 'SELECT now()::::TIMESTAMP(0) where AField = :AParam';
-  Check(FPSQLQuery.ParamCount = 1, 'Wrong parameters parsing with ParamCheck');
+  DACCheck(FPSQLQuery.ParamCount = 1, 'Wrong parameters parsing with ParamCheck');
 end;
 
 procedure TestTPSQLQuery.SetUp;
 begin
   FPSQLQuery := TPSQLQuery.Create(nil);
-  FPSQLQuery.Database := QryDB;
+  FPSQLQuery.Database := TestDBSetup.Database;
   FPSQLQuery.ParamCheck := False;
-  QryDB.Execute('TRUNCATE requestlive_test');
+  TestDBSetup.Database.Execute('TRUNCATE requestlive_test');
 end;
 
 procedure TestTPSQLQuery.TearDown;
 begin
+{$IFNDEF NEXTGEN}
   FPSQLQuery.Free;
+{$ELSE}
+  FPSQLQuery.DisposeOf;
+{$ENDIF};
   FPSQLQuery := nil;
 end;
 
@@ -220,7 +236,7 @@ procedure TestTPSQLQuery.TestAsBoolean;
 begin
  FPSQLQuery.SQL.Text := 'SELECT True, False';
  FPSQLQuery.Open;
- Check(FPSQLQuery.Fields[0].AsBoolean and not FPSQLQuery.Fields[1].AsBoolean, 'Field value AsBoolean is incorrect');
+ DACCheck(FPSQLQuery.Fields[0].AsBoolean and not FPSQLQuery.Fields[1].AsBoolean, 'Field value AsBoolean is incorrect');
  FPSQLQuery.Close;
 end;
 
@@ -228,7 +244,7 @@ procedure TestTPSQLQuery.TestAsDate;
 begin
  FPSQLQuery.SQL.Text := 'SELECT current_date';
  FPSQLQuery.Open;
- Check(IsToday(FPSQLQuery.Fields[0].AsDateTime), 'Field value AsDate is incorrect');
+ DACCheck(IsToday(FPSQLQuery.Fields[0].AsDateTime), 'Field value AsDate is incorrect');
  FPSQLQuery.Close
 end;
 
@@ -237,7 +253,7 @@ const D: Double = 12.8;
 begin
  FPSQLQuery.SQL.Text := 'SELECT 12.8';
  FPSQLQuery.Open;
- Check(FPSQLQuery.Fields[0].AsFloat = D, 'Field value AsFloat is incorrect');
+ DACCheck(FPSQLQuery.Fields[0].AsFloat = D, 'Field value AsFloat is incorrect');
  FPSQLQuery.Close;
 end;
 
@@ -245,7 +261,7 @@ procedure TestTPSQLQuery.TestAsInteger;
 begin
  FPSQLQuery.SQL.Text := 'SELECT 12345';
  FPSQLQuery.Open;
- Check(FPSQLQuery.Fields[0].AsInteger = 12345, 'Field value AsInteger is incorrect');
+ DACCheck(FPSQLQuery.Fields[0].AsInteger = 12345, 'Field value AsInteger is incorrect');
  FPSQLQuery.Close;
 end;
 
@@ -253,7 +269,7 @@ procedure TestTPSQLQuery.TestAsString;
 begin
  FPSQLQuery.SQL.Text := 'SELECT ''foo''::varchar(30)';
  FPSQLQuery.Open;
- Check(FPSQLQuery.Fields[0].AsString = 'foo', 'Field value AsString is incorrect');
+ DACCheck(FPSQLQuery.Fields[0].AsString = 'foo', 'Field value AsString is incorrect');
  FPSQLQuery.Close;
 end;
 
@@ -264,7 +280,7 @@ begin
  FPSQLQuery.Open;
  ClientTime := Time();
  ServerTime := TimeOf(FPSQLQuery.Fields[0].AsDateTime);
- Check(MinutesBetween(ClientTime, ServerTime) < 5, 'Field value AsTime is incorrect');
+ DACCheck(MinutesBetween(ClientTime, ServerTime) < 5, 'Field value AsTime is incorrect');
  FPSQLQuery.Close
 end;
 
@@ -272,7 +288,7 @@ procedure TestTPSQLQuery.TestAsTimestamp;
 begin
  FPSQLQuery.SQL.Text := 'SELECT LOCALTIMESTAMP';
  FPSQLQuery.Open;
- Check(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 5, 'Field value AsTimestamp is incorrect');
+ DACCheck(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 5, 'Field value AsTimestamp is incorrect');
  FPSQLQuery.Close
 end;
 
@@ -288,8 +304,8 @@ begin
   BookmarkedPos := FPSQLQuery.RecNo;
   FPSQLQuery.First;
   FPSQLQuery.GotoBookmark(B);
-  Check(FPSQLQuery.RecNo = BookmarkedPos, 'GotoBookmark failed');
-  Check(FPSQLQuery.BookmarkValid(B), 'BookmarkValid failed');
+  DACCheck(FPSQLQuery.RecNo = BookmarkedPos, 'GotoBookmark failed');
+  DACCheck(FPSQLQuery.BookmarkValid(B), 'BookmarkValid failed');
 end;
 
 procedure TestTPSQLQuery.TestDateValues;
@@ -299,7 +315,7 @@ procedure TestTPSQLQuery.TestDateValues;
     FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt); //not null field
     FPSQLQuery.FieldByName('datef').AsDateTime := ATime;
     FPSQLQuery.Post;
-    Check(FPSQLQuery.FieldByName('datef').AsDateTime = ATime, 'Cannot set DATE field to ' + DateTimeToStr(ATime));
+    DACCheck(FPSQLQuery.FieldByName('datef').AsDateTime = ATime, 'Cannot set DATE field to ' + DateTimeToStr(ATime));
   end;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
@@ -313,7 +329,7 @@ end;
 procedure TestTPSQLQuery.TestDelete;
 var aCount: integer;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -323,7 +339,7 @@ begin
   FPSQLQuery.Open;
   aCount := FPSQLQuery.RecordCount;
   FPSQLQuery.Delete;
-  Check(FPSQLQuery.RecordCount = aCount - 1, 'TPSQLQuery.Delete failed');
+  DACCheck(FPSQLQuery.RecordCount = aCount - 1, 'TPSQLQuery.Delete failed');
 end;
 
 procedure TestTPSQLQuery.TestEmptyCharAsNullOption;
@@ -331,15 +347,15 @@ begin
   FPSQLQuery.Options := [];
   FPSQLQuery.SQL.Text := 'SELECT ''''::varchar(30), ''text''::varchar(30) as col1';
   FPSQLQuery.Open;
-  Check(not FPSQLQuery.Fields[0].IsNull, 'Field must be NOT NULL due to normal options');
+  DACCheck(not FPSQLQuery.Fields[0].IsNull, 'Field must be NOT NULL due to normal options');
   FPSQLQuery.Close;
 
   FPSQLQuery.Options := [dsoEmptyCharAsNull];
   FPSQLQuery.SQL.Text := 'SELECT ''''::varchar(30), ''text''::varchar(30) as col1';
   FPSQLQuery.Open;
-  Check(FPSQLQuery.Fields[0].IsNull, 'IsNULL must be true due to dsoEmptyCharAsNull used');
+  DACCheck(FPSQLQuery.Fields[0].IsNull, 'IsNULL must be true due to dsoEmptyCharAsNull used');
   {$IFDEF DELPHI_12}
-  Check(FPSQLQuery.Fields.FieldByName('col1').AsWideString = 'text', 'Field must be not empty if dsoEmptyCharAsNull enabled');
+  DACCheck(FPSQLQuery.Fields.FieldByName('col1').AsWideString = 'text', 'Field must be not empty if dsoEmptyCharAsNull enabled');
   {$ENDIF}
   FPSQLQuery.Close;
 end;
@@ -353,13 +369,13 @@ begin
   T := GetTickCount();
   FPSQLQuery.Open;
   T := GetTickCount() - T;
-  Check(T < 5000, 'Query should return control to application less then 5 seconds using fetch on demand');
-  Check(FPSQLQuery.RecordCount = 1, 'Record count should be 1 since no other records fetched yet');
+  DACCheck(T < 5000, 'Query should return control to application less then 5 seconds using fetch on demand');
+  DACCheck(FPSQLQuery.RecordCount = 1, 'Record count should be 1 since no other records fetched yet');
   for i := 1 to 125 do
     FPSQLQuery.Next;
-  Check(FPSQLQuery.RecordCount = 126, 'Record count should be exactly the fetched rows number');
+  DACCheck(FPSQLQuery.RecordCount = 126, 'Record count should be exactly the fetched rows number');
   FPSQLQuery.FetchAll;
-  Check(FPSQLQuery.RecordCount = 250, 'Record count should equal to the result set size');
+  DACCheck(FPSQLQuery.RecordCount = 250, 'Record count should equal to the result set size');
   FPSQLQuery.Close;
 end;
 
@@ -369,13 +385,21 @@ begin
   Q := TPSQLQuery.Create(nil);
   try
     Q.SQL.Text := 'SELECT 1';
-    Q.Database := QryDB;
+    Q.Database := TestDBSetup.Database;
     Q.Open;
     FPSQLQuery.SQL.Text := 'SELECT g.s, repeat($$Pg$$, 25000) FROM generate_series(1, 250) g(s)';
     FPSQLQuery.Options := FPSQLQuery.Options + [dsoFetchOnDemand];
+    {$IFNDEF DUNITX}
     CheckException(TestFetchOnDemand, EDatabaseError, 'Open should failed for non-exsclusive use of Database');
+    {$ELSE}
+    Assert.WillRaise(TestFetchOnDemand, EDatabaseError, 'Open should failed for non-exsclusive use of Database');
+    {$ENDIF}
   finally
+    {$IFNDEF NEXTGEN}
     FreeAndNil(Q);
+    {$ELSE}
+    Q.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -394,25 +418,25 @@ begin
   FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
   FPSQLQuery.FieldByName('numf').AsBCD := _Num;
   FPSQLQuery.Post;
-  Check(FPSQLQuery.RecordCount = 1, 'TPSQLQuery.Insert failed');
-  Check(_Num = FPSQLQuery.FieldByName('numf').AsBCD, 'Incorrect value for NUMERIC');
+  DACCheck(FPSQLQuery.RecordCount = 1, 'TPSQLQuery.Insert failed');
+  DACCheck(_Num = FPSQLQuery.FieldByName('numf').AsBCD, 'Incorrect value for NUMERIC');
 end;
 
 procedure TestTPSQLQuery.TestLocateInt;
 begin
   FPSQLQuery.SQL.Text := 'SELECT col1 FROM generate_series(11, 16) AS c(col1)';
   FPSQLQuery.Open;
-  Check(FPSQLQuery.Locate('col1', '12', []), 'Locate failed with default options');
-  Check(FPSQLQuery.RecNo = 2, 'Locate positioning failed with default options');
+  DACCheck(FPSQLQuery.Locate('col1', '12', []), 'Locate failed with default options');
+  DACCheck(FPSQLQuery.RecNo = 2, 'Locate positioning failed with default options');
 
-  Check(FPSQLQuery.Locate('col1', '13', [loPartialKey]), 'Locate failed with loPartialKey option');
-  Check(FPSQLQuery.RecNo = 3, 'Locate positioning failed with loPartialKey option');
+  DACCheck(FPSQLQuery.Locate('col1', '13', [loPartialKey]), 'Locate failed with loPartialKey option');
+  DACCheck(FPSQLQuery.RecNo = 3, 'Locate positioning failed with loPartialKey option');
 
-  Check(FPSQLQuery.Locate('col1', '14', [loCaseInsensitive]), 'Locate failed with loCaseInsensitive option');
-  Check(FPSQLQuery.RecNo = 4, 'Locate positioning failed with loCaseInsensitive option');
+  DACCheck(FPSQLQuery.Locate('col1', '14', [loCaseInsensitive]), 'Locate failed with loCaseInsensitive option');
+  DACCheck(FPSQLQuery.RecNo = 4, 'Locate positioning failed with loCaseInsensitive option');
 
-  Check(FPSQLQuery.Locate('col1', '15', [loCaseInsensitive, loPartialKey]), 'Locate failed with full options');
-  Check(FPSQLQuery.RecNo = 5, 'Locate positioning failed with full options');
+  DACCheck(FPSQLQuery.Locate('col1', '15', [loCaseInsensitive, loPartialKey]), 'Locate failed with full options');
+  DACCheck(FPSQLQuery.RecNo = 5, 'Locate positioning failed with full options');
 end;
 
 procedure TestTPSQLQuery.TestLocateStr;
@@ -420,18 +444,18 @@ begin
   FPSQLQuery.SQL.Text := 'SELECT col1, cash_words(col1::money)::varchar(50) AS col2 FROM generate_series(1, 6) AS g(col1)';
   FPSQLQuery.Open;
 //single column
-  Check(FPSQLQuery.Locate('col2', 'Two dollars and zero cents', []) and (FPSQLQuery.RecNo = 2),
+  DACCheck(FPSQLQuery.Locate('col2', 'Two dollars and zero cents', []) and (FPSQLQuery.RecNo = 2),
           'Locate failed with default options');
-  Check(FPSQLQuery.Locate('col2', 'Thr', [loPartialKey]) and (FPSQLQuery.RecNo = 3),
+  DACCheck(FPSQLQuery.Locate('col2', 'Thr', [loPartialKey]) and (FPSQLQuery.RecNo = 3),
           'Locate failed with loPartialKey option');
-  Check(FPSQLQuery.Locate('col2', 'FiV', [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
+  DACCheck(FPSQLQuery.Locate('col2', 'FiV', [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
           'Locate failed with full options');
 //multicolumn
-  Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([2, 'Two dollars and zero cents']), []) and (FPSQLQuery.RecNo = 2),
+  DACCheck(FPSQLQuery.Locate('col1;col2', VarArrayOf([2, 'Two dollars and zero cents']), []) and (FPSQLQuery.RecNo = 2),
           'Multicolumn Locate failed with default options');
-  Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([3, 'Thr']), [loPartialKey]) and (FPSQLQuery.RecNo = 3),
+  DACCheck(FPSQLQuery.Locate('col1;col2', VarArrayOf([3, 'Thr']), [loPartialKey]) and (FPSQLQuery.RecNo = 3),
           'Multicolumn Locate failed with loPartialKey option');
-  Check(FPSQLQuery.Locate('col1;col2', VarArrayOf([5, 'FiV']), [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
+  DACCheck(FPSQLQuery.Locate('col1;col2', VarArrayOf([5, 'FiV']), [loCaseInsensitive, loPartialKey]) and (FPSQLQuery.RecNo = 5),
           'Multicolumn Locate failed with full options');
 end;
 
@@ -441,29 +465,29 @@ begin
   FPSQLQuery.SQL.Text := 'SELECT col1, cash_words(col1::money)::varchar(50) AS col2 FROM generate_series(1, 6) AS g(col1)';
   FPSQLQuery.Open;
 //single column
-  Check(FPSQLQuery.Lookup('col2', 'Two dollars and zero cents', 'col1') = 2,
+  DACCheck(FPSQLQuery.Lookup('col2', 'Two dollars and zero cents', 'col1') = 2,
           'Lookup failed');
-  Check(FPSQLQuery.Lookup('col1', 2, 'col2') = 'Two dollars and zero cents',
+  DACCheck(FPSQLQuery.Lookup('col1', 2, 'col2') = 'Two dollars and zero cents',
           'Locate failed');
 
 //multicolumn
   FPSQLQuery.SQL.Text := 'SELECT a, b, a*b AS res FROM generate_series(1,10) v(a), generate_series(1,10) w(b)';
   FPSQLQuery.Open;
   a := Random(10) + 1; b := Random(10) + 1;
-  Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), b]), 'res') = a*b,
+  DACCheck(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), b]), 'res') = a*b,
           'Multicolumn Lookup failed');
   a := Random(10) + 1; b := Random(10) + 1;
-  Check(FPSQLQuery.Lookup('a;b', VarArrayOf([a, b]), 'res') = a*b,
+  DACCheck(FPSQLQuery.Lookup('a;b', VarArrayOf([a, b]), 'res') = a*b,
           'Multicolumn Lookup failed');
   a := Random(10) + 1; b := Random(10) + 1;
-  Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), IntToStr(b)]), 'res') = a*b,
+  DACCheck(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), IntToStr(b)]), 'res') = a*b,
           'Multicolumn Lookup failed');
 end;
 
 procedure TestTPSQLQuery.TestRefreshModifiedDelete;
 var anID, aRecordCount: integer;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -476,8 +500,8 @@ begin
   anID := FPSQLQuery.FieldByName('id').AsInteger;
   aRecordCount := FPSQLQuery.RecordCount;
   FPSQLQuery.Delete;
-  Check(aRecordCount - 1 = FPSQLQuery.RecordCount, 'Nothing deleted');
-  Check(not FPSQLQuery.Locate('id', anID, []), 'Row not deleted properly');
+  DACCheck(aRecordCount - 1 = FPSQLQuery.RecordCount, 'Nothing deleted');
+  DACCheck(not FPSQLQuery.Locate('id', anID, []), 'Row not deleted properly');
 end;
 
 procedure TestTPSQLQuery.TestRefreshModifiedInsert;
@@ -495,22 +519,22 @@ begin
   FPSQLQuery.FieldByName('string').AsString := 'test test inserted';
   FPSQLQuery.Post;
 
-  Check(RowCount + 1 = FPSQLQuery.RecordCount, 'Nothing inserted');
-  Check(FPSQLQuery.FieldByName('intf').AsInteger = iVal, 'Integer value is wrong after Insert');
-  Check(FPSQLQuery.FieldByName('string').AsString = 'test test inserted', 'String value is wrong after Insert');
-  Check(FPSQLQuery.FieldByName('datum').IsNull, 'Datum value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('notes').IsNull, 'Notes value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('graphic').IsNull, 'Graphic value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('b_graphic').IsNull, 'b_graphic value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('b').IsNull, 'b value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('floatf').IsNull, 'floatf value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('datef').IsNull, 'datef value must be NULL after Insert');
-  Check(FPSQLQuery.FieldByName('timef').IsNull, 'timef value must be NULL after Insert');
+  DACCheck(RowCount + 1 = FPSQLQuery.RecordCount, 'Nothing inserted');
+  DACCheck(FPSQLQuery.FieldByName('intf').AsInteger = iVal, 'Integer value is wrong after Insert');
+  DACCheck(FPSQLQuery.FieldByName('string').AsString = 'test test inserted', 'String value is wrong after Insert');
+  DACCheck(FPSQLQuery.FieldByName('datum').IsNull, 'Datum value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('notes').IsNull, 'Notes value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('graphic').IsNull, 'Graphic value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('b_graphic').IsNull, 'b_graphic value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('b').IsNull, 'b value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('floatf').IsNull, 'floatf value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('datef').IsNull, 'datef value must be NULL after Insert');
+  DACCheck(FPSQLQuery.FieldByName('timef').IsNull, 'timef value must be NULL after Insert');
 end;
 
 procedure TestTPSQLQuery.TestRefreshModifiedInsertNonEmptyTable;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -522,7 +546,7 @@ procedure TestTPSQLQuery.TestRefreshModifiedUpdate;
 var
   iVal: Integer;
 begin
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -537,16 +561,16 @@ begin
   FPSQLQuery.FieldByName('intf').AsInteger := iVal;
   FPSQLQuery.FieldByName('string').AsString := 'test test updated';
   FPSQLQuery.Post;
-  Check(FPSQLQuery.FieldByName('intf').AsInteger = iVal, 'Integer value is wrong');
-  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'String value is wrong');
-  Check(FPSQLQuery.FieldByName('datum').IsNull, 'Datum value must be NULL');
-  Check(FPSQLQuery.FieldByName('notes').IsNull, 'Notes value must be NULL');
-  Check(FPSQLQuery.FieldByName('graphic').IsNull, 'Graphic value must be NULL');
-  Check(FPSQLQuery.FieldByName('b_graphic').IsNull, 'b_graphic value must be NULL');
-  Check(FPSQLQuery.FieldByName('b').IsNull, 'b value must be NULL');
-  Check(FPSQLQuery.FieldByName('floatf').IsNull, 'floatf value must be NULL');
-  Check(FPSQLQuery.FieldByName('datef').IsNull, 'datef value must be NULL');
-  Check(FPSQLQuery.FieldByName('timef').IsNull, 'timef value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('intf').AsInteger = iVal, 'Integer value is wrong');
+  DACCheck(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'String value is wrong');
+  DACCheck(FPSQLQuery.FieldByName('datum').IsNull, 'Datum value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('notes').IsNull, 'Notes value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('graphic').IsNull, 'Graphic value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('b_graphic').IsNull, 'b_graphic value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('b').IsNull, 'b value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('floatf').IsNull, 'floatf value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('datef').IsNull, 'datef value must be NULL');
+  DACCheck(FPSQLQuery.FieldByName('timef').IsNull, 'timef value must be NULL');
 end;
 
 procedure TestTPSQLQuery.TestRequired;
@@ -554,25 +578,25 @@ begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test'; //single table query
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
-  Check(not FPSQLQuery.FieldDefs[0].Required, 'SERIAL should be not Required field');
-  Check(FPSQLQuery.FieldDefs[1].Required, 'NOT NULL should be Required field');
-  Check(not FPSQLQuery.FieldDefs[2].Required, 'NOT NULL + DEFAULT should be not Required field');
-  Check(not FPSQLQuery.FieldDefs[3].Required, 'Simple definition should be not Required field');    
-  Check(not FPSQLQuery.FieldDefs[4].Required, 'Simple definition should be not Required field'); 
+  DACCheck(not FPSQLQuery.FieldDefs[0].Required, 'SERIAL should be not Required field');
+  DACCheck(FPSQLQuery.FieldDefs[1].Required, 'NOT NULL should be Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[2].Required, 'NOT NULL + DEFAULT should be not Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[3].Required, 'Simple definition should be not Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[4].Required, 'Simple definition should be not Required field');
   FPSQLQuery.Close;
   FPSQLQuery.SQL.Text := 'SELECT r1.id, r1.intf, r1.string, r1.datum, ' +
                          'r2.id, r2.intf, r2.string, r2.datum ' +
                          'FROM requestlive_test r1, required_test r2'; //multi table query
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
-  Check(not FPSQLQuery.FieldDefs[0].Required, 'SERIAL should be not Required field');
-  Check(FPSQLQuery.FieldDefs[1].Required, 'NOT NULL should be Required field');
-  Check(not FPSQLQuery.FieldDefs[2].Required, 'NOT NULL + DEFAULT should be not Required field');
-  Check(not FPSQLQuery.FieldDefs[3].Required, 'Simple definition should be not Required field');    
-  Check(not FPSQLQuery.FieldDefs[4+0].Required, 'SERIAL should be not Required field');
-  Check(FPSQLQuery.FieldDefs[4+1].Required, 'NOT NULL should be Required field');
-  Check(not FPSQLQuery.FieldDefs[4+2].Required, 'NOT NULL + DEFAULT should be not Required field');
-  Check(not FPSQLQuery.FieldDefs[4+3].Required, 'Simple definition should be not Required field');    
+  DACCheck(not FPSQLQuery.FieldDefs[0].Required, 'SERIAL should be not Required field');
+  DACCheck(FPSQLQuery.FieldDefs[1].Required, 'NOT NULL should be Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[2].Required, 'NOT NULL + DEFAULT should be not Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[3].Required, 'Simple definition should be not Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[4+0].Required, 'SERIAL should be not Required field');
+  DACCheck(FPSQLQuery.FieldDefs[4+1].Required, 'NOT NULL should be Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[4+2].Required, 'NOT NULL + DEFAULT should be not Required field');
+  DACCheck(not FPSQLQuery.FieldDefs[4+3].Required, 'Simple definition should be not Required field');
   FPSQLQuery.Close;
    
 end;
@@ -584,7 +608,7 @@ procedure TestTPSQLQuery.TestTimestampValues;
     FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt); //not null field
     FPSQLQuery.FieldByName('datum').AsDateTime := ATime;
     FPSQLQuery.Post;
-    Check(FPSQLQuery.FieldByName('datum').AsDateTime = ATime, 'Cannot set TIMESTAMP field to ' + DateTimeToStr(ATime));
+    DACCheck(FPSQLQuery.FieldByName('datum').AsDateTime = ATime, 'Cannot set TIMESTAMP field to ' + DateTimeToStr(ATime));
   end;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
@@ -606,7 +630,7 @@ procedure TestTPSQLQuery.TestTimeValues;
     FPSQLQuery.FieldByName('intf').AsInteger := Random(MaxInt); //not null field
     FPSQLQuery.FieldByName('timef').AsDateTime := ATime;
     FPSQLQuery.Post;
-    Check(FPSQLQuery.FieldByName('timef').AsDateTime = ATime, 'Cannot set TIME field to ' + DateTimeToStr(ATime));
+    DACCheck(FPSQLQuery.FieldByName('timef').AsDateTime = ATime, 'Cannot set TIME field to ' + DateTimeToStr(ATime));
   end;
 begin
   FPSQLQuery.SQL.Text := 'SELECT * FROM requestlive_test';
@@ -622,7 +646,7 @@ procedure TestTPSQLQuery.TestUpdate;
 var _Num: TBcd;
 begin
   _Num := StrToBcd('98765432100123456789.98765432100123456789', PSQL_FS);
-  QryDB.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
+  TestDBSetup.Database.Execute('INSERT INTO requestlive_test(intf, string) VALUES '+
                 ' (1, ''test insert1''),' +
                 ' (2, ''test insert2''),' +
                 ' (3, ''test insert3''),' +
@@ -639,50 +663,22 @@ begin
   FPSQLQuery.FieldByName('floatf').AsFloat := {$IFDEF DELPHI_12}Random(){$ELSE}Random(MaxInt) / Random(MaxInt){$ENDIF};
   FPSQLQuery.FieldByName('numf').AsBCD := _Num;
   FPSQLQuery.Post;
-  Check(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'Incorrect value for VARCHAR after Update');
-  Check(_Num = FPSQLQuery.FieldByName('numf').AsBCD, 'Incorrect value for NUMERIC after Update');
+  DACCheck(FPSQLQuery.FieldByName('string').AsString = 'test test updated', 'Incorrect value for VARCHAR after Update');
+  DACCheck(_Num = FPSQLQuery.FieldByName('numf').AsBCD, 'Incorrect value for NUMERIC after Update');
 end;
 
-{ TDbSetup }
-
-procedure TDbSetup.SetUp;
+{$IFDEF DUNITX}
+procedure TestTPSQLQuery.SetupFixture;
 begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS requestlive_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone,' + //not Required etc.
-                '  notes text,' +
-                '  graphic oid,' +
-                '  b_graphic bytea,' +
-                '  b boolean,' +
-                '  floatf real,' +
-                '  datef date,' +
-                '  timef time,' +
-                '  numf numeric' +
-                ')');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS required_test ' +
-                '(' +
-                '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
-                '  intf integer NOT NULL,' + //NotNull ->Required
-                '  string character varying(100) NOT NULL DEFAULT ''abc'',' + //NotNull + Default -> not Required
-                '  datum timestamp without time zone)'); //not Required.  
+  QryDB := MainForm.Database;
+  InternalSetUp;
 end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLQueryTest.conf');
-  QryDB.Free;
-end;
+{$ENDIF}
 
 initialization
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLQuery.Suite, 'Database Setup'));
+{$IFDEF DUNITX}
+  TDUnitX.RegisterTestFixture(TestTPSQLQuery);
+{$ENDIF}
 
 end.
 

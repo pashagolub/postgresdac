@@ -1,5 +1,8 @@
 unit PSQLDatabaseTest;
 {$I PSQLDAC.inc}
+{$IFDEF DUNITX}
+  {$M+}
+{$ENDIF}
 {
 
   Delphi DUnit Test Case
@@ -12,22 +15,17 @@ unit PSQLDatabaseTest;
 
 interface
 
-uses
-  TestFramework, Db, Windows, PSQLAccess, ExtCtrls, Controls, Classes, PSQLDbTables,
-  PSQLTypes, SysUtils, DbCommon, {$IFNDEF DELPHI_5}Variants,{$ENDIF} Graphics, StdVCL, TestExtensions,
-  Forms, PSQLConnFrm;
+uses PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Classes,
+  {$IFNDEF DUNITX}
+  TestFramework, {$IFNDEF DELPHI_5}Variants,{$ENDIF} TestExtensions
+  {$ELSE}
+  DUnitX.TestFramework
+  {$ENDIF};
 
 type
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
 
-  // Test methods for class TPSQLDatabase
-
-  TestTPSQLDatabase = class(TTestCase)
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
+  TestTPSQLDatabase = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   published
     procedure HookUp;
     procedure TestPlainConnInfoConnect;
@@ -55,16 +53,13 @@ type
     procedure TestSSLConnect;
   end;
 
-var
-  FPSQLDatabase: TPSQLDatabase;
-
 implementation
 
-uses TestHelper;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
 
 procedure TestTPSQLDatabase.HookUp;
 begin
- Check(True);
+  DACIsTrue(True);
 end;
 
 procedure TestTPSQLDatabase.TestExecute;
@@ -73,16 +68,16 @@ var
   SQL: string;
 begin
   SQL := 'SELECT version()';
-  ReturnValue := FPSQLDatabase.Execute(SQL);
-  Check(ReturnValue = 1);
+  ReturnValue := TestDBSetup.Database.Execute(SQL);
+  DACIsTrue(ReturnValue = 1);
 end;
 
 procedure TestTPSQLDatabase.TestGetBackendPID;
 var
   ReturnValue: Cardinal;
 begin
-  ReturnValue := FPSQLDatabase.GetBackendPID;
-  Check(ReturnValue > InvalidOID);
+  ReturnValue := TestDBSetup.Database.GetBackendPID;
+  DACIsTrue(ReturnValue > InvalidOID);
 end;
 
 procedure TestTPSQLDatabase.TestSelectString;
@@ -94,9 +89,9 @@ var
 begin
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'column1';
-  ReturnValue := FPSQLDatabase.SelectString(aSQL, IsOk, aFieldName);
-  Check(IsOk);
-  CheckEquals('12345', ReturnValue);
+  ReturnValue := TestDBSetup.Database.SelectString(aSQL, IsOk, aFieldName);
+  DACIsTrue(IsOk);
+  DACIsTrue('12345' = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectString1;
@@ -108,9 +103,9 @@ var
 begin
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := 0;
-  ReturnValue := FPSQLDatabase.SelectString(aSQL, IsOk, aFieldNumber);
-  Check(IsOk);
-  CheckEquals('12345', ReturnValue);
+  ReturnValue := TestDBSetup.Database.SelectString(aSQL, IsOk, aFieldNumber);
+  DACIsTrue(IsOk);
+  DACIsTrue('12345' = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef;
@@ -122,13 +117,13 @@ var
 begin
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'column1';
-  ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  CheckEquals('12345', ReturnValue);
+  ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldName);
+  DACIsTrue('12345' = ReturnValue);
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'WRONG_COL_NAME';
   aDefaultValue := 'MyDefaultValue';
-  ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  CheckEquals(aDefaultValue, ReturnValue);
+  ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldName);
+  DACIsTrue(aDefaultValue = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef1;
@@ -140,13 +135,13 @@ var
 begin
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := 0;
-  ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  CheckEquals('12345', ReturnValue);
+  ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
+  DACIsTrue('12345' = ReturnValue);
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := -1234214;
   aDefaultValue := 'MyDefaultValue';
-  ReturnValue := FPSQLDatabase.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  CheckEquals(aDefaultValue, ReturnValue);
+  ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
+  DACIsTrue(aDefaultValue = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStrings;
@@ -159,10 +154,14 @@ begin
   try
     aSQL := 'SELECT 1, g.s FROM generate_series(1,10) as g(s)';
     aFieldName := 's';
-    FPSQLDatabase.SelectStrings(aSQL, aList, aFieldName);
-    Check(aList.Count = 10, 'SelectStrings by FieldName failed');
+    TestDBSetup.Database.SelectStrings(aSQL, aList, aFieldName);
+    DACCheck(aList.Count = 10, 'SelectStrings by FieldName failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -176,39 +175,47 @@ begin
   try
     aSQL := 'SELECT 1, g.s FROM generate_series(1,10) as g(s)';
     aFieldNumber := 1;
-    FPSQLDatabase.SelectStrings(aSQL, aList, aFieldNumber);
-    Check(aList.Count = 10, 'SelectStrings by FieldNumber failed');
+    TestDBSetup.Database.SelectStrings(aSQL, aList, aFieldNumber);
+    DACCheck(aList.Count = 10, 'SelectStrings by FieldNumber failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
 procedure TestTPSQLDatabase.TestSSLConnect;
-var sslDB: TPSQLDatabase;
+var
+  sslDB: TPSQLDatabase;
 begin
   sslDB := TPSQLDatabase.Create(nil);
   try
-    sslDB.Assign(FPSQLDatabase);
+    sslDB.Assign(TestDBSetup.Database);
     sslDB.Close;
     sslDB.SSLMode := sslVerifyCA;
     sslDB.SSLCert := 'TestData\postgresql.crt';
     sslDB.SSLKey := 'TestData\postgresql.key';
     sslDB.SSLRootCert := 'TestData\root.crt';
     sslDB.Open;
-    Check(sslDB.Connected, 'SSL Connection failed');
-
+    DACCheck(sslDB.Connected, 'SSL Connection failed');
   finally
+    {$IFNDEF NEXTGEN}
     FreeAndNil(sslDB);
+    {$ELSE}
+    sslDB.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
 procedure TestTPSQLDatabase.TestCommit;
 begin
-  FPSQLDatabase.StartTransaction;
-  Check(FPSQLDatabase.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
-  FPSQLDatabase.Execute('CREATE TEMP TABLE foo()');
-  FPSQLDatabase.Commit;
-  Check(FPSQLDatabase.TransactionStatus = trstIDLE, 'Failed to COMMIT transaction');
+  TestDBSetup.Database.StartTransaction;
+  DACCheck(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
+  TestDBSetup.Database.Execute('CREATE TEMP TABLE foo()');
+  TestDBSetup.Database.Commit;
+  DACCheck(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to COMMIT transaction');
 end;
 
 procedure TestTPSQLDatabase.TestGetCharsets;
@@ -217,10 +224,14 @@ var
 begin
   aList := TStringList.Create;
   try
-    FPSQLDatabase.GetCharsets(aList);
-    Check(aList.Count > 0, 'GetCharsets failed');
+    TestDBSetup.Database.GetCharsets(aList);
+    DACCheck(aList.Count > 0, 'GetCharsets failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -232,10 +243,14 @@ begin
   aList := TStringList.Create;
   try
     Pattern := '%';
-    FPSQLDatabase.GetDatabases(Pattern, aList);
-    Check(aList.Count > 0, 'GetDatabases failed');
+    TestDBSetup.Database.GetDatabases(Pattern, aList);
+    DACCheck(aList.Count > 0, 'GetDatabases failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -250,13 +265,17 @@ begin
   try
     Pattern := '%';
     SystemSchemas := True;
-    FPSQLDatabase.GetSchemaNames(Pattern, SystemSchemas, List);
+    TestDBSetup.Database.GetSchemaNames(Pattern, SystemSchemas, List);
     Count := List.Count;
     List.Clear;
-    FPSQLDatabase.GetSchemaNames(Pattern, not SystemSchemas, List);
-    Check(List.Count <= Count, 'GetSchemaNames failed');
+    TestDBSetup.Database.GetSchemaNames(Pattern, not SystemSchemas, List);
+    DACCheck(List.Count <= Count, 'GetSchemaNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     List.Free;
+    {$ELSE}
+    List.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -268,10 +287,14 @@ begin
   aList := TStringList.Create;
   try
     Pattern := '%';
-    FPSQLDatabase.GetStoredProcNames(Pattern, aList);
-    Check(aList.Count > 0, 'GetStoredProcNames failed');
+    TestDBSetup.Database.GetStoredProcNames(Pattern, aList);
+    DACCheck(aList.Count > 0, 'GetStoredProcNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -286,13 +309,17 @@ begin
   try
     Pattern := '%';
     SystemTables := True;
-    FPSQLDatabase.GetTableNames(Pattern, SystemTables, List);
+    TestDBSetup.Database.GetTableNames(Pattern, SystemTables, List);
     Count := List.Count;
     List.Clear;
-    FPSQLDatabase.GetTableNames(Pattern, not SystemTables, List);
-    Check(List.Count <= Count, 'GetTableNames failed');
+    TestDBSetup.Database.GetTableNames(Pattern, not SystemTables, List);
+    DACCheck(List.Count <= Count, 'GetTableNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     List.Free;
+    {$ELSE}
+    List.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -304,10 +331,14 @@ begin
   aList := TStringList.Create;
   try
     Pattern := '%';
-    FPSQLDatabase.GetTablespaces(Pattern, aList);
-    Check(aList.Count > 0, 'GetTablespaces failed');
+    TestDBSetup.Database.GetTablespaces(Pattern, aList);
+    DACCheck(aList.Count > 0, 'GetTablespaces failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
@@ -319,78 +350,91 @@ begin
   aList := TStringList.Create;
   try
     Pattern := '%';
-    FPSQLDatabase.GetUserNames(Pattern, aList);
-    Check(aList.Count > 0, 'GetUserNames failed');
+    TestDBSetup.Database.GetUserNames(Pattern, aList);
+    DACCheck(aList.Count > 0, 'GetUserNames failed');
   finally
+    {$IFNDEF NEXTGEN}
     aList.Free;
+    {$ELSE}
+    aList.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
 procedure TestTPSQLDatabase.TestIsThreadSafe;
 begin
-  Check(PSQLTypes.PQIsThreadSafe() = 1, 'Library loaded is thread unsafe');
+  DACCheck(PSQLTypes.PQIsThreadSafe() = 1, 'Library loaded is thread unsafe');
 end;
 
 procedure TestTPSQLDatabase.TestPing;
 begin
-  Check(FPSQLDatabase.Ping = pstOK, 'Ping failed');
+  DACCheck(TestDBSetup.Database.Ping = pstOK, 'Ping failed');
 end;
 
 procedure TestTPSQLDatabase.TestPingEx;
-var ConnParams: TStringList;
+var
+  ConnParams: TStringList;
 begin
   ConnParams := TStringList.Create;
   try
-    ConnParams.Assign(FPSQLDatabase.Params);
-    Check(FPSQLDatabase.Ping() = pstOK, 'PingEx failed');
+    ConnParams.Assign(TestDBSetup.Database.Params);
+    DACCheck(TestDBSetup.Database.Ping(ConnParams) = pstOK, 'PingEx failed');
   finally
+    {$IFNDEF NEXTGEN}
     ConnParams.Free;
+    {$ELSE}
+    ConnParams.DisposeOf;
+    {$ENDIF}
   end;
 end;
 
 procedure TestTPSQLDatabase.TestPlainConnInfoConnect;
+var
+  TempDB: TPSQLDatabase;
 begin
-  FPSQLDatabase.Close;
-  FPSQLDatabase.UseSingleLineConnInfo := True;
-  FPSQLDatabase.Open;
-  Check(FPSQLDatabase.Connected, 'Failed to connect using PQconnectdb');
+  TempDB := TPSQLDatabase.Create(nil);
+  TempDB.Assign(TestDBSetup.Database);
+
+  TempDB.UseSingleLineConnInfo := True;
+  try
+    TempDB.Open;
+    DACCheck(TempDB.Connected, 'Failed to connect using PQconnectdb');
+  finally
+    TempDB.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestReset;
+var
+  TempDB: TPSQLDatabase;
 begin
-  FPSQLDatabase.Reset;
+  TempDB := TPSQLDatabase.Create(nil);
+  TempDB.Assign(TestDBSetup.Database);
+
+  TempDB.UseSingleLineConnInfo := True;
+  try
+    TempDB.Open;
+    DACCheck(TempDB.Connected, 'Failed to connect using PQconnectdb');
+    TempDB.Reset;
+    DACCheck(TempDB.Connected, 'Failed to reset using PQreset');
+  finally
+    TempDB.Free;
+  end;
 end;
 
 procedure TestTPSQLDatabase.TestRollback;
 begin
-  FPSQLDatabase.StartTransaction;
-  Check(FPSQLDatabase.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
-  FPSQLDatabase.Execute('CREATE TEMP TABLE foo()');
-  FPSQLDatabase.Rollback;
-  Check(FPSQLDatabase.TransactionStatus = trstIDLE, 'Failed to ROLLBACK transaction');
-end;
-
-{ MainFormSetup }
-
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(FPSQLDatabase, 'PSQLDatabaseTest.conf');
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  FPSQLDatabase.Close;
-  ComponentToFile(FPSQLDatabase, 'PSQLDatabaseTest.conf');
-  FPSQLDatabase.Free;
+  TestDBSetup.Database.StartTransaction;
+  DACCheck(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
+  TestDBSetup.Database.Execute('CREATE TEMP TABLE bar()');
+  TestDBSetup.Database.Rollback;
+  DACCheck(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to ROLLBACK transaction');
 end;
 
 initialization
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLDatabase.Suite, 'Database Setup'));
 
-  // Register any test cases with the test runner
-  //RegisterTest(TestTPSQLDatabase.Suite);
+{$IFDEF DUNITX}
+  TDUnitX.RegisterTestFixture(TestTPSQLDatabase);
+{$ENDIF}
 end.
 

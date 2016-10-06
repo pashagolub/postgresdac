@@ -12,27 +12,30 @@ unit PSQLTableTest;
 interface
 
 uses
-  TestFramework, Db, PSQLAccess, System.Generics.Collections, System.Types, Classes,
-  PSQLDbTables, PSQLTypes, SysUtils, DbCommon, Variants, TestExtensions,
-  Forms, PSQLConnFrm;
+  PSQLAccess, PSQLDbTables, PSQLTypes, Classes, Db,
+  {$IFNDEF DUNITX}
+  TestFramework, TestExtensions
+  {$ELSE}
+  DUnitX.TestFramework
+  {$ENDIF};
 
 type
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
 
-
-  // Test methods for class TPSQLTable
-
-  TestTPSQLTable = class(TTestCase)
-  strict private
+  {$IFDEF DUNITX}[TestFixture]{$ENDIF}
+  TestTPSQLTable = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  private
     FPSQLTable: TPSQLTable;
   public
+    {$IFNDEF DUNITX}
     procedure SetUp; override;
     procedure TearDown; override;
+    {$ELSE}
+    [Setup]
+    procedure SetUp;
+    [TearDown]
+    procedure TearDown;
+    {$ENDIF}
+  published
     procedure TestAddIndex;
     procedure TestApplyRange;
     procedure TestCancelRange;
@@ -42,6 +45,7 @@ type
     procedure TestEditRangeEnd;
     procedure TestEditRangeStart;
     procedure TestEmptyTable;
+    procedure TestFindKey;
     procedure TestFindNearest;
     procedure TestGetIndexNames;
     procedure TestGotoCurrent;
@@ -51,22 +55,32 @@ type
     procedure TestSetRange;
     procedure TestSetRangeEnd;
     procedure TestSetRangeStart;
-  published
-    procedure TestFindKey;
+    {$IFDEF DUNITX}
+    [SetupFixture]
+    procedure SetupFixture;
+    {$ENDIF}
   end;
-
-var
-  QryDB: TPSQLDatabase;
 
 implementation
 
-uses TestHelper;
+uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+
+procedure InternalSetUp;
+begin
+end;
 
 procedure TestTPSQLTable.SetUp;
 begin
   FPSQLTable := TPSQLTable.Create(nil);
-  FPSQLTable.Database := QryDB;
+  FPSQLTable.Database := TestDBSetup.Database;
 end;
+
+{$IFDEF DUNITX}
+procedure TestTPSQLTable.SetupFixture;
+begin
+  InternalSetUp;
+end;
+{$ENDIF}
 
 procedure TestTPSQLTable.TearDown;
 begin
@@ -138,11 +152,15 @@ begin
 end;
 
 procedure TestTPSQLTable.TestFindKey;
+var
+  ReturnValue: Boolean;
+  KeyValues: array of TVarRec;
 begin
   FPSQLTable.TableName := 'testtable';
   FPSQLTable.Open;
   FPSQLTable.IndexName := 'pk_testtable';
-  CheckTrue(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
+  DACCheck(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
+  // TODO: Validate method results
 end;
 
 procedure TestTPSQLTable.TestFindNearest;
@@ -216,29 +234,9 @@ begin
   // TODO: Validate method results
 end;
 
-{ TDbSetup }
-
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLTableTest.conf');
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS testtable' +
-                '(  col1 character varying(10) NOT NULL,' +
-                '  col2 character varying(10) NOT NULL,' +
-                '  CONSTRAINT pk_testtable PRIMARY KEY (col1, col2) )');
-  QryDB.Execute('INSERT INTO testtable VALUES (''10'', ''20''), (''11'', ''21'')' );
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLTableTest.conf');
-  QryDB.Free;
-end;
-
 initialization
-  //PaGo: Register any test cases with setup decorator
-  RegisterTest(TDbSetup.Create(TestTPSQLTable.Suite, 'Database Setup'));
+{$IFDEF DUNITX}
+  TDUnitX.RegisterTestFixture(TestTPSQLTable);
+{$ENDIF}
 end.
 

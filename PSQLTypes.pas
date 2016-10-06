@@ -8,12 +8,18 @@ interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
      Classes, SysUtils
+
+     {$IFNDEF MOBILE}
+      {$IFDEF DELPHI_12}, AnsiStrings{$ENDIF}
+     {$ENDIF}
+
      {$IFDEF DELPHI_6}, FmtBcd{$ENDIF}
      {$IFDEF DELPHI_12}, SqlTimSt, PSQLGeomTypes{$ENDIF}
      {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
-     {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF};
-
+     {$IFDEF ANDROID}, System.IOUtils {$ENDIF}
+     {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF}
+     {$IFDEF NEXTGEN}, Generics.Collections{$ENDIF};
 {$IFDEF DELPHI_12}
   {$NOINCLUDE PSQLGeomTypes}
 {$ENDIF}
@@ -120,6 +126,17 @@ const
   ERRCODE_UPDATEABORT           = 6;      { Update operation aborted }
   DBIERR_UPDATEABORT            = (ERRBASE_OTHER + ERRCODE_UPDATEABORT);
 
+/////////////////////////////////////////////////////////////////////////////
+//          COMPATIBILITY TYPES                                            //
+/////////////////////////////////////////////////////////////////////////////
+type
+  PAnsiDACChar = {$IFDEF MOBILE}MarshaledAString{$ELSE}PAnsiChar{$ENDIF};
+  PAnsiDACBytesChar = {$IFDEF MOBILE}PByte{$ELSE}PAnsiChar{$ENDIF};
+  AnsiDACChar = {$IFDEF MOBILE}Char{$ELSE}AnsiChar{$ENDIF};
+  DACAString = {$IFDEF MOBILE}String{$ELSE}AnsiString{$ENDIF};
+  DACABytesString = {$IFDEF MOBILE}TBytes{$ELSE}AnsiString{$ENDIF};
+  AnsiDACByteChar = {$IFDEF MOBILE}Byte{$ELSE}AnsiChar{$ENDIF};
+  DACPointerInt = NativeInt;
 
 {$IFNDEF DELPHI_12}
   type
@@ -211,11 +228,6 @@ var
   PSQL_FS              : TFormatSettings;
 
 type
-  {$IFDEF ANDROID}
-  PAnsiChar = PByte;
-  AnsiChar = Byte;
-  AnsiString = TBytes;
-  {$ENDIF}
 
 
   TPSQLDACAbout = class
@@ -428,7 +440,7 @@ type
     );
 
 // String descriptions of the ExecStatusTypes
-  pgresStatus = array[$00..$ff] of PAnsiChar;
+  pgresStatus = array[$00..$ff] of PAnsiDACChar;
 
   TErrorVerbosity = (evTERSE, evDEFAULT, evVERBOSE);
 
@@ -465,28 +477,24 @@ type
 //  unlikely to change.
 //  NOTE: in Postgres 6.4 and later, the be_pid is the notifying backend's,
 //  whereas in earlier versions it was always your own backend's PID.
- { PGnotify = packed record
-    relname: array [0..NAMEDATALEN-1] of Char; // name of relation containing data
-    be_pid:  Integer;			       // process id of backend
-  end;}
   PPGnotify = ^PGnotify;
   PGnotify = packed record
-    relname: PAnsiChar; // name of relation containing data
+    relname: PAnsiDACChar; // name of relation containing data
     be_pid:  Integer;	   // process id of backend
-    extra:   PAnsiChar;        // extra notification
+    extra:   PAnsiDACChar;        // extra notification
     next:    PPGnotify;        // application should never use this
   end;
 
 
 // PQnoticeProcessor is the function type for the notice-message callback.
-  PQnoticeProcessor = procedure(arg: Pointer; message: PAnsiChar);cdecl;
+  PQnoticeProcessor = procedure(arg: Pointer; message: PAnsiDACChar);cdecl;
 
 // Print options for PQprint()
 //  We can't use the conventional "bool", because we are designed to be
 //  included in a user's program, and user may already have that type
 //  defined.  Pqbool, on the other hand, is unlikely to be used.
 
-  PPAnsiChar = ^PAnsiChar;
+  PPAnsiDACChar = ^PAnsiDACChar;
 
   PQprintOpt = packed record
     header:    Byte;	   { print output field headings and row count }
@@ -495,10 +503,10 @@ type
     html3:     Byte;	   { output html tables }
     expanded:  Byte;	   { expand tables }
     pager:     Byte;	   { use pager for output if needed }
-    fieldSep:  PAnsiChar;	   { field separator }
-    tableOpt:  PAnsiChar;      { insert to HTML <table ...> }
-    caption:   PAnsiChar;	   { HTML <caption> }
-    fieldName: PPAnsiChar; 	   { null terminated array of repalcement field names }
+    fieldSep:  PAnsiDACChar;	   { field separator }
+    tableOpt:  PAnsiDACChar;      { insert to HTML <table ...> }
+    caption:   PAnsiDACChar;	   { HTML <caption> }
+    fieldName: PPAnsiDACChar; 	   { null terminated array of repalcement field names }
   end;
 
   PPQprintOpt = ^PQprintOpt;
@@ -507,12 +515,12 @@ type
 //  Structure for the conninfo parameter definitions returned by PQconndefaults //
 //////////////////////////////////////////////////////////////////////////////////
   PQconninfoOption = packed record
-    keyword:  PAnsiChar;	{ The keyword of the option }
-    envvar:   PAnsiChar;	{ Fallback environment variable name }
-    compiled: PAnsiChar;	{ Fallback compiled in default value  }
-    val:      PAnsiChar;	{ Options value	}
-    lab:      PAnsiChar;	{ Label for field in connect dialog }
-    dispchar: PAnsiChar;	{ Character to display for this field
+    keyword:  PAnsiDACChar;	{ The keyword of the option }
+    envvar:   PAnsiDACChar;	{ Fallback environment variable name }
+    compiled: PAnsiDACChar;	{ Fallback compiled in default value  }
+    val:      PAnsiDACChar;	{ Options value	}
+    lab:      PAnsiDACChar;	{ Label for field in connect dialog }
+    dispchar: PAnsiDACChar;	{ Character to display for this field
 			  in a connect dialog. Values are:
 			  ""	Display entered value as is
 			  "*"	Password field - hide value
@@ -527,29 +535,29 @@ type
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
   TPQisthreadsafe  = function(): Integer; cdecl;
-  TPQconnectdb     = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //blocking manner
-  TPQconnectStart  = function(ConnInfo: PAnsiChar): PPGconn; cdecl; //non-blocking manner
-  TPQconnectdbParams = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): PPGconn; cdecl; //blocking manner
-  TPQping          = function(ConnInfo: PAnsiChar): TPingStatus; cdecl;
-  TPQpingParams    = function(Keywords: PPAnsiChar; Values: PPAnsichar; ExpandDBName: integer): TPingStatus;
+  TPQconnectdb     = function(ConnInfo: PAnsiDACChar): PPGconn; cdecl; //blocking manner
+  TPQconnectStart  = function(ConnInfo: PAnsiDACChar): PPGconn; cdecl; //non-blocking manner
+  TPQconnectdbParams = function(Keywords: PPAnsiDACChar; Values: PPAnsiDACChar; ExpandDBName: integer): PPGconn; cdecl; //blocking manner
+  TPQping          = function(ConnInfo: PAnsiDACChar): TPingStatus; cdecl;
+  TPQpingParams    = function(Keywords: PPAnsiDACChar; Values: PPAnsiDACChar; ExpandDBName: integer): TPingStatus;
   TPQconnectPoll   = function (Handle : PPGconn): PollingStatusType; cdecl;
-  TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PAnsiChar): PPGconn; cdecl;
+  TPQsetdbLogin    = function(Host, Port, Options, Tty, Db, User, Passwd: PAnsiDACChar): PPGconn; cdecl;
   TPQconndefaults  = function: PPQconninfoOption; cdecl;
   TPQfinish        = procedure(Handle: PPGconn); cdecl;
   TPQreset         = procedure(Handle: PPGconn); cdecl;
   TPQrequestCancel = function(Handle: PPGconn): Integer; cdecl;
-  TPQdb            = function(Handle: PPGconn): PAnsiChar; cdecl;
-  TPQuser          = function(Handle: PPGconn): PAnsiChar; cdecl;
-  TPQpass          = function(Handle: PPGconn): PAnsiChar; cdecl;
-  TPQhost          = function(Handle: PPGconn): PAnsiChar; cdecl;
-  TPQport          = function(Handle: PPGconn): PAnsiChar; cdecl;
-  TPQtty           = function(Handle: PPGconn): PAnsiChar; cdecl;
-  TPQoptions       = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQdb            = function(Handle: PPGconn): PAnsiDACChar; cdecl;
+  TPQuser          = function(Handle: PPGconn): PAnsiDACChar; cdecl;
+  TPQpass          = function(Handle: PPGconn): PAnsiDACChar; cdecl;
+  TPQhost          = function(Handle: PPGconn): PAnsiDACChar; cdecl;
+  TPQport          = function(Handle: PPGconn): PAnsiDACChar; cdecl;
+  TPQtty           = function(Handle: PPGconn): PAnsiDACChar; cdecl;
+  TPQoptions       = function(Handle: PPGconn): PAnsiDACChar; cdecl;
   TPQstatus        = function(Handle: PPGconn): ConnStatusType; cdecl;
-  TPQerrorMessage  = function(Handle: PPGconn): PAnsiChar; cdecl;
+  TPQerrorMessage  = function(Handle: PPGconn): PAnsiDACChar; cdecl;
   TPQsocket        = function(Handle: PPGconn): Integer; cdecl;
   TPQbackendPID    = function(Handle: PPGconn): Integer; cdecl;
-  TPQparameterStatus = function(Handle: PPGconn; paramName: PAnsiChar): PAnsiChar; cdecl;
+  TPQparameterStatus = function(Handle: PPGconn; paramName: PAnsiDACChar): PAnsiDACChar; cdecl;
   TPQserverVersion = function(Handle: PPGconn): Integer; cdecl;
   TPQtransactionStatus  = function(Handle: PPGconn): TTransactionStatusType; cdecl;
   TPQgetssl        = function(Handle: PPGconn): pointer; cdecl; //point to SSL structure, see OpenSSL manual for details
@@ -557,79 +565,79 @@ type
   TPQuntrace       = procedure(Handle: PPGconn); cdecl;
   TPQsetNoticeProcessor = function(Handle: PPGconn; Proc: PQnoticeProcessor; Arg: Pointer): Pointer; cdecl;
   TPQprepare       = function(Handle: PPGconn;
-                              StmtName: PAnsiChar;
-                              Query: PAnsiChar;
+                              StmtName: PAnsiDACChar;
+                              Query: PAnsiDACChar;
                               nParams: integer;
                               paramTypes: POid): PPGresult; cdecl;
   TPQexecPrepared  = function(Handle: PPGconn;
-                              StmtName: PAnsiChar;
+                              StmtName: PAnsiDACChar;
                               nParams: integer;
-                              paramValues: PPAnsiChar;
+                              paramValues: PPAnsiDACChar;
                               paramLengths: PInteger;
                               paramFormats: PInteger;
                               resultFormat: integer): PPGresult; cdecl;
 
-  TPQexec          = function(Handle: PPGconn; Query: PAnsiChar): PPGresult; cdecl;
+  TPQexec          = function(Handle: PPGconn; Query: PAnsiDACChar): PPGresult; cdecl;
 
   TPQexecParams    = function(Handle: PPGconn;
-                              Query: PAnsiChar;
+                              Query: PAnsiDACChar;
                               nParams: integer;
                               paramTypes: POid;
-                              paramValues: PPAnsiChar;
+                              paramValues: PPAnsiDACChar;
                               paramLengths: PInteger;
                               paramFormats: PInteger;
                               resultFormat: integer): PPGresult; cdecl;
-  TPQresultErrorField = function(Result: PPGresult; fieldcode: integer): PAnsiChar; cdecl;
+  TPQresultErrorField = function(Result: PPGresult; fieldcode: integer): PAnsiDACChar; cdecl;
   TPQnotifies      = function(Handle: PPGconn): PPGnotify; cdecl;
   TPQsetSingleRowMode = function(Handle: PPGconn): integer; cdecl;
-  TPQsendQuery     = function(Handle: PPGconn; Query: PAnsiChar): Integer; cdecl;
+  TPQsendQuery     = function(Handle: PPGconn; Query: PAnsiDACChar): Integer; cdecl;
   TPQgetResult     = function(Handle: PPGconn): PPGresult; cdecl;
   TPQisBusy        = function(Handle: PPGconn): Integer; cdecl;
   TPQconsumeInput  = function(Handle: PPGconn): Integer; cdecl;
   TPQgetline       = function(Handle: PPGconn;
-                              Str: PAnsiChar;
+                              Str: PAnsiDACChar;
                               length: Integer): Integer; cdecl;
   TPQputline       = function(Handle: PPGconn;
-                              Str: PAnsiChar): Integer; cdecl;
+                              Str: PAnsiDACChar): Integer; cdecl;
   TPQgetlineAsync  = function(Handle: PPGconn;
-                              Buffer: PAnsiChar;
+                              Buffer: PAnsiDACChar;
                               BufSize: Integer): Integer; cdecl;
   TPQputnbytes     = function(Handle: PPGconn;
-                              Buffer: PAnsiChar;
+                              Buffer: PAnsiDACChar;
                               NBytes: Integer): Integer; cdecl;
   TPQendcopy       = function(Handle: PPGconn): Integer; cdecl;
   TPQgetCopyData   = function(Handle: PPGConn;
-                              Buffer: PPAnsiChar;
+                              Buffer: PPAnsiDACChar;
                               Async: integer = 0): Integer; cdecl;
   TPQputCopyData   = function(Handle: PPGConn;
-                              Buffer: PAnsiChar;
+                              Buffer: PAnsiDACChar;
                               Len: integer): Integer; cdecl;
   TPQputCopyEnd    = function(Handle: PPGConn;
-                              Buffer: PAnsiChar = nil): Integer; cdecl;
+                              Buffer: PAnsiDACChar = nil): Integer; cdecl;
   TPQresultStatus  = function(Result: PPGresult): ExecStatusType; cdecl;
-  TPQresultErrorMessage = function(Result: PPGresult): PAnsiChar; cdecl;
+  TPQresultErrorMessage = function(Result: PPGresult): PAnsiDACChar; cdecl;
   TPQntuples       = function(Result: PPGresult): Integer; cdecl;
   TPQnfields       = function(Result: PPGresult): Integer; cdecl;
   TPQbinaryTuples  = function(Result: PPGresult): Integer; cdecl;
-  TPQfname         = function(Result: PPGresult; field_num: Integer): PAnsiChar; cdecl;
-  TPQfnumber       = function(Result: PPGresult; field_name: PAnsiChar): Integer; cdecl;
+  TPQfname         = function(Result: PPGresult; field_num: Integer): PAnsiDACChar; cdecl;
+  TPQfnumber       = function(Result: PPGresult; field_name: PAnsiDACChar): Integer; cdecl;
   TPQftype         = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQfformat       = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftable        = function(Result: PPGresult; field_num: Integer): Oid; cdecl;
   TPQftablecol     = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
   TPQfsize         = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
   TPQfmod          = function(Result: PPGresult; field_num: Integer): Integer; cdecl;
-  TPQcmdStatus     = function(Result: PPGresult): PAnsiChar; cdecl;
+  TPQcmdStatus     = function(Result: PPGresult): PAnsiDACChar; cdecl;
   TPQoidValue      = function(Result: PPGresult): Oid; cdecl;
-  TPQoidStatus     = function(Result: PPGresult): PAnsiChar; cdecl;
-  TPQcmdTuples     = function(Result: PPGresult): PAnsiChar; cdecl;
+  TPQoidStatus     = function(Result: PPGresult): PAnsiDACChar; cdecl;
+  TPQcmdTuples     = function(Result: PPGresult): PAnsiDACChar; cdecl;
   TPQgetvalue      = function(Result: PPGresult;
                               tup_num: Integer;
-                              field_num: Integer): PAnsiChar; cdecl;
+                              field_num: Integer): PAnsiDACChar; cdecl;
   TPQsetvalue      = function(Result: PPGresult;
                               tup_num: Integer;
                               field_num: Integer;
-                              value: PAnsiChar;
+                              value: PAnsiDACChar;
                               len: integer): integer; cdecl;
   TPQcopyResult    = function(Result: PPGresult; flags: integer): PPGresult; cdecl;
   TPQgetlength     = function(Result: PPGresult;
@@ -642,31 +650,31 @@ type
   TPQmakeEmptyPGresult  = function(Handle: PPGconn;
                                    status: ExecStatusType): PPGresult; cdecl;
   TPQEscapeByteaConn   = function(Handle: PPGconn;
-                                  from: PAnsiChar;
+                                  from: PAnsiDACChar;
                                   from_length: integer;
-                                  var to_length: integer): PAnsiChar; cdecl;
-  TPQUnEscapeBytea = function(from: PAnsiChar; var to_length: integer): PAnsiChar; cdecl;
+                                  var to_length: integer): PAnsiDACChar; cdecl;
+  TPQUnEscapeBytea = function(from: PAnsiDACChar; var to_length: integer): PAnsiDACChar; cdecl;
   TPQEscapeStringConn = function(Handle: PPGconn;
-                                 to_str: PAnsiChar;
-                                 const from_str: PAnsiChar;
+                                 to_str: PAnsiDACChar;
+                                 const from_str: PAnsiDACChar;
                                  from_size: cardinal;
                                  var Error: integer): cardinal; cdecl;
   TPQFreeMem       = procedure(Ptr: Pointer); cdecl;
-  TPQsetClientEncoding = function(Handle: PPGconn; encoding: PAnsiChar): integer; cdecl;
+  TPQsetClientEncoding = function(Handle: PPGconn; encoding: PAnsiDACChar): integer; cdecl;
   TPQsetErrorVerbosity = function(Handle: PPGconn; verbosity: TErrorVerbosity): TErrorVerbosity; cdecl;
   TPQclientEncoding = function(Handle: PPGconn): integer; cdecl;
-  Tpg_encoding_to_char = function(encoding_id: integer): PAnsiChar; cdecl;
+  Tpg_encoding_to_char = function(encoding_id: integer): PAnsiDACChar; cdecl;
   Tlo_open         = function(Handle: PPGconn;
                               lobjId: Oid;
                               mode: Integer): Integer; cdecl;
   Tlo_close        = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
   Tlo_read         = function(Handle: PPGconn;
                               fd: Integer;
-                              buf: PAnsiChar;
+                              buf: PAnsiDACChar;
                               len: Integer): Integer; cdecl;
   Tlo_write        = function(Handle: PPGconn;
                               fd: Integer;
-                              buf: PAnsiChar;
+                              buf: PAnsiDACChar;
                               len: Integer): Integer; cdecl;
   Tlo_lseek        = function(Handle: PPGconn;
                               fd: Integer;
@@ -675,8 +683,8 @@ type
   Tlo_creat        = function(Handle: PPGconn; mode: Integer): Oid; cdecl;
   Tlo_tell         = function(Handle: PPGconn; fd: Integer): Integer; cdecl;
   Tlo_unlink       = function(Handle: PPGconn; lobjId: Oid): Integer; cdecl;
-  Tlo_import       = function(Handle: PPGconn; filename: PAnsiChar): Oid; cdecl;
-  Tlo_export       = function(Handle: PPGconn; lobjId: Oid; filename: PAnsiChar): Integer; cdecl;
+  Tlo_import       = function(Handle: PPGconn; filename: PAnsiDACChar): Oid; cdecl;
+  Tlo_export       = function(Handle: PPGconn; lobjId: Oid; filename: PAnsiDACChar): Integer; cdecl;
 
 
 //////////////////////////////////////////////////////////////////
@@ -1013,16 +1021,16 @@ Type
 
 
 { typedefs for buffers of various common sizes: }
-  DBIPATH            = packed array [0..DBIMAXPATHLEN] of AnsiChar; { holds a DOS path }
+  DBIPATH            = packed array [0..DBIMAXPATHLEN] of AnsiDACChar; { holds a DOS path }
   DBINAME            = packed array [0..DBIMAXNAMELEN] of Char; { holds a name }
-  DBIEXT             = packed array [0..DBIMAXEXTLEN] of AnsiChar; { holds an extension EXT }
-  DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of AnsiChar; { holds a table name }
-  DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of AnsiChar; { holds a stored procedure name }
+  DBIEXT             = packed array [0..DBIMAXEXTLEN] of PAnsiDACChar; { holds an extension EXT }
+  DBITBLNAME         = packed array [0..DBIMAXTBLNAMELEN] of AnsiDACChar; { holds a table name }
+  DBISPNAME          = packed array [0..DBIMAXSPNAMELEN] of AnsiDACChar; { holds a stored procedure name }
   DBIKEY             = packed array [0..DBIMAXFLDSINKEY-1] of Word; { holds list of fields in a key }
-  DBIKEYEXP          = packed array [0..DBIMAXKEYEXPLEN] of AnsiChar; { holds a key expression }
+  DBIKEYEXP          = packed array [0..DBIMAXKEYEXPLEN] of AnsiDACChar; { holds a key expression }
   DBIVCHK            = packed array [0..DBIMAXVCHKLEN] of Byte; { holds a validity check }
-  DBIPICT            = packed array [0..DBIMAXPICTLEN] of AnsiChar; { holds a picture (Pdox) }
-  DBIMSG             = packed array [0..DBIMAXMSGLEN] of AnsiChar; { holds an error message }
+  DBIPICT            = packed array [0..DBIMAXPICTLEN] of AnsiDACChar; { holds a picture (Pdox) }
+  DBIMSG             = packed array [0..DBIMAXMSGLEN] of AnsiDACChar; { holds an error message }
 
 {============================================================================}
 {                         Statement parameter information                    }
@@ -1751,8 +1759,9 @@ type
 /////////////////////////////////////////////////////////////////////////////
 type
     TFieldArray = array[0..255] of Integer;
-    TTrueArray = Set of AnsiChar;
-    TFalseArray = Set of AnsiChar;
+    TTrueArray = Set of AnsiDACByteChar;
+    TFalseArray = Set of AnsiDACByteChar;
+
 /////////////////////////////////////////////////////////////////////////////
 //                        TPgSQLFilter TYPES AND CONST                     //
 /////////////////////////////////////////////////////////////////////////////
@@ -1840,7 +1849,7 @@ type
   {TContainer Object}
   TContainer = Class(TObject)
     Private
-      FItems : TList;
+      FItems : TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
     Public
       constructor Create;
       Destructor Destroy; Override;
@@ -1944,7 +1953,7 @@ type
 
 {$IFDEF NEXTGEN}
 type
-  TRecordBuffer = NativeInt;
+  TRecordBuffer = PByte;
 {$ENDIF NEXTGEN}
 
 {$IFNDEF DELPHI_12}
@@ -1970,11 +1979,27 @@ function GetTickCount: LongWord; //thanks to Indy project
 {$ENDIF}
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
 
+
+function DACAnsiStrAlloc(Size: Cardinal): PAnsiDACChar;
+procedure DACAnsiStrDispose(Str: PAnsiDACChar);
+
+function DACStrCopy(Dest: PAnsiDACChar; const Source: PAnsiDACChar; MaxLen: Cardinal = 0): PAnsiDACChar;
+procedure DACAllocStr(var Dest: PAnsiDACChar; Len: Integer);
+
+{$IFDEF MOBILE}
+function DACAnsiStrBufSize(const Str: PAnsiDACChar): Cardinal;
+function DACStrBufSize(const Str: PAnsiDACChar): Cardinal;
+{$ENDIF}
+
+function GetTickCount: LongWord; //thanks to Indy project
+
+
 implementation
 
 uses PSQLDbTables, PSQLAccess
      {$IFDEF DELPHI_6}, StrUtils{$ENDIF}
-     {$IFDEF FPC}, StrUtils{$ENDIF};
+     {$IFDEF FPC}, StrUtils{$ENDIF}
+     {$IFDEF NEXTGEN}, Character{$ENDIF};
 
 type
   T4 = 0..3;
@@ -2281,7 +2306,7 @@ end;
 constructor TContainer.Create;
 begin
   Inherited Create;
-  FItems := TList.Create;
+  FItems := TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF}.Create;
 end;
 
 Destructor TContainer.Destroy;
@@ -2601,8 +2626,13 @@ begin
           Exit;
         end else
         begin
+        {$IFNDEF NEXTGEN}
            if not CharInSet(p^, ['(',')']) then
               while CharInSet(p^, [' ', #10, #13, ',']) do Inc(p) else
+        {$ELSE}
+           if not p^.IsInArray(['(',')']) then
+              while p^.IsInArray([' ', #10, #13, ',']) do Inc(p) else
+        {$ENDIF}
            begin
               BracketCount := 1;
               repeat
@@ -2633,7 +2663,11 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
+        {$IFNDEF NEXTGEN}
           while CharInSet(p^, ['=','<','>']) do Inc(p);
+        {$ELSE}
+          while p^.IsInArray(['=','<','>']) do Inc(p);
+        {$ENDIF}
           SetString(Token, TokenStart, p - TokenStart);
           Result := stPredicate;
           Exit;
@@ -2645,7 +2679,11 @@ begin
         if not Assigned(TokenStart) then
         begin
           TokenStart := p;
+        {$IFNDEF NEXTGEN}
           while CharInSet(p^, ['0'..'9','.']) do Inc(p);
+        {$ELSE}
+          while p^.IsInArray(['0', '1', '2','3','4','5','6','7','8','9','.']) do Inc(p);
+        {$ENDIF}
           SetString(Token, TokenStart, p - TokenStart);
           Result := stNumber;
           Exit;
@@ -2771,7 +2809,11 @@ begin
    else
     begin
       for Idx := Length(Value) downto Length(Value) - TIMEZONELEN do //crop timezone information "+\-dd:dd"
+        {$IFNDEF NEXTGEN}
         if CharInSet(Value[Idx], ['+', '-']) then
+        {$ELSE}
+        if Value[Idx].IsInArray(['+', '-']) then
+        {$ENDIF}
         begin
           Value := Copy(Value, 1, Idx - 1);
           Break;
@@ -2815,10 +2857,14 @@ var
   P: Integer;
   Quote: string;
 begin
-  P := 1;
+  P := {$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF};
   Token  := '';
   if Buffer = '' then Exit;
+  {$IFNDEF NEXTGEN}
   while CharInSet(Buffer[P], [' ',#9]) do
+  {$ELSE}
+  while Buffer[P].IsInArray([' ',#9]) do
+  {$ENDIF}
   begin
     Inc(P);
     if Length(Buffer) < P then  goto ExitProc;
@@ -2829,7 +2875,11 @@ begin
     Inc(P);
     goto ExitProc;
   end;
+  {$IFNDEF NEXTGEN}
   if CharInSet(Buffer[P], ['"','''']) then
+  {$ELSE}
+  if Buffer[P].IsInArray(['"','''']) then
+  {$ENDIF}
   begin
     Quote  := Buffer[P];
     Token  := Quote;
@@ -2846,11 +2896,16 @@ begin
     begin
       Token := Token + Buffer[P];
       Inc(P);
-      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0) or CharInSet(Buffer[P], ['"','''']) then Break;
+      if (P > Length(Buffer)) or (Pos(Buffer[P],DELIMITERS) <> 0)
+        {$IFNDEF NEXTGEN}
+        or CharInSet(Buffer[P], ['"','''']) then Break;
+        {$ELSE}
+        or Buffer[P].IsInArray(['"','''']) then Break;
+        {$ENDIF}
     end;
   end;
 ExitProc:
-  Delete(Buffer, 1, P-1);
+  Delete(Buffer, 1, {$IFNDEF NEXTGEN}P-1{$ELSE}P{$ENDIF});
 end;
 
 function GetInArrayField(FieldType : Word): boolean;
@@ -3054,8 +3109,13 @@ var
   LogSize : Integer;
   dataLen : Integer;
 begin
+  {$IFNDEF NEXTGEN}
   ZeroMemory(@RecBuff, Sizeof(FLDDesc));
   ZeroMemory(@ValChk, SizeOf(VCHKDesc));
+  {$ELSE}
+  FillChar(RecBuff, Sizeof(FLDDesc), 0);
+  FillChar(ValChk, SizeOf(VCHKDesc), 0);
+  {$ENDIF}
   with RecBuff do
   begin
     iFldNum  := Count;
@@ -3108,6 +3168,14 @@ begin
   {$ENDIF}
    if ( SQLLibraryHandle <= HINSTANCE_ERROR ) then
    begin
+      // we must think about some property
+      {$IFDEF ANDROID}
+      //internal path
+      LibPQPath := TPath.Combine(TPath.GetDocumentsPath, LibPQPath);
+      //external path
+     // LibPQPath := TPath.Combine(TPath.GetSharedDocumentsPath, LibPQPath);
+     {$ENDIF}
+
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
@@ -3363,6 +3431,117 @@ begin
       DBIERR_UPDATEABORT: Result :='Update aborted.';       //13062
    end;
 end;
+
+
+function DACAnsiStrAlloc(Size: Cardinal): PAnsiDACChar;
+begin
+{$IFNDEF MOBILE}
+  {$IFDEF DELPHI_12}
+  Result := AnsiStrAlloc(Size);
+  {$ELSE}
+  Result := StrAlloc(Size);
+  {$ENDIF}
+{$ELSE}
+  Inc(Size, SizeOf(Cardinal));
+  GetMem(Result, Size);
+  Cardinal(Pointer(Result)^) := Size;
+  Inc(Result, SizeOf(Cardinal));
+{$ENDIF}
+end;
+
+procedure DACAnsiStrDispose(Str: PAnsiDACChar);
+begin
+{$IFNDEF NEXTGEN}
+{$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}strdispose(Str);
+{$ELSE}
+if Str <> nil then
+  begin
+    Dec(Str, SizeOf(Cardinal));
+    FreeMem(Str, Cardinal(Pointer(Str)^));
+  end;
+{$ENDIF}
+end;
+
+function DACStrCopy(Dest: PAnsiDACChar; const Source: PAnsiDACChar; MaxLen: Cardinal = 0): PAnsiDACChar;
+{$IFDEF NEXTGEN}
+var
+  Len: Cardinal;
+{$ENDIF}
+begin
+  if MaxLen = 0 then
+    MaxLen := Length(Source);
+
+  Result := Dest;
+  {$IFNDEF NEXTGEN}
+    {$IFDEF DELPHI_18}System.AnsiStrings.{$ENDIF}StrLCopy(Dest, Source, MaxLen);
+  {$ELSE}
+  Len := Length(Source);
+  if Len > MaxLen then
+    Len := MaxLen;
+  Move(Source^, Dest^, Len);
+  Dest[Len] := #0;
+  {$ENDIF}
+end;
+
+procedure DACAllocStr(var Dest: PAnsiDACChar; Len: Integer);
+//{$IFDEF NEXTGEN}
+//var
+//  i: integer;
+//{$ENDIF}
+begin
+{$IFNDEF NEXTGEN}
+  {$IFDEF DELPHI_12}
+  Dest := AnsiStrAlloc(Len + 1);
+  {$ELSE}
+  Dest := StrAlloc(Len + 1);
+  {$ENDIF}
+{$ELSE}
+//  i := Length(String(Source));
+  GetMem(Dest, Len+1);
+  FillChar(Dest^, Len+1, 0);
+{$ENDIF}
+end;
+
+
+{$IFDEF MOBILE}
+// Working with PAnsiChar for Mobile platform
+
+function DACAnsiStrBufSize(const Str: PAnsiDACChar): Cardinal;
+var
+  P: PAnsiDACChar;
+begin
+  P := Str;
+  Dec(P, SizeOf(Cardinal));
+  Result := Cardinal(Pointer(P)^) - SizeOf(Cardinal);
+end;
+
+function DACStrBufSize(const Str: PAnsiDACChar): Cardinal;
+var
+  P: PAnsiDACChar;
+begin
+  P := Str;
+  Dec(P, SizeOf(Cardinal));
+  Result := Cardinal(Pointer(P)^) - SizeOf(Cardinal);
+end;
+{$ENDIF}
+
+{$IFNDEF MACOS_OR_MOBILE}
+function GetTickCount: LongWord;
+{$IFDEF DELPHI_12}inline;{$ENDIF}
+begin
+  Result := Windows.GetTickCount;
+end;
+{$ELSE}
+function GetTickCount: LongWord;inline;
+begin
+{$IFNDEF DELPHI_17}
+  Result := AbsoluteToNanoseconds(UpTime) div 1000000;
+{$ELSE}
+ Result := TThread.GetTickCount;
+{$ENDIF}
+end;
+{$ENDIF;}
+
 
 initialization
   SQLLibraryHandle := HINSTANCE_ERROR;
