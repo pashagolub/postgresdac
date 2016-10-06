@@ -15,25 +15,15 @@ unit PSQLBlobsTest;
 interface
 
 uses
-  PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Db, Classes, Types
+  PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Db, Classes, Types,
   {$IFNDEF DUNITX}
-  ,TestFramework, Windows, ExtCtrls, Controls,
-  DbCommon, Graphics, StdVCL, TestExtensions, Forms, PSQLConnFrm
+  TestFramework, TestExtensions, Winapi.Windows
   {$ELSE}
-  , DUnitX.TestFramework
+  DUnitX.TestFramework
   {$ENDIF};
 
 type
-  {$IFNDEF DUNITX}
-  //Setup decorator
-  TDbSetup = class(TTestSetup)
-  protected
-    procedure SetUp; override;
-    procedure TearDown; override;
-  end;
-  {$ENDIF}
 
-  // Test methods for class TPSQLQuery
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
   TestTPSQLBlobs = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
   private
@@ -69,9 +59,6 @@ type
     {$ENDIF}
   end;
 
-var
-  QryDB: TPSQLDatabase;
-
 implementation
 
 uses TestHelper {$IFDEF DUNITX}, MainF, System.IOUtils{$ENDIF};
@@ -90,7 +77,7 @@ uses TestHelper {$IFDEF DUNITX}, MainF, System.IOUtils{$ENDIF};
 
 procedure TestTPSQLBlobs.InternalSetUp;
 begin
-  QryDB.Execute('CREATE TEMP TABLE IF NOT EXISTS blobs_test_case_table(' +
+  TestDBSetup.Database.Execute('CREATE TEMP TABLE IF NOT EXISTS blobs_test_case_table(' +
                 'id SERIAL NOT NULL PRIMARY KEY,'  +
                 'byteaf bytea,' +
                 'oidf oid,'  +
@@ -100,8 +87,8 @@ end;
 procedure TestTPSQLBlobs.SetUp;
 begin
   FPSQLQuery := TPSQLQuery.Create(nil);
-  FPSQLQuery.Database := QryDB;
-  QryDB.Execute('TRUNCATE blobs_test_case_table');
+  FPSQLQuery.Database := TestDBSetup.Database;
+  TestDBSetup.Database.Execute('TRUNCATE blobs_test_case_table');
 end;
 
 procedure TestTPSQLBlobs.TearDown;
@@ -116,39 +103,43 @@ end;
 
 procedure TestTPSQLBlobs.TestBlobSizeAnsi;
 begin
-  QryDB.CharSet := 'SQL_ASCII';
-  FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
-  FPSQLQuery.RequestLive := True;
-  FPSQLQuery.Open;
-  FPSQLQuery.Insert;
-  {$IFNDEF DUNITX}
-  (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
-  (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromFile('TestData\test.bmp');
-  {$ELSE}
-  (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromStream(FRSTestBmp);
-  (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromStream(FRSTestBmp);
-  {$ENDIF}
-  (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := 'test-test';
+  TestDBSetup.Database.CharSet := 'SQL_ASCII';
+  try
+    FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
+    FPSQLQuery.RequestLive := True;
+    FPSQLQuery.Open;
+    FPSQLQuery.Insert;
+    {$IFNDEF DUNITX}
+    (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
+    (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromFile('TestData\test.bmp');
+    {$ELSE}
+    (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromStream(FRSTestBmp);
+    (FPSQLQuery.FieldByName('oidf') as TBlobField).LoadFromStream(FRSTestBmp);
+    {$ENDIF}
+    (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := 'test-test';
 
-  FPSQLQuery.Post;
+    FPSQLQuery.Post;
 
-  FPSQLQuery.First;
+    FPSQLQuery.First;
 
-  {$IFNDEF DUNITX}
-  DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
-  DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
-  {$ELSE}
-  DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read byteaf.BlobSize');
-  DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
-  {$ENDIF}
+    {$IFNDEF DUNITX}
+    DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
+    DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
+    {$ELSE}
+    DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read byteaf.BlobSize');
+    DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
+    {$ENDIF}
 
-  DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(AnsiDACByteChar), 'Failed to read memof.BlobSize');
-  FPSQLQuery.Close;
+    DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(AnsiDACByteChar), 'Failed to read memof.BlobSize');
+    FPSQLQuery.Close;
+  finally
+    TestDBSetup.Database.CharSet := 'UNICODE';
+  end;
 end;
 
 procedure TestTPSQLBlobs.TestBlobSizeUnicode;
 begin
-  QryDB.CharSet := 'UNICODE';
+  TestDBSetup.Database.CharSet := 'UNICODE';
   FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
   FPSQLQuery.RequestLive := True;
   FPSQLQuery.Open;
@@ -314,25 +305,6 @@ begin
     {$ENDIF}
   end;
 end;
-
-{$IFNDEF DUNITX}
-{ TDbSetup }
-
-procedure TDbSetup.SetUp;
-begin
-  inherited;
-  SetUpTestDatabase(QryDB, 'PSQLBlobs.conf');
-  (Test as TestTPSQLBlobs).InternalSetUp;
-end;
-
-procedure TDbSetup.TearDown;
-begin
-  inherited;
-  QryDB.Close;
-  ComponentToFile(QryDB, 'PSQLBlobs.conf');
-  QryDB.Free;
-end;
-{$ENDIF}
 
 {$IFDEF DUNITX}
 procedure TestTPSQLBlobs.SetupFixture;

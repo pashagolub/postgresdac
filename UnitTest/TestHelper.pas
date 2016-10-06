@@ -17,6 +17,7 @@ type
     function CountEnabledTestInterfaces: Integer;
   public
     Database: TPSQLDatabase;
+    Query: TPSQLQuery;
 
     procedure SetUp; override;
     procedure TearDown; override;
@@ -130,8 +131,11 @@ var i: integer;
 begin
   inherited;
   SetUpTestDatabase(Database, 'PDACTest.conf');
+  Query := TPSQLQuery.Create(nil);
+  Query.Database := TestDBSetup.Database;
+  Query.ParamCheck := False;
   TestDBSetup.Database.ErrorVerbosity := evVERBOSE;
-  TestDBSetup.Database.Execute('SET TimeZone to ''America/Caracas'''); // for the complex timezone -04:30
+  //TestDBSetup.Database.Execute('SET TimeZone to ''America/Caracas'''); // for the complex timezone -04:30
   TestDBSetup.Database.Execute('CREATE TABLE IF NOT EXISTS requestlive_test ' +
                 '(' +
                 '  id serial NOT NULL PRIMARY KEY,' + //Serial will create Sequence -> not Required
@@ -171,11 +175,17 @@ begin
   TestDBSetup.Database.Execute('CREATE INDEX rfield_idx ON tools_test_case_table (rfield)');
   for i := 0 to 100 do
     TestDBSetup.Database.Execute('INSERT INTO tools_test_case_table DEFAULT VALUES');
+  TestDBSetup.Database.Execute('CREATE TEMP TABLE IF NOT EXISTS blobs_test_case_table(' +
+                'id SERIAL NOT NULL PRIMARY KEY,'  +
+                'byteaf bytea,' +
+                'oidf oid,'  +
+                'memof text)');
 end;
 
 procedure TTestDBSetup.TearDown;
 begin
   ComponentToFile(Database, 'PDACTest.conf');
+  Query.Free;
   Database.Free;
   inherited;
 end;

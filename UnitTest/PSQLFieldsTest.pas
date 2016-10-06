@@ -130,11 +130,6 @@ type
     procedure TearDownFixture;
     {$ENDIF}
   end;
-  procedure InternalSetUp;
-  procedure InternalTearDown;
-
-var
-  FldQry: TPSQLQuery;
 
 implementation
 
@@ -165,33 +160,33 @@ end;
 
 procedure TestTPSQLGuidField.TearDown;
 begin
- FldQry.Close;
- FldQry.SQL.Clear;
+ TestDBSetup.Query.Close;
+ TestDBSetup.Query.SQL.Clear;
 end;
 
 procedure TestTPSQLGuidField.TestSelectUUID;
 begin
-  FldQry.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
-  FldQry.Open;
-  DACCheck(FldQry.Active, 'Cannot select UUID value');
+  TestDBSetup.Query.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
+  TestDBSetup.Query.Open;
+  DACCheck(TestDBSetup.Query.Active, 'Cannot select UUID value');
 end;
 
 procedure TestTPSQLGuidField.TestGUIDDelete;
 begin
-  FldQry.RequestLive := True;
-  FldQry.SQL.Text := 'SELECT * FROM uuid_test_case_table';
-  FldQry.Open;
-  FldQry.Delete;
-  DACCheck(FldQry.RowsAffected = 1, 'Cannot delete UUID ' + FldQry.Fields[0].ClassName);
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM uuid_test_case_table';
+  TestDBSetup.Query.Open;
+  TestDBSetup.Query.Delete;
+  DACCheck(TestDBSetup.Query.RowsAffected = 1, 'Cannot delete UUID ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDDelete_ASCII;
 begin
   TestDBSetup.Database.CharSet := 'SQL_ASCII';
   try
-    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
     TestGUIDDelete;
-    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
     TestGUIDDelete;
   finally
     TestDBSetup.Database.CharSet := 'UNICODE';
@@ -201,9 +196,9 @@ end;
 procedure TestTPSQLGuidField.TestGUIDDelete_UTF8;
 begin
   TestDBSetup.Database.CharSet := 'UNICODE';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
   TestGUIDDelete;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
   TestGUIDDelete;
 end;
 
@@ -212,43 +207,43 @@ var
   G1, G2: TGUID;
 begin
   G1 := StringToGuid('{35c6c84e-4157-466c-0091-31a4714aca34}');
-  FldQry.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
-  FldQry.Open;
-  DACCheck(FldQry.Active, 'Cannot select UUID value');
-  DACCheck(FldQry.Fields[0].AsString = UpperCase('{35c6c84e-4157-466c-0091-31a4714aca34}'), 'UUID value is corrupted in SQL_ASCII charset using TGUIDField');
-  if not (dsoUseGUIDField in FldQry.Options) then
-   G2 := TGUIDField(FldQry.Fields[0]).AsGuid
+  TestDBSetup.Query.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
+  TestDBSetup.Query.Open;
+  DACCheck(TestDBSetup.Query.Active, 'Cannot select UUID value');
+  DACCheck(TestDBSetup.Query.Fields[0].AsString = UpperCase('{35c6c84e-4157-466c-0091-31a4714aca34}'), 'UUID value is corrupted in SQL_ASCII charset using TGUIDField');
+  if not (dsoUseGUIDField in TestDBSetup.Query.Options) then
+   G2 := TGUIDField(TestDBSetup.Query.Fields[0]).AsGuid
   else
-   G2 := TPSQLGUIDField(FldQry.Fields[0]).AsGuid;
-  DACCheck(IsEqualGUID(G1, G2), 'GUID comparison failed: ' + FldQry.Fields[0].ClassName);
+   G2 := TPSQLGUIDField(TestDBSetup.Query.Fields[0]).AsGuid;
+  DACCheck(IsEqualGUID(G1, G2), 'GUID comparison failed: ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert;
 var
   G: TGUID;
 begin
-  FldQry.RequestLive := True;
-  FldQry.SQL.Text := 'SELECT * FROM uuid_test_case_table';
-  FldQry.Open;
-  FldQry.Insert;
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM uuid_test_case_table';
+  TestDBSetup.Query.Open;
+  TestDBSetup.Query.Insert;
   DACCheck(CreateGUID(G) = 0, 'GUID generation failed');
   PSQLAccess.LogDebugMessage('GUID generated value:', G.ToString);
-  if FldQry.Fields[0] is TGUIDField then
-    if not (dsoUseGUIDField in FldQry.Options) then
-      TGUIDField(FldQry.Fields[0]).AsGuid := G
+  if TestDBSetup.Query.Fields[0] is TGUIDField then
+    if not (dsoUseGUIDField in TestDBSetup.Query.Options) then
+      TGUIDField(TestDBSetup.Query.Fields[0]).AsGuid := G
   else
-   (FldQry.Fields[0] as TPSQLGUIDField).AsGuid := G;
-  FldQry.Post;
-  DACCheck(FldQry.RowsAffected = 1, 'Cannot insert UUID: ' + FldQry.Fields[0].ClassName);
+   (TestDBSetup.Query.Fields[0] as TPSQLGUIDField).AsGuid := G;
+  TestDBSetup.Query.Post;
+  DACCheck(TestDBSetup.Query.RowsAffected = 1, 'Cannot insert UUID: ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert_ASCII;
 begin
   TestDBSetup.Database.CharSet := 'SQL_ASCII';
   try
-    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
     TestGUIDInsert;
-    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
     TestGUIDInsert;
   finally
     TestDBSetup.Database.CharSet := 'UNICODE';
@@ -258,35 +253,35 @@ end;
 procedure TestTPSQLGuidField.TestGUIDInsert_UTF8;
 begin
   TestDBSetup.Database.CharSet := 'UNICODE';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
   TestGUIDInsert;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
   TestGUIDInsert;
 end;
 
 procedure TestTPSQLGuidField.TestGUIDUpdate;
 var G: TGUID;
 begin
-  FldQry.RequestLive := True;
-  FldQry.SQL.Text := 'SELECT * FROM uuid_test_case_table';
-  FldQry.Open;
-  FldQry.Edit;
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM uuid_test_case_table';
+  TestDBSetup.Query.Open;
+  TestDBSetup.Query.Edit;
   CreateGUID(G);
-  if not (dsoUseGUIDField in FldQry.Options) then
-    TGUIDField(FldQry.Fields[0]).AsGuid := G
+  if not (dsoUseGUIDField in TestDBSetup.Query.Options) then
+    TGUIDField(TestDBSetup.Query.Fields[0]).AsGuid := G
   else
-    TPSQLGUIDField(FldQry.Fields[0]).AsGuid := G;
-  FldQry.Post;
-  DACCheck(FldQry.RowsAffected = 1, 'Cannot update UUID ' + FldQry.Fields[0].ClassName);
+    TPSQLGUIDField(TestDBSetup.Query.Fields[0]).AsGuid := G;
+  TestDBSetup.Query.Post;
+  DACCheck(TestDBSetup.Query.RowsAffected = 1, 'Cannot update UUID ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDUpdate_ASCII;
 begin
   TestDBSetup.Database.CharSet := 'SQL_ASCII';
   try
-    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
     TestGUIDUpdate;
-    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
     TestGUIDUpdate;
   finally
     TestDBSetup.Database.CharSet := 'UNICODE';
@@ -296,9 +291,9 @@ end;
 procedure TestTPSQLGuidField.TestGUIDUpdate_UTF8;
 begin
   TestDBSetup.Database.CharSet := 'UNICODE';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
   TestGUIDUpdate;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
   TestGUIDUpdate;
 end;
 
@@ -306,9 +301,9 @@ procedure TestTPSQLGuidField.TestGUIDField_ASCII;
 begin
   TestDBSetup.Database.CharSet := 'SQL_ASCII';
   try
-    FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
     TestGUIDField;
-    FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+    TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
     TestGUIDField;
   finally
     TestDBSetup.Database.CharSet := 'UNICODE';
@@ -318,9 +313,9 @@ end;
 procedure TestTPSQLGuidField.TestGUIDField_UTF8;
 begin
   TestDBSetup.Database.CharSet := 'UNICODE';
-  FldQry.Options := FldQry.Options + [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options + [dsoUseGUIDField];
   TestGUIDField;
-  FldQry.Options := FldQry.Options - [dsoUseGUIDField];
+  TestDBSetup.Query.Options := TestDBSetup.Query.Options - [dsoUseGUIDField];
   TestGUIDField;
 end;
 
@@ -341,8 +336,8 @@ end;
 procedure TestGeometricFields.TearDown;
 begin
   inherited;
-  FldQry.Close;
-  FldQry.SQL.Clear;
+  TestDBSetup.Query.Close;
+  TestDBSetup.Query.SQL.Clear;
 end;
 
 procedure TestGeometricFields.TestInsertGeoms;
@@ -352,20 +347,20 @@ const
   B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
   L: TPSQLLSeg = (X1: 1.2; Y1: 0.4; X2: -5.5; Y2: -0.2);
 begin
-  FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
-  FldQry.RequestLive := True;
-  FldQry.Open;
-  FldQry.Insert;
-  FldQry.FieldByName('id').AsInteger := 1;
-  (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
-  (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
-  (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
-  (FldQry.FieldByName('l') as TPSQLLSegField).Value := L;
-  FldQry.Post;
-  DACCheck(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
-  DACCheck(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
-  DACCheck(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
-  DACCheck(TPSQLLSegField(FldQry.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after insert');
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM geometry_test_case_table';
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.Open;
+  TestDBSetup.Query.Insert;
+  TestDBSetup.Query.FieldByName('id').AsInteger := 1;
+  (TestDBSetup.Query.FieldByName('p') as TPSQLPointField).Value := P;
+  (TestDBSetup.Query.FieldByName('c') as TPSQLCircleField).Value := C;
+  (TestDBSetup.Query.FieldByName('b') as TPSQLBoxField).Value := B;
+  (TestDBSetup.Query.FieldByName('l') as TPSQLLSegField).Value := L;
+  TestDBSetup.Query.Post;
+  DACCheck(TPSQLPointField(TestDBSetup.Query.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
+  DACCheck(TPSQLCircleField(TestDBSetup.Query.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
+  DACCheck(TPSQLBoxField(TestDBSetup.Query.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
+  DACCheck(TPSQLLSegField(TestDBSetup.Query.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after insert');
 end;
 
 procedure TestGeometricFields.TestSelectGeoms;
@@ -375,15 +370,15 @@ const
   B: TPSQLBox = (Right: 2.12; Top: 7.89; Left: -0.14; Bottom: 0.1);
   L: TPSQLLSeg = (X1: 1.2; Y1: 0.4; X2: -5.5; Y2: -0.2);
 begin
-  FldQry.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point, '+
+  TestDBSetup.Query.SQL.Text := 'SELECT ''( 2.5 , 3.5 )''::point, '+
                      ' ''<( 2.5 , 3.5 ) , 1.34>''::circle, '+
                      ' ''(2.12, 7.89) , (-0.14, 0.1)''::box, '+
                      ' ''[(1.2,0.4),(-5.5,-0.2)]''::lseg ';
-  FldQry.Open;
-  DACCheck(TPSQLPointField(FldQry.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
-  DACCheck(TPSQLCircleField(FldQry.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
-  DACCheck(TPSQLBoxField(FldQry.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
-  DACCheck((FldQry.Fields[3] as TPSQLLSegField).Value = L, 'Wrong value for "lseg" field after SELECT');
+  TestDBSetup.Query.Open;
+  DACCheck(TPSQLPointField(TestDBSetup.Query.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
+  DACCheck(TPSQLCircleField(TestDBSetup.Query.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
+  DACCheck(TPSQLBoxField(TestDBSetup.Query.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
+  DACCheck((TestDBSetup.Query.Fields[3] as TPSQLLSegField).Value = L, 'Wrong value for "lseg" field after SELECT');
 end;
 
 procedure TestGeometricFields.TestUpdateGeoms;
@@ -393,20 +388,20 @@ const
   B: TPSQLBox = (Right: 3.12; Top: 9.89; Left: -1.14; Bottom: -10.1);
   L: TPSQLLSeg = (X1: 8.2; Y1: 1.4; X2: -255.5; Y2: -13845.14212);
 begin
-  FldQry.SQL.Text := 'SELECT * FROM geometry_test_case_table';
-  FldQry.RequestLive := True;
-  FldQry.Open;
-  if FldQry.RecordCount = 0 then TestInsertGeoms;
-  FldQry.Edit;
-  (FldQry.FieldByName('p') as TPSQLPointField).Value := P;
-  (FldQry.FieldByName('c') as TPSQLCircleField).Value := C;
-  (FldQry.FieldByName('b') as TPSQLBoxField).Value := B;
-  (FldQry.FieldByName('l') as TPSQLLSegField).Value := L;
-  FldQry.Post;
-  DACCheck(TPSQLPointField(FldQry.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
-  DACCheck(TPSQLCircleField(FldQry.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
-  DACCheck(TPSQLBoxField(FldQry.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
-  DACCheck(TPSQLLSegField(FldQry.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after update');
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM geometry_test_case_table';
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.Open;
+  if TestDBSetup.Query.RecordCount = 0 then TestInsertGeoms;
+  TestDBSetup.Query.Edit;
+  (TestDBSetup.Query.FieldByName('p') as TPSQLPointField).Value := P;
+  (TestDBSetup.Query.FieldByName('c') as TPSQLCircleField).Value := C;
+  (TestDBSetup.Query.FieldByName('b') as TPSQLBoxField).Value := B;
+  (TestDBSetup.Query.FieldByName('l') as TPSQLLSegField).Value := L;
+  TestDBSetup.Query.Post;
+  DACCheck(TPSQLPointField(TestDBSetup.Query.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
+  DACCheck(TPSQLCircleField(TestDBSetup.Query.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
+  DACCheck(TPSQLBoxField(TestDBSetup.Query.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
+  DACCheck(TPSQLLSegField(TestDBSetup.Query.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after update');
 end;
 
 { TestTPSQLRangeField }
@@ -426,8 +421,8 @@ end;
 procedure TestTPSQLRangeField.TearDown;
 begin
   inherited;
-  FldQry.Close;
-  FldQry.SQL.Clear;
+  TestDBSetup.Query.Close;
+  TestDBSetup.Query.SQL.Clear;
 end;
 
 procedure TestTPSQLRangeField.TestInsertRange;
@@ -438,29 +433,29 @@ begin
   RF.Create('[3.1,4.6]', FIELD_TYPE_NUMRANGE);
   RD.Create('[2010-01-01,2010-01-11)', FIELD_TYPE_DATERANGE);
   RTS.Create('["2010-01-01 14:45:00","2014-11-20 00:00:00")', FIELD_TYPE_TSRANGE);
-  FldQry.SQL.Text := 'SELECT * FROM range_test_case_table';
-  FldQry.RequestLive := True;
-  FldQry.Open;
-  FldQry.Insert;
-  FldQry.FieldByName('id').AsInteger := 1;
-  (FldQry.FieldByName('intr') as TPSQLRangeField).Value := R;
-  (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
-  (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
-  (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
-  (FldQry.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
-  FldQry.Post;
-  DACCheck((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
-  DACCheck((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
-  DACCheck((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
-  DACCheck((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
-  DACCheck((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after insert');
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM range_test_case_table';
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.Open;
+  TestDBSetup.Query.Insert;
+  TestDBSetup.Query.FieldByName('id').AsInteger := 1;
+  (TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value := R;
+  (TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value := RF;
+  (TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value := RD;
+  (TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  (TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
+  TestDBSetup.Query.Post;
+  DACCheck((TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
+  DACCheck((TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
+  DACCheck((TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
+  DACCheck((TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
+  DACCheck((TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after insert');
 end;
 
 procedure TestTPSQLRangeField.TestSelectClosedRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT ''[3.3, 4.45]''::numrange, '+
+  TestDBSetup.Query.SQL.Text := 'SELECT ''[3.3, 4.45]''::numrange, '+
                      ' ''[2010-01-01 14:45, 2010-01-01 15:45]''::tsrange,' +
                      ' ''[2010-01-01 14:45 UTC, 2010-01-01 15:45 PST]''::tstzrange';
 
@@ -469,9 +464,9 @@ begin
   //"["2010-01-01 14:45:00","2010-01-01 15:45:00"]"; - tsrange
   //"["2010-01-01 16:45:00+02","2010-01-02 01:45:00+02"]"; - tstzrange
 
-  FldQry.Open;
-  for i := 0 to FldQry.FieldCount - 1 do
-   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+  TestDBSetup.Query.Open;
+  for i := 0 to TestDBSetup.Query.FieldCount - 1 do
+   with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
     DACCheck((UpperBound.State = rbsInclusive) and
           (LowerBound.State = rbsInclusive), 'Range must be closed');
 end;
@@ -480,31 +475,31 @@ procedure TestTPSQLRangeField.TestSelectEmptyRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT ''empty''::numrange, '+
+  TestDBSetup.Query.SQL.Text := 'SELECT ''empty''::numrange, '+
                      ' ''empty''::int4range,' +
                      ' ''empty''::int8range,' +
                      ' ''empty''::tsrange,' +
                      ' ''empty''::daterange,' +
                      ' ''empty''::tstzrange';
-  FldQry.Open;
-  for i := 0 to FldQry.FieldCount - 1 do
-    DACCheck((FldQry.Fields[i] as TPSQLRangeField).IsEmpty, 'Range field must be empty');
+  TestDBSetup.Query.Open;
+  for i := 0 to TestDBSetup.Query.FieldCount - 1 do
+    DACCheck((TestDBSetup.Query.Fields[i] as TPSQLRangeField).IsEmpty, 'Range field must be empty');
 end;
 
 procedure TestTPSQLRangeField.TestSelectLowerInfinityRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT numrange(NULL, 3.3),  '+
+  TestDBSetup.Query.SQL.Text := 'SELECT numrange(NULL, 3.3),  '+
                      'tsrange(NULL, ''2010-01-01 14:45''), '+
                      'tstzrange(NULL, ''2010-01-01 14:45 UTC''), '+
                      'int4range(NULL, 1), int8range(NULL, 22), '+
                      'daterange(NULL, ''2010-01-01'')';
   //expected output
   //(,3.3); (,"2010-01-01 14:45:00"); (,"2010-01-01 16:45:00+02"); (,1); (,22); (,2010-01-01)
-  FldQry.Open;
-  for i := 0 to FldQry.FieldCount - 1 do
-   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+  TestDBSetup.Query.Open;
+  for i := 0 to TestDBSetup.Query.FieldCount - 1 do
+   with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
     DACCheck((LowerBound.State = rbsInfinite), 'Range must gave infinite lower range');
 end;
 
@@ -512,12 +507,12 @@ procedure TestTPSQLRangeField.TestSelectOpenRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT ''(3,4)''::numrange, '+
+  TestDBSetup.Query.SQL.Text := 'SELECT ''(3,4)''::numrange, '+
                      ' ''(2010-01-01 14:45, 2010-01-01 15:45)''::tsrange,' +
                      ' ''(2010-01-01 14:45 UTC, 2010-01-01 15:45 PST)''::tstzrange';
-  FldQry.Open;
-  for i := 0 to FldQry.FieldCount - 1 do
-   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+  TestDBSetup.Query.Open;
+  for i := 0 to TestDBSetup.Query.FieldCount - 1 do
+   with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
     DACCheck((UpperBound.State = rbsExclusive) and
           (LowerBound.State = rbsExclusive), 'Range must be open');
 end;
@@ -525,19 +520,19 @@ end;
 procedure TestTPSQLRangeField.TestSelectRange;
 var R: TPSQLRange;
 begin
-  FldQry.SQL.Text := 'SELECT numrange(3.1, 5.2, ''()''), '+
+  TestDBSetup.Query.SQL.Text := 'SELECT numrange(3.1, 5.2, ''()''), '+
                      ' int4range(1, 3, ''[)''), ' +
                      ' int4range(1, 1, ''()'') ';
-  FldQry.Open;
-  DACCheck(FldQry.Active, 'Cannot select "point" value');
-  R := (FldQry.Fields[0] as TPSQLRangeField).Value;
+  TestDBSetup.Query.Open;
+  DACCheck(TestDBSetup.Query.Active, 'Cannot select "point" value');
+  R := (TestDBSetup.Query.Fields[0] as TPSQLRangeField).Value;
   DACCheck(not R.Empty, 'Range is empty');
   DACCheck(R.LowerBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
   DACCheck(R.UpperBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
   DACCheck(SameValue(R.LowerBound.AsFloat, 3.1), 'Wrong numrange lower bound value');
   DACCheck(SameValue(R.UpperBound.AsFloat, 5.2), 'Wrong numrange upper bound value');
 
-  R := TPSQLRangeField(FldQry.Fields[1]).Value;
+  R := TPSQLRangeField(TestDBSetup.Query.Fields[1]).Value;
   DACCheck(not R.Empty, 'Range is empty');
   DACCheck(R.LowerBound.State = rbsInclusive, 'Range lower bound must be inclusive');
   DACCheck(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
@@ -549,16 +544,16 @@ procedure TestTPSQLRangeField.TestSelectUpperInfinityRange;
 var
   i: Integer;
 begin
-  FldQry.SQL.Text := 'SELECT numrange(3.3, NULL), '+
+  TestDBSetup.Query.SQL.Text := 'SELECT numrange(3.3, NULL), '+
                      'tsrange(''2010-01-01 14:45'', NULL), '+
                      'tstzrange(''2010-01-01 14:45 UTC'', NULL), '+
                      'int4range(1, NULL), int8range(22, NULL), '+
                      'daterange(''2010-01-01'', NULL)';
   //expected output
   //[3.3,); ["2010-01-01 14:45:00",); ["2010-01-01 16:45:00+02",); [1,); [22,); [2010-01-01,)
-  FldQry.Open;
-  for i := 0 to FldQry.FieldCount - 1 do
-   with (FldQry.Fields[i] as TPSQLRangeField).Value do
+  TestDBSetup.Query.Open;
+  for i := 0 to TestDBSetup.Query.FieldCount - 1 do
+   with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
     DACCheck((UpperBound.State = rbsInfinite), 'Range must gave infinite upper range');
 end;
 
@@ -570,22 +565,22 @@ begin
   RF.Create('[8.12,124.46]', FIELD_TYPE_NUMRANGE);
   RD.Create('[2012-01-01,2013-01-11)', FIELD_TYPE_DATERANGE);
   RTS.Create('["2011-01-01 14:45:00","2012-11-20 00:00:00")', FIELD_TYPE_TSRANGE);
-  FldQry.SQL.Text := 'SELECT * FROM range_test_case_table';
-  FldQry.RequestLive := True;
-  FldQry.Open;
-  if FldQry.RecordCount = 0 then TestInsertRange;
-  FldQry.Edit;
-  (FldQry.FieldByName('intr') as TPSQLRangeField).Value := R;
-  (FldQry.FieldByName('numr') as TPSQLRangeField).Value := RF;
-  (FldQry.FieldByName('dater') as TPSQLRangeField).Value := RD;
-  (FldQry.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
-  (FldQry.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
-  FldQry.Post;
-  DACCheck((FldQry.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after update');
-  DACCheck((FldQry.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after update');
-  DACCheck((FldQry.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after update');
-  DACCheck((FldQry.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after update');
-  DACCheck((FldQry.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
+  TestDBSetup.Query.SQL.Text := 'SELECT * FROM range_test_case_table';
+  TestDBSetup.Query.RequestLive := True;
+  TestDBSetup.Query.Open;
+  if TestDBSetup.Query.RecordCount = 0 then TestInsertRange;
+  TestDBSetup.Query.Edit;
+  (TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value := R;
+  (TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value := RF;
+  (TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value := RD;
+  (TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
+  (TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
+  TestDBSetup.Query.Post;
+  DACCheck((TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after update');
+  DACCheck((TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after update');
+  DACCheck((TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after update');
+  DACCheck((TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after update');
+  DACCheck((TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
 end;
 
 { TestNativeNumericField }
@@ -611,10 +606,10 @@ procedure TestNativeNumericField.TestNumericSelectFrac;
 const _Num = '98765432100123456789.98765432100123456789';
 var S: string;
 begin
-  FldQry.ParamCheck := False;
-  FldQry.SQL.Text := 'SELECT 98765432100123456789.98765432100123456789 :: numeric';
-  FldQry.Open;
-  S := FldQry.Fields[0].AsString;
+  TestDBSetup.Query.ParamCheck := False;
+  TestDBSetup.Query.SQL.Text := 'SELECT 98765432100123456789.98765432100123456789 :: numeric';
+  TestDBSetup.Query.Open;
+  S := TestDBSetup.Query.Fields[0].AsString;
   DACCheck(_Num = S, 'Incorrect value for NUMERIC');
 //  CheckEqualsString(_Num, S, 'Incorrect value for NUMERIC');
 end;
@@ -623,40 +618,24 @@ procedure TestNativeNumericField.TestNumericSelectInt;
 const _Num = '98765432100123456789';
 var S: string;
 begin
-  FldQry.ParamCheck := False;
-  FldQry.SQL.Text := 'SELECT 98765432100123456789 :: numeric(20, 0)';
-  FldQry.Open;
-  S := FldQry.Fields[0].AsString;
+  TestDBSetup.Query.ParamCheck := False;
+  TestDBSetup.Query.SQL.Text := 'SELECT 98765432100123456789 :: numeric(20, 0)';
+  TestDBSetup.Query.Open;
+  S := TestDBSetup.Query.Fields[0].AsString;
   DACCheck(_Num = S, 'Incorrect value for NUMERIC');
 //  CheckEqualsString(_Num, S, 'Incorrect value for NUMERIC');
 end;
 
 procedure TestNativeNumericField.TestNumericTypeMapping;
 begin
-  FldQry.ParamCheck := False;
-  FldQry.SQL.Text := 'SELECT 12.13 :: numeric';
-  FldQry.Open;
+  TestDBSetup.Query.ParamCheck := False;
+  TestDBSetup.Query.SQL.Text := 'SELECT 12.13 :: numeric';
+  TestDBSetup.Query.Open;
   {$IFNDEF DUNITX}
-  CheckIs(FldQry.Fields[0], TFMTBCDField, 'Incorrect NUMERIC mapping');
+  CheckIs(TestDBSetup.Query.Fields[0], TFMTBCDField, 'Incorrect NUMERIC mapping');
   {$ELSE}
-  Assert.InheritsFrom(FldQry.Fields[0].ClassType, TFMTBCDField, 'Incorrect NUMERIC mapping');
+  Assert.InheritsFrom(TestDBSetup.Query.Fields[0].ClassType, TFMTBCDField, 'Incorrect NUMERIC mapping');
   {$ENDIF}
-end;
-
-procedure InternalSetUp;
-begin
-  FldQry := TPSQLQuery.Create(nil);
-  FldQry.Database := TestDBSetup.Database;
-  FldQry.ParamCheck := False;
-end;
-
-procedure InternalTearDown;
-begin
-{$IFNDEF NEXTGEN}
-  FldQry.Free;
-{$ELSE}
-  FldQry.DisposeOf;
-{$ENDIF}
 end;
 
 initialization
@@ -667,11 +646,6 @@ initialization
   TDUnitX.RegisterTestFixture(TestTPSQLRangeField);
   TDUnitX.RegisterTestFixture(TestNativeNumericField);
 {$ENDIF}
-  InternalSetUp();
-
-finalization
-
-  InternalTearDown();
 
 end.
 
