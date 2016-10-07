@@ -19,7 +19,7 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions
   {$ELSE}
-  DUnitX.TestFramework
+  DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
@@ -29,7 +29,7 @@ type
   end;
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLNotify = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLNotify = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     FPSQLNotify: TPSQLNotify;
     procedure InternalSetUp;
@@ -66,7 +66,12 @@ var
 
 implementation
 
-uses TestHelper, SysUtils{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure TestTPSQLNotify.InternalSetUp;
 begin
@@ -76,7 +81,7 @@ begin
   TestNotify.OnNotify := THandlerClass.NotifyHandler;
   TestNotify.OnNotifyEx := THandlerClass.NotifyHandlerEx;
   TestNotify.Active := True;
-  DACCheck(TestDBSetup.Database.ServerVersionAsInt > 090000, 'Server version less then 9.0 to test Payload functionality');
+  Check(TestDBSetup.Database.ServerVersionAsInt > 090000, 'Server version less then 9.0 to test Payload functionality');
 end;
 
 procedure TestTPSQLNotify.InternalTearDown;
@@ -100,7 +105,6 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLNotify.SetupFixture;
 begin
-  NotifyDb := MainForm.Database;
   InternalSetUp;
 end;
 procedure TestTPSQLNotify.TearDownFixture;
@@ -122,13 +126,13 @@ end;
 procedure TestTPSQLNotify.TestOpenNotify;
 begin
   FPSQLNotify.OpenNotify;
-  DACCheck(FPSQLNotify.Active, 'Notify is not active');
+  Check(FPSQLNotify.Active, 'Notify is not active');
 end;
 
 procedure TestTPSQLNotify.TestCloseNotify;
 begin
   FPSQLNotify.CloseNotify;
-  DACCheck(not FPSQLNotify.Active, 'Notify is active');
+  Check(not FPSQLNotify.Active, 'Notify is active');
 end;
 
 procedure TestTPSQLNotify.TestListenTo;
@@ -138,7 +142,7 @@ begin
   Event := 'custom';
   FPSQLNotify.OpenNotify();
   FPSQLNotify.ListenTo(Event);
-  DACCheck(FPSQLNotify.ListenList.IndexOf(Event) > -1, 'ListenTo failed');
+  Check(FPSQLNotify.ListenList.IndexOf(Event) > -1, 'ListenTo failed');
 end;
 
 procedure TestTPSQLNotify.TestSendNotify;
@@ -168,14 +172,14 @@ begin
   Event := 'third';
   FPSQLNotify.OpenNotify();
   FPSQLNotify.UnlistenTo(Event);
-  DACCheck(FPSQLNotify.ListenList.IndexOf(Event) = -1, 'UnlistenTo doesn''t exclude event');
+  Check(FPSQLNotify.ListenList.IndexOf(Event) = -1, 'UnlistenTo doesn''t exclude event');
 end;
 
 procedure TestTPSQLNotify.TestUnlistenAll;
 begin
   FPSQLNotify.OpenNotify();
   FPSQLNotify.UnlistenAll;
-  DACCheck(FPSQLNotify.ListenList.Count = 0, 'UnlistenAll doesn''t clear events');
+  Check(FPSQLNotify.ListenList.Count = 0, 'UnlistenAll doesn''t clear events');
 end;
 
 class procedure THandlerClass.NotifyHandler(Sender: TObject; Event: string;

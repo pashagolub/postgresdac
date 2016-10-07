@@ -8,8 +8,9 @@ uses Classes, SysUtils, PSQLDbTables, PSQLTypes,
   DUnitX.TestFramework
   {$ENDIF};
 
+{$IFNDEF DUNITX}
 type
-  {$IFNDEF DUNITX}
+
   //Setup decorator
   TTestDBSetup = class(TTestSetup, ITestSuite)
   protected
@@ -33,23 +34,24 @@ type
     // this method is not executed (for TTestSetup)
     procedure TestDBSetupTest;
   end;
-  {$ENDIF}
-
 
   TDACTestCase = class helper for TTestCase
   public
-    procedure DACCheck(Condition: Boolean; Msg: String);
+    procedure Check(Condition: Boolean; Msg: String);
     procedure DACIsTrue(Condition: Boolean);
   end;
 
 var
   TestDBSetup: TTestDBSetup;
+{$ENDIF}
 
 procedure ComponentToFile(Component: TComponent; Name: string);
 procedure FileToComponent(Name: string; Component: TComponent);
 procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
-//procedure DACIsTrue(Condition: Boolean);
-//procedure DACCheck(Condition: Boolean; Msg: String);
+{$IFDEF DUNITX}
+procedure DACIsTrue(Condition: Boolean);
+procedure Check(Condition: Boolean; Msg: String);
+{$ENDIF}
 
 
 implementation
@@ -277,7 +279,7 @@ begin
   end;
 end;
 
-procedure TDACTestCase.DACIsTrue(Condition: Boolean);
+procedure {$IFNDEF DUNITX}TDACTestCase.{$ENDIF}DACIsTrue(Condition: Boolean);
 begin
   {$IFNDEF DUNITX}
   Check(Condition);
@@ -286,7 +288,7 @@ begin
   {$ENDIF}
 end;
 
-procedure TDACTestCase.DACCheck(Condition: Boolean; Msg: String);
+procedure {$IFNDEF DUNITX}TDACTestCase.{$ENDIF}Check(Condition: Boolean; Msg: String);
 begin
   {$IFNDEF DUNITX}
   Check(Condition, Msg);

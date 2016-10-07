@@ -20,13 +20,13 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions
   {$ELSE}
-  DUnitX.TestFramework
+  DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLTools = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLTools = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -34,6 +34,8 @@ type
     {$ELSE}
     [Setup]
     procedure SetUp;
+    [TearDown]
+    procedure TearDown;
     {$ENDIF}
   published
     procedure TestAnalyze;
@@ -54,7 +56,12 @@ var
 
 implementation
 
-uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure InternalSetUp;
 begin
@@ -80,12 +87,11 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLTools.SetupFixture;
 begin
-  toolsDB := MainForm.Database;
   InternalSetUp;
 end;
+
 procedure TestTPSQLTools.TearDownFixture;
 begin
-  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -97,18 +103,18 @@ end;
 procedure TestTPSQLTools.TestAnalyze;
 begin
   Tools.Operation := poANALYZE;
-  DACCheck(Tools.Execute, 'Cannot execute ANALYZE');
+  Check(Tools.Execute, 'Cannot execute ANALYZE');
 end;
 
 procedure TestTPSQLTools.TestCluster;
 begin
   Tools.Operation := poCLUSTER;
   Tools.IndexName := 'rfield_idx';
-  DACCheck(Tools.Execute, 'Cannot execute CLUSTER INDEX');
+  Check(Tools.Execute, 'Cannot execute CLUSTER INDEX');
   Tools.IndexName := '';
-  DACCheck(Tools.Execute, 'Cannot execute CLUSTER TABLE');
+  Check(Tools.Execute, 'Cannot execute CLUSTER TABLE');
   Tools.TableName := '';
-  DACCheck(Tools.Execute, 'Cannot execute CLUSTER DATABASE');
+  Check(Tools.Execute, 'Cannot execute CLUSTER DATABASE');
 end;
 
 procedure TestTPSQLTools.TestException;
@@ -118,7 +124,7 @@ begin
     Tools.Execute(poANALYZE);
   except
     on E: Exception do
-      DACCheck(E is EPSQLDatabaseError, 'Overloaded Execute method failed');
+      Check(E is EPSQLDatabaseError, 'Overloaded Execute method failed');
   end;
 end;
 
@@ -126,11 +132,11 @@ procedure TestTPSQLTools.TestReindex;
 begin
   Tools.Operation := poREINDEX;
   Tools.IndexName := 'rfield_idx';
-  DACCheck(Tools.Execute, 'Cannot execute REINDEX INDEX');
+  Check(Tools.Execute, 'Cannot execute REINDEX INDEX');
   Tools.IndexName := '';
-  DACCheck(Tools.Execute, 'Cannot execute REINDEX TABLE');
+  Check(Tools.Execute, 'Cannot execute REINDEX TABLE');
   Tools.TableName := '';
-  DACCheck(Tools.Execute, 'Cannot execute REINDEX DATABASE');
+  Check(Tools.Execute, 'Cannot execute REINDEX DATABASE');
 end;
 
 procedure TestTPSQLTools.TestVacuum;
@@ -138,7 +144,7 @@ begin
   Tools.Operation := poVACUUM;
   Tools.ColumnList.CommaText := 'id,sfield,tfield';
   Tools.VacuumOptions := [voFULL, voFREEZE, voANALYZE];
-  DACCheck(Tools.Execute, 'Cannot execute VACUUM');
+  Check(Tools.Execute, 'Cannot execute VACUUM');
 end;
 
 initialization

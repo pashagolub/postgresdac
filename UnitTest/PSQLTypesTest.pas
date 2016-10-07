@@ -6,7 +6,7 @@ unit PSQLTypesTest;
 interface
 
 uses
-  Classes, SysUtils, PSQLTypes, TestHelper
+  Classes, SysUtils, PSQLTypes, TestXHelper
   {$IFNDEF DUNITX}
   , TestFramework, Math, Windows
   {$ELSE}
@@ -17,7 +17,7 @@ type
 
   // Test methods for PSQLTypes
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestPSQLTypes = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestPSQLTypes = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
   {$IFDEF DUNITX}
     FRSCorrectIP: TResourceStream;
@@ -51,14 +51,14 @@ begin
    SL.LoadFromStream(FRSCorrectIP);
    {$ENDIF}
    for i := 0 to SL.Count - 1 do
-     DACCheck(IsValidIP(SL[i]), 'correct ' + SL[i]);
+     Check(IsValidIP(SL[i]), 'correct ' + SL[i]);
    {$IFNDEF DUNITX}
    SL.LoadFromFile('TestData\incorrect_ips.txt');
    {$ELSE}
    SL.LoadFromStream(FRSInCorrectIP);
    {$ENDIF}
    for i := 0 to SL.Count - 1 do
-     DACCheck(not IsValidIP(SL[i]), 'incorrect ' + SL[i]);
+     Check(not IsValidIP(SL[i]), 'incorrect ' + SL[i]);
  finally
   {$IFNDEF NEXTGEN}
    SL.Free;
@@ -70,7 +70,7 @@ end;
 
 procedure TestPSQLTypes.CheckMaskSearch;
 begin
-  DACIsTrue(MaskSearch('mama washed rama', 'mama%'));
+  Check(MaskSearch('mama washed rama', 'mama%'));
 end;
 
 procedure TestPSQLTypes.HiddenProc;

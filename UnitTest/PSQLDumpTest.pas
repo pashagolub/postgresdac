@@ -21,13 +21,13 @@ uses
   {$IFNDEF DUNITX}
   ,TestFramework, Math, TestExtensions
   {$ELSE}
-  , DUnitX.TestFramework
+  , DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLDump = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLDump = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     FPSQLDump: TPSQLDump;
   public
@@ -65,7 +65,7 @@ type
 
   // Test methods for class TPSQLRestore
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLRestore = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLRestore = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     FPSQLRestore: TPSQLRestore;
   public
@@ -91,7 +91,12 @@ var
 
 implementation
 
-uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure TestTPSQLDump.LoadLibrary(Sender: TObject; var FileName: string);
 begin
@@ -125,7 +130,7 @@ begin
   Stream := TMemoryStream.Create;
   try
     FPSQLDump.DumpToStream(Stream);
-    DACCheck(Stream.Size > 0, 'Dump stream empty');
+    Check(Stream.Size > 0, 'Dump stream empty');
   finally
     Stream.Free;
   end;
@@ -141,8 +146,8 @@ begin
     Log := TStringList.Create;
     try
       FPSQLDump.DumpToStream(Stream, Log);
-      DACCheck(Stream.Size > 0, 'Dump stream empty');
-      DACCheck(Log.Count > 0, 'Dump log empty');
+      Check(Stream.Size > 0, 'Dump stream empty');
+      Check(Log.Count > 0, 'Dump log empty');
       Log.SaveToFile(DumpPath + 'TestDumpToStream1.log');
     finally
       Log.Free;
@@ -161,8 +166,8 @@ begin
   try
     LogFileName := DumpPath + 'TestDumpToStream2.log';
     FPSQLDump.DumpToStream(Stream, LogFileName);
-    DACCheck(Stream.Size > 0, 'Dump stream empty');
-    DACCheck(FileExists(LogFileName), 'Log file empty');
+    Check(Stream.Size > 0, 'Dump stream empty');
+    Check(FileExists(LogFileName), 'Log file empty');
   finally
     Stream.Free;
   end;
@@ -171,12 +176,10 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLDump.SetupFixture;
 begin
-  InternalSetUp;
 end;
 
 procedure TestTPSQLDump.TearDownFixture;
 begin
-  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -269,8 +272,8 @@ begin
   Log := TStringList.Create;
   try
     FPSQLDump.DumpToFile(DumpFileName, Log);
-    DACCheck(FileExists(DumpFileName), 'Dump file empty');
-    DACCheck(Log.Count > 0, 'Dump log empty');
+    Check(FileExists(DumpFileName), 'Dump file empty');
+    Check(Log.Count > 0, 'Dump log empty');
   finally
     Log.SaveToFile(DumpPath + 'TestDumpToFile.log');
     Log.Free;
@@ -286,8 +289,8 @@ begin
   else
     LogFileName := ALogFileName;
   FPSQLDump.DumpToFile({DumpPath +} DumpFileName, LogFileName);
-  DACCheck(FileExists({DumpPath +} DumpFileName) or DirectoryExists({DumpPath +} DumpFileName), 'Dump file empty');
-  DACCheck(FileExists(LogFileName), 'Log file empty');
+  Check(FileExists({DumpPath +} DumpFileName) or DirectoryExists({DumpPath +} DumpFileName), 'Dump file empty');
+  Check(FileExists(LogFileName), 'Log file empty');
 end;
 
 procedure TestTPSQLRestore.LoadLibrary(Sender: TObject; var FileName: string);
@@ -325,9 +328,9 @@ begin
   FPSQLRestore.RestoreFormat := rfDirectory;
   FPSQLRestore.OutputFileName := DumpPath + 'RestoreFromDirToFileOutput.sql';
   FPSQLRestore.RestoreFromFile(FileName, LogFileName);
-  DACCheck(DirectoryExists(FileName), 'Dump directory is empty');
-  DACCheck(FileExists(FPSQLRestore.OutputFileName), 'Output file is empty');
-  DACCheck(FileExists(LogFileName), 'Log file is empty');
+  Check(DirectoryExists(FileName), 'Dump directory is empty');
+  Check(FileExists(FPSQLRestore.OutputFileName), 'Output file is empty');
+  Check(FileExists(LogFileName), 'Log file is empty');
 end;
 
 procedure TestTPSQLRestore.TestRestoreFromFileToDB;
@@ -357,9 +360,9 @@ begin
   FileName := DumpFileName;
   FPSQLRestore.OutputFileName := DumpPath + 'RestoreFromFileToFileOutput.sql';
   FPSQLRestore.RestoreFromFile(FileName, LogFileName);
-  DACCheck(FileExists(DumpFileName), 'Dump file empty');
-  DACCheck(FileExists(FPSQLRestore.OutputFileName), 'Output file empty');
-  DACCheck(FileExists(LogFileName), 'Log file empty');
+  Check(FileExists(DumpFileName), 'Dump file empty');
+  Check(FileExists(FPSQLRestore.OutputFileName), 'Output file empty');
+  Check(FileExists(LogFileName), 'Log file empty');
 end;
 
 initialization

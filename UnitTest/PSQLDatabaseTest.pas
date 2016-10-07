@@ -19,13 +19,13 @@ uses PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Classes,
   {$IFNDEF DUNITX}
   TestFramework, {$IFNDEF DELPHI_5}Variants,{$ENDIF} TestExtensions
   {$ELSE}
-  DUnitX.TestFramework
+  DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLDatabase = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLDatabase = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   published
     procedure HookUp;
     procedure TestPlainConnInfoConnect;
@@ -55,11 +55,16 @@ type
 
 implementation
 
-uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure TestTPSQLDatabase.HookUp;
 begin
-  DACIsTrue(True);
+  Check(True);
 end;
 
 procedure TestTPSQLDatabase.TestExecute;
@@ -69,7 +74,7 @@ var
 begin
   SQL := 'SELECT version()';
   ReturnValue := TestDBSetup.Database.Execute(SQL);
-  DACIsTrue(ReturnValue = 1);
+  Check(ReturnValue = 1);
 end;
 
 procedure TestTPSQLDatabase.TestGetBackendPID;
@@ -77,7 +82,7 @@ var
   ReturnValue: Cardinal;
 begin
   ReturnValue := TestDBSetup.Database.GetBackendPID;
-  DACIsTrue(ReturnValue > InvalidOID);
+  Check(ReturnValue > InvalidOID);
 end;
 
 procedure TestTPSQLDatabase.TestSelectString;
@@ -90,8 +95,8 @@ begin
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'column1';
   ReturnValue := TestDBSetup.Database.SelectString(aSQL, IsOk, aFieldName);
-  DACIsTrue(IsOk);
-  DACIsTrue('12345' = ReturnValue);
+  Check(IsOk);
+  Check('12345' = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectString1;
@@ -104,8 +109,8 @@ begin
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := 0;
   ReturnValue := TestDBSetup.Database.SelectString(aSQL, IsOk, aFieldNumber);
-  DACIsTrue(IsOk);
-  DACIsTrue('12345' = ReturnValue);
+  Check(IsOk);
+  Check('12345' = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef;
@@ -118,12 +123,12 @@ begin
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'column1';
   ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  DACIsTrue('12345' = ReturnValue);
+  Check('12345' = ReturnValue);
   aSQL := 'SELECT 12345 as column1';
   aFieldName := 'WRONG_COL_NAME';
   aDefaultValue := 'MyDefaultValue';
   ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldName);
-  DACIsTrue(aDefaultValue = ReturnValue);
+  Check(aDefaultValue = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStringDef1;
@@ -136,12 +141,12 @@ begin
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := 0;
   ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  DACIsTrue('12345' = ReturnValue);
+  Check('12345' = ReturnValue);
   aSQL := 'SELECT 12345 as column1';
   aFieldNumber := -1234214;
   aDefaultValue := 'MyDefaultValue';
   ReturnValue := TestDBSetup.Database.SelectStringDef(aSQL, aDefaultValue, aFieldNumber);
-  DACIsTrue(aDefaultValue = ReturnValue);
+  Check(aDefaultValue = ReturnValue);
 end;
 
 procedure TestTPSQLDatabase.TestSelectStrings;
@@ -155,7 +160,7 @@ begin
     aSQL := 'SELECT 1, g.s FROM generate_series(1,10) as g(s)';
     aFieldName := 's';
     TestDBSetup.Database.SelectStrings(aSQL, aList, aFieldName);
-    DACCheck(aList.Count = 10, 'SelectStrings by FieldName failed');
+    Check(aList.Count = 10, 'SelectStrings by FieldName failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -176,7 +181,7 @@ begin
     aSQL := 'SELECT 1, g.s FROM generate_series(1,10) as g(s)';
     aFieldNumber := 1;
     TestDBSetup.Database.SelectStrings(aSQL, aList, aFieldNumber);
-    DACCheck(aList.Count = 10, 'SelectStrings by FieldNumber failed');
+    Check(aList.Count = 10, 'SelectStrings by FieldNumber failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -199,7 +204,7 @@ begin
     sslDB.SSLKey := 'TestData\postgresql.key';
     sslDB.SSLRootCert := 'TestData\root.crt';
     sslDB.Open;
-    DACCheck(sslDB.Connected, 'SSL Connection failed');
+    Check(sslDB.Connected, 'SSL Connection failed');
   finally
     {$IFNDEF NEXTGEN}
     FreeAndNil(sslDB);
@@ -212,10 +217,10 @@ end;
 procedure TestTPSQLDatabase.TestCommit;
 begin
   TestDBSetup.Database.StartTransaction;
-  DACCheck(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
+  Check(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
   TestDBSetup.Database.Execute('CREATE TEMP TABLE foo()');
   TestDBSetup.Database.Commit;
-  DACCheck(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to COMMIT transaction');
+  Check(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to COMMIT transaction');
 end;
 
 procedure TestTPSQLDatabase.TestGetCharsets;
@@ -225,7 +230,7 @@ begin
   aList := TStringList.Create;
   try
     TestDBSetup.Database.GetCharsets(aList);
-    DACCheck(aList.Count > 0, 'GetCharsets failed');
+    Check(aList.Count > 0, 'GetCharsets failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -244,7 +249,7 @@ begin
   try
     Pattern := '%';
     TestDBSetup.Database.GetDatabases(Pattern, aList);
-    DACCheck(aList.Count > 0, 'GetDatabases failed');
+    Check(aList.Count > 0, 'GetDatabases failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -269,7 +274,7 @@ begin
     Count := List.Count;
     List.Clear;
     TestDBSetup.Database.GetSchemaNames(Pattern, not SystemSchemas, List);
-    DACCheck(List.Count <= Count, 'GetSchemaNames failed');
+    Check(List.Count <= Count, 'GetSchemaNames failed');
   finally
     {$IFNDEF NEXTGEN}
     List.Free;
@@ -288,7 +293,7 @@ begin
   try
     Pattern := '%';
     TestDBSetup.Database.GetStoredProcNames(Pattern, aList);
-    DACCheck(aList.Count > 0, 'GetStoredProcNames failed');
+    Check(aList.Count > 0, 'GetStoredProcNames failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -313,7 +318,7 @@ begin
     Count := List.Count;
     List.Clear;
     TestDBSetup.Database.GetTableNames(Pattern, not SystemTables, List);
-    DACCheck(List.Count <= Count, 'GetTableNames failed');
+    Check(List.Count <= Count, 'GetTableNames failed');
   finally
     {$IFNDEF NEXTGEN}
     List.Free;
@@ -332,7 +337,7 @@ begin
   try
     Pattern := '%';
     TestDBSetup.Database.GetTablespaces(Pattern, aList);
-    DACCheck(aList.Count > 0, 'GetTablespaces failed');
+    Check(aList.Count > 0, 'GetTablespaces failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -351,7 +356,7 @@ begin
   try
     Pattern := '%';
     TestDBSetup.Database.GetUserNames(Pattern, aList);
-    DACCheck(aList.Count > 0, 'GetUserNames failed');
+    Check(aList.Count > 0, 'GetUserNames failed');
   finally
     {$IFNDEF NEXTGEN}
     aList.Free;
@@ -363,12 +368,12 @@ end;
 
 procedure TestTPSQLDatabase.TestIsThreadSafe;
 begin
-  DACCheck(PSQLTypes.PQIsThreadSafe() = 1, 'Library loaded is thread unsafe');
+  Check(PSQLTypes.PQIsThreadSafe() = 1, 'Library loaded is thread unsafe');
 end;
 
 procedure TestTPSQLDatabase.TestPing;
 begin
-  DACCheck(TestDBSetup.Database.Ping = pstOK, 'Ping failed');
+  Check(TestDBSetup.Database.Ping = pstOK, 'Ping failed');
 end;
 
 procedure TestTPSQLDatabase.TestPingEx;
@@ -378,7 +383,7 @@ begin
   ConnParams := TStringList.Create;
   try
     ConnParams.Assign(TestDBSetup.Database.Params);
-    DACCheck(TestDBSetup.Database.Ping(ConnParams) = pstOK, 'PingEx failed');
+    Check(TestDBSetup.Database.Ping(ConnParams) = pstOK, 'PingEx failed');
   finally
     {$IFNDEF NEXTGEN}
     ConnParams.Free;
@@ -398,7 +403,7 @@ begin
   TempDB.UseSingleLineConnInfo := True;
   try
     TempDB.Open;
-    DACCheck(TempDB.Connected, 'Failed to connect using PQconnectdb');
+    Check(TempDB.Connected, 'Failed to connect using PQconnectdb');
   finally
     TempDB.Free;
   end;
@@ -414,9 +419,9 @@ begin
   TempDB.UseSingleLineConnInfo := True;
   try
     TempDB.Open;
-    DACCheck(TempDB.Connected, 'Failed to connect using PQconnectdb');
+    Check(TempDB.Connected, 'Failed to connect using PQconnectdb');
     TempDB.Reset;
-    DACCheck(TempDB.Connected, 'Failed to reset using PQreset');
+    Check(TempDB.Connected, 'Failed to reset using PQreset');
   finally
     TempDB.Free;
   end;
@@ -425,10 +430,10 @@ end;
 procedure TestTPSQLDatabase.TestRollback;
 begin
   TestDBSetup.Database.StartTransaction;
-  DACCheck(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
+  Check(TestDBSetup.Database.TransactionStatus in [trstINTRANS, trstACTIVE], 'Failed to BEGIN transaction');
   TestDBSetup.Database.Execute('CREATE TEMP TABLE bar()');
   TestDBSetup.Database.Rollback;
-  DACCheck(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to ROLLBACK transaction');
+  Check(TestDBSetup.Database.TransactionStatus = trstIDLE, 'Failed to ROLLBACK transaction');
 end;
 
 initialization

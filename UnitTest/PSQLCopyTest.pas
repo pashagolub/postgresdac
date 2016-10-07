@@ -19,20 +19,27 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions
   {$ELSE}
-  DUnitX.TestFramework, Types
+  DUnitX.TestFramework, Types, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTCustomPSQLCopy = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTCustomPSQLCopy = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     {$IFDEF DUNITX}
     FRSTestTask : TResourceStream;
     {$ENDIF}
   public
+    {$IFNDEF DUNITX}
     procedure SetUp; override;
     procedure TearDown; override;
+    {$ELSE}
+    [Setup]
+    procedure SetUp;
+    [TearDown]
+    procedure TearDown;
+    {$ENDIF}
   published
     procedure TestLoadFromStream;
     procedure TestSaveToStream;
@@ -54,7 +61,12 @@ type
 
 implementation
 
-uses TestHelper {$IFDEF DUNITX}, MainF, IOUtils {$ENDIF} ;
+uses
+  {$IFDEF DUNITX}
+    MainF, IOUtils
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 var
   FPSQLCopy: TPSQLCopy;
@@ -71,7 +83,7 @@ begin
     FPSQLCopy.Tablename := 'server_tasks';
     FPSQLCopy.DataFormat := cfCSV;
     FPSQLCopy.LoadFromStream(Stream);
-    DACIsTrue(FPSQLCopy.RowsAffected > 0);
+    Check(FPSQLCopy.RowsAffected > 0);
   finally
     Stream.Free;
   end;
@@ -82,7 +94,7 @@ begin
   FPSQLCopy.Tablename := 'server_tasks';
   FPSQLCopy.DataFormat := cfCSV;
   FPSQLCopy.LoadFromStream(FRSTestTask);
-  DACIsTrue(FPSQLCopy.RowsAffected > 0);
+  Check(FPSQLCopy.RowsAffected > 0);
   FRSTestTask.Position := 0;
 end;
 {$ENDIF}
@@ -95,7 +107,7 @@ begin
   try
     FPSQLCopy.SQL.Text := 'SELECT * FROM generate_series(1, 10)';
     FPSQLCopy.SaveToStream(Stream);
-    DACIsTrue(Stream.Size > 0);
+    Check(Stream.Size > 0);
   finally
     {$IFNDEF NEXTGEN}
     Stream.Free;
@@ -119,7 +131,7 @@ begin
     FPSQLCopy.Tablename := 'server_tasks';
     FPSQLCopy.DataFormat := cfCSV;
     FPSQLCopy.LoadFromStrings(Strings);
-    DACIsTrue(FPSQLCopy.RowsAffected = Strings.Count);
+    Check(FPSQLCopy.RowsAffected = Strings.Count);
   finally
     {$IFNDEF DUNITX}
     Strings.Free;
@@ -137,7 +149,7 @@ begin
   try
     FPSQLCopy.SQL.Text := 'SELECT * FROM generate_series(1, 10)';
     FPSQLCopy.SaveToStrings(Strings);
-    DACCheck(Strings.Count = 10, 'SaveToStrings failed');
+    Check(Strings.Count = 10, 'SaveToStrings failed');
   finally
     {$IFNDEF DUNITX}
     Strings.Free;
@@ -167,8 +179,6 @@ procedure TestTCustomPSQLCopy.SetupFixture;
 begin
   FRSTestTask := TResourceStream.Create(HInstance, 'tasks_csv', RT_RCDATA);
   FRSTestTask.Position := 0;
-
-  FldDB := MainForm.Database;
   InternalSetUp;
 end;
 
@@ -212,7 +222,7 @@ begin
   FPSQLCopy.Tablename := 'server_tasks';
   FPSQLCopy.DataFormat := cfBinary;
   FPSQLCopy.SaveToClientSideFile(FileName);
-  DACCheck(FileExists(FileName), 'Output file doesn''t exist');
+  Check(FileExists(FileName), 'Output file doesn''t exist');
 end;
 
 procedure TestTCustomPSQLCopy.TestLoadFromServerSideFile;
@@ -223,7 +233,7 @@ begin
   // TODO: Setup method call parameters
   // FPSQLCopy.LoadFromServerSideFile(FileName);
   // TODO: Validate method results
-  DACIsTrue(True);
+  Check(True);
 end;
 
 procedure TestTCustomPSQLCopy.TestSaveToServerSideFile;
@@ -235,7 +245,7 @@ begin
   FileName := TestDBSetup.Database.SelectStringDef('SHOW data_directory', 'C:') + '/loglist.txt';
   FPSQLCopy.SaveToServerSideFile(FileName);
   QueryRes := TestDBSetup.Database.SelectStringDef('SELECT now() - s.modification < ''10 minutes'' FROM pg_stat_file(' + QuotedStr(FileName) + ') s', 'f');
-  DACIsTrue(QueryRes = 't');
+  Check(QueryRes = 't');
 end;
 
 procedure TestTCustomPSQLCopy.TestLoadFromProgram;
@@ -248,7 +258,7 @@ begin
   FPSQLCopy.DataFormat := cfCSV;
   FPSQLCopy.Encoding := 'WIN866';
   FPSQLCopy.LoadFromProgram(CommandLine);
-  DACIsTrue(FPSQLCopy.RowsAffected > 0);
+  Check(FPSQLCopy.RowsAffected > 0);
 end;
 
 procedure TestTCustomPSQLCopy.TestSaveToProgram;
@@ -260,7 +270,7 @@ begin
   CommandLine := 'find "1" > loglist.txt';
   FPSQLCopy.SaveToProgram(CommandLine);
   QueryRes := TestDBSetup.Database.SelectStringDef('SELECT now()-s.modification<''10 minutes'' FROM pg_stat_file(''loglist.txt'') s', 'f');
-  DACIsTrue(QueryRes = 't');
+  Check(QueryRes = 't');
 end;
 
 initialization

@@ -18,17 +18,13 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions
   {$ELSE}
-  DUnitX.TestFramework
+  DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLGuidField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
-  {$IFDEF DUNITX}
-  private
-    FCharset: string;
-  {$ENDIF}
+  TestTPSQLGuidField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   public
     {$IFNDEF DUNITX}
     procedure TearDown; override;
@@ -60,7 +56,7 @@ type
 
   // Test methods for class TPSQLPointField
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestGeometricFields = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestGeometricFields = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   public
     {$IFNDEF DUNITX}
     procedure TearDown; override;
@@ -82,7 +78,7 @@ type
 
   // Test methods for class TPSQLRangeField
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLRangeField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLRangeField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   public
     {$IFNDEF DUNITX}
     procedure TearDown; override;
@@ -108,7 +104,7 @@ type
   end;
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestNativeNumericField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestNativeNumericField = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   public
     {$IFNDEF DUNITX}
     procedure TearDown; override;
@@ -130,7 +126,12 @@ type
 
 implementation
 
-uses TestHelper, Math{$IFDEF DUNITX}, MainF{$ENDIF};
+uses System.Math,
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 {$IFDEF DELPHI_5}
 function CoCreateGuid(out guid: TGUID): HResult; stdcall; external 'ole32.dll' name 'CoCreateGuid';
@@ -144,14 +145,10 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLGuidField.SetupFixture;
 begin
-  FCharset := MainForm.Database.CharSet;
-  FldDB := MainForm.Database;
-  InternalSetUp;
 end;
+
 procedure TestTPSQLGuidField.TearDownFixture;
 begin
-  InternalTearDown;
-  MainForm.Database.CharSet := FCharset;
 end;
 {$ENDIF}
 
@@ -165,7 +162,7 @@ procedure TestTPSQLGuidField.TestSelectUUID;
 begin
   TestDBSetup.Query.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
   TestDBSetup.Query.Open;
-  DACCheck(TestDBSetup.Query.Active, 'Cannot select UUID value');
+  Check(TestDBSetup.Query.Active, 'Cannot select UUID value');
 end;
 
 procedure TestTPSQLGuidField.TestGUIDDelete;
@@ -174,7 +171,7 @@ begin
   TestDBSetup.Query.SQL.Text := 'SELECT * FROM uuid_test_case_table';
   TestDBSetup.Query.Open;
   TestDBSetup.Query.Delete;
-  DACCheck(TestDBSetup.Query.RowsAffected = 1, 'Cannot delete UUID ' + TestDBSetup.Query.Fields[0].ClassName);
+  Check(TestDBSetup.Query.RowsAffected = 1, 'Cannot delete UUID ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDDelete_ASCII;
@@ -206,13 +203,13 @@ begin
   G1 := StringToGuid('{35c6c84e-4157-466c-0091-31a4714aca34}');
   TestDBSetup.Query.SQL.Text := 'SELECT ''35c6c84e-4157-466c-0091-31a4714aca34''::uuid';
   TestDBSetup.Query.Open;
-  DACCheck(TestDBSetup.Query.Active, 'Cannot select UUID value');
-  DACCheck(TestDBSetup.Query.Fields[0].AsString = UpperCase('{35c6c84e-4157-466c-0091-31a4714aca34}'), 'UUID value is corrupted in SQL_ASCII charset using TGUIDField');
+  Check(TestDBSetup.Query.Active, 'Cannot select UUID value');
+  Check(TestDBSetup.Query.Fields[0].AsString = UpperCase('{35c6c84e-4157-466c-0091-31a4714aca34}'), 'UUID value is corrupted in SQL_ASCII charset using TGUIDField');
   if not (dsoUseGUIDField in TestDBSetup.Query.Options) then
    G2 := TGUIDField(TestDBSetup.Query.Fields[0]).AsGuid
   else
    G2 := TPSQLGUIDField(TestDBSetup.Query.Fields[0]).AsGuid;
-  DACCheck(IsEqualGUID(G1, G2), 'GUID comparison failed: ' + TestDBSetup.Query.Fields[0].ClassName);
+  Check(IsEqualGUID(G1, G2), 'GUID comparison failed: ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert;
@@ -223,7 +220,7 @@ begin
   TestDBSetup.Query.SQL.Text := 'SELECT * FROM uuid_test_case_table';
   TestDBSetup.Query.Open;
   TestDBSetup.Query.Insert;
-  DACCheck(CreateGUID(G) = 0, 'GUID generation failed');
+  Check(CreateGUID(G) = 0, 'GUID generation failed');
   PSQLAccess.LogDebugMessage('GUID generated value:', G.ToString);
   if TestDBSetup.Query.Fields[0] is TGUIDField then
     if not (dsoUseGUIDField in TestDBSetup.Query.Options) then
@@ -231,7 +228,7 @@ begin
   else
    (TestDBSetup.Query.Fields[0] as TPSQLGUIDField).AsGuid := G;
   TestDBSetup.Query.Post;
-  DACCheck(TestDBSetup.Query.RowsAffected = 1, 'Cannot insert UUID: ' + TestDBSetup.Query.Fields[0].ClassName);
+  Check(TestDBSetup.Query.RowsAffected = 1, 'Cannot insert UUID: ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDInsert_ASCII;
@@ -269,7 +266,7 @@ begin
   else
     TPSQLGUIDField(TestDBSetup.Query.Fields[0]).AsGuid := G;
   TestDBSetup.Query.Post;
-  DACCheck(TestDBSetup.Query.RowsAffected = 1, 'Cannot update UUID ' + TestDBSetup.Query.Fields[0].ClassName);
+  Check(TestDBSetup.Query.RowsAffected = 1, 'Cannot update UUID ' + TestDBSetup.Query.Fields[0].ClassName);
 end;
 
 procedure TestTPSQLGuidField.TestGUIDUpdate_ASCII;
@@ -321,12 +318,9 @@ end;
 {$IFDEF DUNITX}
 procedure TestGeometricFields.SetupFixture;
 begin
-  FldDB := MainForm.Database;
-  InternalSetUp;
 end;
 procedure TestGeometricFields.TearDownFixture;
 begin
-  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -354,10 +348,10 @@ begin
   (TestDBSetup.Query.FieldByName('b') as TPSQLBoxField).Value := B;
   (TestDBSetup.Query.FieldByName('l') as TPSQLLSegField).Value := L;
   TestDBSetup.Query.Post;
-  DACCheck(TPSQLPointField(TestDBSetup.Query.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
-  DACCheck(TPSQLCircleField(TestDBSetup.Query.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
-  DACCheck(TPSQLBoxField(TestDBSetup.Query.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
-  DACCheck(TPSQLLSegField(TestDBSetup.Query.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after insert');
+  Check(TPSQLPointField(TestDBSetup.Query.FieldByName('p')).Value = P, 'Wrong value for "point" field after insert');
+  Check(TPSQLCircleField(TestDBSetup.Query.FieldByName('c')).Value = C, 'Wrong value for "circle" field after insert');
+  Check(TPSQLBoxField(TestDBSetup.Query.FieldByName('b')).Value = B, 'Wrong value for "box" field after insert');
+  Check(TPSQLLSegField(TestDBSetup.Query.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after insert');
 end;
 
 procedure TestGeometricFields.TestSelectGeoms;
@@ -372,10 +366,10 @@ begin
                      ' ''(2.12, 7.89) , (-0.14, 0.1)''::box, '+
                      ' ''[(1.2,0.4),(-5.5,-0.2)]''::lseg ';
   TestDBSetup.Query.Open;
-  DACCheck(TPSQLPointField(TestDBSetup.Query.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
-  DACCheck(TPSQLCircleField(TestDBSetup.Query.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
-  DACCheck(TPSQLBoxField(TestDBSetup.Query.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
-  DACCheck((TestDBSetup.Query.Fields[3] as TPSQLLSegField).Value = L, 'Wrong value for "lseg" field after SELECT');
+  Check(TPSQLPointField(TestDBSetup.Query.Fields[0]).Value = P, 'Wrong value for "point" field after SELECT');
+  Check(TPSQLCircleField(TestDBSetup.Query.Fields[1]).Value = C, 'Wrong value for "circle" field after SELECT');
+  Check(TPSQLBoxField(TestDBSetup.Query.Fields[2]).Value = B, 'Wrong value for "box" field after SELECT');
+  Check((TestDBSetup.Query.Fields[3] as TPSQLLSegField).Value = L, 'Wrong value for "lseg" field after SELECT');
 end;
 
 procedure TestGeometricFields.TestUpdateGeoms;
@@ -395,10 +389,10 @@ begin
   (TestDBSetup.Query.FieldByName('b') as TPSQLBoxField).Value := B;
   (TestDBSetup.Query.FieldByName('l') as TPSQLLSegField).Value := L;
   TestDBSetup.Query.Post;
-  DACCheck(TPSQLPointField(TestDBSetup.Query.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
-  DACCheck(TPSQLCircleField(TestDBSetup.Query.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
-  DACCheck(TPSQLBoxField(TestDBSetup.Query.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
-  DACCheck(TPSQLLSegField(TestDBSetup.Query.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after update');
+  Check(TPSQLPointField(TestDBSetup.Query.FieldByName('p')).Value = P, 'Wrong value for "point" field after update');
+  Check(TPSQLCircleField(TestDBSetup.Query.FieldByName('c')).Value = C, 'Wrong value for "circle" field after update');
+  Check(TPSQLBoxField(TestDBSetup.Query.FieldByName('b')).Value = B, 'Wrong value for "box" field after update');
+  Check(TPSQLLSegField(TestDBSetup.Query.FieldByName('l')).Value = L, 'Wrong value for "lseg" field after update');
 end;
 
 { TestTPSQLRangeField }
@@ -406,12 +400,10 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLRangeField.SetupFixture;
 begin
-  FldDB := MainForm.Database;
-  InternalSetUp;
 end;
+
 procedure TestTPSQLRangeField.TearDownFixture;
 begin
-  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -441,11 +433,11 @@ begin
   (TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
   (TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
   TestDBSetup.Query.Post;
-  DACCheck((TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
-  DACCheck((TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
-  DACCheck((TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
-  DACCheck((TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
-  DACCheck((TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after insert');
+  Check((TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after insert');
+  Check((TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after insert');
+  Check((TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after insert');
+  Check((TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after insert');
+  Check((TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after insert');
 end;
 
 procedure TestTPSQLRangeField.TestSelectClosedRange;
@@ -464,7 +456,7 @@ begin
   TestDBSetup.Query.Open;
   for i := 0 to TestDBSetup.Query.FieldCount - 1 do
    with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
-    DACCheck((UpperBound.State = rbsInclusive) and
+    Check((UpperBound.State = rbsInclusive) and
           (LowerBound.State = rbsInclusive), 'Range must be closed');
 end;
 
@@ -480,7 +472,7 @@ begin
                      ' ''empty''::tstzrange';
   TestDBSetup.Query.Open;
   for i := 0 to TestDBSetup.Query.FieldCount - 1 do
-    DACCheck((TestDBSetup.Query.Fields[i] as TPSQLRangeField).IsEmpty, 'Range field must be empty');
+    Check((TestDBSetup.Query.Fields[i] as TPSQLRangeField).IsEmpty, 'Range field must be empty');
 end;
 
 procedure TestTPSQLRangeField.TestSelectLowerInfinityRange;
@@ -497,7 +489,7 @@ begin
   TestDBSetup.Query.Open;
   for i := 0 to TestDBSetup.Query.FieldCount - 1 do
    with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
-    DACCheck((LowerBound.State = rbsInfinite), 'Range must gave infinite lower range');
+    Check((LowerBound.State = rbsInfinite), 'Range must gave infinite lower range');
 end;
 
 procedure TestTPSQLRangeField.TestSelectOpenRange;
@@ -510,7 +502,7 @@ begin
   TestDBSetup.Query.Open;
   for i := 0 to TestDBSetup.Query.FieldCount - 1 do
    with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
-    DACCheck((UpperBound.State = rbsExclusive) and
+    Check((UpperBound.State = rbsExclusive) and
           (LowerBound.State = rbsExclusive), 'Range must be open');
 end;
 
@@ -521,20 +513,20 @@ begin
                      ' int4range(1, 3, ''[)''), ' +
                      ' int4range(1, 1, ''()'') ';
   TestDBSetup.Query.Open;
-  DACCheck(TestDBSetup.Query.Active, 'Cannot select "point" value');
+  Check(TestDBSetup.Query.Active, 'Cannot select "point" value');
   R := (TestDBSetup.Query.Fields[0] as TPSQLRangeField).Value;
-  DACCheck(not R.Empty, 'Range is empty');
-  DACCheck(R.LowerBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
-  DACCheck(R.UpperBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
-  DACCheck(SameValue(R.LowerBound.AsFloat, 3.1), 'Wrong numrange lower bound value');
-  DACCheck(SameValue(R.UpperBound.AsFloat, 5.2), 'Wrong numrange upper bound value');
+  Check(not R.Empty, 'Range is empty');
+  Check(R.LowerBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'numrange lower bound must be exclusive');
+  Check(SameValue(R.LowerBound.AsFloat, 3.1), 'Wrong numrange lower bound value');
+  Check(SameValue(R.UpperBound.AsFloat, 5.2), 'Wrong numrange upper bound value');
 
   R := TPSQLRangeField(TestDBSetup.Query.Fields[1]).Value;
-  DACCheck(not R.Empty, 'Range is empty');
-  DACCheck(R.LowerBound.State = rbsInclusive, 'Range lower bound must be inclusive');
-  DACCheck(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
-  DACCheck(R.LowerBound.AsInteger = 1, 'Wrong lower bound value');
-  DACCheck(R.UpperBound.AsInteger = 3, 'Wrong upper bound value');
+  Check(not R.Empty, 'Range is empty');
+  Check(R.LowerBound.State = rbsInclusive, 'Range lower bound must be inclusive');
+  Check(R.UpperBound.State = rbsExclusive, 'Range lower bound must be exclusive');
+  Check(R.LowerBound.AsInteger = 1, 'Wrong lower bound value');
+  Check(R.UpperBound.AsInteger = 3, 'Wrong upper bound value');
 end;
 
 procedure TestTPSQLRangeField.TestSelectUpperInfinityRange;
@@ -551,7 +543,7 @@ begin
   TestDBSetup.Query.Open;
   for i := 0 to TestDBSetup.Query.FieldCount - 1 do
    with (TestDBSetup.Query.Fields[i] as TPSQLRangeField).Value do
-    DACCheck((UpperBound.State = rbsInfinite), 'Range must gave infinite upper range');
+    Check((UpperBound.State = rbsInfinite), 'Range must gave infinite upper range');
 end;
 
 procedure TestTPSQLRangeField.TestUpdateRange;
@@ -573,23 +565,21 @@ begin
   (TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value := RTS;
   (TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value := RTS;
   TestDBSetup.Query.Post;
-  DACCheck((TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after update');
-  DACCheck((TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after update');
-  DACCheck((TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after update');
-  DACCheck((TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after update');
-  DACCheck((TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
+  Check((TestDBSetup.Query.FieldByName('intr') as TPSQLRangeField).Value = R, 'Wrong value for "intrange" field after update');
+  Check((TestDBSetup.Query.FieldByName('numr') as TPSQLRangeField).Value = RF, 'Wrong value for "numrange" field after update');
+  Check((TestDBSetup.Query.FieldByName('dater') as TPSQLRangeField).Value = RD, 'Wrong value for "daterange" field after update');
+  Check((TestDBSetup.Query.FieldByName('tsr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamprange" field after update');
+  Check((TestDBSetup.Query.FieldByName('tstzr') as TPSQLRangeField).Value = RTS, 'Wrong value for "timestamptzrange" field after update');
 end;
 
 { TestNativeNumericField }
 {$IFDEF DUNITX}
 procedure TestNativeNumericField.SetupFixture;
 begin
-  FldDB := MainForm.Database;
-  InternalSetUp;
 end;
+
 procedure TestNativeNumericField.TearDownFixture;
 begin
-  InternalTearDown;
 end;
 {$ENDIF}
 
@@ -606,7 +596,7 @@ begin
   TestDBSetup.Query.ParamCheck := False;
   TestDBSetup.Query.SQL.Text := 'SELECT 98765432100123456789.98765432100123456789 :: numeric';
   TestDBSetup.Query.Open;
-  DACCheck(_Num = TestDBSetup.Query.Fields[0].AsBCD, 'Incorrect value for NUMERIC');
+  Check(_Num = TestDBSetup.Query.Fields[0].AsBCD, 'Incorrect value for NUMERIC');
 end;
 
 procedure TestNativeNumericField.TestNumericSelectInt;
@@ -617,7 +607,7 @@ begin
   TestDBSetup.Query.SQL.Text := 'SELECT 98765432100123456789 :: numeric(20, 0)';
   TestDBSetup.Query.Open;
   S := TestDBSetup.Query.Fields[0].AsString;
-  DACCheck(_Num = S, 'Incorrect value for NUMERIC');
+  Check(_Num = S, 'Incorrect value for NUMERIC');
 //  CheckEqualsString(_Num, S, 'Incorrect value for NUMERIC');
 end;
 

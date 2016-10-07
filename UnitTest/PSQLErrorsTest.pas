@@ -19,13 +19,13 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions
   {$ELSE}
-  DUnitX.TestFramework, ioUtils
+  DUnitX.TestFramework, ioUtils, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLErrors = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLErrors = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   published
     procedure TestFailedConnect;
     procedure TestSyntaxError;
@@ -42,7 +42,12 @@ var
 
 implementation
 
-uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure InternalSetUp;
 begin
@@ -67,8 +72,8 @@ begin
    except
      on E: EPSQLDatabaseError do
      begin
-      DACCheck(E.ErrorConstraintName > '', 'Error constraint name is empty');
-      DACCheck(E.ErrorTableName > '', 'Error table name is empty');
+      Check(E.ErrorConstraintName > '', 'Error constraint name is empty');
+      Check(E.ErrorTableName > '', 'Error table name is empty');
       Status(E.ErrorPrimary);
       Status(E.ErrorConstraintName);
      end;
@@ -92,7 +97,7 @@ begin
     except
      on E: EPSQLDatabaseError do
      begin
-       DACCheck(E.Message > '', 'Error message is empty');
+       Check(E.Message > '', 'Error message is empty');
        Status(E.Message);
      end;
     end;
@@ -112,9 +117,9 @@ begin
  except
    on E: EPSQLDatabaseError do
    begin
-    DACCheck(E.ErrorSeverity > '', 'Error severity is empty');
-    DACCheck(E.ErrorSqlState > '', 'Error SQL state is empty');
-    DACCheck(E.ErrorPrimary > '', 'Error primary message is empty');
+    Check(E.ErrorSeverity > '', 'Error severity is empty');
+    Check(E.ErrorSqlState > '', 'Error SQL state is empty');
+    Check(E.ErrorPrimary > '', 'Error primary message is empty');
    end;
  end;
 end;

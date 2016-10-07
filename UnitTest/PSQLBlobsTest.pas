@@ -19,13 +19,13 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions, Winapi.Windows
   {$ELSE}
-  DUnitX.TestFramework
+  DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLBlobs = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLBlobs = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     {$IFDEF DUNITX}
     FRSTestBmp: TResourceStream;
@@ -61,7 +61,12 @@ type
 
 implementation
 
-uses TestHelper {$IFDEF DUNITX}, MainF, System.IOUtils{$ENDIF};
+uses IOUtils,
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
   {$IFNDEF DUNITX}
   function FileSize(const aFilename: String): Int64;
@@ -123,14 +128,14 @@ begin
     FPSQLQuery.First;
 
     {$IFNDEF DUNITX}
-    DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
-    DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
+    Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
+    Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
     {$ELSE}
-    DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read byteaf.BlobSize');
-    DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
+    Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read byteaf.BlobSize');
+    Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
     {$ENDIF}
 
-    DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(AnsiDACByteChar), 'Failed to read memof.BlobSize');
+    Check((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(AnsiDACByteChar), 'Failed to read memof.BlobSize');
     FPSQLQuery.Close;
   finally
     TestDBSetup.Database.CharSet := 'UNICODE';
@@ -158,14 +163,14 @@ begin
   FPSQLQuery.First;
 
   {$IFNDEF DUNITX}
-  DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
-  DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
+  Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read byteaf.BlobSize');
+  Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FileSize('TestData\test.bmp'), 'Failed to read oidf.BlobSize');
   {$ELSE}
-  DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read byteaf.BlobSize');
-  DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
+  Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read byteaf.BlobSize');
+  Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = FRSTestBmp.Size, 'Failed to read oidf.BlobSize');
   {$ENDIF}
 
-  DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(Char), 'Failed to read memof.BlobSize');
+  Check((FPSQLQuery.FieldByName('memof') as TBlobField).BlobSize = Length('test-test') * SizeOf(Char), 'Failed to read memof.BlobSize');
   FPSQLQuery.Close;
 end;
 
@@ -185,9 +190,9 @@ begin
     FPSQLQuery.Open;
     FPSQLQuery.First;
 
-    DACCheck((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = 0, 'byteaf field must be empty');
-    DACCheck((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = 0, 'oidf field must be empty');
-    DACCheck((FPSQLQuery.FieldByName('memof') as TBlobField).AsString = '', 'memof field must be empty');
+    Check((FPSQLQuery.FieldByName('byteaf') as TBlobField).BlobSize = 0, 'byteaf field must be empty');
+    Check((FPSQLQuery.FieldByName('oidf') as TBlobField).BlobSize = 0, 'oidf field must be empty');
+    Check((FPSQLQuery.FieldByName('memof') as TBlobField).AsString = '', 'memof field must be empty');
   finally
     {$IFNDEF NEXTGEN}
     MS.Free;
@@ -206,10 +211,10 @@ begin
   FPSQLQuery.Open;
   FPSQLQuery.Insert;
   (FPSQLQuery.FieldByName('memof') as TBlobField).AsString := '';
-  DACCheck(FPSQLQuery.FieldByName('memof').IsNull, 'memof field must NULL before Post with empty text value');
+  Check(FPSQLQuery.FieldByName('memof').IsNull, 'memof field must NULL before Post with empty text value');
   FPSQLQuery.Post;
   FPSQLQuery.First;
-  DACCheck(FPSQLQuery.FieldByName('memof').IsNull, 'memof field must NULL after Post with empty text value');
+  Check(FPSQLQuery.FieldByName('memof').IsNull, 'memof field must NULL after Post with empty text value');
   FPSQLQuery.Close;
 end;
 
@@ -230,9 +235,9 @@ begin
     FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
     FPSQLQuery.RequestLive := True;
     FPSQLQuery.Open;
-    DACCheck(FPSQLQuery.FieldByName('byteaf') is TBlobField, 'Wrong field class for byteaf');
-    DACCheck(FPSQLQuery.FieldByName('oidf') is TBlobField, 'Wrong field class for oidf');
-    DACCheck(FPSQLQuery.FieldByName('memof') is TBlobField, 'Wrong field class for memof');
+    Check(FPSQLQuery.FieldByName('byteaf') is TBlobField, 'Wrong field class for byteaf');
+    Check(FPSQLQuery.FieldByName('oidf') is TBlobField, 'Wrong field class for oidf');
+    Check(FPSQLQuery.FieldByName('memof') is TBlobField, 'Wrong field class for memof');
     FPSQLQuery.Insert;
     {$IFNDEF DUNITX}
     (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
@@ -245,23 +250,23 @@ begin
     FPSQLQuery.Post;
 
     FPSQLQuery.First;
-    DACCheck(not FPSQLQuery.FieldByName('byteaf').IsNull, 'byteaf field must be NOT NULL');
-    DACCheck(not FPSQLQuery.FieldByName('oidf').IsNull, 'oidf field must be NOT NULL');
-    DACCheck(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL');
+    Check(not FPSQLQuery.FieldByName('byteaf').IsNull, 'byteaf field must be NOT NULL');
+    Check(not FPSQLQuery.FieldByName('oidf').IsNull, 'oidf field must be NOT NULL');
+    Check(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL');
 
     (FPSQLQuery.FieldByName('byteaf') as TBlobField).SaveToFile(OutputPathStr);
     (FPSQLQuery.FieldByName('oidf') as TBlobField).SaveToFile(OutputPathStr);
-    DACCheck(FileExists(OutputPathStr), 'byteaf cannot save file to disk');
-    DACCheck(FileExists(OutputPathStr), 'oidf cannot save file to disk');
+    Check(FileExists(OutputPathStr), 'byteaf cannot save file to disk');
+    Check(FileExists(OutputPathStr), 'oidf cannot save file to disk');
 
     {$IFNDEF DUNITX}
-    DACCheck(FileSize('TestData\test.bmp') = FileSize(OutputPathStr), 'file sizes differs');
+    Check(FileSize('TestData\test.bmp') = FileSize(OutputPathStr), 'file sizes differs');
     {$ELSE}
     FS.LoadFromFile(OutputPathStr);
-    DACIsTrue(FRSTestBmp.Size = FS.Size);
+    Check(FRSTestBmp.Size = FS.Size);
     {$ENDIF}
 
-    DACCheck(FPSQLQuery.FieldByName('memof').AsString = 'test-test', 'Failed to read memof field');
+    Check(FPSQLQuery.FieldByName('memof').AsString = 'test-test', 'Failed to read memof field');
 
   finally
     FPSQLQuery.Close;
@@ -279,9 +284,9 @@ begin
     FPSQLQuery.UpdateObject := FPSQLUpdate;
     FPSQLQuery.SQL.Text := 'SELECT * FROM blobs_test_case_table';
     FPSQLQuery.Open;
-    DACCheck(FPSQLQuery.FieldByName('byteaf') is TBlobField, 'Wrong field class for byteaf');
-    DACCheck(FPSQLQuery.FieldByName('oidf') is TBlobField, 'Wrong field class for oidf');
-    DACCheck(FPSQLQuery.FieldByName('memof') is TBlobField, 'Wrong field class for memof');
+    Check(FPSQLQuery.FieldByName('byteaf') is TBlobField, 'Wrong field class for byteaf');
+    Check(FPSQLQuery.FieldByName('oidf') is TBlobField, 'Wrong field class for oidf');
+    Check(FPSQLQuery.FieldByName('memof') is TBlobField, 'Wrong field class for memof');
     FPSQLQuery.Insert;
     {$IFNDEF DUNITX}
     (FPSQLQuery.FieldByName('byteaf') as TBlobField).LoadFromFile('TestData\test.bmp');
@@ -294,9 +299,9 @@ begin
 
     FPSQLQuery.Post;
     FPSQLQuery.First;
-    DACCheck(not FPSQLQuery.FieldByName('byteaf').IsNull, 'byteaf field must be NOT NULL');
-    DACCheck(not FPSQLQuery.FieldByName('oidf').IsNull, 'oidf field must be NOT NULL');
-    DACCheck(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL');
+    Check(not FPSQLQuery.FieldByName('byteaf').IsNull, 'byteaf field must be NOT NULL');
+    Check(not FPSQLQuery.FieldByName('oidf').IsNull, 'oidf field must be NOT NULL');
+    Check(not FPSQLQuery.FieldByName('memof').IsNull, 'memof field must be NOT NULL');
     FPSQLQuery.Close;
   finally
     {$IFNDEF NEXTGEN}
@@ -312,13 +317,10 @@ procedure TestTPSQLBlobs.SetupFixture;
 begin
   FRsTestBmp := TResourceStream.Create(HInstance, 'test_bmp', RT_RCDATA);
   FRSTestBmp.Position := 0;
-  FCharSet := MainForm.Database.CharSet;
-  QryDB := MainForm.Database;
   InternalSetUp;
 end;
 procedure TestTPSQLBlobs.TearDownFixture;
 begin
-  MainForm.Database.CharSet := FCharSet; //restore charset;
   FRSTestBmp.Free;
 end;
 {$ENDIF}

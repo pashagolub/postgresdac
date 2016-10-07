@@ -21,13 +21,13 @@ uses
   {$IFNDEF DUNITX}
     ,TestFramework, TestExtensions
   {$ELSE}
-    ,DUnitX.TestFramework
+    ,DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLBatchExecute = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLBatchExecute = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     FPSQLBatchExecute: TPSQLBatchExecute;
   public
@@ -50,7 +50,12 @@ type
 
 implementation
 
-uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure InternalSetUp;
 begin
@@ -65,7 +70,6 @@ end;
 {$IFDEF DUNITX}
 procedure TestTPSQLBatchExecute.SetupFixture;
 begin
-  QryDB := MainForm.Database;
   InternalSetUp;
 end;
 {$ENDIF}
@@ -90,7 +94,7 @@ begin
                           '$_$; ';
 
   FPSQLBatchExecute.ExecSQL;
-  DACCheck(TestDBSetup.Database.SelectString('SELECT bizdays(now, now)', IsOk) > '', 'Creating function as dollar-quoted string failed');
+  Check(TestDBSetup.Database.SelectString('SELECT bizdays(now, now)', IsOk) > '', 'Creating function as dollar-quoted string failed');
 end;
 
 initialization

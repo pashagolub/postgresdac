@@ -16,13 +16,13 @@ uses
   {$IFNDEF DUNITX}
   TestFramework, TestExtensions
   {$ELSE}
-  DUnitX.TestFramework
+  DUnitX.TestFramework, TestXHelper
   {$ENDIF};
 
 type
 
   {$IFDEF DUNITX}[TestFixture]{$ENDIF}
-  TestTPSQLTable = class({$IFNDEF DUNITX}TTestCase{$ELSE}TObject{$ENDIF})
+  TestTPSQLTable = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     FPSQLTable: TPSQLTable;
   public
@@ -63,7 +63,12 @@ type
 
 implementation
 
-uses TestHelper{$IFDEF DUNITX}, MainF{$ENDIF};
+uses
+  {$IFDEF DUNITX}
+    MainF
+  {$ELSE}
+    TestHelper
+  {$ENDIF};
 
 procedure InternalSetUp;
 begin
@@ -159,7 +164,7 @@ begin
   FPSQLTable.TableName := 'testtable';
   FPSQLTable.Open;
   FPSQLTable.IndexName := 'pk_testtable';
-  DACCheck(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
+  Check(FPSQLTable.FindKey(['11', '21']), 'FindKey failed for two-column index');
   // TODO: Validate method results
 end;
 
@@ -196,7 +201,7 @@ end;
 
 procedure TestTPSQLTable.TestGotoKey;
 begin
-  CheckTrue(FPSQLTable.GotoKey);
+  Check(FPSQLTable.GotoKey);
   // TODO: Validate method results
 end;
 

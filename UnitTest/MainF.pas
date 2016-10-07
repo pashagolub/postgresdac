@@ -11,7 +11,7 @@ uses
     DUNitX.Loggers.GUIX
   {$ENDIF},
   FMX.Controls.Presentation, FMX.StdCtrls,
-  PSQLFMXConnFrm, TestHelper;
+  PSQLFMXConnFrm, TestXHelper;
 
 type
   TPSQLRunner = {$IFDEF MOBILE}TMobileGUITestRunner{$ELSE}TGUIXTestRunner{$ENDIF};
