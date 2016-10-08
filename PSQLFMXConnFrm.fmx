@@ -19,13 +19,13 @@ object PSQLConnForm: TPSQLConnForm
       Align = HorzCenter
       AutoSize = True
       StyledSettings = [FontColor]
-      Position.X = 55.000000000000000000
-      Size.Width = 223.000000000000000000
+      Position.X = 57.000000000000000000
+      Size.Width = 219.000000000000000000
       Size.Height = 49.000000000000000000
       Size.PlatformDefault = False
       TextSettings.Font.Family = 'Segoe UI Semibold'
       TextSettings.Font.Size = 14.000000000000000000
-      TextSettings.Font.Style = [fsBold]
+      TextSettings.Font.StyleExt = {00070000000000000004000000}
       TextSettings.WordWrap = False
       Text = '  PostgreSQL Connection Options'
     end
@@ -47,7 +47,7 @@ object PSQLConnForm: TPSQLConnForm
       AutoSize = True
       Position.X = 9.000000000000000000
       Position.Y = 121.000000000000000000
-      Size.Width = 64.000000000000000000
+      Size.Width = 61.000000000000000000
       Size.Height = 16.000000000000000000
       Size.PlatformDefault = False
       TextSettings.WordWrap = False
@@ -57,7 +57,7 @@ object PSQLConnForm: TPSQLConnForm
       AutoSize = True
       Position.X = 9.000000000000000000
       Position.Y = 95.000000000000000000
-      Size.Width = 81.000000000000000000
+      Size.Width = 77.000000000000000000
       Size.Height = 16.000000000000000000
       Size.PlatformDefault = False
       TextSettings.WordWrap = False
@@ -67,7 +67,7 @@ object PSQLConnForm: TPSQLConnForm
       AutoSize = True
       Position.X = 9.000000000000000000
       Position.Y = 69.000000000000000000
-      Size.Width = 56.000000000000000000
+      Size.Width = 53.000000000000000000
       Size.Height = 16.000000000000000000
       Size.PlatformDefault = False
       TextSettings.WordWrap = False
@@ -77,7 +77,7 @@ object PSQLConnForm: TPSQLConnForm
       AutoSize = True
       Position.X = 9.000000000000000000
       Position.Y = 43.000000000000000000
-      Size.Width = 45.000000000000000000
+      Size.Width = 42.000000000000000000
       Size.Height = 16.000000000000000000
       Size.PlatformDefault = False
       TextSettings.WordWrap = False
@@ -87,7 +87,7 @@ object PSQLConnForm: TPSQLConnForm
       AutoSize = True
       Position.X = 9.000000000000000000
       Position.Y = 17.000000000000000000
-      Size.Width = 91.000000000000000000
+      Size.Width = 87.000000000000000000
       Size.Height = 16.000000000000000000
       Size.PlatformDefault = False
       TextSettings.WordWrap = False
@@ -140,6 +140,7 @@ object PSQLConnForm: TPSQLConnForm
     end
   end
   object OKBtn: TButton
+    ModalResult = 1
     Position.X = 56.000000000000000000
     Position.Y = 248.000000000000000000
     Size.Width = 80.000000000000000000
@@ -147,7 +148,6 @@ object PSQLConnForm: TPSQLConnForm
     Size.PlatformDefault = False
     TabOrder = 6
     Text = '&OK'
-    OnClick = OKBtnClick
   end
   object CancelBtn: TButton
     ModalResult = 2

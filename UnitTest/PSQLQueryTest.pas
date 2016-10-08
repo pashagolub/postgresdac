@@ -18,7 +18,7 @@ uses
   {$IFNDEF DUNITX}
     ,TestFramework, Windows, ExtCtrls, Controls, DbCommon,
     Graphics, StdVCL, TestExtensions,
-    Forms, PSQLConnFrm
+    Forms, TestHelper
   {$ELSE}
     ,DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -84,12 +84,7 @@ type
 
 implementation
 
-uses DateUtils,
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
+uses DateUtils;
 
 procedure InternalSetUp;
 begin

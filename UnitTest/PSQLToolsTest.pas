@@ -18,7 +18,7 @@ interface
 uses
   PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, PSQLTools,
   {$IFNDEF DUNITX}
-  TestFramework, TestExtensions
+  TestFramework, TestExtensions, TestHelper
   {$ELSE}
   DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -55,13 +55,6 @@ var
   Tools: TPSQLTools;
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 procedure InternalSetUp;
 begin

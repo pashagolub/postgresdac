@@ -19,7 +19,7 @@ uses
   Db, PSQLDump, PSQLTypes, SysUtils, PSQLDbTables, Classes
   {$IFDEF DELPHI_15}, IOUtils{$ELSE}, FileCtrl{$ENDIF}
   {$IFNDEF DUNITX}
-  ,TestFramework, Math, TestExtensions
+  ,TestFramework, Math, TestExtensions, TestHelper
   {$ELSE}
   , DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -90,13 +90,6 @@ var
   DumpFileName: string; //= 'TestDumpToFile.backup';
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 procedure TestTPSQLDump.LoadLibrary(Sender: TObject; var FileName: string);
 begin

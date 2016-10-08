@@ -5,7 +5,6 @@ program PDACTest_DUnitX;
 uses
   System.StartUpCopy,
   FMX.Forms,
-  MainF in 'MainF.pas' {MainForm},
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
   PSQLQueryTest in 'PSQLQueryTest.pas',
   PSQLBatchTest in 'PSQLBatchTest.pas',
@@ -18,13 +17,27 @@ uses
   PSQLCopyTest in 'PSQLCopyTest.pas',
   PSQLErrorsTest in 'PSQLErrorsTest.pas',
   PSQLTypesTest in 'PSQLTypesTest.pas',
-  TestXHelper in 'TestXHelper.pas';
+  TestXHelper in 'TestXHelper.pas',
+  {$IFDEF MOBILE}
+    DUNitX.Loggers.MobileGUI
+  {$ELSE}
+    DUNitX.Loggers.GUIX
+  {$ENDIF};
+
+type
+  TPSQLRunner = {$IFDEF MOBILE}TMobileGUITestRunner{$ELSE}TGUIXTestRunner{$ENDIF};
 
 {$R *.res}
 
 begin
 //  ReportMemoryLeaksOnShutdown := True;
   Application.Initialize;
-  Application.CreateForm(TMainForm, MainForm);
+  TestDBSetup := TTestDBSetup.Create;
+  TestDBSetup.SetUp();
+  with TPSQLRunner.Create(Application) do
+  begin
+    Position := TFormPosition.ScreenCenter;
+    Show;
+  end;
   Application.Run;
 end.

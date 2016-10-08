@@ -15,9 +15,9 @@ unit PSQLCopyTest;
 interface
 
 uses
-  PSQLAccess, Classes, PSQLCopy, PSQLDbTables, PSQLTypes, SysUtils,
+  PSQLAccess, Classes, PSQLCopy, PSQLDbTables, PSQLTypes, SysUtils, IOUtils,
   {$IFNDEF DUNITX}
-  TestFramework, TestExtensions
+  TestFramework, TestExtensions, TestHelper
   {$ELSE}
   DUnitX.TestFramework, Types, TestXHelper
   {$ENDIF};
@@ -60,13 +60,6 @@ type
   end;
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF, IOUtils
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 var
   FPSQLCopy: TPSQLCopy;

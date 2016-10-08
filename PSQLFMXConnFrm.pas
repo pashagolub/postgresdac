@@ -25,14 +25,12 @@ type
     DBLogin: TCheckBox;
     OKBtn: TButton;
     CancelBtn: TButton;
-    procedure OKBtnClick(Sender: TObject);
   private
     FDatabase: TPSQLDatabase;
     function Edit: Boolean;
   public
     procedure GetDatabaseProperty(Db: TPSQLDatabase);
     procedure SetDatabaseProperty(Db: TPSQLDatabase);
-    property Database: TPSQLDatabase read FDatabase write FDatabase;
   end;
 
 function EditDatabase(ADatabase: TPSQLDatabase): Boolean;
@@ -74,18 +72,6 @@ begin
   DBHost.Text := Db.Host;
   DBPort.Text := IntToStr(Db.Port);
   DBLogin.IsChecked := db.LoginPrompt;
-end;
-
-procedure TPSQLConnForm.OKBtnClick(Sender: TObject);
-begin
-try
-  SetDatabaseProperty(Database);
-  Database.Connected := True;
-  ModalResult := mrOk;
-except
-  on e: Exception do
-    ShowMessage('We have error while connect: ' + #13#10 + e.Message);
-end;
 end;
 
 procedure TPSQLConnForm.SetDatabaseProperty(Db: TPSQLDatabase);

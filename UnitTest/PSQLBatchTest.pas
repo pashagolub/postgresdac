@@ -19,7 +19,7 @@ interface
 uses
   PSQLTypes, Classes, PSQLDbTables, SysUtils, PSQLBatch
   {$IFNDEF DUNITX}
-    ,TestFramework, TestExtensions
+    ,TestFramework, TestExtensions, TestHelper
   {$ELSE}
     ,DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -49,13 +49,6 @@ type
   end;
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 procedure InternalSetUp;
 begin

@@ -14,9 +14,9 @@ interface
 
 uses
   PSQLFields, PSQLGeomTypes, PSQLAccess, PSQLDbTables, PSQLTypes, Db,
-  Classes, SysUtils, Data.FmtBcd,
+  Classes, SysUtils, Data.FmtBcd, System.Math,
   {$IFNDEF DUNITX}
-  TestFramework, TestExtensions
+  TestFramework, TestExtensions, TestHelper
   {$ELSE}
   DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -125,13 +125,6 @@ type
   end;
 
 implementation
-
-uses System.Math,
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 {$IFDEF DELPHI_5}
 function CoCreateGuid(out guid: TGUID): HResult; stdcall; external 'ole32.dll' name 'CoCreateGuid';

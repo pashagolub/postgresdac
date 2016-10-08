@@ -17,7 +17,7 @@ interface
 
 uses PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Classes,
   {$IFNDEF DUNITX}
-  TestFramework, {$IFNDEF DELPHI_5}Variants,{$ENDIF} TestExtensions
+  TestFramework, {$IFNDEF DELPHI_5}Variants,{$ENDIF} TestExtensions, TestHelper
   {$ELSE}
   DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -54,13 +54,6 @@ type
   end;
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 procedure TestTPSQLDatabase.HookUp;
 begin

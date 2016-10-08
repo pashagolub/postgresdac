@@ -17,7 +17,7 @@ interface
 uses
   Classes, PSQLNotify, PSQLTypes, PSQLAccess, PSQLDbTables,
   {$IFNDEF DUNITX}
-  TestFramework, TestExtensions
+  TestFramework, TestExtensions, TestHelper
   {$ELSE}
   DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -65,13 +65,6 @@ var
   MsgReceived, MsgReceivedEx: boolean;
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 procedure TestTPSQLNotify.InternalSetUp;
 begin

@@ -17,7 +17,7 @@ interface
 uses
   PSQLTypes, Classes, SysUtils, PSQLDbTables,
   {$IFNDEF DUNITX}
-  TestFramework, TestExtensions
+  TestFramework, TestExtensions, TestHelper
   {$ELSE}
   DUnitX.TestFramework, ioUtils, TestXHelper
   {$ENDIF};
@@ -41,13 +41,6 @@ var
   ErrorsFileName: string;
 
 implementation
-
-uses
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
 procedure InternalSetUp;
 begin

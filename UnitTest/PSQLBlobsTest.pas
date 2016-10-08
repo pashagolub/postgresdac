@@ -15,9 +15,9 @@ unit PSQLBlobsTest;
 interface
 
 uses
-  PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Db, Classes, Types,
+  PSQLAccess, PSQLDbTables, PSQLTypes, SysUtils, Db, Classes, Types, IOUtils,
   {$IFNDEF DUNITX}
-  TestFramework, TestExtensions, Winapi.Windows
+  TestFramework, TestExtensions, Winapi.Windows, TestHelper
   {$ELSE}
   DUnitX.TestFramework, TestXHelper
   {$ENDIF};
@@ -60,13 +60,6 @@ type
   end;
 
 implementation
-
-uses IOUtils,
-  {$IFDEF DUNITX}
-    MainF
-  {$ELSE}
-    TestHelper
-  {$ENDIF};
 
   {$IFNDEF DUNITX}
   function FileSize(const aFilename: String): Int64;
