@@ -2,13 +2,8 @@ unit TestHelper;
 interface
 
 uses Classes, SysUtils, PSQLDbTables, PSQLTypes,
-  {$IFNDEF DUNITX}
-  Forms, PSQLConnFrm, Controls, TestFramework, TestExtensions
-  {$ELSE}
-  DUnitX.TestFramework
-  {$ENDIF};
+  Forms, PSQLConnFrm, Controls, TestFramework, TestExtensions;
 
-{$IFNDEF DUNITX}
 type
 
   //Setup decorator
@@ -35,24 +30,12 @@ type
     procedure TestDBSetupTest;
   end;
 
-  TDACTestCase = class helper for TTestCase
-  public
-    procedure Check(Condition: Boolean; Msg: String);
-    procedure DACIsTrue(Condition: Boolean);
-  end;
-
 var
   TestDBSetup: TTestDBSetup;
-{$ENDIF}
 
 procedure ComponentToFile(Component: TComponent; Name: string);
 procedure FileToComponent(Name: string; Component: TComponent);
 procedure SetUpTestDatabase(var DB: TPSQLDatabase; ConfFileName: string);
-{$IFDEF DUNITX}
-procedure DACIsTrue(Condition: Boolean);
-procedure Check(Condition: Boolean; Msg: String);
-{$ENDIF}
-
 
 implementation
 
@@ -277,24 +260,6 @@ begin
   finally
     StrStream.Free;
   end;
-end;
-
-procedure {$IFNDEF DUNITX}TDACTestCase.{$ENDIF}DACIsTrue(Condition: Boolean);
-begin
-  {$IFNDEF DUNITX}
-  Check(Condition);
-  {$ELSE}
-  Assert.IsTrue(Condition);
-  {$ENDIF}
-end;
-
-procedure {$IFNDEF DUNITX}TDACTestCase.{$ENDIF}Check(Condition: Boolean; Msg: String);
-begin
-  {$IFNDEF DUNITX}
-  Check(Condition, Msg);
-  {$ELSE}
-  Assert.IsTrue(Condition, Msg);
-  {$ENDIF}
 end;
 
 function DBSuite: ITestSuite;

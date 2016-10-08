@@ -30,11 +30,11 @@ uses
   GUITestRunner,
   TextTestRunner,
   TestExtensions,
+  TestHelper in 'TestHelper.pas',
   PSQLDatabaseTest in 'PSQLDatabaseTest.pas',
   PSQLQueryTest in 'PSQLQueryTest.pas',
   PSQLBatchTest in 'PSQLBatchTest.pas',
   PSQLTableTest in 'PSQLTableTest.pas',
-  TestHelper in 'TestHelper.pas',
   PSQLFieldsTest in 'PSQLFieldsTest.pas',
   PSQLToolsTest in 'PSQLToolsTest.pas',
   PSQLBlobsTest in 'PSQLBlobsTest.pas',
@@ -44,7 +44,7 @@ uses
   PSQLErrorsTest in 'PSQLErrorsTest.pas',
   PSQLTypesTest in 'PSQLTypesTest.pas';
 
-{$R *.RES}
+{$R PDACTest_Berlin.RES}
 
 begin
   ReportMemoryLeaksOnShutdown := True;
