@@ -30,9 +30,8 @@ var
 implementation
 
 {$R *.fmx}
-{$R *.LgXhdpiPh.fmx ANDROID}
 {$R *.SmXhdpiPh.fmx ANDROID}
-{$R *.NmXhdpiPh.fmx ANDROID}
+
 
 procedure TForm1.ConnectClick(Sender: TObject);
 begin

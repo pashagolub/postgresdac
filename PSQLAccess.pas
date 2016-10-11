@@ -2087,7 +2087,7 @@ begin
       if AConnection.IsUnicodeUsed then
         S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AParams[i].AsString))
       else
-        S := AnsiString(AParams[i].AsString);
+        S := DACAString(AParams[i].AsString);
       GetMem(paramValues[i], Length(S) + 1);
       {$IFNDEF NEXTGEN}
       DACStrCopy(paramValues[i], PAnsiChar(S));
@@ -6114,8 +6114,8 @@ var
   begin
     if PAnsiDACChar(buff)^ = #0 then
       begin
-        PAnsiChar(buff)^ := #1;
-        Inc(PAnsiChar(buff));
+        PAnsiDACChar(buff)^ := #1;
+        Inc(PAnsiDACChar(buff));
         TBlobItem(buff^).Blob := TMemoryStream.Create;
       end
     else

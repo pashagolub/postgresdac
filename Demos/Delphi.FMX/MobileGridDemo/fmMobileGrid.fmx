@@ -44,7 +44,7 @@ object Form1: TForm1
       'user=pasha'
       'password=farata'
       'hostaddr=192.168.1.3'
-      'port=5437'
+      'port=5432'
       'sslmode=prefer')
     Left = 24
     Top = 24
