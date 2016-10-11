@@ -177,6 +177,7 @@ type
     FOnLibraryLoad: TLibraryLoadEvent;
     FTableNames: TStrings;
     FSections: TDumpRestoreSections;
+    FSchemaNames: TStrings;
     procedure SetDatabase(const Value : TPSQLDatabase);
     function GetStrOptions(const Index: Integer): string;
     procedure SetStrOptions(const Index: Integer; const Value: string);
@@ -187,7 +188,9 @@ type
     procedure SetRestoreOptions(const Value: TRestoreOptions);
     function GetVersionAsStr: string;
     procedure SetTableNames(const Value: TStrings);
-    procedure ReadTableName(Reader: TReader); //deal with old missing properties
+    procedure ReadTableName(Reader: TReader);
+    procedure ReadSchemaName(Reader: TReader);
+    procedure SetSchemaNames(const Value: TStrings);
   protected
     procedure CheckDependencies;
     procedure DefineProperties(Filer: TFiler); override;
@@ -215,7 +218,7 @@ type
     property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
     property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
     property TableNames: TStrings read FTableNames write SetTableNames;
-    property SchemaName: string  index rsoSchemaName read GetStrOptions write SetStrOptions;
+    property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;  //index rsoSchemaName read GetStrOptions write SetStrOptions;
     property Sections: TDumpRestoreSections read FSections write FSections;
     property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
     property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
@@ -995,6 +998,7 @@ begin
   FmiParams := TpdmvmParams.Create;
   FRestoreFormat := rfAuto;
   FTableNames := TStringList.Create;
+  FSchemaNames := TStringList.Create;
   {$IFNDEF NEXTGEN}
   ZeroMemory(@FRestoreStrOptions, SizeOf(FRestoreStrOptions));
   {$ELSE}
@@ -1013,12 +1017,14 @@ procedure TPSQLRestore.DefineProperties(Filer: TFiler);
 begin
   inherited;
   Filer.DefineProperty('TableName', ReadTableName, nil, False);
+  Filer.DefineProperty('SchemaName', ReadSchemaName, nil, False);
 end;
 
 destructor TPSQLRestore.Destroy;
 begin
   FmiParams.Free;
   FTableNames.Free;
+  FSchemaNames.Free;
   inherited;
 end;
 
@@ -1076,7 +1082,10 @@ begin
   if FRestoreFormat <> rfAuto then
     FmiParams.Add(RestoreCommandLineFormatValues[FRestoreFormat]);
 
-  for K := 0 to FTableNames.Count-1 do
+  for k := 0 to FSchemaNames.Count-1 do
+    FmiParams.Add(RestoreCommandLineStrParameters[rsoSchemaName] + FSchemaNames[k]);
+
+  for k := 0 to FTableNames.Count-1 do
    FmiParams.Add(RestoreCommandLineStrParameters[rsoTable] + FTableNames[k]);
 
   if FJobs > 1 then
@@ -1117,6 +1126,11 @@ procedure TPSQLRestore.SetDatabase(const Value : TPSQLDatabase);
 begin
    if Value <> FDatabase then
       FDatabase := Value;
+end;
+
+procedure TPSQLRestore.SetSchemaNames(const Value: TStrings);
+begin
+  FSchemaNames.Assign(Value);
 end;
 
 procedure TPSQLRestore.SetStrOptions(const Index: Integer;
@@ -1165,6 +1179,13 @@ begin
       CheckDB.Free;
     end;
    end;
+end;
+
+procedure TPSQLRestore.ReadSchemaName(Reader: TReader);
+var S: string;
+begin
+  S := Reader.ReadString;
+  if S > '' then FSchemaNames.Append(S);
 end;
 
 procedure TPSQLRestore.ReadTableName(Reader: TReader);
