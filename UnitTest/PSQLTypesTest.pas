@@ -6,11 +6,11 @@ unit PSQLTypesTest;
 interface
 
 uses
-  Classes, SysUtils, PSQLTypes, TestXHelper
+  Classes, SysUtils, PSQLTypes
   {$IFNDEF DUNITX}
   , TestFramework, Math, Windows
   {$ELSE}
-  , DUnitX.TestFramework, Types
+  , DUnitX.TestFramework, Types, TestXHelper
   {$ENDIF};
 
 type
