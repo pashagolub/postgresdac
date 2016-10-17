@@ -219,10 +219,9 @@ begin
 end;
 
 procedure TestTCustomPSQLCopy.TestLoadFromServerSideFile;
-var
-  FileName: string;
+//var
+//  FileName: string;
 begin
-
   // TODO: Setup method call parameters
   // FPSQLCopy.LoadFromServerSideFile(FileName);
   // TODO: Validate method results

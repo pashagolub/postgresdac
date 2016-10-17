@@ -1,4 +1,4 @@
-object PSQLConnForm: TPSQLConnForm
+object PSQLFmxConnForm: TPSQLFmxConnForm
   Left = 0
   Top = 0
   Caption = 'TPSQLDatabase Editor...'

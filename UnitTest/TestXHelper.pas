@@ -32,7 +32,7 @@ implementation
 
 procedure SetUpTestDatabase(DB: TPSQLDatabase; ConfFileName: string);
 var
-  Frm: TPSQLConnForm;
+  Frm: TPSQLFmxConnForm;
 begin
   if FileExists(ConfFileName) then
   try
@@ -41,7 +41,7 @@ begin
   except
     on E: EPSQLDatabaseError do //nothing, failed connection
   end;
-  Frm := TPSQLConnForm.Create(nil);
+  Frm := TPSQLFmxConnForm.Create(nil);
   try
     with Frm do
      begin

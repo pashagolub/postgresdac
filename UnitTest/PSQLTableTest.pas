@@ -150,9 +150,6 @@ begin
 end;
 
 procedure TestTPSQLTable.TestFindKey;
-var
-  ReturnValue: Boolean;
-  KeyValues: array of TVarRec;
 begin
   FPSQLTable.TableName := 'testtable';
   FPSQLTable.Open;

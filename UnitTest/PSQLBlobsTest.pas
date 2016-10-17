@@ -29,7 +29,6 @@ type
   private
     {$IFDEF DUNITX}
     FRSTestBmp: TResourceStream;
-    FCharSet: string;
     {$ENDIF}
     FPSQLQuery: TPSQLQuery;
     FPSQLUpdate: TPSQLUpdateSQL;
