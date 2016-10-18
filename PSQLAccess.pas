@@ -865,6 +865,10 @@ var SessionStart: cardinal;
 function ifThen(aCondition: boolean; IfTrue:string; IfFalse: string = ''): string;
 {$ENDIF}
 
+{$IFNDEF DELPHI_15}
+function BcdToStr(const Bcd: TBcd; Format: TFormatSettings): string;
+{$ENDIF}
+
 {$IFDEF UNDER_DELPHI_6}
 function StrToFloat(const S: string;
   const FormatSettings: TFormatSettings): Extended;
@@ -1961,6 +1965,63 @@ begin
   AppendLevel := 0;
   if Format <> '' then AppendFormat(Pointer(Format)) else AppendFormat('C');
   SetString(Result, Buffer, BufPos);
+end;
+{$ENDIF}
+
+{$IFNDEF DELPHI_15}
+function BcdToStr(const Bcd: TBcd; Format: TFormatSettings): string;
+var
+  Buf: array [0..66] of Char; //64 Nibbles + 1 sign + 1 decimal + #0
+  PBuf: PChar;
+  DecimalPos: Byte;
+  I: Integer;
+begin
+  if Bcd.Precision = 0 then
+    Exit('0');
+  if (Bcd.Precision > MaxFMTBcdFractionSize) or
+     ((Bcd.SignSpecialPlaces and $3F) > Bcd.Precision) then
+    OverflowError(SBcdOverflow);
+  PBuf := @Buf[1];
+  DecimalPos := Bcd.Precision - Bcd.SignSpecialPlaces and $3F;
+  for I := 0 to Bcd.Precision - 1 do
+  begin
+    if I = DecimalPos then
+    begin
+      if I = 0 then
+        PutChar(PBuf, '0');
+      PutChar(PBuf, Format.DecimalSeparator);
+    end;
+    if (I and 1) = 0 then
+      PutChar(PBuf, Char( ((Bcd.Fraction[I div 2] and $F0) SHR 4) + ord('0')) )
+    else
+      PutChar(PBuf, Char( ((Bcd.Fraction[I div 2] and $0F)) + ord('0')) );
+  end;
+  // Remove trailing 0s after decmial
+  Dec(PBuf);
+  I := Bcd.Precision;
+  while (I > DecimalPos) and (PBuf^ = '0') do
+  begin
+    Dec(PBuf);
+    Dec(I);
+  end;
+  if PBuf^ = Format.DecimalSeparator then
+    PBuf^ := #0
+  else
+    PBuf[1] := #0;
+  PBuf := @Buf[1];
+  // Remove leading 0s before decimal
+  while PBuf^ = '0' do
+    Inc(PBuf);
+  if (PBuf^ = #0) or (PBuf^ = Format.DecimalSeparator) then
+    Dec(PBuf);
+
+  if ((Bcd.SignSpecialPlaces and $80) = $80) and
+    not ((PBuf^ = '0') and (PBuf[1] = #0)) then // only add - if not 0
+  begin
+    Dec(PBuf);
+    PBuf^ := '-';
+  end;
+  Result := PChar(PBuf);
 end;
 {$ENDIF}
 
