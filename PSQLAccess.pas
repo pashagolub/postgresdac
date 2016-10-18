@@ -866,8 +866,10 @@ function ifThen(aCondition: boolean; IfTrue:string; IfFalse: string = ''): strin
 {$ENDIF}
 
 {$IFNDEF DELPHI_15}
+{$IFDEF DELPHI_12}
 function BcdToStr(const Bcd: TBcd; Format: TFormatSettings): string;
 function StrToBcd(const AValue: string; Format: TFormatSettings): TBcd;
+{$ENDIF}
 {$ENDIF}
 
 {$IFDEF UNDER_DELPHI_6}
@@ -1970,6 +1972,7 @@ end;
 {$ENDIF}
 
 {$IFNDEF DELPHI_15}
+{$IFDEF DELPHI_12}
 function TryStrToBcd(const AValue: string; var Bcd: TBcd; Format: TFormatSettings): Boolean;
 
   function IsSpaceChar(theChar: Char): Boolean;
@@ -2185,6 +2188,7 @@ begin
   end;
   Result := PChar(PBuf);
 end;
+{$ENDIF}
 {$ENDIF}
 
 function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
