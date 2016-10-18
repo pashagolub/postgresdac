@@ -686,7 +686,7 @@ type
     function  GetUpdateRecordSet: TUpdateRecordTypes;
     {$ENDIF}
     function  InitKeyBuffer(Buffer: PKeyBuffer): PKeyBuffer;
-    procedure InternalAddRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Append: Boolean); override;
+    procedure InternalAddRecord(Buffer: {$IFNDEF NEXTGEN}Pointer{$ELSE}TRecBuf{$ENDIF}; Append: Boolean); override;
     procedure InternalCancel; override;
     procedure InternalClose; override;
     procedure InternalDelete; override;
@@ -3368,7 +3368,7 @@ end;
 procedure TPSQLDataSet.InternalEdit;
 begin
   FOldBuffer := {$IFNDEF NEXTGEN}AllocRecordBuffer{$ELSE}AllocRecBuf{$ENDIF};
-  Move(Pointer(ActiveBuffer)^, PByte(FOldBuffer)[0], FRecBufSize);
+  Move(Pointer(ActiveBuffer)^, {$IFDEF NEXTGEN}PByte{$ENDIF}(FOldBuffer)[0], FRecBufSize);
   Check(Engine, Engine.GetRecord(FHandle, dbiWriteLock, Pointer(ActiveBuffer), nil));
   ClearBlobCache({$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}(ActiveBuffer));
 end;
@@ -3464,7 +3464,7 @@ begin
     {$ENDIF}
 end;
 
-procedure TPSQLDataSet.InternalAddRecord(Buffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF}; Append: Boolean);
+procedure TPSQLDataSet.InternalAddRecord(Buffer: {$IFNDEF NEXTGEN}Pointer{$ELSE}TRecBuf{$ENDIF}; Append: Boolean);
 begin
   if Append then
     Check(Engine, Engine.AppendRecord(FHandle, Pointer(Buffer)))  else

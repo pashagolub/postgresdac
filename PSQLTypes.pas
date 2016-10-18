@@ -136,7 +136,9 @@ type
   DACAString = {$IFDEF MOBILE}String{$ELSE}AnsiString{$ENDIF};
   DACABytesString = {$IFDEF MOBILE}TBytes{$ELSE}AnsiString{$ENDIF};
   AnsiDACByteChar = {$IFDEF MOBILE}Byte{$ELSE}AnsiChar{$ENDIF};
+{$IFDEF NEXTGEN}
   DACPointerInt = NativeInt;
+{$ENDIF}
 
 {$IFNDEF DELPHI_12}
   type
@@ -3020,16 +3022,21 @@ begin
                          BdeType := fldZSTRING;
                          LogSize := TIMESTAMPTZLEN + 1;
                       end;
+{$IFDEF UNDER_DELPHI_12}
+    FIELD_TYPE_NUMERIC,
+{$ENDIF}    
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_FLOAT8:
                       begin
                          BdeType := fldFLOAT;
                          LogSize := Sizeof(Double);
                       end;
+{$IFDEF DELPHI_12}
     FIELD_TYPE_NUMERIC: begin
                          BdeType := fldFMTBCD;
                          LogSize := Sizeof(TBcd);
                       end;
+{$ENDIF}
     FIELD_TYPE_MONEY: begin
                          BdeType := fldZSTRING;
                          //BdeSubType := fldstMONEY;

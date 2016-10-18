@@ -3243,7 +3243,9 @@ begin
      fldINT32:   Result := IntToStr(LongInt(Src^));
      fldINT64:   Result := IntToStr(Int64(Src^));
      fldFloat:   Result := SQLFloatToStr(Double(Src^));
+{$IFDEF DELPHI_12}
      fldFMTBCD:  Result := BcdToStr(TBcd(Src^), PSQL_FS);
+{$ENDIF}
      fldZSTRING:
                  case NativeType of
                    FIELD_TYPE_BIT,
@@ -5213,10 +5215,13 @@ begin
              FIELD_TYPE_DATE:      TDateTime(Data^) := SQLDateToDateTime(FldValue, False);
              FIELD_TYPE_TIME:      TDateTime(Data^) := SQLDateToDateTime(FldValue, True);
              FIELD_TYPE_TIMESTAMP: TDateTime(Data^) := SQLTimeStampToDateTime(FldValue);
+{$IFDEF UNDER_DELPHI_12}
+             FIELD_TYPE_NUMERIC,
+{$ENDIF}
              FIELD_TYPE_FLOAT4,
              FIELD_TYPE_FLOAT8:    Double(Data^) := StrToSQLFloat(FldValue);
-             FIELD_TYPE_NUMERIC:   TBcd(Data^) := StrToBcd(FldValue, PSQL_FS);
 {$IFDEF DELPHI_12}
+             FIELD_TYPE_NUMERIC:   TBcd(Data^) := StrToBcd(FldValue, PSQL_FS);
              FIELD_TYPE_POINT:     TPSQLPoint(Data^) := SQLPointToPoint(FldValue);
              FIELD_TYPE_CIRCLE:    TPSQLCircle(Data^) := SQLCircleToCircle(FldValue);
              FIELD_TYPE_BOX:       TPSQLBox(Data^) := SQLBoxToBox(FldValue);
@@ -9261,6 +9266,9 @@ var aRecNum: integer;
              {$ELSE}
               Result := StrToInt64Def(S, 0);
              {$ENDIF}
+{$IFDEF UNDER_DELPHI_12}
+          FIELD_TYPE_NUMERIC,
+{$ENDIF}
           FIELD_TYPE_FLOAT4,
           FIELD_TYPE_FLOAT8:
                            try
@@ -9270,8 +9278,10 @@ var aRecNum: integer;
                             on E: EConvertError do
                              Result := 0.0;
                            end;
+{$IFDEF DELPHI_12}
           FIELD_TYPE_NUMERIC:
                            Result := VarFMTBcdCreate(S, High(Word), High(Word));
+{$ENDIF}
           
 FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
 
@@ -9341,7 +9351,9 @@ FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
              FIELD_TYPE_INT4,
              FIELD_TYPE_INT8: Result := StrToInt64Def(FVal1, 0) -
                                         StrToInt64Def(FVal2, 0);
-
+{$IFDEF UNDER_DELPHI_12}
+             FIELD_TYPE_NUMERIC,
+{$ENDIF}
              FIELD_TYPE_FLOAT4,
              FIELD_TYPE_FLOAT8:
                               try
@@ -9352,9 +9364,9 @@ FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
                                on E: EConvertError do
                                 Result := 0;
                               end;
-
+{$IFDEF DELPHI_12}
              FIELD_TYPE_NUMERIC: Result := BcdCompare(StrToBcd(FVal1), StrToBcd(FVal2));
-
+{$ENDIF}
              FIELD_TYPE_BOOL: Result :=  ord(FVal1[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]) -
                                          ord(FVal2[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]);
 
