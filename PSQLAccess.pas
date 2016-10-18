@@ -1986,7 +1986,7 @@ var
   Pos: Byte;
 begin
   FillChar(Bcd, SizeOf(Bcd), #0);
-  PStr := @AValue[Low(AValue)];
+  PStr := PChar(AValue);
   while IsSpaceChar(PStr^) do
     Inc(PStr);
   Negative := PStr^ = '-';
@@ -2109,10 +2109,26 @@ begin
   Result := True;
 end;
 
+procedure BcdErrorFmt(const Message, BcdAsString: string);
+begin
+  raise EBcdException.CreateFmt(Message, [BcdAsString]);
+end;
+
+procedure OverflowError(const Message: string);
+begin
+  raise EBcdOverflowException.Create(Message);
+end;
+
 function StrToBcd(const AValue: string; Format: TFormatSettings): TBcd;
 begin
   if not TryStrToBcd(AValue, Result, Format) then
     BcdErrorFmt(SInvalidBcdValue, AValue);
+end;
+
+procedure PutChar(var Buf: PChar; C: Char);
+begin
+   Buf^ := C;
+  Inc(Buf);
 end;
 
 function BcdToStr(const Bcd: TBcd; Format: TFormatSettings): string;
@@ -9572,7 +9588,7 @@ FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
                                 Result := 0;
                               end;
 {$IFDEF DELPHI_12}
-             FIELD_TYPE_NUMERIC: Result := BcdCompare(StrToBcd(FVal1), StrToBcd(FVal2));
+             FIELD_TYPE_NUMERIC: Result := BcdCompare(StrToBcd(FVal1, PSQL_FS), StrToBcd(FVal2, PSQL_FS));
 {$ENDIF}
              FIELD_TYPE_BOOL: Result :=  ord(FVal1[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]) -
                                          ord(FVal2[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]);
