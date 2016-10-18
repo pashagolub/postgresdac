@@ -867,6 +867,7 @@ function ifThen(aCondition: boolean; IfTrue:string; IfFalse: string = ''): strin
 
 {$IFNDEF DELPHI_15}
 function BcdToStr(const Bcd: TBcd; Format: TFormatSettings): string;
+function StrToBcd(const AValue: string; Format: TFormatSettings): TBcd;
 {$ENDIF}
 
 {$IFDEF UNDER_DELPHI_6}
@@ -1969,6 +1970,151 @@ end;
 {$ENDIF}
 
 {$IFNDEF DELPHI_15}
+function TryStrToBcd(const AValue: string; var Bcd: TBcd; Format: TFormatSettings): Boolean;
+
+  function IsSpaceChar(theChar: Char): Boolean;
+  begin
+    Result := False;
+    if (theChar = ' ') or (theChar = #6) or (theChar = #10) or (theChar = #13) or (theChar = #14) then
+      Result := True;
+  end;
+
+var
+  Negative: Boolean;
+  PStr: PChar;
+  DecimalPos, Exp: Integer;
+  Pos: Byte;
+begin
+  FillChar(Bcd, SizeOf(Bcd), #0);
+  PStr := @AValue[Low(AValue)];
+  while IsSpaceChar(PStr^) do
+    Inc(PStr);
+  Negative := PStr^ = '-';
+  if (Pstr^ = '-') or (PStr^ = '+') then
+    Inc(PStr);
+  // Skip leading 0s;
+  while PStr^ = '0' do
+    Inc(PStr);
+
+  Pos := 0;
+  DecimalPos := -1;
+  while PStr^ <> #0 do
+  begin
+    if (PStr^ = Format.DecimalSeparator) then
+    begin
+      if DecimalPos <> -1 then Exit(False);
+      if Pos = 0 then
+        Inc(Pos);
+      DecimalPos := Pos;
+      Inc(PStr);
+      if (PStr^ = #0) then
+        Break;
+    end;
+    if IsSpaceChar(PStr^) or (PStr^ = 'E') or (PStr^ = 'e') then
+      Break;
+
+    if (PStr^ < '0') or (PStr^ > '9') then
+      Exit(False);
+
+    if (Pos = 64) and (DecimalPos = -1) then
+      Exit(False); // Too many digits
+    if Pos < 64 then
+    begin
+      if (Pos and 1) = 0 then
+        Bcd.Fraction[Pos div 2] := Byte(Ord(PStr^) - Ord('0')) * $10
+      else
+        Bcd.Fraction[Pos div 2] := (Bcd.Fraction[Pos div 2] and $F0) + Byte(Ord(PStr^) - Ord('0'));
+      Inc(Pos);
+    end;
+    Inc(PStr);
+  end;
+
+  // Scientific notation
+  if (PStr^ = 'E') or (PStr^ = 'e') then   // Most typical situation: X.XXEYYY. DecimalPos = 1
+  begin
+    if not TryStrToInt(PChar(@PStr[1]), Exp) then
+      Exit(False);
+    if DecimalPos < 0 then
+    begin
+      DecimalPos := Pos;
+      Inc(Pos);
+    end;
+    if Exp < 0 then
+    begin
+      begin
+        if DecimalPos < -Exp then
+        begin
+          bcd.Precision := Pos;
+          bcd.SignSpecialPlaces := Pos -1;
+          Exp := Pos - Exp;
+          Pos := Pos - DecimalPos;
+          if Exp > MaxFMTBcdFractionSize then
+          begin
+            dec(Pos,  Exp - MaxFMTBcdFractionSize);
+            DecimalPos := Exp - MaxFMTBcdFractionSize;
+            Exp := MaxFMTBcdFractionSize;
+          end;
+          if not NormalizeBcd(bcd, bcd, Exp, Pos) then
+            Exit(False);
+          Pos := Exp;
+        end
+        else
+          Inc(DecimalPos, Exp);
+
+      end;
+    end
+    else
+    begin
+      inc(DecimalPos, Exp);
+      if DecimalPos > Pos then
+      begin
+        Pos := DecimalPos;
+        DecimalPos := -1;
+      end;
+    end;
+
+  end else
+  begin
+    while IsSpaceChar(PStr^) do
+      Inc(PStr);
+    if PStr^ <> #0 then
+      Exit(False);
+  end;
+
+  if Pos = 0 then
+  begin
+    Bcd.Precision := 10;
+    Bcd.SignSpecialPlaces := 2;
+  end
+  else
+  begin
+    if Pos > 64 then
+      Exit(False);
+    Bcd.Precision := Pos;
+    if DecimalPos = -1 then
+      Bcd.SignSpecialPlaces := 0
+    else
+      Bcd.SignSpecialPlaces := Pos - DecimalPos;
+    // Because it's easier to shift bytes than nibbles,
+    // Always make it an even precision, add a 0 if needed
+    if (Pos and 1) = 1 then
+    begin
+      Inc(Bcd.Precision);
+      Inc(Bcd.SignSpecialPlaces);
+    end;
+
+    if Negative then
+      Bcd.SignSpecialPlaces := Bcd.SignSpecialPlaces or $80;
+  end;
+  Result := True;
+end;
+
+function StrToBcd(const AValue: string; Format: TFormatSettings): TBcd;
+begin
+  if not TryStrToBcd(AValue, Result, Format) then
+    BcdErrorFmt(SInvalidBcdValue, AValue);
+end;
+
 function BcdToStr(const Bcd: TBcd; Format: TFormatSettings): string;
 var
   Buf: array [0..66] of Char; //64 Nibbles + 1 sign + 1 decimal + #0
