@@ -55,6 +55,7 @@ type
     procedure TestSetRangeStart;
   published
     procedure TestFindKey;
+    procedure TestOpenEmptyTable;
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
@@ -198,6 +199,15 @@ procedure TestTPSQLTable.TestGotoNearest;
 begin
   FPSQLTable.GotoNearest;
   // TODO: Validate method results
+end;
+
+procedure TestTPSQLTable.TestOpenEmptyTable;
+begin
+  FPSQLTable.Database.Execute('CREATE TEMP TABLE empty_table( id int4, ss varchar, num numeric, dt timestamp)');
+  FPSQLTable.TableName := 'empty_table';
+  FPSQLTable.Open;
+  FPSQLTable.Last;
+  FPSQLTable.Refresh;
 end;
 
 procedure TestTPSQLTable.TestSetKey;
