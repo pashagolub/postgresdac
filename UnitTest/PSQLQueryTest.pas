@@ -58,6 +58,7 @@ type
     procedure TestDelete;
   //bookmarks
     procedure TestBookmarks;
+    procedure TestOpenEmptyDataset;
   //locate
     procedure TestLocateStr;
     procedure TestLocateInt;
@@ -482,6 +483,15 @@ begin
   a := Random(10) + 1; b := Random(10) + 1;
   Check(FPSQLQuery.Lookup('a;b', VarArrayOf([IntToStr(a), IntToStr(b)]), 'res') = a*b,
           'Multicolumn Lookup failed');
+end;
+
+procedure TestTPSQLQuery.TestOpenEmptyDataset;
+begin
+  FPSQLQuery.Database.Execute('CREATE TEMP TABLE empty_table( id int4, ss varchar, num numeric, dt timestamp)');
+  FPSQLQuery.SQL.Text := 'SELECT * FROM empty_table';
+  FPSQLQuery.Open;
+  FPSQLQuery.Last;
+  FPSQLQuery.Refresh;
 end;
 
 procedure TestTPSQLQuery.TestRefreshModifiedDelete;

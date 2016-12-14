@@ -4825,7 +4825,7 @@ begin
   FillChar(P^, BookMarkSize, 0 );
   {$ENDIF}
   with TPSQLBookMark(P^) do
-    Position:= RecordNumber+1;
+    Position := RecordNumber+1;
 end;
 
 procedure TNativeDataSet.GetVchkDesc(iValSeqNo: Word; var pvalDesc: VCHKDesc);
@@ -5532,11 +5532,8 @@ begin
   GetBookMark(@P);
   FReRead := TRUE;
   ReOpenTable;
-  if RecordCount = 0 then
-  begin
-     ReOpenTable;
-  end;
-  SetToBookmark(@P);
+  if RecordCount > 0 then
+    SetToBookmark(@P);
 end;
 
 procedure TNativeDataSet.CompareBookMarks( pBookMark1, pBookMark2 : Pointer; var CmpBkmkResult : CmpBkmkRslt );
