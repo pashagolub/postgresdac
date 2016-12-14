@@ -203,7 +203,7 @@ end;
 
 procedure TestTPSQLTable.TestOpenEmptyTable;
 begin
-  FPSQLTable.Database.Execute('CREATE TEMP TABLE empty_table( id int4, ss varchar, num numeric, dt timestamp)');
+  FPSQLTable.Database.Execute('CREATE TEMP TABLE IF NOT EXISTS empty_table( id int4, ss varchar, num numeric, dt timestamp)');
   FPSQLTable.TableName := 'empty_table';
   FPSQLTable.Open;
   FPSQLTable.Last;

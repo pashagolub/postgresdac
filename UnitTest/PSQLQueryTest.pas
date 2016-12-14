@@ -487,7 +487,7 @@ end;
 
 procedure TestTPSQLQuery.TestOpenEmptyDataset;
 begin
-  FPSQLQuery.Database.Execute('CREATE TEMP TABLE empty_table( id int4, ss varchar, num numeric, dt timestamp)');
+  FPSQLQuery.Database.Execute('CREATE TEMP TABLE IF NOT EXISTS empty_table( id int4, ss varchar, num numeric, dt timestamp)');
   FPSQLQuery.SQL.Text := 'SELECT * FROM empty_table';
   FPSQLQuery.Open;
   FPSQLQuery.Last;
