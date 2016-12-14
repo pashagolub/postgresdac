@@ -301,6 +301,7 @@ type
       function GetInTransaction: Boolean;
       function GetTransactionStatus: TTransactionStatusType;
       function GetServerVersionAsInt: integer;
+      function GetLibraryVersionAsInt: integer;
       procedure Login(LoginParams: TStrings);
       procedure ParamsChanging(Sender: TObject);
       procedure SetDatabaseFlags;
@@ -407,6 +408,7 @@ type
       property Notifies[Index: Integer]: TObject read GetNotifyItem;
       property NotifyCount: Integer read GetNotifyCount;
       property ServerVersionAsInt: integer read GetServerVersionAsInt;
+      property LibraryVersionAsInt: integer read GetLibraryVersionAsInt;
       property Temporary: Boolean read FTemporary write FTemporary;
       property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
       property UseSingleLineConnInfo: boolean read FUseSingleLineConnInfo write FUseSingleLineConnInfo;
@@ -2344,6 +2346,14 @@ begin
   Result := TNativeConnect(FHandle).IsUnicodeUsed
  else
   Result := False;
+end;
+
+function TPSQLDatabase.GetLibraryVersionAsInt: integer;
+begin
+  if IsLibraryLoaded() then
+    Result := PQLibVersion()
+  else
+    Result := InvalidOID;
 end;
 
 function TPSQLDatabase.GetDbOwner: string;

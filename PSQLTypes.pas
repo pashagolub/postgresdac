@@ -536,6 +536,7 @@ type
 //////////////////////////////////////////////////////////////////
 //              Plain API Function types definition             //
 //////////////////////////////////////////////////////////////////
+  TPQlibVersion    = function(): Integer; cdecl;
   TPQisthreadsafe  = function(): Integer; cdecl;
   TPQconnectdb     = function(ConnInfo: PAnsiDACChar): PPGconn; cdecl; //blocking manner
   TPQconnectStart  = function(ConnInfo: PAnsiDACChar): PPGconn; cdecl; //non-blocking manner
@@ -694,6 +695,7 @@ type
 //////////////////////////////////////////////////////////////////
 
 var
+  PQlibVersion:    TPQlibVersion;
   PQisthreadsafe:  TPQisthreadsafe;
   PQconnectdb:     TPQconnectdb;
   PQconnectdbParams: TPQconnectdbParams;
@@ -1923,6 +1925,7 @@ procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : inte
 procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
+function IsLibraryLoaded: boolean; inline;
 
 function IsValidIP(const S: string): boolean;
 
@@ -3186,6 +3189,7 @@ begin
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
+         @PQlibVersion   := GetPSQLProc('PQlibVersion');
          @PQisthreadsafe := GetPSQLProc('PQisthreadsafe');
          @PQconnectdb    := GetPSQLProc('PQconnectdb');
          @PQconnectdbParams := GetPSQLProc('PQconnectdbParams');
@@ -3290,19 +3294,24 @@ end;
 
 procedure UnloadPSQLLibrary;
 begin
-  if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
+  if IsLibraryLoaded() then
      FreeLibrary( SQLLibraryHandle );
   SQLLibraryHandle := HINSTANCE_ERROR;
 end;
 
 procedure CheckLibraryLoaded;
 begin
-  if SQLLibraryHandle <= HINSTANCE_ERROR then
+  if not IsLibraryLoaded() then
       {$IFDEF DELPHI_5}
       RaiseLastWin32Error;
       {$ELSE}
       RaiseLastOSError;
       {$ENDIF}
+end;
+
+function IsLibraryLoaded: boolean;
+begin
+  Result := SQLLibraryHandle > HINSTANCE_ERROR;
 end;
 
 function MaskSearch(const Str, Mask: string;

@@ -51,6 +51,7 @@ type
     procedure TestPingEx;
     procedure TestIsThreadSafe;
     procedure TestSSLConnect;
+    procedure TestLibraryVersion;
   end;
 
 implementation
@@ -362,6 +363,14 @@ end;
 procedure TestTPSQLDatabase.TestIsThreadSafe;
 begin
   Check(PSQLTypes.PQIsThreadSafe() = 1, 'Library loaded is thread unsafe');
+end;
+
+procedure TestTPSQLDatabase.TestLibraryVersion;
+var Ver: Integer;
+begin
+  Ver := TestDBSetup.Database.LibraryVersionAsInt;
+  Check(Ver > InvalidOID, 'LibraryVersionAsInt failed');
+  Status(Format('Library version: %d', [Ver]));
 end;
 
 procedure TestTPSQLDatabase.TestPing;
