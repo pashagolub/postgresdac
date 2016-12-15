@@ -1925,7 +1925,7 @@ procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : inte
 procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
-function IsLibraryLoaded: boolean; inline;
+function IsLibraryLoaded: boolean;
 
 function IsValidIP(const S: string): boolean;
 
