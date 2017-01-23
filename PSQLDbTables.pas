@@ -6663,7 +6663,7 @@ begin
     begin
       CheckInactive;
       //changed by pasha_golub 23.12.04
-      FTableName := QuoteIdentifier(Value);
+      FTableName := Value;
       FNativeTableName[0] := #0;
       DataEvent(dePropertyChange, 0);
     end;

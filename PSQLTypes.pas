@@ -222,7 +222,7 @@ var
                                 {$IFDEF MSWINDOWS}'libpq.dll'{$ENDIF}
                                 {$IFDEF MACOS}'libpq.dylib'{$ENDIF}
                                 {$IFDEF ANDROID or LINUX}'libpq.so'{$ENDIF}
-                                {$IFDEF LINUX}'libpq.so'{$ENDIF};
+                                {$IFDEF LINUX}'libpq.so.5'{$ENDIF};
 
 
 
@@ -3187,6 +3187,9 @@ begin
      {$ENDIF}
 
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
+      {$IFDEF M_DEBUG}
+       LogDebugMessage('LIB', 'Handle for module: ' + IntToStr(SQLLibraryHandle));
+      {$ENDIF}
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQlibVersion   := GetPSQLProc('PQlibVersion');
