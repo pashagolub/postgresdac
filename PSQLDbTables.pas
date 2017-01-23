@@ -1165,7 +1165,7 @@ type
     FBlobData: TBlobData;
     FCached: Boolean;
     FCacheSize: Longint;
-    function GetBlobSize: Longint;
+    function GetBlobSize: integer;
   public
     constructor Create(Field: TBlobField; Mode: TBlobStreamMode);
     destructor Destroy; override;
@@ -3292,7 +3292,7 @@ begin
       if ReadOnly and not (State in [dsSetKey, dsFilter]) then
         DatabaseErrorFmt(SFieldReadOnly, [DisplayName]);
     {$IFDEF DELPHI_17}
-      AValueBuffer := Buffer;
+      AValueBuffer := TValueBuffer(Buffer);
       Validate(AValueBuffer);
     {$ELSE}
       Validate(Buffer);
@@ -4998,7 +4998,6 @@ function TPSQLDataSet.PSExecuteStatement(const ASQL: string; AParams: TParams;
 var
   InProvider: Boolean;
 begin
-  Result := 0; //make compiler happy
   InProvider := SetDBFlag(dbfProvider, TRUE);
   try
     ResultSet := TPSQLQuery.Create(nil);
@@ -5970,29 +5969,12 @@ procedure TPSQLTable.DecodeIndexDesc(const IndexDesc: IDXDesc;
 var
   IndexOptions: TIndexOptions;
   I: Integer;
-  SSource, SName: string;
   FieldName: string;
   s : string;
 begin
   with IndexDesc do
   begin
-    //if szTagName[0] = #0 then
-    if szTagName = '' then
-    begin
-      SName := szName;
-      Source := '';
-    end
-    else
-    begin
-      SSource := szName;
-      SName := szTagName;
-      S := SSource;
-      //TNativeToAnsi(Engine, SSource, s);
-      Source := string(s);
-    end;
-
-    //TNativeToAnsi(Engine, SName, s);
-    S := SName;
+    S := szName;
     Name := ExtractFileName(string(s));
     Source := ExtractFileName(Source);
     IndexOptions := [];
@@ -6046,8 +6028,8 @@ begin
   FillChar(IndexDesc, SizeOf(IndexDesc), 0);
   with IndexDesc do
   begin
-    Move(Name[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
-    //szName      := Copy(Name, 1, length(Name));
+    //Move(Name[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], szName, Max(Length(Name), DBIMAXNAMELEN) * SizeOf(Char));
+    IndexDesc.szName      := Name;
     bPrimary    := ixPrimary in Options;
     bUnique     := ixUnique in Options;
     bDescending := (ixDescending in Options) and (DescFields = '');
@@ -6921,7 +6903,7 @@ end;
 function TPSQLBlobStream.Read(var Buffer; Count: Longint): Longint;
 var
   Status: DBIResult;
-//  P: Pointer;
+  Res: integer;
 begin
   Result := 0;
   //P := @Buffer;
@@ -6934,12 +6916,14 @@ begin
         Result := Count;
       if Result > 0 then
       begin
-        Move(PAnsiDACChar(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer, Result);
+        Move(PAnsiDACChar(FDataSet.GetBlobData(FField, FBuffer))[FPosition], Buffer, Res);
+        Result := Res; //compiler wants implicit type casting for NEXTGEN
         Inc(FPosition, Result);
       end;
     end else
     begin
-      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer, Result);
+      Status := Engine.GetBlob(FDataSet.Handle, FBuffer, FFieldNo, FPosition, Count, @Buffer, Res);
+      Result := Res; //compiler wants implicit type casting for NEXTGEN
       case Status of
         DBIERR_NONE, DBIERR_ENDOFBLOB:
           begin
@@ -7018,7 +7002,7 @@ begin
   end;
 end;
 
-function TPSQLBlobStream.GetBlobSize: Longint;
+function TPSQLBlobStream.GetBlobSize: integer;
 begin
   Result := 0;
   if FOpened then

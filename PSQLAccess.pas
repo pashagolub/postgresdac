@@ -226,8 +226,8 @@ type
       function CloseCursor(hCursor: hDBICur): DBIResult;
       function PutField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pSrc: Pointer): DBIResult;
       function OpenBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode): DBIResult;
-      function GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: Longint): DBIResult;
-      function GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: Longint): DBIResult;
+      function GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: integer): DBIResult;
+      function GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: integer): DBIResult;
       function PutBlob(hCursor : hDBICur; PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pSrc : Pointer): DBIResult;
       function TruncateBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iLen: Longint): DBIResult;
       function FreeBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word): DBIResult;
@@ -254,7 +254,7 @@ type
       function GetPriorRecord(hCursor: hDBICur;eLock:DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
       function GetRecord(hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
       function GetBookMark(hCur: hDBICur;pBookMark: Pointer): DBIResult;
-      function GetRecordCount(hCursor: hDBICur;Var iRecCount: Longint): DBIResult;
+      function GetRecordCount(hCursor: hDBICur;Var iRecCount: integer): DBIResult;
       function ForceReread(hCursor: hDBICur): DBIResult;
       function GetField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Boolean): DBIResult;
       function AddFilter(hCursor: hDBICur;iClientData: Longint;iPriority: Word;bCanAbort: Boolean;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter): DBIResult;
@@ -262,7 +262,7 @@ type
       function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
-      function QExecDirect(hDb: DAChDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
+      function QExecDirect(hDb: DAChDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : integer): DBIResult;
       function QAlloc(hDb: DAChDBIDb;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
       function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
@@ -708,7 +708,7 @@ type
       procedure GetVchkDesc(iValSeqNo: Word; var pvalDesc: VCHKDesc);
       procedure GetCursorProps(var curProps : CURProps);
       procedure GetFieldDescs(var pFDesc : TFLDDescList);
-      procedure GetRecordCount(var iRecCount : Longint); virtual;
+      procedure GetRecordCount(var iRecCount : integer); virtual;
       procedure GetNextRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps); Virtual;
       procedure SetToRecord(RecNo : LongInt);
       procedure SetToBookmark(P : Pointer); virtual;
@@ -802,7 +802,7 @@ end;
     function GetBufferSize : integer; Override;
     function GetWorkBufferSize : integer; Override;
     procedure SetToBookmark(P : Pointer); override;
-    procedure GetRecordCount(Var iRecCount : Longint); override;
+    procedure GetRecordCount(Var iRecCount : integer); override;
  end;
 
  TFieldList = Class(TNativeDataSet)
@@ -819,7 +819,7 @@ end;
     procedure GetFLDDesc(PRecord: pFLDDesc);
     function GetWorkBufferSize : integer; Override;
     procedure SetToBookmark(P : Pointer); override;
-    procedure GetRecordCount(Var iRecCount : Longint); override;
+    procedure GetRecordCount(Var iRecCount : integer); override;
  end;
 
   TNativePGNotify = class
@@ -2262,7 +2262,6 @@ begin
     {$ELSE}
     DACStrCopy(Q, M.AsAnsi(S).ToPointer);
     {$ENDIF}
-    Result := PQExec(AConnection.Handle, Q);
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
@@ -4262,7 +4261,7 @@ begin
   Result := PQntuples(FStatement);
 end;
 
-procedure TNativeDataSet.GetRecordCount( var iRecCount : Longint );
+procedure TNativeDataSet.GetRecordCount( var iRecCount : integer );
 var
   P      : Pointer;
   Buff   : Pointer;
@@ -7190,7 +7189,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetRecordCount(hCursor : hDBICur;Var iRecCount : Longint) : DBIResult;
+function TPSQLEngine.GetRecordCount(hCursor : hDBICur;Var iRecCount : integer) : DBIResult;
 begin
   try
     TNativeDataSet(hCursor).GetRecordCount(iRecCount);
@@ -7251,7 +7250,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: Longint): DBIResult;
+function TPSQLEngine.GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: integer): DBIResult;
 begin
   try
     TNativeDataSet(hCursor).GetBlobSize(PRecord, FieldNo, iSize);
@@ -7261,7 +7260,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: Longint): DBIResult;
+function TPSQLEngine.GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: integer): DBIResult;
 begin
   try
     TNativeDataSet(hCursor).GetBlob(PRecord, FieldNo, iOffset, iLen, pDest, iRead);
@@ -7551,7 +7550,7 @@ begin
   Result := rslt;
 end;
 
-function TPSQLEngine.QExecDirect(hDb : DAChDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
+function TPSQLEngine.QExecDirect(hDb : DAChDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : integer): DBIResult;
 begin
   try
     Database := hDb;
