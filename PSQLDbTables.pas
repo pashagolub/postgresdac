@@ -1374,9 +1374,11 @@ end;
 
 procedure TPSQLDatabase.RemoveDatabase(Value : TPSQLDatabase);
 begin
-   while DataSetCount <> 0  do
-      TPSQLDataSet(DataSets[DataSetCount - 1]).FDatabase := nil;
-   DBList.Remove(Value);
+  while DataSetCount <> 0  do
+    TPSQLDataSet(DataSets[DataSetCount - 1]).FDatabase := nil;
+
+  if Assigned(DBList) then
+    DBList.Remove(Value);
 
   while FDirectQueryList.Count > 0 do
     TPSQLDirectQuery(FDirectQueryList[FDirectQueryList.Count - 1]).Database := nil;
@@ -7652,6 +7654,7 @@ initialization
 finalization
 
   DBList.Free;
+  DBList := nil;
 
   if not IsLibrary then
     InitProc := SaveInitProc;
