@@ -6392,7 +6392,7 @@ begin
           end;
          ByName := True;
        end;
-      if (Token <> '') and (Token[Low(Token)] = '[') then
+      if (Token <> '') and (Token[START_STR_INDEX] = '[') then
       begin
          if Token[Length(Token)] = ']' then
             Token := Copy(Token, 2, Length(Token)-2)
@@ -6406,7 +6406,7 @@ begin
         Token[Low(Token)].IsInArray(['"','''']) then
         {$ENDIF}
       begin
-         if Token[Low(Token)] = Token[Length(Token)] then
+         if Token[START_STR_INDEX] = Token[Length(Token)] then
             Token := Copy(Token, 2, Length(Token)-2)
          else
             Token := Copy(Token, 2, Length(Token)-1);
@@ -8371,7 +8371,7 @@ var
 
           FIELD_TYPE_BOOL: begin
                             BoolChar := IfThen(S1 = '', 'F', 'T');
-                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[Low(S2)]));
+                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[START_STR_INDEX]));
                            end
 
           else
@@ -8664,7 +8664,7 @@ begin
           PDesc^.uFldType := BdeType;
           PDesc^.uSubType := BdeSubType;
           N := RawToString(PQgetvalue(RES,I,2));
-          case N[Low(N)] of
+          case N[START_STR_INDEX] of
            'o': PDesc^.eParamType := paramOUT;
            'b': PDesc^.eParamType := paramINOUT;
           else
@@ -9470,7 +9470,7 @@ var aRecNum: integer;
                            Result := VarFMTBcdCreate(S, High(Word), High(Word));
 {$ENDIF}
           
-FIELD_TYPE_BOOL: Result := S[Low(S)] = 't';
+FIELD_TYPE_BOOL: Result := S[START_STR_INDEX] = 't';
 
           FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                          {$IFDEF DELPHI_5}
@@ -9554,8 +9554,8 @@ FIELD_TYPE_BOOL: Result := S[Low(S)] = 't';
 {$IFDEF DELPHI_12}
              FIELD_TYPE_NUMERIC: Result := BcdCompare(StrToBcd(FVal1, PSQL_FS), StrToBcd(FVal2, PSQL_FS));
 {$ENDIF}
-             FIELD_TYPE_BOOL: Result :=  ord(FVal1[Low(FVal1)]) -
-                                         ord(FVal2[Low(FVal2)]);
+             FIELD_TYPE_BOOL: Result :=  ord(FVal1[START_STR_INDEX]) -
+                                         ord(FVal2[START_STR_INDEX]);
 
              FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                                Result := StrToIntDef(FVal1, InvalidOid) -

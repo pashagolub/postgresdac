@@ -140,6 +140,9 @@ type
   DACPointerInt = NativeInt;
 {$ENDIF}
 
+const
+  START_STR_INDEX = {$IFDEF ZEROBASEDSTRINGS}0{$ELSE}1{$ENDIF};
+
 {$IFNDEF DELPHI_12}
   type
     NativeUInt = cardinal;

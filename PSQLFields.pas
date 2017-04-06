@@ -18,8 +18,8 @@ type
   TPSQLGuidField = class(TGuidField)
   protected
     class procedure CheckTypeSize(Value: Integer); override;
-    function GetAsGuid(): TGUID;
-    procedure SetAsGuid(const Value: TGUID);
+    function GetAsGuid(): TGUID; reintroduce;
+    procedure SetAsGuid(const Value: TGUID); reintroduce;
   public
     property AsGuid: TGUID read GetAsGuid write SetAsGuid;
   end;
