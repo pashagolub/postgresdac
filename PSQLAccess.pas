@@ -4775,6 +4775,7 @@ begin
   FStatement := nil;
   FOpen := False;
   SetLength(FFieldMinSizes,0);
+  Finalize(FKeyDesc);
   FFieldTypType := '';
 end;
 
@@ -6510,6 +6511,7 @@ end;
 procedure TNativeDataSet.GetIndexDesc(iIndexSeqNo: Word; var idxDesc: IDXDesc);
 begin
   CheckParam(not(IndexCount > 0) ,DBIERR_NOASSOCINDEX);
+  Finalize(idxDesc);
   {$IFNDEF NEXTGEN}
   ZeroMemory(@idxDesc, Sizeof(idxDesc));
   {$ELSE}
