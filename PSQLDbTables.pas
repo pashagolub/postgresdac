@@ -2403,7 +2403,9 @@ begin
   FAutoRefresh := FALSE;
   FAllowSequenced := False; //Added by Nicolas Ring
 
+{$IFNDEF DELPHI_25}
   FOptions := [dsoUseGUIDField];
+{$ENDIF}
 
   {$IFDEF MOBILE}
   SetLength(FSetToRecBookm, SizeOf(TBookMark));
