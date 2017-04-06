@@ -6370,7 +6370,7 @@ begin
     {$IFNDEF NEXTGEN}
       CharInSet(SQLText[1], [' ',#9]) then Temp := Temp + ' ';
     {$ELSE}
-      SQLText[Low(SQLText)].IsInArray([' ',#9]) then Temp := Temp + ' ';
+      SQLText[START_STR_INDEX].IsInArray([' ',#9]) then Temp := Temp + ' ';
     {$ENDIF}
     GetToken(SQLText, Token);
     //Added: handle of ? params
@@ -6384,7 +6384,7 @@ begin
           {$IFNDEF NEXTGEN}
             CharInSet(Token[1], [':','=']) then //handling of double colon & assignment
           {$ELSE}
-            Token[Low(Token)].IsInArray([':','=']) then //handling of double colon & assignment
+            Token[START_STR_INDEX].IsInArray([':','=']) then //handling of double colon & assignment
           {$ENDIF}
           begin
            Temp := Temp + Token;
@@ -6403,7 +6403,7 @@ begin
         {$IFNDEF NEXTGEN}
         CharInSet(Token[1], ['"','''']) then
         {$ELSE}
-        Token[Low(Token)].IsInArray(['"','''']) then
+        Token[START_STR_INDEX].IsInArray(['"','''']) then
         {$ENDIF}
       begin
          if Token[START_STR_INDEX] = Token[Length(Token)] then
