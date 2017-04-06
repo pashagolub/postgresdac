@@ -34,7 +34,7 @@
 //---------------------------
 // Delphi/Builder versions
 //---------------------------
-//DELPHI 25 (RX10.2 Godzilla)
+//DELPHI 25 (RX10.2 Tokyo}
 {$IFDEF VER320}
   {$DEFINE FMX_AVAILABLE}
   {$DEFINE DELPHI_25}
