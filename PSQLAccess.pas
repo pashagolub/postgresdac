@@ -441,14 +441,12 @@ type
   TPSQLIndex = Class(TCollectionItem)
     private
       FDesc      : IDXDesc;
-      function GetIndexName: string;
-      procedure SetIndexName(const Value: string);
     Public
       constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
       property Description : IDXDesc Read FDesc Write FDesc;
     Published
       property IndexNumber : integer Read FDesc.iIndexID Write FDesc.iIndexID;
-      property IndexName   : string Read GetIndexName Write SetIndexName;
+      property IndexName   : string Read FDesc.szName Write FDesc.szName;
       property Primary     : WordBool Read FDesc.bPrimary Write FDesc.bPrimary;
       property Unique      : WordBool Read FDesc.bUnique Write FDesc.bUnique;
       property Descending  : WordBool Read FDesc.bDescending Write FDesc.bDescending;
@@ -10147,16 +10145,6 @@ end;
 procedure TFieldList.SetToBookmark(P: Pointer);
 begin
    SetToBegin;
-end;
-
-function TPSQLIndex.GetIndexName: string;
-begin
- Result := FDesc.szName;
-end;
-
-procedure TPSQLIndex.SetIndexName(const Value: string);
-begin
- Move(Value[Low(Value)], FDesc.szName, (Min(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
 end;
 
 function TPSQLEngine.GetFieldOrigin(hCursor: hDBICur;
