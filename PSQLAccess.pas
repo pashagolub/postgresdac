@@ -441,10 +441,10 @@ type
   TPSQLIndex = Class(TCollectionItem)
     private
       FDesc      : IDXDesc;
-    Public
+    public
       constructor CreateIndex(Owner : TCollection; P : pIDXDesc);
+      destructor Destroy; override;
       property Description : IDXDesc Read FDesc Write FDesc;
-    Published
       property IndexNumber : integer Read FDesc.iIndexID Write FDesc.iIndexID;
       property IndexName   : string Read FDesc.szName Write FDesc.szName;
       property Primary     : WordBool Read FDesc.bPrimary Write FDesc.bPrimary;
@@ -565,6 +565,7 @@ type
       FKeyNumber    : SmallInt;
       FIndexName    : string;
       FPrimaryKeyNumber: SmallInt;
+      FPreventRememberBuffer : boolean; //prevent record buffer storing while reading BLOB field data
       FGetKeyDesc   : Boolean;
       FKeyDesc      : IDXDesc;
       Ranges        : Boolean;
@@ -777,11 +778,6 @@ type
  		  procedure SortBy(FieldNames: string); overload;
       procedure SortBY(FieldNames: string; Compare: TPSQLDatasetSortCompare); overload;
       function IsSortedLocally: boolean;
-
-    //mi:2008-08-27 flag to prevent record buffer storing while reading BLOB field data
-    private
-      FPreventRememberBuffer : boolean;
-    public
       property PreventRememberBuffer : boolean read FPreventRememberBuffer write FPreventRememberBuffer;
       property Connect: TNativeConnect read FConnect;
 end;
@@ -10256,6 +10252,12 @@ begin
   Result := obj.FValue;
 end;
 {$ENDIF}
+
+destructor TPSQLIndex.Destroy;
+begin
+  Finalize(FDesc);
+  inherited;
+end;
 
 initialization
 
