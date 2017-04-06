@@ -176,7 +176,6 @@ begin
   with TSQLEditForm.Create(nil) do
   try
 {$IFDEF DELPHI_14}
-    Result := False;
     FClass := GetClass('TSynMemo');
     SynMemoUsed := Assigned(FClass);
     if SynMemoUsed then

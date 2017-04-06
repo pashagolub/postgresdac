@@ -268,9 +268,10 @@ end;
 
 procedure TestTPSQLQuery.TestAsString;
 begin
- FPSQLQuery.SQL.Text := 'SELECT ''foo''::varchar(30)';
+ FPSQLQuery.SQL.Text := 'SELECT ''foo''::varchar(30), ''foo''::text ';
  FPSQLQuery.Open;
  Check(FPSQLQuery.Fields[0].AsString = 'foo', 'Field value AsString is incorrect');
+ Check(FPSQLQuery.Fields[1].AsString = 'foo', 'Field memo value AsString is incorrect');
  FPSQLQuery.Close;
 end;
 

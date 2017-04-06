@@ -205,8 +205,8 @@ begin
     Result.SetEmpty
   else
   begin
-    Result.LowerBound.State := TPSQLRangeBoundState(ifthen(Value[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = '[', ord(rbsInclusive), ord(rbsExclusive)));
-    Result.UpperBound.State := TPSQLRangeBoundState(ifthen(Value[Length(Value){$IFDEF NEXTGEN}-1{$ENDIF}] = ']', ord(rbsInclusive), ord(rbsExclusive)));
+    Result.LowerBound.State := TPSQLRangeBoundState(ifthen(Value[Low(Value)] = '[', ord(rbsInclusive), ord(rbsExclusive)));
+    Result.UpperBound.State := TPSQLRangeBoundState(ifthen(Value[High(Value)] = ']', ord(rbsInclusive), ord(rbsExclusive)));
     Value := Copy(Value, 2, Length(Value) - 2); //eliminate brackets
     DelimPos := Pos(Delimiter, Value);
     SetBound(Result.LowerBound, AnsiDequotedStr(Copy(Value, 1, DelimPos - 1), '"')); // eliminate quotes if needed

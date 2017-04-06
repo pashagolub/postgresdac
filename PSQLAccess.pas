@@ -137,7 +137,7 @@ type
     procedure CommitBLOBTran;
     procedure EndTran(hXact : hDBIXact; eEnd : eXEnd);
     procedure GetTranInfo(hXact : hDBIXact; pxInfo : pXInfo);
-    procedure QExecDirect(pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
+    procedure QExecDirect(pszQuery : String; phCur: phDBICur; var AffectedRows : integer);
     procedure OpenFieldList(pszTableName: string; pszDriverType: string; bPhyTypes: Boolean; var hCur: hDBICur);
     procedure OpenIndexList(pszTableName: string; pszDriverType: string; var hCur: hDBICur);
     function GetCharSet: string;
@@ -226,8 +226,8 @@ type
       function CloseCursor(hCursor: hDBICur): DBIResult;
       function PutField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pSrc: Pointer): DBIResult;
       function OpenBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode): DBIResult;
-      function GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: Longint): DBIResult;
-      function GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: Longint): DBIResult;
+      function GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: integer): DBIResult;
+      function GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: integer): DBIResult;
       function PutBlob(hCursor : hDBICur; PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pSrc : Pointer): DBIResult;
       function TruncateBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iLen: Longint): DBIResult;
       function FreeBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word): DBIResult;
@@ -254,7 +254,7 @@ type
       function GetPriorRecord(hCursor: hDBICur;eLock:DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
       function GetRecord(hCursor: hDBICur;eLock: DBILockType;PRecord: Pointer;pRecProps: pRECProps): DBIResult;
       function GetBookMark(hCur: hDBICur;pBookMark: Pointer): DBIResult;
-      function GetRecordCount(hCursor: hDBICur;Var iRecCount: Longint): DBIResult;
+      function GetRecordCount(hCursor: hDBICur;Var iRecCount: integer): DBIResult;
       function ForceReread(hCursor: hDBICur): DBIResult;
       function GetField(hCursor: hDBICur;FieldNo: Word;PRecord: Pointer;pDest: Pointer;var bBlank: Boolean): DBIResult;
       function AddFilter(hCursor: hDBICur;iClientData: Longint;iPriority: Word;bCanAbort: Boolean;pcanExpr: pCANExpr;pfFilter: pfGENFilter;var hFilter: hDBIFilter): DBIResult;
@@ -262,7 +262,7 @@ type
       function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
-      function QExecDirect(hDb: DAChDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : LongInt): DBIResult;
+      function QExecDirect(hDb: DAChDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : integer): DBIResult;
       function QAlloc(hDb: DAChDBIDb;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
       function QExec(hStmt: hDBIStmt; phCur: phDBICur; var AffectedRows: integer): DBIResult;
@@ -573,7 +573,7 @@ type
       FRecSize      : Integer;
       FConnect      : TNativeConnect;
       FOpen         : Boolean;
-      FAffectedRows : LongInt;
+      FAffectedRows : Integer;
       FBookOfs        : Integer;
       FRecordState    : TRecordState;
       FLastDir        : TDir;
@@ -708,7 +708,7 @@ type
       procedure GetVchkDesc(iValSeqNo: Word; var pvalDesc: VCHKDesc);
       procedure GetCursorProps(var curProps : CURProps);
       procedure GetFieldDescs(var pFDesc : TFLDDescList);
-      procedure GetRecordCount(var iRecCount : Longint); virtual;
+      procedure GetRecordCount(var iRecCount : integer); virtual;
       procedure GetNextRecord(eLock : DBILockType; PRecord : Pointer; pRecProps : pRECProps); Virtual;
       procedure SetToRecord(RecNo : LongInt);
       procedure SetToBookmark(P : Pointer); virtual;
@@ -718,8 +718,8 @@ type
       procedure DropFilter(hFilter: hDBIFilter);
       procedure ActivateFilter(hFilter : hDBIFilter);
       procedure DeactivateFilter(hFilter : hDBIFilter);
-      procedure GetProp(iProp: Longint;PropValue: Pointer; iMaxLen: integer; var iLen: integer);
-      procedure SetProp(iProp: Longint; PropValue : Longint);
+      procedure GetProp(iProp: integer;PropValue: Pointer; iMaxLen: integer; var iLen: integer);
+      procedure SetProp(iProp: integer; PropValue : Longint);
       procedure SetToBegin; Virtual;
       procedure SetToEnd;
       procedure ForceReread;
@@ -732,8 +732,8 @@ type
       procedure OpenBlob(PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode);
       procedure FreeBlob(PRecord: Pointer;FieldNo: Word);
       procedure CloseBlob(FieldNo: Word);
-      procedure GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
-      procedure GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
+      procedure GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : integer);
+      procedure GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : integer);
       procedure PutBlob(PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint; pSrc : Pointer);
       procedure TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
       procedure FreeBlobStreams(PRecord: Pointer);
@@ -802,7 +802,7 @@ end;
     function GetBufferSize : integer; Override;
     function GetWorkBufferSize : integer; Override;
     procedure SetToBookmark(P : Pointer); override;
-    procedure GetRecordCount(Var iRecCount : Longint); override;
+    procedure GetRecordCount(Var iRecCount : integer); override;
  end;
 
  TFieldList = Class(TNativeDataSet)
@@ -819,7 +819,7 @@ end;
     procedure GetFLDDesc(PRecord: pFLDDesc);
     function GetWorkBufferSize : integer; Override;
     procedure SetToBookmark(P : Pointer); override;
-    procedure GetRecordCount(Var iRecCount : Longint); override;
+    procedure GetRecordCount(Var iRecCount : integer); override;
  end;
 
   TNativePGNotify = class
@@ -846,7 +846,6 @@ procedure PSQLExceptionMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
 
 function BDETOPSQLStr(Field : TFieldDef): String;
 function SQLCreateIdxStr(Index : TPSQLIndex;TableName : String;Flds : TPSQLFields): String;
-function QuoteIdentifier(IdentifierName: string): string;
 
 function _PQSendQuery(AConnection: TNativeConnect; AQuery: string): integer;
 function _PQExecute(AConnection: TNativeConnect; AQuery: string): PPGResult;
@@ -2262,7 +2261,6 @@ begin
     {$ELSE}
     DACStrCopy(Q, M.AsAnsi(S).ToPointer);
     {$ENDIF}
-    Result := PQExec(AConnection.Handle, Q);
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
@@ -2388,37 +2386,6 @@ var
 begin
   DecodeTime(ADateTime, Hour, Min, Sec, MSec);
   Result := EncodeTime(Hour, Min, Sec, MSec);
-end;
-
-function QuoteIdentifier(IdentifierName: string): string;
-var
-   I: integer;
-begin
-  Result := IdentifierName;
-  if IdentifierName = '' then
-    Exit;
-  if Result[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] <> '"' then
-    Result := '"' + Result;
-  if Result[length(Result)] <> '"' then
-    Result := Result + '"';
-  I := 2;
-  while I <= length(Result)-1 do
-   begin
-   if Result[i]='.' then
-    begin
-     if Result[i-1] <> '"' then
-      begin
-       Result := Copy(Result,1,I-1) + '"' + Copy(Result,I,MaxInt);
-       inc(i);
-      end;
-     if Result[i+1] <> '"' then
-      begin
-       Result := Copy(Result,1,I) + '"' + Copy(Result,I+1,MaxInt);
-       inc(i,2);
-      end;
-    end;
-   inc(i);
-   end;
 end;
 
 function ELSEIF(Exp: Boolean; TrueValue, FalseValue: Integer): Integer;
@@ -3144,7 +3111,7 @@ begin
   pxInfo^.eXIL    := FTransLevel;
 end;
 
-procedure TNativeConnect.QExecDirect(pszQuery : String; phCur: phDBICur; var AffectedRows : LongInt);
+procedure TNativeConnect.QExecDirect(pszQuery : String; phCur: phDBICur; var AffectedRows : integer);
 var
   hStmt : hDBIStmt;
 begin
@@ -3949,12 +3916,12 @@ begin
     fldUUID:  Result := string(PAnsiDACChar(@Dest));
     fldBOOL : Result := PWordBool(@Dest)^;
     fldDATE : begin
-                 LongWord(TimeStamp.Date) := PLongWord(@Dest)^;
+                 TimeStamp.Date := PLongWord(@Dest)^;
                  TimeStamp.Time := 0;
                  Result := SysUtils.Time+Trunc(TimeStampToDateTime(TimeStamp) + 1E-11);
               end;
     fldTIME : begin
-                 LongWord(TimeStamp.Time) := PLongWord(@Dest)^;
+                 TimeStamp.Time := PLongWord(@Dest)^;
                  TimeStamp.Date := 0;
                  Result := SysUtils.Date+TimeOf(TimeStampToDateTime(TimeStamp));
               end;
@@ -4041,7 +4008,7 @@ begin
                      end;
 {$ENDIF}
       fldDATE      : begin
-                       LongWord( TimeStamp.Date ) := PLongWord( Offs )^;
+                       TimeStamp.Date := PLongWord( Offs )^;
                        TimeStamp.Time := 0;
                        Result := SysUtils.Time+ Trunc(TimeStampToDateTime(TimeStamp) + 1E-11);
                        FldType := FT_DATE;
@@ -4070,7 +4037,7 @@ begin
                        FldType := FT_FLOAT;
                      end;
       fldTIME      : begin
-                       LongWord( TimeStamp.Time ) := PLongWord( Offs )^;
+                       TimeStamp.Time := PLongWord( Offs )^;
                        TimeStamp.Date := 0;
                        Result := SysUtils.Date+TimeOf(TimeStampToDateTime( TimeStamp ));
                        FldType := FT_TIME;
@@ -4262,7 +4229,7 @@ begin
   Result := PQntuples(FStatement);
 end;
 
-procedure TNativeDataSet.GetRecordCount( var iRecCount : Longint );
+procedure TNativeDataSet.GetRecordCount( var iRecCount : integer );
 var
   P      : Pointer;
   Buff   : Pointer;
@@ -5335,7 +5302,7 @@ begin
   if FBookOfs > 0 then Inc(Result, BookMarkSize);
 end;
 
-procedure TNativeDataSet.GetProp(iProp: Longint;PropValue: Pointer;iMaxLen: integer; var iLen: integer);
+procedure TNativeDataSet.GetProp(iProp: integer;PropValue: Pointer;iMaxLen: integer; var iLen: integer);
 begin
   iLen := 0;
   Case TPropRec( iProp ).Prop of
@@ -5362,7 +5329,7 @@ begin
   end;
 end;
 
-procedure TNativeDataSet.SetProp(iProp: Longint;PropValue: Longint);
+procedure TNativeDataSet.SetProp(iProp: integer;PropValue: Longint);
 begin
   Case TPropRec( iProp ).Prop of
     Word(curMAKECRACK): RecordState := tsEmpty;
@@ -5504,7 +5471,7 @@ begin
    end;
 end;
 
-procedure TNativeDataSet.ReadBlock(var iRecords : Longint; pBuf : Pointer);
+procedure TNativeDataSet.ReadBlock(var iRecords : integer; pBuf : Pointer);
 var
   M     : MemPtr;
   i     : integer;
@@ -6133,7 +6100,7 @@ begin
   CloseBlob(FieldNo);
 end;
 
-procedure TNativeDataSet.GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : Longint);
+procedure TNativeDataSet.GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : integer);
 Var
   Field : TPSQLField;
 
@@ -6220,7 +6187,7 @@ begin
    iSize  := 0
 end;
 
-procedure TNativeDataSet.GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : Longint);
+procedure TNativeDataSet.GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : integer);
 var
   Field : TPSQLField;
 
@@ -6408,7 +6375,7 @@ begin
     {$IFNDEF NEXTGEN}
       CharInSet(SQLText[1], [' ',#9]) then Temp := Temp + ' ';
     {$ELSE}
-      SQLText[0].IsInArray([' ',#9]) then Temp := Temp + ' ';
+      SQLText[Low(SQLText)].IsInArray([' ',#9]) then Temp := Temp + ' ';
     {$ENDIF}
     GetToken(SQLText, Token);
     //Added: handle of ? params
@@ -6422,7 +6389,7 @@ begin
           {$IFNDEF NEXTGEN}
             CharInSet(Token[1], [':','=']) then //handling of double colon & assignment
           {$ELSE}
-            Token[0].IsInArray([':','=']) then //handling of double colon & assignment
+            Token[Low(Token)].IsInArray([':','=']) then //handling of double colon & assignment
           {$ENDIF}
           begin
            Temp := Temp + Token;
@@ -6430,7 +6397,7 @@ begin
           end;
          ByName := True;
        end;
-      if (Token <> '') and (Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = '[') then
+      if (Token <> '') and (Token[Low(Token)] = '[') then
       begin
          if Token[Length(Token)] = ']' then
             Token := Copy(Token, 2, Length(Token)-2)
@@ -6441,10 +6408,10 @@ begin
         {$IFNDEF NEXTGEN}
         CharInSet(Token[1], ['"','''']) then
         {$ELSE}
-        Token[0].IsInArray(['"','''']) then
+        Token[Low(Token)].IsInArray(['"','''']) then
         {$ENDIF}
       begin
-         if Token[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = Token[Length(Token)] then
+         if Token[Low(Token)] = Token[Length(Token)] then
             Token := Copy(Token, 2, Length(Token)-2)
          else
             Token := Copy(Token, 2, Length(Token)-1);
@@ -6466,7 +6433,7 @@ begin
           ftBLOB: begin
                     MS := {$IFDEF DELPHI_17}TBytesStream{$ELSE}TMemoryStream{$ENDIF}.Create;
                     try
-                     MS.SetSize(Param.GetDataSize);
+                     MS.SetSize(Longint(Param.GetDataSize));
                      if MS.Size > 0 then
                        Param.GetData(MS.{$IFDEF DELPHI_17}Bytes{$ELSE}Memory{$ENDIF});
                      Value := BlobValue(MS, TPSQLParam(Param).DataTypeOID <> FIELD_TYPE_OID, True);
@@ -6959,7 +6926,7 @@ begin
    SetToBegin;
 end;
 
-procedure TIndexList.GetRecordCount( Var iRecCount : Longint );
+procedure TIndexList.GetRecordCount( Var iRecCount : integer );
 begin
    iRecCount := Items;
 end;
@@ -7180,7 +7147,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.ReadBlock(hCursor : hDBICur; var iRecords : Longint; pBuf : Pointer): DBIResult;
+function TPSQLEngine.ReadBlock(hCursor : hDBICur; var iRecords : integer; pBuf : Pointer): DBIResult;
 begin
   try
     TNativeDataset(hCursor).ReadBlock(iRecords, pBuf);
@@ -7190,7 +7157,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetRecordCount(hCursor : hDBICur;Var iRecCount : Longint) : DBIResult;
+function TPSQLEngine.GetRecordCount(hCursor : hDBICur;Var iRecCount : integer) : DBIResult;
 begin
   try
     TNativeDataSet(hCursor).GetRecordCount(iRecCount);
@@ -7251,7 +7218,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: Longint): DBIResult;
+function TPSQLEngine.GetBlobSize(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;var iSize: integer): DBIResult;
 begin
   try
     TNativeDataSet(hCursor).GetBlobSize(PRecord, FieldNo, iSize);
@@ -7261,7 +7228,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: Longint): DBIResult;
+function TPSQLEngine.GetBlob(hCursor: hDBICur;PRecord: Pointer;FieldNo: Word;iOffSet: Longint;iLen: Longint;pDest: Pointer;var iRead: integer): DBIResult;
 begin
   try
     TNativeDataSet(hCursor).GetBlob(PRecord, FieldNo, iOffset, iLen, pDest, iRead);
@@ -7551,7 +7518,7 @@ begin
   Result := rslt;
 end;
 
-function TPSQLEngine.QExecDirect(hDb : DAChDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : LongInt): DBIResult;
+function TPSQLEngine.QExecDirect(hDb : DAChDBIDb; pszQuery: String;phCur : phDBICur; var AffectedRows : integer): DBIResult;
 begin
   try
     Database := hDb;
@@ -8211,12 +8178,12 @@ begin
               {$ENDIF}
                 Result := String(PAnsiDACChar(@Buff));
     fldDATE : begin
-                 LongWord(TimeStamp.Date) := PLongWord(@Buff)^;
+                 TimeStamp.Date := PLongWord(@Buff)^;
                  TimeStamp.Time := 0;
                  Result := FormatDateTime('mm-dd-yyyy',SysUtils.Time+Trunc(TimeStampToDateTime(TimeStamp) + 1E-11), PSQL_FS);
               end;
     fldTIME : begin
-                 LongWord(TimeStamp.Time) := PLongWord(@Buff)^;
+                 TimeStamp.Time := PLongWord(@Buff)^;
                  TimeStamp.Date := DateDelta;
                  Result := FormatDateTime('hh:nn:ss',SysUtils.Date+TimeOf(TimeStampToDateTime(TimeStamp)), PSQL_FS);
               end;
@@ -8408,7 +8375,7 @@ var
 
           FIELD_TYPE_BOOL: begin
                             BoolChar := IfThen(S1 = '', 'F', 'T');
-                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]));
+                            Result := Ord(boolchar[1]) - Ord(UpCase(S2[Low(S2)]));
                            end
 
           else
@@ -8701,7 +8668,7 @@ begin
           PDesc^.uFldType := BdeType;
           PDesc^.uSubType := BdeSubType;
           N := RawToString(PQgetvalue(RES,I,2));
-          case N[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] of
+          case N[Low(N)] of
            'o': PDesc^.eParamType := paramOUT;
            'b': PDesc^.eParamType := paramINOUT;
           else
@@ -9507,7 +9474,7 @@ var aRecNum: integer;
                            Result := VarFMTBcdCreate(S, High(Word), High(Word));
 {$ENDIF}
           
-FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
+FIELD_TYPE_BOOL: Result := S[Low(S)] = 't';
 
           FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                          {$IFDEF DELPHI_5}
@@ -9591,8 +9558,8 @@ FIELD_TYPE_BOOL: Result := S[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}] = 't';
 {$IFDEF DELPHI_12}
              FIELD_TYPE_NUMERIC: Result := BcdCompare(StrToBcd(FVal1, PSQL_FS), StrToBcd(FVal2, PSQL_FS));
 {$ENDIF}
-             FIELD_TYPE_BOOL: Result :=  ord(FVal1[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]) -
-                                         ord(FVal2[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}]);
+             FIELD_TYPE_BOOL: Result :=  ord(FVal1[Low(FVal1)]) -
+                                         ord(FVal2[Low(FVal2)]);
 
              FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
                                Result := StrToIntDef(FVal1, InvalidOid) -
@@ -9853,7 +9820,7 @@ begin
     {$ELSE}
     FillChar(Buffer^,SZ, 0);
     {$ENDIF}
-    TBlobItem(P^).Blob.Seek(0,0);
+    TBlobItem(P^).Blob.Seek(Longint(0), 0);
     TBlobItem(P^).Blob.Read(Buffer^, SZ);
     Result := StrValue(Buffer, NeedQuote);
     FreeMem(Buffer, SZ);
@@ -9901,7 +9868,7 @@ begin
   {$ELSE}
   FillChar(Buffer^, SZ + 1, 0);
   {$ENDIF}
-  MS.Seek(0,0);
+  MS.Seek(Longint(0), 0);
   MS.Read(Buffer^, SZ);
   if isBytea then
     begin
@@ -10189,7 +10156,7 @@ end;
 
 procedure TPSQLIndex.SetIndexName(const Value: string);
 begin
- Move(Value[{$IFNDEF NEXTGEN}1{$ELSE}0{$ENDIF}], FDesc.szName, (Min(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
+ Move(Value[Low(Value)], FDesc.szName, (Min(Length(Value), DBIMAXNAMELEN)) * SizeOf(Char));
 end;
 
 function TPSQLEngine.GetFieldOrigin(hCursor: hDBICur;

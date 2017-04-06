@@ -9,7 +9,7 @@ interface
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
      Classes, SysUtils
 
-     {$IFNDEF MOBILE}
+     {$IFNDEF NEXTGEN}
       {$IFDEF DELPHI_12}, AnsiStrings{$ENDIF}
      {$ENDIF}
 
@@ -221,7 +221,8 @@ var
   PSQL_DLL             : string =
                                 {$IFDEF MSWINDOWS}'libpq.dll'{$ENDIF}
                                 {$IFDEF MACOS}'libpq.dylib'{$ENDIF}
-                                {$IFDEF ANDROID}'libpq.so'{$ENDIF};
+                                {$IFDEF ANDROID or LINUX}'libpq.so'{$ENDIF}
+                                {$IFDEF LINUX}'libpq.so.5'{$ENDIF};
 
 
 
@@ -1242,9 +1243,8 @@ type
 type
   pIDXDesc = ^IDXDesc;
   IDXDesc = record               { Index description }
-    szName          : DBINAME;       { Index name }
+    szName          : string;       { Index name }
     iIndexId        : integer;             { Index number }
-    szTagName       : DBINAME;          { Tag name (for dBASE) }
     szFormat        : string;          { Optional format (BTREE, HASH etc) }
     bPrimary        : WordBool;         { True, if primary index }
     bUnique         : WordBool;         { True, if unique keys (TRI-STATE for dBASE) }
@@ -3187,6 +3187,9 @@ begin
      {$ENDIF}
 
       SQLLibraryHandle := LoadLibrary(PChar(LibPQPath));
+      {$IFDEF M_DEBUG}
+       LogDebugMessage('LIB', 'Handle for module: ' + IntToStr(SQLLibraryHandle));
+      {$ENDIF}
       if ( SQLLibraryHandle > HINSTANCE_ERROR ) then
       begin
          @PQlibVersion   := GetPSQLProc('PQlibVersion');
