@@ -59,7 +59,6 @@
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
         <DCC_UsePackage>vclx;vcl;vclactnband;vclimg;vcldb;bdertl;PostgresDAC21;PostgresDAC23;PostgresDAC24;$(DCC_UsePackage)</DCC_UsePackage>
-        <Icon_MainIcon>PDAC.ico</Icon_MainIcon>
         <Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1)'!=''">

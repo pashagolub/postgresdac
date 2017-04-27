@@ -71,12 +71,10 @@
 			<DCC_UsePackage>vclx;vcl;vclactnband;vclimg;vcldb;PostgresDAC16;$(DCC_UsePackage)</DCC_UsePackage>
 			<DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;$(DCC_Namespace)</DCC_Namespace>
 			<VerInfo_Locale>1033</VerInfo_Locale>
-			<Icon_MainIcon>PDAC.ico</Icon_MainIcon>
 			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base_Win32)'!=''">
 			<DCC_UsePackage>dcldb;PostgresDAC16;$(DCC_UsePackage)</DCC_UsePackage>
-			<Icon_MainIcon>PDAC.ico</Icon_MainIcon>
 			<Manifest_File>$(BDS)\bin\default_app.manifest</Manifest_File>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_1)'!=''">
