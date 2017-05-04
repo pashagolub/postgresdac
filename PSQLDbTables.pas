@@ -1312,7 +1312,7 @@ constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
     Msg1 := Engine.MessageStatus;
     Err := Engine.Status;
     if (Msg1 <> '') and (Err > 0) then
-      Msg1 := Format('PostgreSQL Error Code: (%d)'#13#10'%s', [Err, Msg1])
+      Msg1 := Format('PostgreSQL Error Code: (%s)'#13#10'%s', [FErrorsqlstate, Msg1])
     else
     begin
       Msg2 := GetBDEErrorMessage(ErrorCode);

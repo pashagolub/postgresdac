@@ -261,7 +261,7 @@ type
       function DropFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function ActivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
       function DeactivateFilter(hCursor: hDBICur;hFilter: hDBIFilter): DBIResult;
-      function GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
+      function GetErrorString(rslt: DBIResult; var ErrorMsg: String): DBIResult;
       function QExecDirect(hDb: DAChDBIDb; pszQuery: String;phCur: phDBICur; var AffectedRows : integer): DBIResult;
       function QAlloc(hDb: DAChDBIDb;var hStmt: hDBIStmt): DBIResult;
       function QPrepare(hStmt: hDBIStmt; pszQuery: String): DBIResult;
@@ -7508,7 +7508,7 @@ begin
   end;
 end;
 
-function TPSQLEngine.GetErrorString(rslt: DBIResult;ErrorMsg: String): DBIResult;
+function TPSQLEngine.GetErrorString(rslt: DBIResult; var ErrorMsg: String): DBIResult;
 begin
   ErrorMsg := MessageStatus;
   Result := rslt;
