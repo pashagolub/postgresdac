@@ -2382,11 +2382,6 @@ begin
   Result := EncodeTime(Hour, Min, Sec, MSec);
 end;
 
-function ELSEIF(Exp: Boolean; TrueValue, FalseValue: Integer): Integer;
-begin
-  if Exp then Result := TrueValue else Result := FalseValue;
-end;
-
 function AdjustNativeField(iField :TPSQLField; Src,Dest: Pointer; Var Blank : Boolean): Word;
 begin
   Result := 0;
@@ -6437,6 +6432,9 @@ begin
                     end;
                   end;
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
+          {$IFDEF DELPHI_12}
+          ftFMTBcd:  Value := BcdToStr(VarToBcd(Param.Value), PSQL_FS);
+          {$ENDIF}
         else
          case VarType(Param.Value) of
            {$IFNDEF DELPHI_5}
@@ -9188,6 +9186,9 @@ begin
            fldDate:    AParam.AsDate := TDateTime(Src^);
            fldTime:    AParam.AsTime := TDateTime(Src^);
            fldTIMESTAMP: AParam.AsDateTime := TDateTime(Src^);
+           {$IFDEF DELPHI_12}
+           fldFMTBCD: AParam.AsFMTBCD := TBcd(Src^);
+           {$ENDIF}
        end; //case
      end; //else
      Break;
