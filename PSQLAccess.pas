@@ -6433,7 +6433,10 @@ begin
                   end;
           ftDate, ftTime, ftDateTime: Value := GetDateTime;
           {$IFDEF DELPHI_12}
-          ftFMTBcd:  Value := BcdToStr(VarToBcd(Param.Value), PSQL_FS);
+          ftFMTBcd:  if VarIsFMTBcd(Param.Value) then
+                       Value := BcdToStr(VarToBcd(Param.Value), PSQL_FS)
+                     else
+                       Value := AnsiQuotedStr(VarAsType(Param.Value, varString),'''');
           {$ENDIF}
         else
          case VarType(Param.Value) of
