@@ -3269,7 +3269,7 @@ begin
       Move(Buffer[0], PByte(RecBuf)[FRecordSize + Field.Offset + 1], Field.DataSize);
   end;
   if not (State in [dsCalcFields, dsFilter, dsNewValue]) then
-    DataEvent(deFieldChange, Longint(Field));
+    DataEvent(deFieldChange, TDataEventInfo(Field));
 end;
 {$ENDIF}
 
@@ -3311,7 +3311,7 @@ begin
         Move(Buffer^, RecBuf[ 1 ], DataSize);
     end;
     if not (State in [dsCalcFields, dsFilter, dsNewValue]) then
-      DataEvent(deFieldChange, Longint(Field));
+      DataEvent(deFieldChange, TDataEventInfo(Field));
   end;
 end;
 {$ENDIF}
@@ -3877,10 +3877,8 @@ end;
 procedure TPSQLDataSet.PostKeyBuffer(Commit: Boolean);
 begin
   DataEvent(deCheckBrowseMode, 0);
-  //++ pasha_golub 27.10.2005 GotoNearest stuff
   if FKeyBuffer^.FieldCount = 0 then
      FKeyBuffer^.FieldCount := FIndexFieldCount;
-  //
   if Commit then
     FKeyBuffer.Modified := Modified
   else
@@ -6877,7 +6875,7 @@ begin
   end;
   if FModified then
   try
-    FDataSet.DataEvent(deFieldChange, Longint(FField));
+    FDataSet.DataEvent(deFieldChange, TDataEventInfo(FField));
   except
     {$IFNDEF FPC}
     Self.FDataSet.InternalHandleException();
