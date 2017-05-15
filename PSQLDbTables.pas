@@ -2484,7 +2484,6 @@ procedure TPSQLDataset.CreateFields;
 var F: TField;
     I: integer;
 begin
- F := nil; //make compiler happy
  inherited CreateFields;
  if FieldDefs.Count > Fields.Count then
    for I := 0 to FieldDefs.Count - 1 do
@@ -7529,7 +7528,7 @@ begin
         EmbeddedLiteral := False;
       end
       else Name := string(StartPos + 1);
-      if DoCreate then
+      if DoCreate and not Assigned(FindParam(Name)) then
         TParam(Add).Name := Name;
       CurPos^ := CurChar;
       StartPos^ := '?';
