@@ -4999,6 +4999,7 @@ function TPSQLDataSet.PSExecuteStatement(const ASQL: string; AParams: TParams;
 var
   InProvider: Boolean;
 begin
+  Result := 0;
   InProvider := SetDBFlag(dbfProvider, TRUE);
   try
     ResultSet := TPSQLQuery.Create(nil);
