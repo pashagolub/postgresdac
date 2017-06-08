@@ -283,6 +283,7 @@ const
     FIELD_TYPE_MONEY              = 790;
     FIELD_TYPE_A_MONEY            = 791;
     FIELD_TYPE_MACADDR            = 829;
+    FIELD_TYPE_MACADDR8           = 774;
     FIELD_TYPE_INET               = 869;
     FIELD_TYPE_A_BOOL             = 1000;
     FIELD_TYPE_A_BYTEA            = 1001;
