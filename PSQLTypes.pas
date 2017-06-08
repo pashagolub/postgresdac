@@ -315,6 +315,7 @@ const
     FIELD_TYPE_ACLITEM            = 1033;
     FIELD_TYPE_A_ACLITEM          = 1034;
     FIELD_TYPE_A_MACADDR          = 1040;
+    FIELD_TYPE_A_MACADDR8         = 775;
     FIELD_TYPE_A_INET             = 1041;
     FIELD_TYPE_BPCHAR             = 1042;
     FIELD_TYPE_VARCHAR            = 1043;
