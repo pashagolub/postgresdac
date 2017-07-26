@@ -2303,6 +2303,11 @@ begin
     SetLength(paramValues, AParams.Count);
     for i := 0 to AParams.Count - 1 do
      begin
+      if AParams[i].IsNull then
+      begin
+        paramValues[i] := nil;
+        Continue;
+      end;
       if AConnection.IsUnicodeUsed then
         S := {$IFDEF NEXTGEN}String{$ENDIF}(UTF8Encode(AParams[i].AsString))
       else
