@@ -304,7 +304,7 @@ begin
         WaitForSingleObject(FPlinkProcInfo.hProcess, SSHTimeout);
         GetExitCodeProcess(FPlinkProcInfo.hProcess, ExCode);
         if ExCode <> STILL_ACTIVE then
-          raise ESSHConnectError.CreateFmt('Failed to connect. Check the settings for PLink. Exit code: %s', [ExCode]);
+          raise ESSHConnectError.CreateFmt('Failed to connect. Check the settings for PLink. Exit code: %d', [ExCode]);
       end
       else
       begin
