@@ -51,6 +51,7 @@ type
     procedure TestSaveToServerSideFile;
     procedure TestLoadFromProgram;
     procedure TestSaveToProgram;
+    procedure TestForceQuote;
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
@@ -191,6 +192,13 @@ end;
 procedure TestTCustomPSQLCopy.TearDown;
 begin
   FreeAndNil(FPSQLCopy);
+end;
+
+procedure TestTCustomPSQLCopy.TestForceQuote;
+begin
+  FPSQLCopy.Options := FPSQLCopy.Options + [coCSV, coQuote];
+  FPSQLCopy.Quote := '`';
+  TestSaveToStream();
 end;
 
 procedure TestTCustomPSQLCopy.TestLoadFromClientSideFile;

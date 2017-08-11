@@ -9,4 +9,4 @@ echo ============       (c) MiSHuTka, 2006-2007            ============
 
 FOR /F "usebackq delims==" %%i IN (`cd`) DO SET PATHLOCAL=%%i
 
-"C:\Program Files\TortoiseSVN\bin\TortoiseProc.exe" /command:commit /path:"%PATHLOCAL%" /notempfile /closeonend:2
+TortoiseProc.exe /command:commit /path:"%PATHLOCAL%" /notempfile /closeonend:2

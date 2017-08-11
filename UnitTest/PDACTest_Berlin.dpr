@@ -15,16 +15,18 @@ program PDACTest_Berlin;
 {$ENDIF}
 
 uses
-//  EMemLeaks,
-//  EResLeaks,
-//  EDialogWinAPIMSClassic,
-//  EDialogWinAPIEurekaLogDetailed,
-//  EDialogWinAPIStepsToReproduce,
-//  EDebugExports,
-//  EFixSafeCallException,
-//  EMapWin32,
-//  EAppVCL,
-//  ExceptionLog7,
+  {$IFDEF EurekaLog}
+  EMemLeaks,
+  EResLeaks,
+  EDialogWinAPIMSClassic,
+  EDialogWinAPIEurekaLogDetailed,
+  EDialogWinAPIStepsToReproduce,
+  EDebugExports,
+  EFixSafeCallException,
+  EMapWin32,
+  EAppVCL,
+  ExceptionLog7,
+  {$ENDIF EurekaLog}
   Forms,
   TestFramework,
   GUITestRunner,
