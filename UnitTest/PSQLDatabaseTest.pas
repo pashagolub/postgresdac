@@ -369,7 +369,7 @@ procedure TestTPSQLDatabase.TestLibraryVersion;
 var Ver: Integer;
 begin
   Ver := TestDBSetup.Database.LibraryVersionAsInt;
-  Check(Ver > InvalidOID, 'LibraryVersionAsInt failed');
+  Check(Ver > 0, 'LibraryVersionAsInt failed');
   Status(Format('Library version: %d', [Ver]));
 end;
 

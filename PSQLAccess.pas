@@ -528,7 +528,8 @@ type
       property NativeSize    : Integer Read FDesc.FieldSize Write FDesc.FieldSize;
       property NativeMaxSize : Integer Read FDesc.FieldMaxSize Write FDesc.FieldMaxSize;
       property NativeDefault : String Read FDesc.FieldDefault Write  FDesc.FieldDefault;
-      property NativeNotNull: boolean read FDesc.FieldNotNull write FDesc.FieldNotNull;
+      property NativeNotNull : boolean read FDesc.FieldNotNull write FDesc.FieldNotNull;
+      property NativeTypMod  : Integer read FDesc.FieldTypMod write FDesc.FieldTypMod;
   end;
 
   //////////////////////////////////////////////////////////
@@ -542,7 +543,7 @@ type
     Public
       constructor Create(Table : TNativeDataSet);
       property Field_Info[Index : Integer] : TPSQLNative Read  GetNative; Default;
-      procedure SetNative(aIndex : Integer; aName : String; aType,aSize,aMaxSize : Integer);
+      procedure SetNative(aIndex : Integer; aName : String; aType, aSize, aMaxSize, aTypMod : Integer);
   end;
 
   //////////////////////////////////////////////////////////
@@ -646,6 +647,7 @@ type
       function FieldMaxSizeInBytes(FieldNum: Integer): Integer;
       function FieldMinSize(FieldNum: Integer): Integer;
       function FieldType(FieldNum: Integer): cardinal;
+      function FieldTypMod(FieldNum: Integer): Integer;
       function FieldTable(FieldNum: integer): cardinal;
       function FieldOrigin(FieldNum: integer): string;
       function FieldPosInTable(FieldNum: integer): Integer;
@@ -3700,7 +3702,7 @@ begin
   if ( Count >= Index ) and ( Index > 0 ) then Result := TPSQLNative(Items[Index-1]);
 end;
 
-procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType, aSize, aMaxSize : Integer);
+procedure TPSQLNatives.SetNative(aIndex : Integer; aName : String; aType, aSize, aMaxSize, aTypMod : Integer);
 var
   Item : TPSQLNative;
 begin
@@ -3710,6 +3712,7 @@ begin
   Item.NativeType := aType;
   Item.NativeSize := aSize;
   Item.NativeMaxSize := aMaxSize;
+  Item.NativeTypMod := aTypMod;
 end;
 
 
@@ -5023,7 +5026,7 @@ begin
       FIELD_TYPE_BIT,
       FIELD_TYPE_VARBIT: Result := fMod;
 
-      FIELD_TYPE_NUMERIC: Result := fMod shr 16 and 65535 + 1; //frac delimiter
+      FIELD_TYPE_NUMERIC: Result := fMod; // shr 16 and 65535 + 1; //frac delimiter
      else
       if fTypeOid > MAX_BUILTIN_TYPE_OID then  //suppose it's UDT or enum
           case FieldTypTypes[FieldNum] of //we're interested in composites & enums only
@@ -5090,6 +5093,13 @@ begin
       (Result = FIELD_TYPE_XML) then
          Result := FIELD_TYPE_TEXT; //added to deal with varchar without length specifier
   end;
+end;
+
+function TNativeDataSet.FieldTypMod(FieldNum: Integer): Integer;
+begin
+  Result := -1;
+  if Assigned(FStatement) then
+    Result := PQfmod(FStatement, FieldNum);
 end;
 
 function TNativeDataSet.FetchRecords(const NumberOfRecs: integer = 1): integer;
@@ -5248,7 +5258,7 @@ begin
   if FNativeDescs.Count = 0 then
    begin
     for I := 0 to FieldCount - 1 do
-      FNativeDescs.SetNative(I, FieldName(I), FieldType(I), FieldMaxSizeInBytes(I), FieldMaxSize(I));
+      FNativeDescs.SetNative(I, FieldName(I), FieldType(I), FieldMaxSizeInBytes(I), FieldMaxSize(I), FieldTypMod(I));
     FillDefsAndNotNulls();
    end;
   Item := TPSQLNative(FNativeDescs.Items[Index]);

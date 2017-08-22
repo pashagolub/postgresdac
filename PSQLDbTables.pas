@@ -2480,6 +2480,7 @@ begin
 end;
 
 {$IFDEF DELPHI_12}
+{$WARNINGS OFF}
 procedure TPSQLDataset.CreateFields;
 var F: TField;
     I: integer;
@@ -2516,6 +2517,7 @@ begin
           end;
          end;
 end;
+{$WARNINGS ON}
 {$ENDIF DELPHI_12}
 
 //////////////////////////////////////////////////////////
@@ -3012,7 +3014,7 @@ begin
         end;
       fldFLOAT:                                                                                   
         if iSubType = fldstMONEY then FType := ftCurrency;
-      fldBCD:
+      fldBCD, fldFmtBCD:
         begin
           FSize := Abs(iUnits2);
           FPrecision := iUnits1;

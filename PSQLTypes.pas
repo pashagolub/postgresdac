@@ -199,6 +199,8 @@ const
   MAX_CHAR_LEN     = 8192; //Max character length allowed in TField descendants
   MAX_ENCODING_ID  = 42; //Max encoding id for pg_encoding_to_char
   InvalidOid       : cardinal = 0;
+  NUMERIC_PREC     = 32; //Default precision for TFmtBcdField if not specified for NUMERIC
+  NUMERIC_SCALE    = 6; //Default scale for TFmtBcdField if not specified for NUMERIC
 
 
 const //date/time convertion
@@ -1850,6 +1852,7 @@ type
      FieldMaxSize : Integer;
      FieldDefault : String;
      FieldNotNull : boolean;
+     FieldTypMod  : Integer;
   end;
 
 /////////////////////////////////////////////////////////////////////////////
@@ -3042,7 +3045,7 @@ begin
 {$IFDEF DELPHI_12}
     FIELD_TYPE_NUMERIC: begin
                          BdeType := fldFMTBCD;
-                         LogSize := Sizeof(TBcd);
+                         LogSize := phSize;
                       end;
 {$ENDIF}
     FIELD_TYPE_MONEY: begin
@@ -3138,26 +3141,26 @@ begin
     ValChk.iFldNum := Count;
     DataLen := Info.FieldMaxSize;
     FieldMapping(Info.FieldType, DataLen, iFldType, iSubType, LogSize, LocArray);
-    if (Info.Fieldtype = FIELD_TYPE_FLOAT4) or (Info.Fieldtype = FIELD_TYPE_FLOAT8)
-      // (Info.Fieldtype = FIELD_TYPE_NUMERIC)
-      then
-    begin
-      iUnits1  := 32;
-      iUnits2  := Hi(LogSize);
-      iLen     := Lo(LogSize);
-    end
+    iUnits2  := 0;
+    case Info.Fieldtype of
+      FIELD_TYPE_NUMERIC:
+        if Info.FieldTypMod > 0 then
+        begin
+          iUnits1 := (Info.FieldTypMod - 4) shr 16 and 65535;
+          iUnits2 := (Info.FieldTypMod - 4) and 65535;
+        end else
+        begin
+          iUnits1 := NUMERIC_PREC;
+          iUnits2 := NUMERIC_SCALE;
+        end;
     else
-    begin
-      if iFldType = fldZSTRING then
-         iUnits1  := LogSize-1 else
-         iUnits1  := LogSize;
-      iUnits2  := 0;
-      iLen     := LogSize;
+        iUnits1  := ifthen(iFldType = fldZSTRING, LogSize - 1, LogSize);
     end;
+    iLen := LogSize;
     if (iFldType = fldINT32) and (Pos('nextval(', Info.FieldDefault) > 0) then iSubType := fldstAUTOINC;
     iOffset := Offset;
     efldvVchk := fldvUNKNOWN;
-    if Info.FieldDefault <> '' then ValChk.bHasDefVal := True;
+    ValChk.bHasDefVal := Info.FieldDefault <> '';
     ValChk.aDefVal := Info.FieldDefault;
     ValChk.bRequired := Info.FieldNotNull;
     szName := Info.FieldName;

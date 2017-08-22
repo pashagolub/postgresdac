@@ -116,6 +116,7 @@ type
     procedure TestNumericTypeMapping;
     procedure TestNumericSelectInt;
     procedure TestNumericSelectFrac;
+    procedure TestNumericPrecScale;
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
@@ -580,6 +581,32 @@ procedure TestNativeNumericField.TearDown;
 begin
   inherited;
   //
+end;
+
+procedure TestNativeNumericField.TestNumericPrecScale;
+var F: TFMTBCDField;
+begin
+  TestDBSetup.Query.ParamCheck := False;
+  TestDBSetup.Query.SQL.Text := 'SELECT 1 :: numeric(8, 3), ' +
+                                '2 :: numeric(32, 3), ' +
+                                '3 :: numeric(10), ' +
+                                '4 :: numeric ';
+  TestDBSetup.Query.Open;
+  with TestDBSetup.Query do
+  begin
+    F := Fields[0] as TFMTBCDField;
+    Check(F.Precision = 8, 'Incorrect precision for NUMERIC(8, 3)');
+    Check(F.Size = 3, 'Incorrect scale for NUMERIC(8, 3)');
+    F := Fields[1] as TFMTBCDField;
+    Check(F.Precision = 32, 'Incorrect precision for NUMERIC(32, 3)');
+    Check(F.Size = 3, 'Incorrect scale for NUMERIC(32, 3)');
+    F := Fields[2] as TFMTBCDField;
+    Check(F.Precision = 10, 'Incorrect precision for NUMERIC(10)');
+    Check(F.Size = 0, 'Incorrect scale for NUMERIC(10)');
+    F := Fields[3] as TFMTBCDField;
+    Check(F.Precision = NUMERIC_PREC, 'Incorrect precision for NUMERIC');
+    Check(F.Size = NUMERIC_SCALE, 'Incorrect scale for NUMERIC');
+  end;
 end;
 
 procedure TestNativeNumericField.TestNumericSelectFrac;
