@@ -47,7 +47,7 @@ type
                 doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces,
                 doQuoteAllIdentifiers, doNoSecurityLabels, doNoUnloggedTableData,
                 doSerializableDeferrable, doNoSynchronizedSnapshots, doIfExists,
-                doEnableRowSecurity, doStrictNames);
+                doEnableRowSecurity, doStrictNames, doNoBlobs);
 
   TDumpOptions = set of TDumpOption;
 
@@ -157,7 +157,7 @@ type
 
   TRestoreStrOption = (rsoTable, rsoSuperUser, rsoDBName,
                   rsoFileName, rsoIndex, rsoListFile, rsoFunction,
-                  rsoTrigger, rsoRole, rsoSchemaName);
+                  rsoTrigger, rsoRole, rsoSchemaName, rsoExcludeSchema);
 
   TPSQLRestore = class(TComponent)
   private
@@ -178,6 +178,7 @@ type
     FTableNames: TStrings;
     FSections: TDumpRestoreSections;
     FSchemaNames: TStrings;
+    FExcludeSchemas: TStrings;
     procedure SetDatabase(const Value : TPSQLDatabase);
     function GetStrOptions(const Index: Integer): string;
     procedure SetStrOptions(const Index: Integer; const Value: string);
@@ -191,6 +192,7 @@ type
     procedure ReadTableName(Reader: TReader);
     procedure ReadSchemaName(Reader: TReader);
     procedure SetSchemaNames(const Value: TStrings);
+    procedure SetExcludeSchemas(const Value: TStrings);
   protected
     procedure CheckDependencies;
     procedure DefineProperties(Filer: TFiler); override;
@@ -218,7 +220,8 @@ type
     property SuperUserName: string  index rsoSuperUser read GetStrOptions write SetStrOptions;
     property Trigger: string  index rsoTrigger read GetStrOptions write SetStrOptions;
     property TableNames: TStrings read FTableNames write SetTableNames;
-    property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;  //index rsoSchemaName read GetStrOptions write SetStrOptions;
+    property SchemaNames: TStrings read FSchemaNames write SetSchemaNames;
+    property ExcludeSchemas: TStrings read FExcludeSchemas write SetExcludeSchemas;
     property Sections: TDumpRestoreSections read FSections write FSections;
     property AfterRestore : TNotifyEvent read FAfterRestore write FAfterRestore;
     property BeforeRestore  : TNotifyEvent read FBeforeRestore write FBeforeRestore;
@@ -257,7 +260,8 @@ const
    '--no-synchronized-snapshots',      //doNoSynchronizedSnapshots
    '--if-exists',                      //doIfExists
    '--enable-row-security',            //doEnableRowSecurity
-   '--strict-names'                    //doStrictNames
+   '--strict-names',                   //doStrictNames
+   '--no-blobs'                        //doNoBlobs
   );
 
   RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -295,16 +299,18 @@ const
   );
 
   RestoreCommandLineStrParameters: array[TRestoreStrOption] of string =(
-   '--table=',      //rsoTable
-   '--superuser=',  //rsoSuperuser
-   '--dbname=',     //rsoDBName,
-   '--file=',       //rsoFileName,
-   '--index=',      //rsoIndex,
-   '--use-list=',   //rsoListFile,
-   '--function=',   //rsoFunction,
-   '--trigger=',    //rsoTrigger
-   '--role=',       //dsoRole
-   '--schema='      //rsoSchemaName
+   '--table=',
+   //rsoTable
+   '--superuser=',    //rsoSuperuser
+   '--dbname=',       //rsoDBName,
+   '--file=',         //rsoFileName,
+   '--index=',        //rsoIndex,
+   '--use-list=',     //rsoListFile,
+   '--function=',     //rsoFunction,
+   '--trigger=',      //rsoTrigger
+   '--role=',         //dsoRole
+   '--schema=',       //rsoSchemaName
+   '--exclude-schema=' //rsoExcludeSchema
   );
 
 
@@ -999,6 +1005,7 @@ begin
   FRestoreFormat := rfAuto;
   FTableNames := TStringList.Create;
   FSchemaNames := TStringList.Create;
+  FExcludeSchemas := TStringList.Create;
   {$IFNDEF NEXTGEN}
   ZeroMemory(@FRestoreStrOptions, SizeOf(FRestoreStrOptions));
   {$ELSE}
@@ -1025,6 +1032,7 @@ begin
   FmiParams.Free;
   FTableNames.Free;
   FSchemaNames.Free;
+  FExcludeSchemas.Free;
   inherited;
 end;
 
@@ -1085,6 +1093,9 @@ begin
   for k := 0 to FSchemaNames.Count-1 do
     FmiParams.Add(RestoreCommandLineStrParameters[rsoSchemaName] + FSchemaNames[k]);
 
+  for k := 0 to FExcludeSchemas.Count-1 do
+    FmiParams.Add(RestoreCommandLineStrParameters[rsoExcludeSchema] + FExcludeSchemas[k]);
+
   for k := 0 to FTableNames.Count-1 do
    FmiParams.Add(RestoreCommandLineStrParameters[rsoTable] + FTableNames[k]);
 
@@ -1126,6 +1137,11 @@ procedure TPSQLRestore.SetDatabase(const Value : TPSQLDatabase);
 begin
    if Value <> FDatabase then
       FDatabase := Value;
+end;
+
+procedure TPSQLRestore.SetExcludeSchemas(const Value: TStrings);
+begin
+  FExcludeSchemas.Assign(Value);
 end;
 
 procedure TPSQLRestore.SetSchemaNames(const Value: TStrings);
