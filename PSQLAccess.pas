@@ -68,16 +68,15 @@ type
     FCharset                  : string;
     FServerVersion            : string;
     FIntServerVersion         : integer;
-    FNativeByteaFormat        : TNativeByteaFormat;
     FConnectString            : string;
     FDirectConnectString      : string;
+    FTransState : eXState;  { Transaction end control xsActive, xsInactive }
+    FTransLevel : eXILType;  { Transaction isolation levels }
+    FGUCList : TStrings; {GUC parameters as key=value list}
     function GetBackendPID : integer;
     function IsTransactionActive: boolean;
     function GetTransactionStatus: TTransactionStatusType;
-  protected
-    FTransState : eXState;  { Transaction end control xsActive, xsInactive }
-    FTransLevel : eXILType;  { Transaction isolation levels }
-    function GetCommitOperation: Boolean; {Get commit operation}
+    function GetNativeByteaFormat: TNativeByteaFormat;
   public
     FErrorPos                 : string;
     FErrorContext             : string;
@@ -99,9 +98,8 @@ type
 
     FLoggin : Boolean; {Loggin flag}
     DBOptions : TDBOptions; {Connection parameters}
-
     constructor Create;
-    destructor  Destroy; Override;
+    destructor Destroy; Override;
 
     class function Ping(Params: TStrings): TPingStatus;
 
@@ -109,6 +107,7 @@ type
     procedure ProcessDBParams(Params : TStrings);
     procedure InternalConnect(ConnParams: TStrings = nil); {Login to database}
     procedure InternalDisconnect; {Logout from database}
+    procedure ReloadGUC;
     procedure Reset; {reset connection to server}
     function Rollback: boolean; {Rollback transaction}
     function Commit: boolean; {Commit transaction}
@@ -119,6 +118,7 @@ type
     function Success: Boolean;
     procedure StoredProcParams(pszPName: string; ProcOID: cardinal;
       List: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF});
+    procedure GUCList(List : TStrings);
     procedure StoredProcList(pszWild : string; List : TStrings);
     procedure TableList(pszWild : string; SystemTables: Boolean; List : TStrings);
     procedure UserList(pszWild : string; List : TStrings);
@@ -171,8 +171,9 @@ type
     property InTransaction: boolean read IsTransactionActive;
     property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
     property BlobTransactionInProgress: boolean read FBlobTransactionInProgress;
-    property NativeByteaFormat: TNativeByteaFormat read FNativeByteaFormat;
+    property NativeByteaFormat: TNativeByteaFormat read GetNativeByteaFormat;
     property IsUnicodeUsed: boolean read FUnicodeUsed;
+    property GUC: TStrings read FGUCList;
 
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; aFieldNumber : integer):string; overload;
     function SelectStringDirect(pszQuery : string; var IsOk : boolean; pszFieldName : string):string; overload;
@@ -2676,15 +2677,16 @@ end;
 constructor TNativeConnect.Create;
 begin
   Inherited Create;
-  //Tables    := TContainer.Create;
   FLoggin  := False;
   FHandle := nil;
+  FGUCList := TStringList.Create;
 end;
 
 Destructor TNativeConnect.Destroy;
 begin
   //Tables.Free;
   InternalDisconnect;
+  FreeAndNil(FGUCList);
   Inherited Destroy;
 end;
 
@@ -2745,62 +2747,41 @@ end;
 
 procedure TNativeConnect.InternalConnect(ConnParams: TStrings = nil);
 var
-   Result: PPGresult;
-   Utf8Encoded: PAnsiDACChar;
+  Result: PPGresult;
+  Utf8Encoded: PAnsiDACChar;
 begin
- if not FLoggIn then
-  try
-   FHandle := nil;
-   if SQLLibraryHandle <= HINSTANCE_ERROR then LoadPSQLLibrary();
-   FLastOperationTime := GetTickCount;
-   if Assigned(ConnParams) then
-     FHandle := _PQConnectDBParams(ConnParams)
-   else
-    begin
-     Utf8Encoded := PAnsiDACChar(Utf8Encode(FConnectString));
-     FHandle := PQconnectdb(Utf8Encoded);
-    end;
-   FLastOperationTime := GetTickCount - FLastOperationTime;
-   if PQstatus(FHandle) = CONNECTION_BAD then
-     CheckResult();
-   Result := PQexec(FHandle, 'SET DateStyle TO ''ISO, MDY''');
-   PQclear(Result);
-
-   FNativeByteaFormat := nbfEscape;
-   if GetserverVersionAsInt >= 090000 then
-    begin
-     Result := PQexec(FHandle, 'SELECT current_setting(''bytea_output'')');
-     if Assigned(Result) then
+  if not FLoggin then
+    try
+      FHandle := nil;
+      if SQLLibraryHandle <= HINSTANCE_ERROR then
+        LoadPSQLLibrary();
+      FLastOperationTime := GetTickCount;
+      if Assigned(ConnParams) then
+        FHandle := _PQConnectDBParams(ConnParams)
+      else
       begin
-       if PQntuples(Result) > 0 then
-       begin
-         Utf8Encoded := PQgetvalue(Result, 0, 0);
-         if Utf8Encoded = 'hex' then
-           FNativeByteaFormat := nbfHex
-         else
-           FNativeByteaFormat := nbfEscape;
-       end;
-       PQclear(Result);
+        Utf8Encoded := PAnsiDACChar(UTF8Encode(FConnectString));
+        FHandle := PQConnectDB(Utf8Encoded);
       end;
+      FLastOperationTime := GetTickCount - FLastOperationTime;
+      if PQstatus(FHandle) = CONNECTION_BAD then
+        CheckResult();
+      Result := PQExec(FHandle, 'SET DateStyle TO ''ISO, MDY''');
+      PQclear(Result);
+      FLoggin := True;
+      ReloadGUC();
+      MonitorHook.DBConnect(Self, True);
+    except
+      MonitorHook.DBConnect(Self, False);
+      if Assigned(FHandle) then
+        PQfinish(FHandle);
+      raise;
     end;
-
-   FLoggIn := True;
-   MonitorHook.DBConnect(Self, True);
-  except
-     MonitorHook.DBConnect(Self, False);
-     if Assigned(FHandle) then PQFinish(FHandle);
-     raise;
-  end;
 end;
 
 function TNativeConnect.GetBackendPID: Integer;
 begin
   Result := PQbackendPID(Handle);
-end;
-
-function TNativeConnect.GetCommitOperation: Boolean;
-begin
-  Result :=FTransState <> xsActive;
 end;
 
 procedure TNativeConnect.InternalDisconnect;
@@ -2813,6 +2794,7 @@ begin
      Handle := nil;
      FLoggin := False;
      FServerVersion := '';
+     FGUCList.Clear;
      MonitorHook.DBDisconnect(Self);
   end;
 end;
@@ -2820,6 +2802,14 @@ end;
 function TNativeConnect.GetErrorText: String;
 begin
   Result := RawToString(PQerrorMessage(Handle));
+end;
+
+function TNativeConnect.GetNativeByteaFormat: TNativeByteaFormat;
+begin
+  if FGUCList.Values['bytea_output'] = 'hex' then
+    Result := nbfHex
+  else
+    Result := nbfEscape;
 end;
 
 function TNativeConnect.Success: Boolean;
@@ -8957,6 +8947,22 @@ begin
 end;
 
 
+procedure TNativeConnect.GUCList(List: TStrings);
+var
+  I: Longint;
+  Res: PPGresult;
+begin
+  if not FLoggin then Exit;
+  List.Clear;
+  Res := PQExec(Handle, 'SHOW ALL');
+  try
+    for I := 0 to PQntuples(Res) - 1 do
+      List.Values[RawToString(PQgetvalue(Res, I, 0))] := RawToString(PQgetvalue(Res, I, 1));
+  finally
+    PQclear(Res);
+  end;
+end;
+
 procedure TNativeConnect.GetDBProps(const DB: string; var Owner,
   Tablespace: string; var IsTemplate: boolean; var DBOid: cardinal;
   var Comment: string);
@@ -9488,7 +9494,7 @@ var aRecNum: integer;
           FIELD_TYPE_NUMERIC:
                            Result := VarFMTBcdCreate(S, High(Word), High(Word));
 {$ENDIF}
-          
+
 FIELD_TYPE_BOOL: Result := S[START_STR_INDEX] = 't';
 
           FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
@@ -9999,6 +10005,11 @@ begin
 end;
 {$ENDIF}
 
+
+procedure TNativeConnect.ReloadGUC;
+begin
+  GUCList(FGUCList);
+end;
 
 procedure TNativeConnect.Reset;
 begin

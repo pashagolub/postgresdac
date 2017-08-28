@@ -338,6 +338,7 @@ type
       function GetConnectionTimeout: cardinal;
       function GetServerPort: Cardinal;
       function GetHost: string;
+      function GetGUCParamValue(const Name: string): string;
     protected
       procedure DefineProperties(Filer: TFiler); override; //deal with old missing properties
       procedure CloseDatabaseHandle;
@@ -391,6 +392,7 @@ type
       procedure RegisterDirectQuery(aDirectQuery : TObject);
       procedure RemoveNotify(AItem: TObject);
       procedure Reset;
+      procedure ReloadGUC;
       procedure Rollback;
       procedure SetCharSet(CharSet: string);
       procedure StartTransaction;
@@ -412,6 +414,7 @@ type
       property Temporary: Boolean read FTemporary write FTemporary;
       property TransactionStatus: TTransactionStatusType read GetTransactionStatus;
       property UseSingleLineConnInfo: boolean read FUseSingleLineConnInfo write FUseSingleLineConnInfo;
+      property GUC[const Name: string]: string read GetGUCParamValue;
     published
       property About : TPSQLDACAbout read FAbout write FAbout;
       property AfterConnect;
@@ -1714,6 +1717,12 @@ begin
   Execute('RELEASE SAVEPOINT ' + Name);
 end;
 
+procedure TPSQLDatabase.ReloadGUC;
+begin
+ if Assigned(FHandle) then
+   TNativeConnect(FHandle).ReloadGUC();
+end;
+
 procedure TPSQLDatabase.RollbackToSavepoint(const Name: string);
 begin
   CheckActive();
@@ -2307,7 +2316,7 @@ end;
 procedure TPSQLDatabase.FillAddonInfo;
 begin
   if not Connected or (FDatabaseID > 0) then Exit;
-  Engine.GetDBProps(FHandle,GetDatabaseName(), FOwner, FTablespace,
+  Engine.GetDBProps(FHandle, GetDatabaseName(), FOwner, FTablespace,
         FIsTemplate,FDatabaseId, FComment);
 end;
 
@@ -2362,6 +2371,12 @@ function TPSQLDatabase.GetDbOwner: string;
 begin
  FillAddonInfo;
  Result := FOwner;
+end;
+
+function TPSQLDatabase.GetGUCParamValue(const Name: string): string;
+begin
+  if Assigned(FHandle) then
+    Result := TNativeConnect(FHandle).GUC.Values[Name];
 end;
 
 function TPSQLDatabase.GetHost: string;
