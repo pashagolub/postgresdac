@@ -3029,7 +3029,10 @@ begin
         end;
       fldFLOAT:                                                                                   
         if iSubType = fldstMONEY then FType := ftCurrency;
-      fldBCD, fldFmtBCD:
+      fldBCD
+      {$IFDEF DELPHI_12}
+      , fldFmtBCD
+      {$ENDIF}:
         begin
           FSize := Abs(iUnits2);
           FPrecision := iUnits1;

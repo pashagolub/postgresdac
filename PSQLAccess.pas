@@ -858,7 +858,8 @@ var SessionStart: cardinal;
 
 
 {$IFDEF DELPHI_5}
-function ifThen(aCondition: boolean; IfTrue:string; IfFalse: string = ''): string;
+function ifThen(aCondition: boolean; IfTrue: string; IfFalse: string = ''): string; overload;
+function ifThen(aCondition: boolean; IfTrue: integer; IfFalse: integer = 0): integer; overload;
 {$ENDIF}
 
 {$IFNDEF DELPHI_15}
@@ -2717,6 +2718,11 @@ end;
 
 {$IFDEF DELPHI_5}
 function ifThen(aCondition: boolean; IfTrue, IfFalse: string): string;
+begin
+ if aCondition then Result := IfTrue else Result := IfFalse;
+end;
+
+function ifThen(aCondition: boolean; IfTrue: integer; IfFalse: integer = 0): integer;
 begin
  if aCondition then Result := IfTrue else Result := IfFalse;
 end;
