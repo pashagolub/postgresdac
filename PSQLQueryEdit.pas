@@ -173,6 +173,7 @@ var FClass: TPersistentClass;
     T: TRTTIType;
 {$ENDIF}
 begin
+  Result := False;
   with TSQLEditForm.Create(nil) do
   try
 {$IFDEF DELPHI_14}
