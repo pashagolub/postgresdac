@@ -162,6 +162,7 @@ uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLQueryEdit, PSQLT
 
 {$R DB.DCR}
 {$R DBPRO.DCR}
+{$R DB_Platform.DCR}
 
 function GetPropertyValue(Instance: TPersistent; const PropName: string): TPersistent;
 var
