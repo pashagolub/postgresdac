@@ -47,7 +47,8 @@ type
                 doDisableTriggers, doUseSetSessionAuthorization, doNoTablespaces,
                 doQuoteAllIdentifiers, doNoSecurityLabels, doNoUnloggedTableData,
                 doSerializableDeferrable, doNoSynchronizedSnapshots, doIfExists,
-                doEnableRowSecurity, doStrictNames, doNoBlobs);
+                doEnableRowSecurity, doStrictNames, doNoBlobs, doNoSync,
+                doNoSubscriptions, doNoPublications);
 
   TDumpOptions = set of TDumpOption;
 
@@ -151,7 +152,7 @@ type
             roList, roNoOwner, roSchemaOnly, roVerbose, roNoPrivileges,
             roDisableTriggers, roUseSetSessionAuthorization, roSingleTransaction,
             roNoDataForFailedTables, roNoTablespaces, roNoSecurityLabels, roIfExists,
-            roEnableRowSecurity, roStrictNames);
+            roEnableRowSecurity, roStrictNames, roNoSubscriptions, roNoPublications);
 
   TRestoreOptions = set of TRestoreOption;
 
@@ -261,7 +262,11 @@ const
    '--if-exists',                      //doIfExists
    '--enable-row-security',            //doEnableRowSecurity
    '--strict-names',                   //doStrictNames
-   '--no-blobs'                        //doNoBlobs
+   '--no-blobs',                       //doNoBlobs
+   '--no-sync',                        //doNoSync
+   '--no-subscriptions',               //doNoSubscriptions
+   '--no-publications'                 //doNoPublications
+
   );
 
   RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
@@ -283,7 +288,9 @@ const
    '--no-security-labels',             //roNoSecurityLabels
    '--if-exists',                      //roIfExists
    '--enable-row-security',            //roEnableRowSecurity
-   '--strict-names'                    //roStrictNames
+   '--strict-names',                   //roStrictNames
+   '--no-subscriptions',               //roNoSubscriptions
+   '--no-publications'                 //roNoPublications
    );
 
   DumpCommandLineStrParameters: array[TDumpStrOption] of string =(
