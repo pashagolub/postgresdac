@@ -62,9 +62,9 @@ type
 
   TPSQLMonitor = class(TPSQLCustomMonitor)
   private
-    FAbout : TPSQLDACAbout; //mi:2007-09-28
+    FAbout : TPSQLDACAbout;
   published
-    property About : TPSQLDACAbout read FAbout write FAbout;//mi:2007-09-28
+    property About : TPSQLDACAbout read FAbout write FAbout;
     property OnSQL;
     property TraceFlags;
     property Active;
@@ -1298,3 +1298,4 @@ finalization
   {$ENDIF}
   end;
 end.
+
