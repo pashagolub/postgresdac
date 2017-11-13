@@ -77,6 +77,8 @@ type
     procedure TestRefreshModifiedInsertNonEmptyTable;
     procedure TestRefreshModifiedUpdate;
     procedure TestRefreshModifiedDelete;
+  //dsoNumericAsFloat
+    procedure TestNumericAsFloat;
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
@@ -252,8 +254,19 @@ end;
 procedure TestTPSQLQuery.TestAsFloat;
 const D: Double = 12.8;
 begin
- FPSQLQuery.SQL.Text := 'SELECT 12.8';
+ FPSQLQuery.SQL.Text := 'SELECT 12.8 :: float';
  FPSQLQuery.Open;
+ Check(FPSQLQuery.Fields[0].AsFloat = D, 'Field value AsFloat is incorrect');
+ FPSQLQuery.Close;
+end;
+
+procedure TestTPSQLQuery.TestNumericAsFloat;
+const D: Double = 12.8;
+begin
+ FPSQLQuery.Options := FPSQLQuery.Options + [dsoNumericAsFloat];
+ FPSQLQuery.SQL.Text := 'SELECT 12.8 :: numeric';
+ FPSQLQuery.Open;
+ Check(FPSQLQuery.Fields[0] is TFloatField, 'Field shold be mapped as TFloatField');
  Check(FPSQLQuery.Fields[0].AsFloat = D, 'Field value AsFloat is incorrect');
  FPSQLQuery.Close;
 end;

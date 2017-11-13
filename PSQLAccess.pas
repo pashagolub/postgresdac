@@ -5076,8 +5076,12 @@ begin
   if FStatement <> nil then
      Result := PQftype(FStatement, FieldNum);
   case Result of
-   FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then Result := FIELD_TYPE_INT8;
-   FIELD_TYPE_BYTEA: if dsoByteaAsEscString in FOptions then Result := FIELD_TYPE_TEXT;
+   FIELD_TYPE_OID: if dsoOIDAsInt in FOptions then
+      Result := FIELD_TYPE_INT8;
+   FIELD_TYPE_BYTEA: if dsoByteaAsEscString in FOptions then
+      Result := FIELD_TYPE_TEXT;
+   FIELD_TYPE_NUMERIC: if dsoNumericAsFloat in FOptions then
+      Result := FIELD_TYPE_FLOAT8;
    FIELD_TYPE_OIDVECTOR: Result := FIELD_TYPE_VARCHAR;
    FIELD_TYPE_CID,
    FIELD_TYPE_XID,
@@ -7028,7 +7032,11 @@ function TPSQLEngine.CloseDatabase(var hDb : DAChDBIDb) : DBIResult;
 begin
   try
     Database := hDb;
+  {$IFNDEF NEXTGEN}
     TNativeConnect(hDb).Free;
+  {$ELSE}
+    TNativeConnect(hDb).DisposeOf;
+  {$ENDIF}
     hDb := nil;
     FDatabase := nil;
     Result := DBIERR_NONE;

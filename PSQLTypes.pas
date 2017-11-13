@@ -1821,7 +1821,7 @@ type
   TPSQLDatasetOption = (dsoByteaAsEscString, dsoOIDAsInt, dsoForceCreateFields,
                         dsoUseGUIDField, dsoTrimCharFields, dsoPopulateFieldsOrigin,
                         dsoManageLOFields, dsoEmptyCharAsNull, dsoUDTAsMaxString,
-                        dsoRefreshModifiedRecordOnly, dsoFetchOnDemand);
+                        dsoRefreshModifiedRecordOnly, dsoFetchOnDemand, dsoNumericAsFloat);
 
   TPSQLDatasetOptions = set of TPSQLDatasetOption;
 
