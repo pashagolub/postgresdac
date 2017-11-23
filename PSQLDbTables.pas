@@ -255,6 +255,10 @@ type
   TPSQLDBDesignOption = (ddoStoreConnected, ddoStorePassword);
   TPSQLDBDesignOptions = set of TPSQLDBDesignOption;
 
+  IPSQLLoginDialog = interface
+    function Execute(const DB: TPSQLDatabase): boolean;
+  end;
+
   TPSQLDatabase =  Class(TCustomConnection)
     private
       FAbout   : TPSQLDACAbout;
@@ -291,6 +295,7 @@ type
       FErrorVerbosity: TErrorVerbosity;
       FOnException: TDbExceptionEvent;
       FUseSingleLineConnInfo: boolean;
+      {$IFDEF NEXTGEN}[Weak]{$ENDIF} FLoginDialog: IPSQLLoginDialog;
       function GetNotifyItem(Index: Integer): TObject;
       function GetNotifyCount: Integer;
       procedure FillAddonInfo;
@@ -417,6 +422,7 @@ type
       property GUC[const Name: string]: string read GetGUCParamValue;
     published
       property About : TPSQLDACAbout read FAbout write FAbout;
+      property LoginDialog: IPSQLLoginDialog read FLoginDialog write FLoginDialog;
       property AfterConnect;
       property AfterDisconnect;
       property BeforeConnect;
@@ -511,6 +517,7 @@ type
  TPSQLDataSet = class(TDataSet)
   private
     FAbout : TPSQLDACAbout;
+    FHandle: HDBICur;
     FRecProps: RecProps; //Record properties
     FExprFilter: HDBIFilter; //Filter expression
     FFuncFilter: HDBIFilter; // filter function
@@ -542,9 +549,9 @@ type
     FBlockBufCount: Integer;
     FBlockReadCount: Integer;
     {$ENDIF}
-    FOldBuffer : {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF};
+    FOldBuffer: {$IFNDEF NEXTGEN}TRecordBuffer{$ELSE}TRecBuf{$ENDIF};
     FParentDataSet: TPSQLDataSet;
-    FUpdateObject: TPSQLSQLUpdateObject;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FUpdateObject: TPSQLSQLUpdateObject;
     {$IFNDEF FPC}
     FOnUpdateError: TUpdateErrorEvent;
     FOnUpdateRecord: TUpdateRecordEvent;
@@ -552,8 +559,8 @@ type
     FAutoRefresh: Boolean;
     FDBFlags: TDBFlags;
     FUpdateMode: TUpdateMode;
-    FDatabase: TPSQLDatabase;
-    FAllowSequenced : Boolean;  //Add by Nicolas Ring
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDatabase: TPSQLDatabase;
+    FAllowSequenced: boolean;
     FSortFieldNames: string;
     FOptions: TPSQLDatasetOptions;
     {$IFDEF NEXTGEN}
@@ -581,8 +588,8 @@ type
     procedure ReadByteaOpt(Reader: TReader); //deal with old missing properties
     procedure ReadOIDOpt(Reader: TReader); //deal with old missing properties
     function GetStoreActive: boolean;
+
   protected
-    FHandle: HDBICur;  //cursor handle // to make it visible to PSQLUser
     procedure DefineProperties(Filer: TFiler); override;
     { IProviderSupport }
     {$IFNDEF FPC}
@@ -1085,7 +1092,7 @@ type
       procedure SetOptions(const Value: TPSQLDatasetOptions); override;
       procedure GetStatementHandle(SQLText: PChar); virtual;
       property DataLink: TDataLink read FDataLink;
-    Public
+    public
       constructor Create(AOwner: TComponent); override;
       destructor Destroy; override;
       function  Engine : TPSQLEngine; override;
@@ -1121,9 +1128,9 @@ type
 
   { TPSQLUpdateSQL }
   TPSQLUpdateSQL = Class(TPSQLSQLUpdateObject)
-  Private
+  private
     FAbout : TPSQLDACAbout;
-    FDataSet: TPSQLDataSet;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDataSet: TPSQLDataSet;
     FQueries: array[TUpdateKind] of TPSQLQuery;
     FSQLText: array[TUpdateKind] of TStrings;
     FRecordChangeCompleteEvent: TRecordChangeCompleteEvent;
@@ -1131,13 +1138,13 @@ type
     function GetSQLIndex(Index: Integer): TStrings;
     procedure SetSQL(UpdateKind: TUpdateKind; Value: TStrings);
     procedure SetSQLIndex(Index: Integer; Value: TStrings);
-  Protected
+  protected
     function GetSQL(UpdateKind: TUpdateKind): TStrings; override;
     function GetQueryClass : TPSQLQueryClass;
     function GetDataSet: TPSQLDataSet; override;
     procedure SetDataSet(ADataSet: TPSQLDataSet); override;
     procedure SQLChanged(Sender: TObject);
-  Public
+  public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure Apply(UpdateKind: TUpdateKind); override;
@@ -1146,7 +1153,7 @@ type
     property DataSet;
     property Query[UpdateKind: TUpdateKind]: TPSQLQuery read GetQuery;
     property SQL[UpdateKind: TUpdateKind]: TStrings read GetSQL write SetSQL;
-  Published
+  published
     property About : TPSQLDACAbout read FAbout write FAbout;
     property ModifySQL: TStrings index 0 read GetSQLIndex write SetSQLIndex;
     property InsertSQL: TStrings index 1 read GetSQLIndex write SetSQLIndex;
@@ -1157,8 +1164,8 @@ type
   { TPSQLBlobStream }
   TPSQLBlobStream = class(TStream)
   private
-    FField: TBlobField;
-    FDataSet: TPSQLDataSet;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FField: TBlobField;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDataSet: TPSQLDataSet;
     FBuffer: TRecordBuffer;
     FMode: TBlobStreamMode;
     FFieldNo: Integer;
@@ -1253,28 +1260,27 @@ uses
 procedure NoticeProcessor(arg: Pointer; mes: PAnsiDACChar);
 var s:string;
 begin
- if Assigned(TPSQLDatabase(Arg).FOnNotice) then
-  begin
-   if TPSQLDatabase(Arg).IsUnicodeUsed then
-     S := UTF8ToString(Mes)
-   else
-     S := string(Mes);
-   TPSQLDatabase(Arg).FOnNotice(TPSQLDatabase(Arg), S);
-  end;
+ if not Assigned(TPSQLDatabase(Arg).FOnNotice) then Exit;
+ if TPSQLDatabase(Arg).IsUnicodeUsed then
+   S := UTF8ToString(Mes)
+ else
+   S := string(Mes);
+ TPSQLDatabase(Arg).FOnNotice(TPSQLDatabase(Arg), S);
 end;
 
 { TPSQLQueryDataLink }
 type
+
   TPSQLQueryDataLink =  Class(TDetailDataLink)
-    Private
-      FQuery: TPSQLQuery;
-    Protected
-      procedure ActiveChanged; override;
-      procedure RecordChanged(Field: TField); override;
-      function GetDetailDataSet: TDataSet; override;
-      procedure CheckBrowseMode; override;
-    Public
-      constructor Create(AQuery: TPSQLQuery);
+  private
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FQuery: TPSQLQuery;
+  protected
+    procedure ActiveChanged; override;
+    procedure RecordChanged(Field: TField); override;
+    function GetDetailDataSet: TDataSet; override;
+    procedure CheckBrowseMode; override;
+  public
+    constructor Create(AQuery: TPSQLQuery);
   end;
 
 procedure TDbiError(Engine : TPSQLEngine; ErrorCode: Word);
@@ -4548,7 +4554,11 @@ begin
   begin
     if Assigned(FUpdateCallback) then
     begin
+      {$IFDEF NEXTGEN}
+      FUpdateCallback.DisposeOf;
+      {$ELSE}
       FUpdateCallback.Free;
+      {$ENDIF}
       FUpdateCallback := nil;
     end;
   end;
@@ -5019,7 +5029,6 @@ function TPSQLDataSet.PSExecuteStatement(const ASQL: string; AParams: TParams;
 var
   InProvider: Boolean;
 begin
-  Result := 0;
   InProvider := SetDBFlag(dbfProvider, TRUE);
   try
     ResultSet := TPSQLQuery.Create(nil);
@@ -5096,7 +5105,7 @@ destructor TPSQLQuery.Destroy;
 begin
   Destroying;
   Disconnect;
-  {$IFNDEF NEXTGEN}SQL.Free{$ELSE}SQL.DisposeOf{$ENDIF};
+  FSQL.Free;
   FParams.Free;
   FDataLink.Free;
   StrDispose(SQLBinary);
@@ -7285,7 +7294,7 @@ begin
     FParams.Clear;
     Check(Engine, Engine.OpenStoredProcParams(DBHandle, StoredProcName, FOverload, List));
       for i:=0 to List.Count-1 do
-       begin
+      begin
         Desc := List[i];
         with Desc^ do
         begin
@@ -7308,7 +7317,7 @@ begin
             Name := string(ParamName);
           end;
         end;
-       end;
+      end;
    finally
     for i:=0 to List.Count-1 do
      begin

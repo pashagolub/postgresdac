@@ -16,7 +16,7 @@ type
   TPSQLBatchExecute = class(TComponent)
   private
     FAbout   : TPSQLDACAbout;
-    FDatabase: TPSQLDatabase;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDatabase: TPSQLDatabase;
     FAffectedRows: LongInt;
     FSql: TStringList;
     FDelimiter : Char;

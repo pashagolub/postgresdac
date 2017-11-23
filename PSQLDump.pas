@@ -66,7 +66,7 @@ type
     {$IFDEF M_DEBUG}
     FParamStr   : string;
     {$ENDIF}
-    FDatabase   : TPSQLDatabase;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDatabase: TPSQLDatabase;
     FCompressLevel: TCompressLevel;
     FDumpFormat : TDumpFormat;
     FDumpOptions : TDumpOptions;
@@ -162,16 +162,16 @@ type
 
   TPSQLRestore = class(TComponent)
   private
-    FAbout      : TPSQLDACAbout;
+    FAbout: TPSQLDACAbout;
     {$IFDEF M_DEBUG}
-    FParamStr   : string;
+    FParamStr: string;
     {$ENDIF}
-    FDatabase   : TPSQLDatabase;
-    FRestoreFormat : TRestoreFormat;
-    FRestoreOptions : TRestoreOptions;
-    FRestoreStrOptions : array[TRestoreStrOption] of string;
-    FBeforeRestore : TNotifyEvent;
-    FAfterRestore  : TNotifyEvent;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDatabase: TPSQLDatabase;
+    FRestoreFormat: TRestoreFormat;
+    FRestoreOptions: TRestoreOptions;
+    FRestoreStrOptions: array [TRestoreStrOption] of string;
+    FBeforeRestore: TNotifyEvent;
+    FAfterRestore: TNotifyEvent;
     FmiParams: TpdmvmParams;
     FOnLog: TLogEvent;
     FJobs: cardinal;
@@ -748,7 +748,7 @@ begin
      begin
       Log.LoadFromFile(tmpLogFile);
       SysUtils.DeleteFile(tmpLogFile);
-     end;                                     
+     end;
   end;
 end;
 
@@ -1340,5 +1340,3 @@ begin
 end;
 
 end.
-
-

@@ -38,21 +38,21 @@ type
 {                        Error handler                                       }
 {****************************************************************************}
   EPSQLException =  Class(EAbort)
-    private
-      FPSQL : TNativeConnect;
-      FPSQLErrorCode : Word;
-      FBDEErrorCode : Word;
-      FBDE          : Boolean;
-      FPSQLErrorMsg : String;
-    public
-      constructor CreateBDE(ECode : Word);
-      constructor CreateBDEMsg(ECode : Word; Const EMessage : String);
-      constructor Create(PSQL : TNativeConnect);
-      constructor CreateMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
-      property PSQLErrorCode : word read FPSQLErrorCode;
-      property PSQLErrorMsg : String read FPSQLErrorMsg;
-      property BDEErrorCode : Word read FBDEErrorCode;
-      property BDEErrors : Boolean read FBDE;
+  private
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FPSQL : TNativeConnect;
+    FPSQLErrorCode : Word;
+    FBDEErrorCode : Word;
+    FBDE          : Boolean;
+    FPSQLErrorMsg : String;
+  public
+    constructor CreateBDE(ECode : Word);
+    constructor CreateBDEMsg(ECode : Word; Const EMessage : String);
+    constructor Create(PSQL : TNativeConnect);
+    constructor CreateMsg(PSQL : TNativeConnect; Const ErrorMsg : String );
+    property PSQLErrorCode : word read FPSQLErrorCode;
+    property PSQLErrorMsg : String read FPSQLErrorMsg;
+    property BDEErrorCode : Word read FBDEErrorCode;
+    property BDEErrors : Boolean read FBDE;
   end;
 
 {****************************************************************************}
@@ -160,7 +160,6 @@ type
                         var HasOIDs: boolean;
                         var TableOid: cardinal);
     procedure EmptyTable(hCursor : hDBICur; pszTableName : string);
-    procedure TableExists(pszTableName : string);
     procedure AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
     procedure DeleteIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; pszIndexName: string; pszIndexTagName: string; iIndexId: Word);
 
@@ -294,7 +293,6 @@ type
       function GetIndexDesc(hCursor: hDBICur;iIndexSeqNo: Word;var idxDesc: IDXDesc): DBIResult;
       function GetIndexDescs(hCursor: hDBICur; idxDescs: TIDXDescList): DBIResult;
       function TranslateRecordStructure(pszSrcDriverType: PChar; iFlds: Word; pfldsSrc: pFLDDesc; pszDstDriverType: PChar; pszLangDriver: PChar;pfldsDst: pFLDDesc; bCreatable: Boolean): DBIResult;
-      function TableExists(hDb: DAChDBIDb; pszTableName: string): DBIResult;
       function AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
       function SetToKey(hCursor: hDBICur;eSearchCond: DBISearchCond;bDirectKey: Boolean;iFields: integer;iLen: integer;pBuff: Pointer): DBIResult;
       function CloneCursor(hCurSrc: hDBICur;bReadOnly: Boolean;bUniDirectional: Boolean;var   hCurNew: hDBICur): DBIResult;
@@ -2685,7 +2683,6 @@ end;
 
 Destructor TNativeConnect.Destroy;
 begin
-  //Tables.Free;
   InternalDisconnect;
   FreeAndNil(FGUCList);
   Inherited Destroy;
@@ -3121,39 +3118,32 @@ begin
     end;
 end;
 
-procedure TNativeConnect.OpenFieldList(pszTableName : string;
-                                       pszDriverType: string;
-                                       bPhyTypes    : Boolean;
-                                       var hCur     : hDBICur);
+procedure TNativeConnect.OpenFieldList(pszTableName: string;
+  pszDriverType: string; bPhyTypes: Boolean; var hCur: hDBICur);
 var
-  P : TNativeDataSet;
-procedure ProcessTable;
-var
-    Props : CURProps;
-    Items : integer;
-    Descs : TFLDDescList;
+  P: TNativeDataSet;
+  Props: curProps;
+  Items: Integer;
+  Descs: TFLDDescList;
 begin
-    P.GetCursorProps(Props);
-    Items := Props.iFields;
-    if Items > 0 then
-    begin
-      SetLength(Descs, Items);
-      try
-        P.GetFieldDescs(Descs);
-        hCur := hDBICur(TFieldList.Create(Self, Descs, Items));
-      finally
-        Finalize(Descs);
-      end;
+  FSystem := True;
+  OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED, hDBICur(P),
+    [], 0, 0);
+  P.GetCursorProps(Props);
+  Items := Props.iFields;
+  if Items > 0 then
+  begin
+    SetLength(Descs, Items);
+    try
+      P.GetFieldDescs(Descs);
+      hCur := hDBICur(TFieldList.Create(Self, Descs, Items));
+    finally
+      Finalize(Descs);
     end;
-end;
-
-begin
-   FSystem := True;
-   OpenTable(pszTableName, '', 0, dbiREADONLY, dbiOPENSHARED, hDBICur(P), [], 0, 0);
-   ProcessTable;
-   P.CloseTable;
-   P.Free;
-   FSystem := False;
+  end;
+  P.CloseTable;
+  P.Free;
+  FSystem := False;
 end;
 
 procedure TNativeConnect.OpenIndexList(pszTableName: string; pszDriverType: string; var hCur: hDBICur);
@@ -3191,7 +3181,7 @@ var
     try
       ProcessTable;
       TNativeDataSet(P).CloseTable;
-    Finally
+    finally
       TNativeDataSet(P).Free;
     end;
     FSystem := False;
@@ -3224,32 +3214,10 @@ begin
     OpenTable(pszTableName, '', 0, dbiREADWRITE, dbiOPENEXCL, hCursor, [], 0, 0);
   try
     TNativeDataSet(hCursor).EmptyTable;
-  Finally
+  finally
     if isNotOpen then
       TNativeDataSet(hCursor).Free;
   end;
-end;
-
-procedure TNativeConnect.TableExists(pszTableName : string);
-var
-   List : TStrings;
-   I : Integer;
-   Found : Boolean;
-begin
-   Found := False;
-   List := TStringList.Create;
-   try
-     TableList('', False, List);
-     for I:=0 to List.Count-1 do
-     begin
-         Found := SameText(pszTableName, List[I]);
-         if Found then break;
-     end;
-   finally
-     List.Free;
-   end;
-   if not Found then
-      raise EPSQLException.CreateBDEMsg(DBIERR_NOSUCHTABLE, pszTableName);
 end;
 
 procedure TNativeConnect.AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
@@ -3261,7 +3229,7 @@ begin
     OpenTable(pszTableName, '', IdxDesc.iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), [], 0, 0);
   try
     NDS.AddIndex(idxDesc,pszKeyViolName);
-  Finally
+  finally
     if not Assigned(hCursor) then NDS.Free;
   end;
 end;
@@ -3275,7 +3243,7 @@ begin
     OpenTable(pszTableName, pszIndexName, iIndexId, dbiREADWRITE, dbiOPENEXCL, hDBICur(NDS), [], 0, 0);
   try
     NDS.DeleteIndex(pszIndexName, pszIndexTagName, iIndexID);
-  Finally
+  finally
     if not Assigned(hCursor) then NDS.Free;
   end;
 end;
@@ -4553,15 +4521,21 @@ end;
 
 procedure TNativeDataSet.DropFilter(hFilter: hDBIFilter);
 var
-  Count : Integer;
+  Count: Integer;
 begin
-  if hFilter = NIL then FFilters.FreeAll else
+  if hFilter = nil then
+    FFilters.FreeAll
+  else
   begin
     Count := FFilters.Count;
     FFilters.Delete(hFilter);
     if Count <> FFilters.Count then
     begin
+      {$IFDEF NEXTGEN}
+      TPSQLFilter(hFilter).DisposeOf;
+      {$ELSE}
       TPSQLFilter(hFilter).Free;
+      {$ENDIF}
       UpdateFilterStatus;
     end;
   end;
@@ -6874,7 +6848,7 @@ begin
        GetBookMark(M);
        TNativeDataSet(hDest).SetToBookMark(M); // set main cursor bookmark
     end;
-  Finally
+  finally
     FreeMem(M, BookMarkSize);
   end;
 end;
@@ -7207,7 +7181,11 @@ function TPSQLEngine.CloseCursor(hCursor : hDBICur) : DBIResult;
 begin
   try
     TNativeDataSet(hCursor).CloseTable;
+    {$IFDEF NEXTGEN}
+    TNativeDataSet(hCursor).DisposeOf;
+    {$ELSE}
     TNativeDataSet(hCursor).Free;
+    {$ENDIF}
     Result := DBIERR_NONE;
   except
     Result := CheckError;
@@ -7833,17 +7811,6 @@ begin
   end;
 end;
 
-function TPSQLEngine.TableExists(hDb: DAChDBIDb; pszTableName: string): DBIResult;
-begin
-   try
-     Database := hDb;
-     TNativeConnect(hDb).TableExists(pszTableName);
-     Result := DBIERR_NONE;
-  except
-     Result := CheckError;
-  end;
-end;
-
 function TPSQLEngine.AcqTableLock(hCursor: hDBICur; eLockType: word; bNoWait: boolean): DBIResult;
 begin
   try
@@ -7974,7 +7941,11 @@ end;
 function TPSQLEngine.ClosePGNotify(var hNotify : hDBIObj) : DBIResult;
 begin
  try
+    {$IFDEF NEXTGEN}
+    TNativePGNotify(hNotify).DisposeOf;
+    {$ELSE}
     TNativePGNotify(hNotify).Free;
+    {$ENDIF}
     hNotify := nil;
     Result := DBIERR_NONE;
   except

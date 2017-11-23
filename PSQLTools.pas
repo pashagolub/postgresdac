@@ -22,7 +22,7 @@ type
   TPSQLTools = class(TComponent)
    private
     FAbout   : TPSQLDACAbout;
-    FDatabase : TPSQLDatabase;
+    {$IFDEF NEXTGEN}[Weak]{$ENDIF} FDatabase: TPSQLDatabase;
     FQuery    : TPSQLQuery;
     FColumnList : TStrings;
     FOnError : TToolsEvent;
@@ -113,7 +113,7 @@ end;
 destructor TPSQLTools.Destroy;
 begin
   FQuery.Free;
-  {$IFNDEF NEXTGEN}ColumnList.Free{$ELSE}ColumnList.DisposeOf{$ENDIF};
+  FColumnList.Free;
   inherited;
 end;
 

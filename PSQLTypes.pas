@@ -3,7 +3,7 @@ unit PSQLTypes;
 
 {SVN revision: $Id$}
 
-{$Z+,T-} //taken from MySQLDAC 
+{$Z+,T-} //taken from MySQLDAC
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
@@ -344,12 +344,12 @@ const
     FIELD_TYPE_JSON				        = 114;
     FIELD_TYPE_XML                = 142;
     FIELD_TYPE_TSVECTOR			      = 3614;
-    FIELD_TYPE_GTSVECTOR          = 3642; 
-    FIELD_TYPE_TSQUERY            = 3615; 
-    FIELD_TYPE_REGCONFIG          = 3734; 
+    FIELD_TYPE_GTSVECTOR          = 3642;
+    FIELD_TYPE_TSQUERY            = 3615;
+    FIELD_TYPE_REGCONFIG          = 3734;
     FIELD_TYPE_REGDICTIONARY      = 3769;
     FIELD_TYPE_JSONB              = 3802;
-	
+
     //range types
     FIELD_TYPE_INT4RANGE		= 3904;
     FIELD_TYPE_NUMRANGE			= 3906;
@@ -373,7 +373,7 @@ const
     PSEUDO_ANY_ELEMENT            = 2283;
     PSEUDO_OPAQUE                 = 2282;
     PSEUDO_ANY_ENUM               = 3500;
-    
+
     MAX_BUILTIN_TYPE_OID = FIELD_TYPE_A_INT8RANGE; //pg: 04.04.2012 need to be changed if new built-in type appears
 
 
@@ -734,11 +734,11 @@ var
   PQtrace:         TPQtrace;
   PQuntrace:       TPQuntrace;
   PQsetNoticeProcessor: TPQsetNoticeProcessor;
-  PQprepare:       TPQprepare;           
+  PQprepare:       TPQprepare;
   PQexecPrepared:  TPQexecPrepared;
   PQexec:          TPQexec;
   PQsendQuery:     TPQsendQuery;
-  PQexecParams:    TPQexecParams; 
+  PQexecParams:    TPQexecParams;
   PQresultErrorField:TPQresultErrorField;
   PQnotifies:      TPQnotifies;
   PQsetSingleRowMode: TPQsetSingleRowMode;
@@ -1829,7 +1829,7 @@ const
   SSLConsts: array[TSSLMode] of string = ('disable' , 'allow', 'prefer',
                                           'require', 'verify-ca', 'verify-full');
 
-  SSLOpts: array[0..3] of string = ('sslcert', 'sslkey', 'sslrootcert', 'sslcrl');                                          
+  SSLOpts: array[0..3] of string = ('sslcert', 'sslkey', 'sslrootcert', 'sslcrl');
 
 type
  TDBOptions = record
@@ -1860,32 +1860,30 @@ type
 /////////////////////////////////////////////////////////////////////////////
   {TContainer Object}
   TContainer = Class(TObject)
-    Private
-      FItems : TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
-    Public
-      constructor Create;
-      Destructor Destroy; Override;
-      function At( Index : integer ) : pointer;
-      procedure AtDelete( Index : integer );
-      procedure AtFree( Index : integer );
-      procedure AtInsert( Index: integer; Item : pointer );
-      procedure AtPut( Index : Integer; Item : Pointer );
-      procedure Clear;
-      procedure Delete( Item : Pointer );
-      procedure DeleteAll;
-      procedure FreeAll;
-      procedure FreeItem( Item : pointer );
-      function Get( AIndex : integer ) : pointer;
-      function GetCount : integer;
-      function IndexOf( Item : pointer ) : integer;
-      procedure Insert( Item : pointer ); Virtual;
-      procedure Pack;
-      procedure Put( AIndex : integer; APointer : pointer );
-      function GetCapacity : Integer;
-      procedure SetCapacity( NewCapacity : Integer );
-      property Count: integer Read  GetCount;
-      property Items[ index : integer ] : pointer Read  Get Write Put;
-      property Capacity : Integer Read  GetCapacity Write SetCapacity;
+  private
+    FItems: TList{$IFDEF NEXTGEN}<Pointer>{$ENDIF};
+  public
+    constructor Create;
+    Destructor Destroy; Override;
+    function At(Index: integer): Pointer;
+    procedure AtDelete(Index: integer);
+    procedure AtInsert(Index: integer; Item: Pointer);
+    procedure AtPut(Index: integer; Item: Pointer);
+    procedure Clear;
+    procedure Delete(Item: Pointer);
+    procedure DeleteAll;
+    procedure FreeAll;
+    function Get(AIndex: integer): Pointer;
+    function GetCount: integer;
+    function IndexOf(Item: Pointer): integer;
+    procedure Insert(Item: Pointer); Virtual;
+    procedure Pack;
+    procedure Put(AIndex: integer; APointer: Pointer);
+    function GetCapacity: integer;
+    procedure SetCapacity(NewCapacity: integer);
+    property Count: integer Read GetCount;
+    property Items[index: integer]: Pointer Read Get Write Put;
+    property Capacity: integer Read GetCapacity Write SetCapacity;
   end;
 
   TBaseObject = Class(TObject)
@@ -2343,18 +2341,6 @@ begin
   FItems.Delete(Index);
 end;
 
-procedure TContainer.AtFree( Index : integer );
-var
-  Item : Pointer;
-begin
-  Item := At(Index);
-  if Item <> nil then
-  begin
-    AtDelete(Index);
-    FreeItem(Item);
-  end;
-end;
-
 procedure TContainer.AtInsert( Index : integer; Item : pointer );
 begin
   FItems.Insert( Index, Item );
@@ -2389,16 +2375,11 @@ var
 begin
   Try
     for I := Count -1 downto 0 do
-      FreeItem(At(I));
+      TObject(At(I)).Free;
   Except
     On EListError do ;
   End;
   FItems.Clear;
-end;
-
-procedure TContainer.FreeItem( Item : pointer );
-begin
-  if Item <> nil  then TObject(Item).Free;
 end;
 
 function TContainer.Get(AIndex : integer) : pointer;
@@ -3035,7 +3016,7 @@ begin
                       end;
 {$IFDEF UNDER_DELPHI_12}
     FIELD_TYPE_NUMERIC,
-{$ENDIF}    
+{$ENDIF}
     FIELD_TYPE_FLOAT4,
     FIELD_TYPE_FLOAT8:
                       begin
@@ -3109,7 +3090,7 @@ begin
                         BdeType := fldRANGE;
                         LogSize := SizeOf(TPSQLRange);
                       end
-{$ENDIF DELPHI_12}                      
+{$ENDIF DELPHI_12}
   else
     begin
        BdeType := fldZSTRING;
@@ -3577,5 +3558,3 @@ finalization
   UnloadPSQLLibrary;
 
 end.
-
-
