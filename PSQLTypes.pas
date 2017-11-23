@@ -219,15 +219,15 @@ const //date/time convertion
 {$ENDIF}
 
 const
-  LIBEAY_DLL           : string = 'libeay32.dll';
-  SSLEAY_DLL           : string = 'ssleay32.dll';
+  LIBEAY_DLL           : string = 'libcrypto-1_1.dll';
+  SSLEAY_DLL           : string = 'libssl-1_1.dll';
 
 var
   PSQL_DLL             : string =
                                 {$IFDEF MSWINDOWS}'libpq.dll'{$ENDIF}
                                 {$IFDEF MACOS}'libpq.dylib'{$ENDIF}
-                                {$IFDEF ANDROID or LINUX}'libpq.so'{$ENDIF}
-                                {$IFDEF LINUX}'libpq.so.5'{$ENDIF};
+                                {$IFDEF ANDROID}'libpq.so'{$ENDIF}
+                                {$IFDEF LINUX}'libpq.so'{$ENDIF};
 
 
 
