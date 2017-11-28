@@ -9307,8 +9307,9 @@ var TabOid: cardinal;
     s: string;
     IsOK: boolean;
 begin
- if FStatement <> nil then
-   begin
+  Result := '';
+  if FStatement <> nil then
+  begin
     TabOid := FieldTable(FieldNum - 1); //pg_attribute uses 1 as first field index, but low level rotines not
     if TabOid <= InvalidOid then Exit;
     ColNum := FieldPosInTable(FieldNum - 1);
@@ -9316,7 +9317,7 @@ begin
                 'FROM pg_attribute WHERE attrelid = %u AND attnum = %d',
                     [TabOid, TabOid, ColNum]);
     Result := FConnect.SelectStringDirect(s, IsOK, 0);
-   end;
+  end;
 end;
 
 function TNativeDataSet.FieldPosInTable(FieldNum: integer): Integer;
