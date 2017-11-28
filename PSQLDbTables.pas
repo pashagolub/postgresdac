@@ -7392,13 +7392,10 @@ end;
 
 function TPSQLTable.GetTableSpace: string;
 begin
- if FTableSpace = '<DEFAULT>' then
-  begin
-   if Database.Connected then
-     Result := Database.Tablespace
-  end
+ if (FTableSpace = '<DEFAULT>') and Database.Connected then
+   Result := Database.Tablespace
  else
-  Result := FTablespace;
+   Result := FTablespace;
 end;
 
 procedure TPSQLTable.SetOptions(const Value: TPSQLDatasetOptions);
