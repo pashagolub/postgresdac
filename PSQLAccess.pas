@@ -5616,7 +5616,7 @@ function TNativeDataSet.GetInsertSQL(Table: string; PRecord: Pointer; ReturnUpda
 var
   I    : Integer;
   Fld    : TPSQLField;
-  Fields : String;
+  SFields : String;
   Values : String;
 
   function GetRETURNING: string;
@@ -5631,22 +5631,22 @@ var
 
 begin
   Result := '';
-  Fields := '';
+  SFields := '';
   for I := 1 to FFieldDescs.Count do
   begin
     Fld := FFieldDescs.Field[I];
     Fld.Buffer:= PRecord;
     if (Fld.FieldNull) and (not Fld.FValCheck.bHasDefVal) then continue;
-    Fields := Fields + AnsiQuotedStr(Fld.FieldName, '"') + ', ';
+    SFields := SFields + AnsiQuotedStr(Fld.FieldName, '"') + ', ';
     if (Fld.FieldNull) and (Fld.FValCheck.bHasDefVal) then
        Values := Values + 'DEFAULT, '
     else
       Values := Values + Fld.FieldValueAsStr + ', ';
   end;
-  Delete(Fields, Length(Fields)-1, 2);
+  Delete(SFields, Length(SFields)-1, 2);
   Delete(Values, Length(Values)-1, 2);
-  if (Fields <> '') and (Values <> '') then
-   Result := Format('INSERT INTO %s (%s) VALUES (%s)', [Table, Fields, Values]) + GetReturning();
+  if (SFields <> '') and (Values <> '') then
+   Result := Format('INSERT INTO %s (%s) VALUES (%s)', [Table, SFields, Values]) + GetReturning();
 end;
 
 function TNativeDataSet.GetUpdateSQL(Table: string; OldRecord,PRecord: Pointer; ReturnUpdated: boolean = False): String;
