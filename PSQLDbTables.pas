@@ -4036,15 +4036,15 @@ var
   I: Integer;
   AFilter: TFilterExpr;
   Expr, Node: PExprNode;
-  FilterOptions: TFilterOptions;
+  AFilterOptions: TFilterOptions;
 begin
   Node := nil;
   Expr := nil;
   if loCaseInsensitive in Options then
-    FilterOptions := [foNoPartialCompare, foCaseInsensitive]
+    AFilterOptions := [foNoPartialCompare, foCaseInsensitive]
   else
-    FilterOptions := [foNoPartialCompare];
-  AFilter := TFilterExpr.Create(Self, FilterOptions, [], '', nil, FldTypeMap);
+    AFilterOptions := [foNoPartialCompare];
+  AFilter := TFilterExpr.Create(Self, AFilterOptions, [], '', nil, FldTypeMap);
   try
     if (Fields.Count = 1) and not VarIsArray(Values) then
     begin
@@ -4378,7 +4378,7 @@ var
   I: Integer;
   Filter1: TFilterExpr;
   Expr, Node: PExprNode;
-  FilterOptions: TFilterOptions;
+  AFilterOptions: TFilterOptions;
 
 begin
   Expr := nil; //make compiler happy
@@ -4390,8 +4390,8 @@ begin
   try
     GetFieldList(Fields, KeyFields);
     Check(Engine, Engine.SetToBegin(FHandle));
-    FilterOptions := [foNoPartialCompare];
-    Filter1 := TFilterExpr.Create(Self, FilterOptions, [], '', nil, FldTypeMap);
+    AFilterOptions := [foNoPartialCompare];
+    Filter1 := TFilterExpr.Create(Self, AFilterOptions, [], '', nil, FldTypeMap);
     try
       if Fields.Count = 1 then
       begin
