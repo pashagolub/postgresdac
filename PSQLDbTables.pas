@@ -5899,12 +5899,12 @@ end;
 
 function TPSQLTable.CreateHandle: HDBICur;
 var
-  IndexName, IndexTag: string;
+  AnIndexName, IndexTag: string;
 begin
   if FTableName = '' then  DatabaseError(SNoTableName, Self);
   IndexDefs.Updated := FALSE;
-  GetIndexParams(FIndexName, FFieldsIndex, IndexName, IndexTag);
-  Result := GetHandle(IndexName, IndexTag);
+  GetIndexParams(FIndexName, FFieldsIndex, AnIndexName, IndexTag);
+  Result := GetHandle(AnIndexName, IndexTag);
   TNativeDataset(Result).Options := Options;
 end;
 
@@ -6115,21 +6115,21 @@ end;
 
 procedure TPSQLTable.DeleteIndex(const Name: string);
 var
-  IndexName, IndexTag: string;
+  AnIndexName, IndexTag: string;
 begin
   if Active then
   begin
-    GetIndexParams(Name, FALSE, IndexName, IndexTag);
+    GetIndexParams(Name, FALSE, AnIndexName, IndexTag);
     CheckBrowseMode;
-    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, '', '', IndexName, IndexTag, 0));
+    Check(Engine, Engine.DeleteIndex(DBHandle, Handle, '', '', AnIndexName, IndexTag, 0));
   end
   else
   begin
-    GetIndexParams(Name, FALSE, IndexName, IndexTag);
+    GetIndexParams(Name, FALSE, AnIndexName, IndexTag);
     SetDBFlag(dbfTable, TRUE);
     try
       Check(Engine, Engine.DeleteIndex(DBHandle, nil, FTableName, '',
-        IndexName, IndexTag, 0));
+        AnIndexName, IndexTag, 0));
     finally
       SetDBFlag(dbfTable, FALSE);
     end;
@@ -6177,15 +6177,15 @@ end;
 
 procedure TPSQLTable.SetIndex(const Value: string; FieldsIndex: Boolean);
 var
-  IndexName, IndexTag: string;
+  AnIndexName, IndexTag: string;
 begin
   if Active then CheckBrowseMode;
   if (FIndexName <> Value) or (FFieldsIndex <> FieldsIndex) then
   begin
     if Active then
     begin
-      GetIndexParams(Value, FieldsIndex, IndexName, IndexTag);
-      SwitchToIndex(IndexName, IndexTag);
+      GetIndexParams(Value, FieldsIndex, AnIndexName, IndexTag);
+      SwitchToIndex(AnIndexName, IndexTag);
       CheckMasterRange;
     end;
     FIndexName := Value;
