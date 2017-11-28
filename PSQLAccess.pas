@@ -5574,13 +5574,13 @@ end;
 
 function TNativeDataSet.GetDeleteSQL(Table: string; PRecord: Pointer): string;
 var
-  FieldCount, I: Integer;
+  AFieldCount, I: Integer;
   FieldList  : TFieldArray;
   Fld        : TPSQLField;
 begin
   Result := '';
-  GetKeys(False, FieldList, FieldCount);
-  for I := 0 to FieldCount-1 do
+  GetKeys(False, FieldList, AFieldCount);
+  for I := 0 to AFieldCount-1 do
   begin
     Fld := FFieldDescs.Field[FieldList[I]];
     Fld.Buffer:= PRecord;
@@ -5923,6 +5923,7 @@ begin
      try
        SettoSeqNo(Min(RecNo + 1, RecordCount));
      except
+     //
      end;
   end;
 
