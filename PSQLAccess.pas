@@ -8245,7 +8245,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
       Len : Integer;
       R   : Longint;
       I   : Integer;
-      Field : TPSQLField;
+      AField : TPSQLField;
       S : String;
       Flds  : array of Integer;
       SFlds : array of String;
@@ -8257,18 +8257,18 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
        for I := 0 to  TNativeDataSet(MasterCursor).FKeyDesc.iFldsInKey-1 do
        begin
           FldNo := TNativeDataSet(MasterCursor).FKeyDesc.aiKeyFld[I];
-          Field := TNativeDataSet(MasterCursor).Fields[FldNo];
+          AField := TNativeDataSet(MasterCursor).Fields[FldNo];
           Flds[I] := FldNo-1;
           if bDirectKey then
           begin
              FieldPtr := pKey;
              Inc(PAnsiDACChar(FieldPtr),Len + i);
              SFlds[I] := S+FieldVal(FldNo, FieldPtr);
-             Inc(Len, Field.FieldLength);
+             Inc(Len, AField.FieldLength);
           end else
           begin
-             Field.Buffer := pKey;
-             SFlds[i] := FieldVal(FldNo, Field.FieldValue);
+             AField.Buffer := pKey;
+             SFlds[i] := FieldVal(FldNo, AField.FieldValue);
           end;
        end;
        R := TNativeDataSet(MasterCursor).findrows(Flds,SFlds,False,iLen,AStrictConformity);
@@ -9356,7 +9356,7 @@ procedure TNativeDataSet.SortBy(FieldNames: string);
 var
 	a, cnt, i : integer;
 	str : string;
-	Fields : array of integer;
+	AFields : array of integer;
 	IsReverseOrder : array of boolean;
 const
 	sAsc : string = ' ASC';
@@ -9374,17 +9374,17 @@ begin
 
 	for i:=1 to Length(FieldNames) do
 	begin
-		if FieldNames[i] = ',' then Inc(cnt);//count number of fields
+		if FieldNames[i] = ',' then Inc(cnt);//count number of AFields
 
 		if FieldNames[i] = #9 then
 			FieldNames[i] := ' ';//replace TABs to SPACEs
 	end;
 
-	SetLength(Fields, cnt + 1);
+	SetLength(AFields, cnt + 1);
 	SetLength(IsReverseOrder, cnt + 1);
 
 	i := 0;
-	if cnt > 0 then//multi-fields sorting
+	if cnt > 0 then//multi-AFields sorting
 		while Pos(',', FieldNames) <> 0 do
 		begin
 			a := Pos(',', FieldNames);
@@ -9406,14 +9406,14 @@ begin
 				IsReverseOrder[i] := false;
 			end;
 
-			a := FieldIndex(Trim(str));//trying to find dield in fields definitions
+			a := FieldIndex(Trim(str));//trying to find dield in AFields definitions
 			if a = -1 then
        begin
 				DatabaseError(Format(SFieldNotFound, [Str]));
         FSortingFields := '';
         SetLength(FSortingIndex,0);
        end;
-			Fields[i] := a;
+			AFields[i] := a;
 			Inc(i);
 		end;
 
@@ -9435,16 +9435,16 @@ begin
 		IsReverseOrder[i] := false;
 	end;
   Str := Trim(str);
-	a := FieldIndex(str);//trying to find field in fields definitions
+	a := FieldIndex(str);//trying to find field in AFields definitions
 	if a = -1 then
     begin
 		 DatabaseError(Format(SFieldNotFound, [str]));
      FSortingFields := '';
      SetLength(FSortingIndex,0);
     end;
-	Fields[i] := a;
+	AFields[i] := a;
 
-	InternalSortBy(Fields, IsReverseOrder);
+	InternalSortBy(AFields, IsReverseOrder);
 end;
 
 procedure TNativeDataSet.InternalSortBy(const Fields: array of Integer;
