@@ -2552,6 +2552,7 @@ var
   BracketCount : integer;
   LoopEnd: boolean;
 begin
+  Result := stUnknown;
   TokenStart := nil;
   DotStart := False;
   while True do
