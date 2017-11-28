@@ -2382,7 +2382,9 @@ end;
 function TPSQLDatabase.GetGUCParamValue(const Name: string): string;
 begin
   if Assigned(FHandle) then
-    Result := TNativeConnect(FHandle).GUC.Values[Name];
+    Result := TNativeConnect(FHandle).GUC.Values[Name]
+  else
+    Result := '';
 end;
 
 function TPSQLDatabase.GetHost: string;
