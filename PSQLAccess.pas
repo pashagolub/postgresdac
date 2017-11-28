@@ -5657,14 +5657,14 @@ var
 
   function GetWHERE(P : Pointer) : String;
   var
-      I, FieldCount: Integer;
+      I, AFieldCount: Integer;
     FieldList  : TFieldArray;
     Fld        : TPSQLField;
     FldName: string;
   begin
     Result := '';
-    GetKeys(False, FieldList, FieldCount);
-    for I := 0 to FieldCount-1 do
+    GetKeys(False, FieldList, AFieldCount);
+    for I := 0 to AFieldCount-1 do
     begin
       Fld := FFieldDescs.Field[FieldList[I]];
       Fld.Buffer:= P;
