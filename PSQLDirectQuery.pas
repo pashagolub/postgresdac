@@ -210,6 +210,8 @@ end;
  
 function TPSQLCustomDirectQuery.GetFieldValue(aIndex: integer): string;
 begin
+  Result := '';
+
   if GetRecordCount() = 0 then
     raise EPSQLDirectQueryException.Create(SDataSetEmpty);
 
