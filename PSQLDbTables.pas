@@ -1334,6 +1334,7 @@ constructor EPSQLDatabaseError.Create(Engine : TPSQLEngine; ErrorCode : Word);
 var
   NC: TNativeConnect;
 begin
+  inherited Create(GetErrorString());
   FErrorCode := ErrorCode;
   if Assigned(Engine.Database) then
   begin
@@ -1356,7 +1357,6 @@ begin
     FErrorDataTypeName       := NC.FErrorDataTypeName;
     FErrorConstraintName     := NC.FErrorConstraintName;
   end;
-  Message := GetErrorString;
   if Message = EmptyStr then
     Message := Format('PSQLDAC Interface Error: (%d)',[ErrorCode]);
 end;
@@ -6843,6 +6843,7 @@ constructor TPSQLBlobStream.Create(Field: TBlobField; Mode: TBlobStreamMode);
 var
   OpenMode: DbiOpenMode;
 begin
+  inherited Create;
   FMode := Mode;
   FField := Field;
   FDataSet := FField.DataSet as TPSQLDataSet;
