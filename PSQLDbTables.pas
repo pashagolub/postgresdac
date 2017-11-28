@@ -4034,7 +4034,7 @@ function TPSQLDataSet.CreateLookupFilter(Fields: TList{$IFDEF NEXTGEN}<TField>{$
   Options: TLocateOptions; Priority: Integer): HDBIFilter;
 var
   I: Integer;
-  Filter: TFilterExpr;
+  AFilter: TFilterExpr;
   Expr, Node: PExprNode;
   FilterOptions: TFilterOptions;
 begin
@@ -4044,25 +4044,25 @@ begin
     FilterOptions := [foNoPartialCompare, foCaseInsensitive]
   else
     FilterOptions := [foNoPartialCompare];
-  Filter := TFilterExpr.Create(Self, FilterOptions, [], '', nil, FldTypeMap);
+  AFilter := TFilterExpr.Create(Self, FilterOptions, [], '', nil, FldTypeMap);
   try
     if (Fields.Count = 1) and not VarIsArray(Values) then
     begin
-      Node := Filter.NewCompareNode(TField(Fields[0]), coEQ, Values);
+      Node := AFilter.NewCompareNode(TField(Fields[0]), coEQ, Values);
       Expr := Node;
     end
     else
       for I := 0 to Fields.Count-1 do
       begin
-        Node := Filter.NewCompareNode(TField(Fields[I]), coEQ, Values[I]);
+        Node := AFilter.NewCompareNode(TField(Fields[I]), coEQ, Values[I]);
         if I = 0 then
           Expr := Node else
-          Expr := Filter.NewNode(enOperator, coAND, Unassigned, Expr, Node);
+          Expr := AFilter.NewNode(enOperator, coAND, Unassigned, Expr, Node);
       end;
     if loPartialKey in Options then Node^.FPartial := TRUE;
-    Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(Filter.GetFilterData(Expr)), nil, Result));
+    Check(Engine, Engine.AddFilter(FHandle, 0, Priority, FALSE, PCANExpr(AFilter.GetFilterData(Expr)), nil, Result));
   finally
-    Filter.Free;
+    AFilter.Free;
   end;
 end;
 
@@ -4134,7 +4134,7 @@ end;
 
 procedure TPSQLDataSet.SetOnFilterRecord(const Value: TFilterRecordEvent);
 var
-  Filter: HDBIFilter;
+  AFilter: HDBIFilter;
 begin
   if Active then
   begin
@@ -4142,9 +4142,9 @@ begin
     if Assigned(OnFilterRecord) <> Assigned(Value) then
     begin
       if Assigned(Value) then
-        Filter := CreateFuncFilter(@TPSQLDataSet.RecordFilter, 1)  else
-        Filter := nil;
-      SetFilterHandle(FFuncFilter, Filter);
+        AFilter := CreateFuncFilter(@TPSQLDataSet.RecordFilter, 1)  else
+        AFilter := nil;
+      SetFilterHandle(FFuncFilter, AFilter);
     end;
     Inherited SetOnFilterRecord(Value);
     if Filtered then
@@ -4284,7 +4284,7 @@ function TPSQLDataSet.LocateFilteredRecord(const KeyFields: string;
                                             SyncCursor: Boolean): Word;
 var
   Fields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
-  Filter: HDBIFilter;
+  AFilter: HDBIFilter;
   Status: DBIResult;
   I: Integer;
   Filter1: TFilterExpr;
@@ -4339,14 +4339,14 @@ begin
       if loPartialKey in Options then
         Node^.FPartial := TRUE;
 
-      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), nil, Filter));
+      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), nil, AFilter));
     finally
       Filter1.Free();
     end;
 
-    Engine.ActivateFilter(FHandle, Filter);
+    Engine.ActivateFilter(FHandle, AFilter);
     Status := Engine.GetNextRecord(FHandle, dbiNoLock, Pointer(ActiveBuffer), nil);
-    Engine.DropFilter(FHandle, Filter);
+    Engine.DropFilter(FHandle, AFilter);
   finally
     Fields.Free();
   end;
@@ -4373,7 +4373,7 @@ function TPSQLDataSet.LocateNearestRecord(const KeyFields: string;const KeyValue
 var
   Buffer: TRecordBuffer;
   Fields: TList{$IFDEF DELPHI_17}<TField>{$ENDIF};
-  Filter: HDBIFilter;
+  AFilter: HDBIFilter;
   Status: DBIResult;
   I: Integer;
   Filter1: TFilterExpr;
@@ -4407,13 +4407,13 @@ begin
             Expr := Filter1.NewNode(enOperator, coAND, Unassigned, Expr, Node);
         end;
       if loPartialKey in Options then Node^.FPartial := TRUE;
-      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), nil,Filter));
+      Check(Engine, Engine.AddFilter(FHandle, 0, 2, FALSE, PCANExpr(Filter1.GetFilterData(Expr)), nil,AFilter));
     finally
       Filter1.Free;
     end;
-    Engine.ActivateFilter(FHandle, Filter);
+    Engine.ActivateFilter(FHandle, AFilter);
     Status := Engine.GetNextRecord(FHandle, dbiNoLock, Buffer, nil);
-    Engine.DropFilter(FHandle, Filter);
+    Engine.DropFilter(FHandle, AFilter);
   finally
     Fields.Free;
   end;
