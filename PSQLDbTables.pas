@@ -256,6 +256,7 @@ type
   TPSQLDBDesignOptions = set of TPSQLDBDesignOption;
 
   IPSQLLoginDialog = interface
+  ['{A5CDBD6A-3212-47EA-9CC0-04C11AE11FC7}']
     function Execute(const DB: TPSQLDatabase): boolean;
   end;
 
