@@ -6421,8 +6421,10 @@ function TPSQLTable.GetBatchModify: Boolean;
 var
   Len : integer;
 begin
-   if FHandle <> nil then
-      Engine.GetEngProp(hDBIObj(FHandle), curAUTOREFETCH,@Result, SizeOf(Result),Len);
+  if Assigned(FHandle) then
+    Engine.GetEngProp(hDBIObj(FHandle), curAUTOREFETCH, @Result, SizeOf(Result), Len)
+  else
+    Result := False;
 end;
 
 procedure TPSQLTable.SetBatchModify(const Value : Boolean);
