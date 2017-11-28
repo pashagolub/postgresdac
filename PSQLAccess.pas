@@ -6064,13 +6064,13 @@ end;
 
 procedure TNativeDataSet.FreeBlob(PRecord: Pointer; FieldNo: Word);
 var
-  Field : TPSQLField;
+  AField : TPSQLField;
   Buff : Pointer;
 begin
-  Field := Fields[FieldNo];
-  CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
-  Field.Buffer := PRecord;
-    Buff := Field.FieldValue;
+  AField := Fields[FieldNo];
+  CheckParam(AField.FieldType <> fldBLOB, DBIERR_NOTABLOB);
+  AField.Buffer := PRecord;
+    Buff := AField.FieldValue;
   if PAnsiDACChar(Buff)^ = #1 then //blob stream was created
      begin
      PAnsiDACChar(Buff)^ := #0;
@@ -6082,12 +6082,12 @@ end;
 
 procedure TNativeDataSet.GetBlobSize(PRecord : Pointer; FieldNo : Word; var iSize : integer);
 Var
-  Field : TPSQLField;
+  AField : TPSQLField;
 
     function BlobSize(columnNumber: Integer; buff :Pointer): LongInt;
     begin
       Result := 0;
-      if Field.FieldSubType = fldstMemo then
+      if AField.FieldSubType = fldstMemo then
         begin
          if Assigned(FieldBuffer(ColumnNumber - 1)) then
            if FConnect.IsUnicodeUsed then
@@ -6146,20 +6146,20 @@ var
   Buff : Pointer;
 
 begin
-  Field := Fields[FieldNo];
-  CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
-  Field.Buffer := PRecord;
-  if not Field.FieldNULL  then
+  AField := Fields[FieldNo];
+  CheckParam(AField.FieldType <> fldBLOB,DBIERR_NOTABLOB);
+  AField.Buffer := PRecord;
+  if not AField.FieldNULL  then
    begin
-    Buff := Field.FieldValue;
+    Buff := AField.FieldValue;
     if PAnsiDACChar(Buff)^ = #1 then
       begin
          Inc(PAnsiDACChar(Buff));
          iSize := TBlobItem(Buff^).Blob.Size;
       end
     else
-     if (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
-       iSize  := BlobSize(FieldNo, Field.FieldValue)
+     if (AField.NativeBLOBType = nbtOID) or (AField.NativeType = FIELD_TYPE_TEXT) then
+       iSize  := BlobSize(FieldNo, AField.FieldValue)
      else
        iSize  := ByteaSize(FieldNo);
    end //not FieldNULL
@@ -6169,7 +6169,7 @@ end;
 
 procedure TNativeDataSet.GetBlob(PRecord : Pointer; FieldNo : Word; iOffSet : Longint; iLen : Longint; pDest : Pointer; var iRead : integer);
 var
-  Field : TPSQLField;
+  AField : TPSQLField;
 
     function CachedBlobGet(Offset, Length: longint; buff, Dest: pointer): longint;
     begin
@@ -6195,7 +6195,7 @@ var
   begin
     Result := CachedBlobGet(Offset, ALength, Buff, Dest);
     if Result = 0 then
-      if Field.FieldSubType = fldstMemo then
+      if AField.FieldSubType = fldstMemo then
       begin
         if FConnect.IsUnicodeUsed then
         begin
@@ -6271,20 +6271,20 @@ begin
   iRead  := 0;
   if Assigned(pDest) and (iLen > 0) then
   begin
-    Field := Fields[FieldNo];
-    CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
-    Field.Buffer := PRecord;
-    if not Field.FieldNull then
-      if (Field.NativeBLOBType = nbtOID) or (Field.NativeType = FIELD_TYPE_TEXT) then
-        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiDACChar(Field.Data) + Field.FieldNumber - 1 , pDest)
+    AField := Fields[FieldNo];
+    CheckParam(AField.FieldType <> fldBLOB, DBIERR_NOTABLOB);
+    AField.Buffer := PRecord;
+    if not AField.FieldNull then
+      if (AField.NativeBLOBType = nbtOID) or (AField.NativeType = FIELD_TYPE_TEXT) then
+        iRead := BlobGet(FieldNo, iOffset, iLen, PAnsiDACChar(AField.Data) + AField.FieldNumber - 1 , pDest)
       else
-        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiDACChar(Field.Data) + Field.FieldNumber - 1 ,pDest)
+        iRead := ByteaBLOBGet(FieldNo, iOffset, iLen, PAnsiDACChar(AField.Data) + AField.FieldNumber - 1 ,pDest)
   end;
 end;
 
 procedure TNativeDataSet.PutBlob(PRecord: Pointer; FieldNo: Word; iOffSet: Longint; iLen: Longint; pSrc : Pointer);
 var
-  Field : TPSQLField;
+  AField : TPSQLField;
 
   procedure BlobPut(ColumnNumber: Integer; Offset, Length : LongInt; pSrc, buff :Pointer);
   begin
@@ -6307,12 +6307,12 @@ var
   end;
 
 begin
-  Field := Fields[FieldNo];
-  CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
-  Field.Buffer := PRecord;
-  BlobPut(FieldNo, iOffset, iLen, pSrc, PAnsiDACChar(Field.Data) + Field.FieldNumber-1);
-  Field.FieldChanged := True;
-  Field.FieldNull := (iOffset + iLen = 0);
+  AField := Fields[FieldNo];
+  CheckParam(AField.FieldType <> fldBLOB,DBIERR_NOTABLOB);
+  AField.Buffer := PRecord;
+  BlobPut(FieldNo, iOffset, iLen, pSrc, PAnsiDACChar(AField.Data) + AField.FieldNumber-1);
+  AField.FieldChanged := True;
+  AField.FieldNull := (iOffset + iLen = 0);
 end;
 
 procedure TNativeDataSet.TruncateBlob(PRecord : Pointer; FieldNo : Word; iLen : Longint);
@@ -6469,7 +6469,7 @@ procedure TNativeDataSet.ExtractKey(PRecord: Pointer;pKeyBuf: Pointer);
 var
   i : Word;
   MKey    : PAnsiDACChar;
-  Field   : TPSQLField;
+  AField   : TPSQLField;
   bBlank  : Boolean;
   Buffer  : array [0..MAX_CHAR_LEN] of Char;
   iFields : Word;
@@ -6484,17 +6484,17 @@ begin
   iFields := FKeyDesc.iFldsinKey;
   for i := 0 to iFields-1 do
     begin
-      Field := Fields[FKeyDesc.aiKeyFld[i]];
-      NativeToDelphi(Field, PRecord, @Buffer, bBlank);
+      AField := Fields[FKeyDesc.aiKeyFld[i]];
+      NativeToDelphi(AField, PRecord, @Buffer, bBlank);
       if not bBlank then
-        AdjustDelphiField(Field, @Buffer, MKey);
+        AdjustDelphiField(AField, @Buffer, MKey);
       if bBlank then
         {$IFNDEF NEXTGEN}
-        ZeroMemory(MKey, Field.NativeSize);
+        ZeroMemory(MKey, AField.NativeSize);
         {$ELSE}
-        FillChar(MKey^, Field.NativeSize, 0);
+        FillChar(MKey^, AField.NativeSize, 0);
         {$ENDIF}
-     Inc(MKey, Field.NativeSize + 1);
+     Inc(MKey, AField.NativeSize + 1);
     end;
 end;
 
