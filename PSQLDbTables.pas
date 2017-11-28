@@ -5483,12 +5483,7 @@ function TPSQLQuery.GetRowsAffected: Integer;
 var
   Length: integer;
 begin
-  if Prepared then
-    if Engine.GetEngProp(hDBIObj(FHandle), stmtROWCOUNT, @Result, SizeOf(Result), Length) <> 0 then
-      Result := -1
-    else
-      //nothing
-  else
+  if Prepared and (Engine.GetEngProp(hDBIObj(FHandle), stmtROWCOUNT, @Result, SizeOf(Result), Length) <> 0) then
     Result := FRowsAffected;
 end;
 
