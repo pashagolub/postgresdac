@@ -2650,6 +2650,7 @@ end;
 
 constructor EPSQLException.CreateBDEMsg(ECode : Word; Const EMessage : string);
 begin
+  inherited;
   FPSQLErrorMsg  := string(EMessage);
   CreateBDE(ECode);
 end;
