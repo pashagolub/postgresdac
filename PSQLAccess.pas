@@ -6025,13 +6025,13 @@ end;
 
 procedure TNativeDataSet.OpenBlob(PRecord: Pointer;FieldNo: Word;eOpenMode: DBIOpenMode);
 var
-  Field : TPSQLField;
+  AField : TPSQLField;
   Mode  : Integer;
 begin
   if eOpenMode = dbiREADONLY then Mode := INV_READ else Mode := INV_WRITE;
-  Field := Fields[FieldNo];
-  CheckParam(Field.FieldType <> fldBLOB,DBIERR_NOTABLOB);
-  if Field.NativeBLOBType = nbtOID then //make sure we have deal with lo_xxx
+  AField := Fields[FieldNo];
+  CheckParam(AField.FieldType <> fldBLOB,DBIERR_NOTABLOB);
+  if AField.NativeBLOBType = nbtOID then //make sure we have deal with lo_xxx
    if FieldBuffer(FieldNo-1) <> nil then
    begin
     FBlobHandle := StrToUInt(Self.Field(FieldNo-1));
@@ -6049,11 +6049,11 @@ end;
 
 procedure TNativeDataSet.CloseBlob(FieldNo: Word);
 var
-  Field : TPSQLField;
+  AField : TPSQLField;
 begin
-  Field := Fields[FieldNo];
-  CheckParam(Field.FieldType <> fldBLOB, DBIERR_NOTABLOB);
-  if FBlobOpen and (Field.NativeBLOBType = nbtOID) and (FLocalBHandle >= 0) then
+  AField := Fields[FieldNo];
+  CheckParam(AField.FieldType <> fldBLOB, DBIERR_NOTABLOB);
+  if FBlobOpen and (AField.NativeBLOBType = nbtOID) and (FLocalBHandle >= 0) then
    begin
     lo_close(FConnect.Handle, FLocalBHandle);
     FConnect.CommitBLOBTran;
