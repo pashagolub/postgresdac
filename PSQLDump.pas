@@ -181,8 +181,8 @@ type
     FSchemaNames: TStrings;
     FExcludeSchemas: TStrings;
     procedure SetDatabase(const Value : TPSQLDatabase);
-    function GetStrOptions(const Index: Integer): string;
-    procedure SetStrOptions(const Index: Integer; const Value: string);
+    function GetStrOptions(const AnIndex: Integer): string;
+    procedure SetStrOptions(const AnIndex: Integer; const Value: string);
     procedure Restore(const SourceFile, LogFile: string);
     procedure DoLog(const Value: string);
     function GetVersionAsInt: integer;
@@ -1127,9 +1127,9 @@ begin
 {$ENDIF}
 end;
 
-function TPSQLRestore.GetStrOptions(const Index: Integer): string;
+function TPSQLRestore.GetStrOptions(const AnIndex: Integer): string;
 begin
-  Result := FRestoreStrOptions[TRestoreStrOption(Index)];
+  Result := FRestoreStrOptions[TRestoreStrOption(AnIndex)];
 end;
 
 procedure TPSQLRestore.Notification(AComponent: TComponent;
@@ -1156,10 +1156,10 @@ begin
   FSchemaNames.Assign(Value);
 end;
 
-procedure TPSQLRestore.SetStrOptions(const Index: Integer;
+procedure TPSQLRestore.SetStrOptions(const AnIndex: Integer;
   const Value: string);
 begin
- FRestoreStrOptions[TRestoreStrOption(Index)] := Value;
+ FRestoreStrOptions[TRestoreStrOption(AnIndex)] := Value;
 end;
 
 procedure TPSQLRestore.SetTableNames(const Value: TStrings);
