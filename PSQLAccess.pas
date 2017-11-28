@@ -6591,64 +6591,64 @@ procedure TNativeDataSet.SetRange(bKeyItself: Boolean;
                iFields1: Word;iLen1: Word;pKey1: Pointer;bKey1Incl: Boolean;
                iFields2: Word;iLen2: Word;pKey2: Pointer;bKey2Incl: Boolean);
 
-procedure CreateRangeClause(First : Boolean; bKeyItself: Boolean;iFields: Word;iLen: Word; pKey: Pointer; bKeyIncl: Boolean);
-var
-  i         : integer;
-  Field     : TPSQLField;
-  WHERE     : String;
-  FldVal    : String;
-  bBlank    : Boolean;
-  Buff : array[0..MAX_CHAR_LEN] of AnsiDACByteChar;
-  CurBuffer : PAnsiDACChar;
-  TimeStamp: TTimeStamp;
-begin
-    For i := 0 to iFields-1 do
-     if Fields[FKeyDesc.aiKeyFld[i]].FieldNull then
-      begin
-       RangeClause.Text := 'WHERE 1=0';
-       Exit; //null values have no details by standard
-      end;
-
-    WHERE := '';
-    CurBuffer := PAnsiDACChar(pKey);
-    for i := 0 to iFields-1 do
+    procedure CreateRangeClause(First : Boolean; bKeyItself: Boolean;iFields: Word;iLen: Word; pKey: Pointer; bKeyIncl: Boolean);
+    var
+      i         : integer;
+      AField     : TPSQLField;
+      WHERE     : String;
+      FldVal    : String;
+      bBlank    : Boolean;
+      Buff : array[0..MAX_CHAR_LEN] of AnsiDACByteChar;
+      CurBuffer : PAnsiDACChar;
+      TimeStamp: TTimeStamp;
     begin
-      Field := Fields[FKeyDesc.aiKeyFld[i]];
-      if bKeyItself then
-        AdjustNativeField(Field, CurBuffer, @Buff, bBlank)
-      else
-        NativeToDelphi(Field, CurBuffer, @Buff, bBlank);
-      Inc(CurBuffer, Field.NativeSize + 1);
-      if bBlank then Continue; //19.05.2008
-      if RangeClause.Count > 0  then WHERE := 'and ' else WHERE := 'where ';
-      WHERE := WHERE + AnsiQuotedStr(Field.FieldName,'"');
-      if First then WHERE := WHERE + '>' else WHERE := WHERE + '<';
-      if bKeyIncl then WHERE := WHERE + '=';
-      case Field.Fieldtype of
-        fldINT16: FldVal := IntToStr(PSmallInt(@Buff)^);
-        fldINT32: FldVal := IntToStr(PLongInt(@Buff)^);
-        fldFLOAT: FldVal := SQLFloatToStr(PDouble(@Buff)^);
-        fldBOOL:  if PBoolean(@Buff)^ {$IFDEF FPC} <> 0{$ENDIF} then FldVal := 'True' else FldVal := 'False';
-        fldZSTRING: FldVal := StrValue(@Buff);
-        fldUUID:  FldVal := UuidValue(@Buff);
-        fldINT64: FldVal := IntToStr(PInt64(@Buff)^);
-        fldDate:
-                  begin
-                    TimeStamp.Date := PLongInt(@Buff)^;
-                    TimeStamp.Time := 0;
-                    FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),1) + '''';
-                  end;
-        fldTime:  begin
-                    TimeStamp.Date := DateDelta;
-                    TimeStamp.Time := PLongInt(@Buff)^;
-                    FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),2) + '''';
-                  end;
-        fldTIMESTAMP: FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(PDouble(@Buff)^))),0) + '''';
-      end;
-      WHERE := WHERE + Trim(FldVal);
-      RangeClause.Add(WHERE);
+        For i := 0 to iFields-1 do
+         if Fields[FKeyDesc.aiKeyFld[i]].FieldNull then
+          begin
+           RangeClause.Text := 'WHERE 1=0';
+           Exit; //null values have no details by standard
+          end;
+
+        WHERE := '';
+        CurBuffer := PAnsiDACChar(pKey);
+        for i := 0 to iFields-1 do
+        begin
+          AField := Fields[FKeyDesc.aiKeyFld[i]];
+          if bKeyItself then
+            AdjustNativeField(AField, CurBuffer, @Buff, bBlank)
+          else
+            NativeToDelphi(AField, CurBuffer, @Buff, bBlank);
+          Inc(CurBuffer, AField.NativeSize + 1);
+          if bBlank then Continue; //19.05.2008
+          if RangeClause.Count > 0  then WHERE := 'and ' else WHERE := 'where ';
+          WHERE := WHERE + AnsiQuotedStr(AField.FieldName,'"');
+          if First then WHERE := WHERE + '>' else WHERE := WHERE + '<';
+          if bKeyIncl then WHERE := WHERE + '=';
+          case AField.Fieldtype of
+            fldINT16: FldVal := IntToStr(PSmallInt(@Buff)^);
+            fldINT32: FldVal := IntToStr(PLongInt(@Buff)^);
+            fldFLOAT: FldVal := SQLFloatToStr(PDouble(@Buff)^);
+            fldBOOL:  if PBoolean(@Buff)^ {$IFDEF FPC} <> 0{$ENDIF} then FldVal := 'True' else FldVal := 'False';
+            fldZSTRING: FldVal := StrValue(@Buff);
+            fldUUID:  FldVal := UuidValue(@Buff);
+            fldINT64: FldVal := IntToStr(PInt64(@Buff)^);
+            fldDate:
+                      begin
+                        TimeStamp.Date := PLongInt(@Buff)^;
+                        TimeStamp.Time := 0;
+                        FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),1) + '''';
+                      end;
+            fldTime:  begin
+                        TimeStamp.Date := DateDelta;
+                        TimeStamp.Time := PLongInt(@Buff)^;
+                        FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(TimeStamp),2) + '''';
+                      end;
+            fldTIMESTAMP: FldVal := '''' + DateTimeToSqlDate(TimeStampToDateTime(MSecsToTimeStamp({$IFDEF FPC}Comp{$ENDIF}(PDouble(@Buff)^))),0) + '''';
+          end;
+          WHERE := WHERE + Trim(FldVal);
+          RangeClause.Add(WHERE);
+        end;
     end;
-end;
 
 begin
   try
@@ -6805,7 +6805,7 @@ end;
 procedure TNativeDataSet.SetToKey(eSearchCond: DBISearchCond; bDirectKey: Boolean;iFields: Word;iLen: Word;pBuff: Pointer);
 var
   FldNo : Integer;
-  Field : TPSQLField;
+  AField : TPSQLField;
   Item  : TPSQLIndex;
   R : LongInt;
   I : Integer;
@@ -6819,9 +6819,9 @@ begin
    for I :=0 to Item.Description.iFldsInKey-1 do
    begin
       FldNo := Item.Description.aiKeyFld[I];
-      Field := Fields[FldNo];
+      AField := Fields[FldNo];
       Flds[i] := FldNo-1;
-      SFlds[I] := FieldVal(Field.FieldNumber,Field.FieldValue);
+      SFlds[I] := FieldVal(AField.FieldNumber,AField.FieldValue);
    end;
    R := findrows(Flds,SFlds,False,ilen);
    if (R <> -1) then
@@ -7840,7 +7840,7 @@ end;
 function TNativeDataSet.SetRowPosition(iFields: integer; LID: int64; pRecBuffer: Pointer): Boolean;
 var
   FldNo: integer;
-  Field: TPSQLField;
+  AField: TPSQLField;
   Item: TPSQLIndex;
   R: LongInt;
   i: integer;
@@ -7860,18 +7860,18 @@ begin
     K := 1;
     for i := 0 to Fields.Count - 1 do
     begin
-      Field := Fields[i + 1];
-      Field.Buffer := pRecBuffer;
-      if (Field.FieldType = fldBLOB) or (Field.Description.bCalcField) or
-        (Field.FieldNull and (Field.FieldSubType <> fldstAUTOINC)) or (Field.NativeType = FIELD_TYPE_TIMESTAMP) then
+      AField := Fields[i + 1];
+      AField.Buffer := pRecBuffer;
+      if (AField.FieldType = fldBLOB) or (AField.Description.bCalcField) or
+        (AField.FieldNull and (AField.FieldSubType <> fldstAUTOINC)) or (AField.NativeType = FIELD_TYPE_TIMESTAMP) then
         Continue;
       SetLength(Flds, K);
       SetLength(SFlds, K);
       Flds[K - 1] := i;
-      if (Field.FieldSubType = fldstAUTOINC) and (LID > 0) then
+      if (AField.FieldSubType = fldstAUTOINC) and (LID > 0) then
         SFlds[K - 1] := inttostr(LID)
       else
-        SFlds[K - 1] := FieldVal(i + 1, Field.FieldValue);
+        SFlds[K - 1] := FieldVal(i + 1, AField.FieldValue);
       INC(K);
     end;
   end
@@ -7883,13 +7883,13 @@ begin
     for i := 0 to Item.Description.iFldsInKey - 1 do
     begin
       FldNo := Item.Description.aiKeyFld[i];
-      Field := Fields[FldNo];
+      AField := Fields[FldNo];
       Flds[i] := FldNo - 1;
-      Field.Buffer := pRecBuffer;
-      SS := FieldVal(FldNo, Field.FieldValue);
+      AField.Buffer := pRecBuffer;
+      SS := FieldVal(FldNo, AField.FieldValue);
       if SS = '' then
       begin
-        if (Field.FieldSubType = fldstAUTOINC) and (LID > 0) then
+        if (AField.FieldSubType = fldstAUTOINC) and (LID > 0) then
           SS := inttostr(LID);
       end;
       SFlds[i] := SS;
@@ -8141,17 +8141,17 @@ end;
 
 function TNativeDataSet.FieldVal(FieldNo: Integer; FieldPtr : Pointer):String;
 var
-  Field : TPSQLField;
+  AField : TPSQLField;
   Blank : Boolean;
   Buff  : array[0..MAX_BLOB_SIZE] of Char;
   TimeStamp : TTimeStamp;
   DateD : Double;
 begin
   Result :='';
-  Field := Fields[FieldNo];
-  AdjustNativeField(Field,FieldPtr,@Buff,Blank);
+  AField := Fields[FieldNo];
+  AdjustNativeField(AField,FieldPtr,@Buff,Blank);
   if not Blank then
-  case Field.FieldType of
+  case AField.FieldType of
     fldINT16: Result := IntToStr(PSmallInt(@Buff)^);
     fldUINT16: Result := IntToStr(PWord(@Buff)^);
     fldINT32: Result := IntToStr(PLongInt(@Buff)^);
@@ -8199,7 +8199,7 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
     Len : Integer;
     R   : Longint;
     I   : Integer;
-    Field : TPSQLField;
+    AField : TPSQLField;
     S : String;
     Flds  : array of Integer;
     SFlds : array of String;
@@ -8213,12 +8213,12 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
       for I := 0 to FKeyDesc.iFldsinKey-1 do
       begin
         FldNo := FKeyDesc.aiKeyFld[i];
-        Field := Fields[FKeyDesc.aiKeyFld[i]];
+        AField := Fields[FKeyDesc.aiKeyFld[i]];
         Flds[i] := FldNo - 1;
         FieldPtr := pKey;
         Inc(PAnsiDACChar(FieldPtr), Len);
         SFlds[i] := FieldVal(FldNo, FieldPtr);
-        Inc(Len, Field.NativeSize + 1); // field length in bytes + one byte null indicator
+        Inc(Len, AField.NativeSize + 1); // AField length in bytes + one byte null indicator
       end;
     end else
     begin
@@ -8227,10 +8227,10 @@ procedure TNativeDataSet.GetRecordForKey(bDirectKey: Boolean;
       for I := 0 to iFields-1 do
       begin
         FldNo := FKeyDesc.aiKeyFld[I];
-        Field := Fields[FKeyDesc.aiKeyFld[I]];
+        AField := Fields[FKeyDesc.aiKeyFld[I]];
         Flds[I] := FldNo-1;
-        Field.Buffer := pKey;
-        SFlds[I] := FieldVal(FldNo, Field.FieldValue);
+        AField.Buffer := pKey;
+        SFlds[I] := FieldVal(FldNo, AField.FieldValue);
       end;
     end;
     R := findrows(Flds,SFlds,False,iLen,AStrictConformity);
