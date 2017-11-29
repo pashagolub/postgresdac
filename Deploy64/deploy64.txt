@@ -4,6 +4,7 @@ the following files:
 
     libpq.dll
     libintl-8.dll
+    libiconv-2.dll
     ssleay32.dll
     libeay32.dll
 
