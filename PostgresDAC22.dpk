@@ -42,7 +42,6 @@ contains
   PSQLMonitor in 'PSQLMonitor.pas',
   PSQLTools in 'PSQLTools.pas',
   PSQLDump in 'PSQLDump.pas',
-  PSQLConsts in 'PSQLConsts.pas',
   PSQLCopy in 'PSQLCopy.pas',
   PSQLDirectQuery in 'PSQLDirectQuery.pas',
   PSQLExtMask in 'PSQLExtMask.pas',

@@ -46,7 +46,6 @@
     <DCCReference Include="PSQLAccess.pas" />
     <DCCReference Include="psqlBatch.pas" />
     <DCCReference Include="PSQLCommon.pas" />
-    <DCCReference Include="PSQLConsts.pas" />
     <DCCReference Include="PSQLCopy.pas" />
     <DCCReference Include="PSQLDbTables.pas" />
     <DCCReference Include="PSQLDirectQuery.pas" />

@@ -110,7 +110,6 @@
 			<DCCReference Include="PSQLMonitor.pas"/>
 			<DCCReference Include="PSQLTools.pas"/>
 			<DCCReference Include="PSQLDump.pas"/>
-			<DCCReference Include="PSQLConsts.pas"/>
 			<DCCReference Include="PSQLCopy.pas"/>
 			<DCCReference Include="PSQLDirectQuery.pas"/>
 			<DCCReference Include="PSQLExtMask.pas"/>

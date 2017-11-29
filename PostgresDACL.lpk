@@ -54,10 +54,6 @@
         <Filename Value="PSQLTools.pas"/>
         <UnitName Value="PSQLTools"/>
       </Item7>
-      <Item8>
-        <Filename Value="PSQLConsts.pas"/>
-        <UnitName Value="PSQLConsts"/>
-      </Item8>
       <Item9>
         <Filename Value="PSQLCommon.pas"/>
         <UnitName Value="PSQLCommon"/>

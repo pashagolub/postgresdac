@@ -8,7 +8,7 @@ interface
 
 uses
   PSQLTypes, PSQLAccess, PSQLDbTables, PSQLBatch, PSQLMacroQuery, PSQLMonitor, 
-  PSQLTools, PSQLConsts, PSQLCommon, PSQLCopy, PSQLDirectQuery, PSQLExtMask, 
+  PSQLTools, PSQLCommon, PSQLCopy, PSQLDirectQuery, PSQLExtMask, 
   PSQLFields;
 
 implementation
