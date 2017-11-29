@@ -1,8 +1,9 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <CONFIG>
   <Package Version="4">
     <PathDelim Value="\"/>
     <Name Value="dclPostgresDACL"/>
+    <Type Value="DesignTime"/>
     <Author Value="MicroOLAP Technologies LTD."/>
     <CompilerOptions>
       <Version Value="11"/>
@@ -10,15 +11,9 @@
       <SearchPaths>
         <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
       </SearchPaths>
-      <Other>
-        <CompilerMessages>
-          <MsgFileName Value=""/>
-        </CompilerMessages>
-        <CompilerPath Value="$(CompPath)"/>
-      </Other>
     </CompilerOptions>
     <Description Value="Powerful component suite for Delphi/C++Builder and PostgreSQL 7.x, 8.x, 9.x and EnterpriseDB/Heroku Postgres. It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL and EnterpriseDB/Heroku Postgres DB without BDE and ODBC."/>
-    <Version Major="3" Minor="1" Release="2"/>
+    <Version Major="3" Minor="4"/>
     <Files Count="15">
       <Item1>
         <Filename Value="PSQLCOMP.pas"/>
@@ -82,7 +77,6 @@
         <Type Value="Text"/>
       </Item15>
     </Files>
-    <Type Value="DesignTime"/>
     <RequiredPkgs Count="3">
       <Item1>
         <PackageName Value="IDEIntf"/>

@@ -8,7 +8,8 @@ unit PSQLAccess;
 
 interface
 
-uses Classes, {$IFDEF FPC}LCLIntf,{$ENDIF} Db, PSQLTypes, Math,
+uses Classes, Db, PSQLTypes, Math,
+    {$IFDEF FPC}FMTBcd, LCLIntf,{$ENDIF}
     {$IFDEF DELPHI_12}PSQLGeomTypes, {$ENDIF}
     {$IFDEF DELPHI_9}DbCommon,{$ELSE}PSQLCommon,{$ENDIF}
     {$IFDEF DELPHI_6}FmtBcd, Variants,{$ENDIF}

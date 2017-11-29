@@ -7,7 +7,7 @@ unit PSQLTypes;
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF}
-     Classes, SysUtils
+     Classes, SysUtils, Math
 
      {$IFNDEF NEXTGEN}
       {$IFDEF DELPHI_12}, AnsiStrings{$ENDIF}
@@ -15,7 +15,6 @@ uses {$IFDEF FPC}LCLIntf,{$ENDIF}
 
      {$IFDEF DELPHI_6}, FmtBcd{$ENDIF}
      {$IFDEF DELPHI_12}, SqlTimSt, PSQLGeomTypes{$ENDIF}
-     {$IFNDEF FPC}, Math{$ENDIF}
      {$IFDEF MSWINDOWS}, Windows{$ENDIF}
      {$IFDEF ANDROID}, System.IOUtils {$ENDIF}
      {$IFDEF MACOS}, Macapi.CoreServices{$ENDIF}
