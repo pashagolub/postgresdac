@@ -16,7 +16,7 @@ uses  SysUtils, Classes, Db,
       PSQLAccess, PSQLTypes;
 
 const
-    VERSION : string = '3.3.0';
+    VERSION : string = '3.4.0';
     {$IFDEF MICROOLAP_BUSINESS_LICENSE}
     LICENSETYPE : string = 'Business License';
     {$ELSE}
@@ -5032,6 +5032,7 @@ function TPSQLDataSet.PSExecuteStatement(const ASQL: string; AParams: TParams;
 var
   InProvider: Boolean;
 begin
+  Result := -1;
   InProvider := SetDBFlag(dbfProvider, TRUE);
   try
     ResultSet := TPSQLQuery.Create(nil);
