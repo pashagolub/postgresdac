@@ -32,7 +32,9 @@ type
     {$ENDIF}
     FPSQLQuery: TPSQLQuery;
     FPSQLUpdate: TPSQLUpdateSQL;
+{$HINTS OFF}
     procedure InternalSetUp;
+{$HINTS ON}
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
