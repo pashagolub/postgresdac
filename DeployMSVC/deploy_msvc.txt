@@ -4,6 +4,7 @@ the following files:
 
     libpq.dll
     libintl-8.dll
+    libivonv-2.dll
     ssleay32.dll
     libeay32.dll
 
@@ -13,4 +14,4 @@ or place them in the directory where the client application is installed.
 Since official libraries depend on Microsoft Visual Studio 2013 redistributable package, 
 it should be installed previously using vcredist_x86.exe file.
 
-PS Dump and restore libraries are available in the official PostgresDAC installation.
+PS Dump and restore libraries are available only in the official PostgresDAC installation.
