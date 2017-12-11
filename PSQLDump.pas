@@ -243,13 +243,13 @@ const
    '--clean',                          //doClean
    '--create',                         //doCreate
    '--inserts',                        //doInserts
-   '--column-inserts',                 //doColumnInserts
+   '--column-inserts',                 //doColumnInserts, aka '--attribute-inserts'
    '--ignore-version',                 //doIgnoreVersion
    '--oids',                           //doOIDs
    '--no-owner',                       //doNoOwner
    '--schema-only',                    //doSchemaOnly
    '--verbose',                        //doVerbose,
-   '--no-privileges',                  //doNoPrivileges,
+   '--no-privileges',                  //doNoPrivileges, aka '--no-acl'
    '--disable-dollar-quoting',         //doDisableDollarQuoting,
    '--disable-triggers',               //doDisableTriggers,
    '--use-set-session-authorization',  //doUseSetSessionAuthorization,
@@ -270,12 +270,13 @@ const
   );
 
   RestoreCommandLineBoolParameters: array[TRestoreOption] of string = (
+   //--no-reconnect   obsolete
    '--data-only',                //roDataOnly
    '--clean',                    //roClean
    '--create',                   //roCreate
    '--exit-on-error',            //roExitOnError
    '--ignore-version',           //roIgnoreVersion
-   '--list',                     //roList
+   '--list',                     //roList, aka '--no-acl'
    '--no-owner',                 //roNoOwner
    '--schema-only',              //roSchemaOnly
    '--verbose',                  //roVerbose,
@@ -306,8 +307,7 @@ const
   );
 
   RestoreCommandLineStrParameters: array[TRestoreStrOption] of string =(
-   '--table=',
-   //rsoTable
+   '--table=',        //rsoTable
    '--superuser=',    //rsoSuperuser
    '--dbname=',       //rsoDBName,
    '--file=',         //rsoFileName,
