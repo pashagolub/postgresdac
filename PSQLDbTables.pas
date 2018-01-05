@@ -43,7 +43,7 @@ const
       {$ENDIF}
     {$ENDIF}
 
-{ TDBDataSet flags }          
+{ TDBDataSet flags }
   dbfOpened     = 0;
   dbfPrepared   = 1;
   dbfExecSQL    = 2;
@@ -114,14 +114,14 @@ const
   BlobTypeMap: array[fldstMEMO..fldstBFILE] of TFieldType = (
     ftMemo, ftBlob, ftFmtMemo, ftParadoxOle, ftGraphic, ftDBaseOle,
     ftTypedBinary, ftBlob, ftBlob, ftBlob, ftBlob, ftOraClob, ftOraBlob,
-    ftBlob, ftBlob);    
+    ftBlob, ftBlob);
 
 type
 
   //used for LOCK TABLE
   TPSQLLockType = (ltAccessShare, ltRowShare, ltRowExclusive, ltShareUpdateExclusive,
                    ltShare, ltShareRowExclusive, ltExclusive, ltAccessExclusive);
-  
+
   //used for DataEvent handlers
   TDataEventInfo =
   {$IFDEF FPC}Ptrint{$ELSE}
@@ -689,7 +689,7 @@ type
     function  GetKeyFieldCount: Integer;
     function  GetRecordCount: Integer; override;
     function  GetRecNo: Integer; override;
-    function  GetRecordSize: integer; reintroduce; virtual; 
+    function  GetRecordSize: integer; reintroduce; virtual;
     {$IFNDEF FPC}
     function  GetStateFieldValue(State: TDataSetState; Field: TField): Variant; override;
     procedure GetObjectTypeNames(Fields: TFields);
@@ -1021,7 +1021,7 @@ type
     property MasterSource: TDataSource read GetDataSource write SetDataSource;
     property ReadOnly: Boolean read FReadOnly write SetReadOnly default FALSE;
     property StoreDefs: Boolean read FStoreDefs write FStoreDefs default FALSE;
-    property ShowSystemTables: boolean read FShowSystemTables write SetShowSystemTables default False; 
+    property ShowSystemTables: boolean read FShowSystemTables write SetShowSystemTables default False;
     property TableName: TFileName read GetTableName write SetTableName;
     property UpdateMode;
     property UpdateObject;
@@ -1499,7 +1499,7 @@ begin
     end;
     FStmtList.Clear;
   end;
-end;                             
+end;
 
 function TPSQLDatabase.Execute(const SQL: string; Params: TParams = nil;
   Cache: Boolean = FALSE; Cursor: phDBICur = nil): Integer;
@@ -3036,7 +3036,7 @@ begin
           FType := ftAutoInc;
           FRequired := False;
         end;
-      fldFLOAT:                                                                                   
+      fldFLOAT:
         if iSubType = fldstMONEY then FType := ftCurrency;
       fldBCD
       {$IFDEF DELPHI_12}
@@ -3437,7 +3437,7 @@ begin
       inherited; //mi:2008-02-13 Moved from begining of the method. Actually there is only CheckRequiredFields there.
                  //              So we don't need it if dataset is being updated by UpdateObject
       {$ENDIF}//pasha_golub 10.08.06
-      
+
       if State = dsEdit then
         Check(Engine, Engine.ModifyRecord(FHandle, Pointer(FOldBuffer), Pointer(ActiveBuffer), TRUE,RecNo))
       else
@@ -4152,7 +4152,7 @@ begin
     Inherited SetOnFilterRecord(Value);
     if Filtered then
       First;
-  end 
+  end
   else
     Inherited SetOnFilterRecord(Value);
 end;
@@ -4863,7 +4863,7 @@ begin
       end;
       Include(FDBFlags, Flag);
     end;
-  end                      
+  end
   else
   begin
     if Result then
@@ -5336,7 +5336,7 @@ begin
           if FParams.Count > 0 then
             TNativeDataset(FHandle).QuerySetParams(FParams, FSQL.Text);
           TNativeDataset(FHandle).OpenTable();
-          First();          
+          First();
         end;
     end;
   finally
@@ -5390,7 +5390,7 @@ begin
     begin
       Check(Engine, Engine.CloseCursor(hDBICur(FHandle)));
       FHandle := nil;
-    end;    
+    end;
   end;
 end;
 
@@ -5487,7 +5487,12 @@ function TPSQLQuery.GetRowsAffected: Integer;
 var
   Length: integer;
 begin
-  if Prepared and (Engine.GetEngProp(hDBIObj(FHandle), stmtROWCOUNT, @Result, SizeOf(Result), Length) <> 0) then
+  if Prepared then
+  begin
+    if Engine.GetEngProp(HDBIObj(FHandle), stmtROWCOUNT, @Result, SizeOf(Result), Length) > DBIERR_NONE then
+      Result := -1;
+  end
+  else
     Result := FRowsAffected;
 end;
 
@@ -7042,7 +7047,7 @@ begin
     if FCached then
       Result := Length(FDataSet.GetBlobData(FField, FBuffer)) else
       Check(Engine, Engine.GetBlobSize(FDataSet.Handle, FBuffer, FFieldNo, Result));
-end; 
+end;
 
 { TPSQLQueryDataLink }
 constructor TPSQLQueryDataLink.Create(AQuery : TPSQLQuery);
@@ -7688,5 +7693,3 @@ finalization
     InitProc := SaveInitProc;
 
 end.
-
-

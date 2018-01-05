@@ -79,6 +79,7 @@ type
     procedure TestRefreshModifiedDelete;
   //dsoNumericAsFloat
     procedure TestNumericAsFloat;
+    procedure TestAffectedRows;
     {$IFDEF DUNITX}
     [SetupFixture]
     procedure SetupFixture;
@@ -233,6 +234,17 @@ begin
   FPSQLQuery.DisposeOf;
 {$ENDIF};
   FPSQLQuery := nil;
+end;
+
+procedure TestTPSQLQuery.TestAffectedRows;
+begin
+  FPSQLQuery.SQL.Text := 'INSERT INTO requestlive_test(intf, string) VALUES '+
+                ' (1, ''test insert1''),' +
+                ' (2, ''test insert2''),' +
+                ' (3, ''test insert3''),' +
+                ' (4, ''test insert4'')';
+  FPSQLQuery.ExecSQL;
+  Check(FPSQLQuery.RowsAffected = 4, 'RowsAffected incorrect');
 end;
 
 procedure TestTPSQLQuery.TestAsBoolean;
