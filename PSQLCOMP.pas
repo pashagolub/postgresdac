@@ -160,8 +160,7 @@ implementation
 
 uses TypInfo, PSQLAboutFrm, PSQLConnFrm, PSQLStoredProcFrm, PSQLQueryEdit, PSQLTypes{$IFNDEF FPC}, DBCommon{$ENDIF};
 
-{$R DB.DCR}
-{$R DBPRO.DCR}
+{$R PDAC.DCR}
 
 function GetPropertyValue(Instance: TPersistent; const PropName: string): TPersistent;
 var
