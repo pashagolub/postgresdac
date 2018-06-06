@@ -227,7 +227,7 @@ var
                                 {$IFDEF MACOS}'libpq.dylib'{$ENDIF}
                                 {$IFDEF ANDROID}'libpq.so'{$ENDIF}
                                 {$IFDEF LINUX}'libpq.so'{$ENDIF};
-
+  PSQL_DLL_WITHOUT_SLL : string = 'libpq-without-SSL.dll';
 
 
   SQLLibraryHandle     : THandle = HINSTANCE_ERROR;
@@ -1930,6 +1930,7 @@ procedure ConverPSQLtoDelphiFieldInfo(Info : TPGFIELD_INFO; Count, Offset : inte
 procedure LoadPSQLLibrary(LibPQPath: string = '');
 procedure UnloadPSQLLibrary;
 procedure CheckLibraryLoaded;
+procedure HotLibrarySwitch(const ALibPath: string);
 function IsLibraryLoaded: boolean;
 
 function IsValidIP(const S: string): boolean;
@@ -3288,6 +3289,15 @@ begin
   if IsLibraryLoaded() then
      FreeLibrary( SQLLibraryHandle );
   SQLLibraryHandle := HINSTANCE_ERROR;
+end;
+
+procedure HotLibrarySwitch(const ALibPath: string);
+var I: integer;
+begin
+  for I := 0 to DBList.Count - 1 do
+    TPSQLDatabase(DBList[i]).Close;
+  UnloadPSQLLibrary;
+  LoadPSQLLibrary(ALibPath);
 end;
 
 procedure CheckLibraryLoaded;
