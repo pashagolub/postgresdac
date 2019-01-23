@@ -1987,9 +1987,9 @@ function Sign(const AValue: Double): integer;
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
 function GetTickCount: LongWord; //thanks to Indy project
-{$ENDIF}
+{$ELSE}
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
-
+{$ENDIF}
 
 function DACAnsiStrAlloc(Size: Cardinal): PAnsiDACChar;
 procedure DACAnsiStrDispose(Str: PAnsiDACChar);
