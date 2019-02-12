@@ -1055,6 +1055,7 @@ type
       FParamCheck: Boolean;
       FExecSQL: Boolean;
       FCheckRowsAffected: Boolean;
+    FBeforeExecSQL: TDataSetNotifyEvent;
       function CreateCursor(GenHandle: Boolean): HDBICur;
       function GetQueryCursor(GenHandle: Boolean): HDBICur;
       function GetRowsAffected: Integer;
@@ -1113,6 +1114,7 @@ type
       property RowsAffected: Integer read GetRowsAffected;
       property SQLBinary: PChar read FSQLBinary write FSQLBinary;
     published
+      property BeforeExecSQL: TDataSetNotifyEvent read FBeforeExecSQL write FBeforeExecSQL;
       property DataSource: TDataSource read GetDataSource write SetDataSource;
       property ParamCheck: Boolean read FParamCheck write FParamCheck default TRUE;
       property RequestLive: Boolean read GetRequestLive write SetRequestLive default FALSE;
@@ -5381,6 +5383,8 @@ end;
 procedure TPSQLQuery.ExecSQL;
 begin
   CheckInActive;
+  if Assigned(FBeforeExecSQL) then
+    FBeforeExecSQL(Self);
   SetDBFlag(dbfExecSQL, TRUE);
   try
     CreateCursor(FALSE);
