@@ -3754,7 +3754,7 @@ end;
 
 function TPSQLFilter.GetNodeByOffset(AOffSet : Integer) : PCanNode;
 begin
-    Result := pCanNode(Integer(FExpression)+AOffset);
+    Result := pCanNode(DACPointerInt(FExpression)+AOffset);
 end;
 
 function TPSQLFilter.CalcExpression(ANode : PCanNode) : Variant;
@@ -3938,7 +3938,7 @@ function TPSQLFilter.PerformCanConst(ANode:PCANConst; ValuesStart : Pointer; Var
 
 function _PerformCanConst( ANode : PCANConst; ValuePtr : Pointer; Var FldType : TFldType) : Variant;
 Var
-  Offs      : Integer;
+  Offs      : DACPointerInt;
   TimeStamp : TTimeStamp;
   DateData  : Double;
   S: String;
@@ -3949,7 +3949,7 @@ Var
 begin
   With ANode^ Do
   begin
-    Offs := Integer(ValuePtr);
+    Offs := DACPointerInt(ValuePtr);
     FldType := FT_UNK;
     Result := Null;
     Case iType Of

@@ -135,7 +135,7 @@ type
   DACAString = {$IFDEF MOBILE}String{$ELSE}AnsiString{$ENDIF};
   DACABytesString = {$IFDEF MOBILE}TBytes{$ELSE}AnsiString{$ENDIF};
   AnsiDACByteChar = {$IFDEF MOBILE}Byte{$ELSE}AnsiChar{$ENDIF};
-{$IFDEF NEXTGEN}
+{$IFDEF DELPHI_16}
   DACPointerInt = NativeInt;
 {$ENDIF}
 
