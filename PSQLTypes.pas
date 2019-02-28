@@ -137,6 +137,8 @@ type
   AnsiDACByteChar = {$IFDEF MOBILE}Byte{$ELSE}AnsiChar{$ENDIF};
 {$IFDEF DELPHI_16}
   DACPointerInt = NativeInt;
+{$ELSE}
+  DACPointerInt = integer;
 {$ENDIF}
 
 const
