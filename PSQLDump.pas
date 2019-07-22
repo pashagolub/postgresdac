@@ -48,7 +48,8 @@ type
                 doQuoteAllIdentifiers, doNoSecurityLabels, doNoUnloggedTableData,
                 doSerializableDeferrable, doNoSynchronizedSnapshots, doIfExists,
                 doEnableRowSecurity, doStrictNames, doNoBlobs, doNoSync,
-                doNoSubscriptions, doNoPublications);
+                doNoSubscriptions, doNoPublications, doLoadViaPartitionRoot,
+                doNoComments);
 
   TDumpOptions = set of TDumpOption;
 
@@ -265,7 +266,10 @@ const
    '--no-blobs',                       //doNoBlobs
    '--no-sync',                        //doNoSync
    '--no-subscriptions',               //doNoSubscriptions
-   '--no-publications'                 //doNoPublications
+   '--no-publications',                //doNoPublications
+   '--load-via-partition-root',        //doLoadViaPartitionRoot
+   '--no-comments'                     //doNoComments
+
 
   );
 
