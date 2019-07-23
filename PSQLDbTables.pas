@@ -16,7 +16,7 @@ uses  SysUtils, Classes, Db,
       PSQLAccess, PSQLTypes;
 
 const
-    VERSION : string = '3.5';
+    VERSION : string = '3.6';
     {$IFDEF MICROOLAP_BUSINESS_LICENSE}
     LICENSETYPE : string = 'Business License';
     {$ELSE}
