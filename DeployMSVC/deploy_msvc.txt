@@ -1,9 +1,11 @@
+You need to check if proper VC Redist package is installed on your system!
+
 In order to run applications using PostgresDAC on Windows platform, 
 the PostgreSQL client library must be available on a computer, it includes 
 the following files:
 
     libpq.dll
-    libintl-8.dll
+    libintl-9.dll
     libivonv-2.dll
     ssleay32.dll
     libeay32.dll
