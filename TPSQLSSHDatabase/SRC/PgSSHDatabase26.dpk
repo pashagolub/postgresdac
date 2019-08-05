@@ -1,4 +1,4 @@
-package PgSSHDatabase24;
+package PgSSHDatabase26;
 
 {$R *.res}
 {$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
@@ -32,7 +32,7 @@ requires
   rtl,
   dbrtl,
   vcldb,
-  PostgresDAC24;
+  PostgresDAC26;
 
 contains
   PgSSHDatabase in 'PgSSHDatabase.pas';
