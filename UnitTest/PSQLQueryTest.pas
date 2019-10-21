@@ -305,18 +305,22 @@ var ClientTime, ServerTime: TTime;
 begin
  FPSQLQuery.SQL.Text := 'SELECT ''16:23''::time';
  FPSQLQuery.Open;
- ClientTime := Time();
+ ClientTime := StrToTime('16:23');
  ServerTime := TimeOf(FPSQLQuery.Fields[0].AsDateTime);
- Check(StrToTime('16:23') = ServerTime), 'Field value AsTime is incorrect');
+ Check(StrToTime('16:23') = ServerTime, 'Field value AsTime is incorrect');
  FPSQLQuery.Close
 end;
 
 procedure TestTPSQLQuery.TestAsTimestamp;
+var
+  ClientTime: TDateTime;
 begin
- FPSQLQuery.SQL.Text := 'SELECT LOCALTIMESTAMP';
+ FPSQLQuery.SQL.Text := 'SELECT $$2019-09-27 16:23:12$$::timestamp';
  FPSQLQuery.Open;
- Check(MinutesBetween(Now(), FPSQLQuery.Fields[0].AsDateTime) < 5, 'Field value AsTimestamp is incorrect');
- FPSQLQuery.Close
+ ClientTime := EncodeDateTime(2019, 09, 27, 16, 23, 12, 000);
+ Check(ClientTime = FPSQLQuery.Fields[0].AsDateTime,
+        'Field value AsTimestamp is incorrect!');
+ FPSQLQuery.Close;
 end;
 
 procedure TestTPSQLQuery.TestBookmarks;
