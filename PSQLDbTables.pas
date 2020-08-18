@@ -898,7 +898,6 @@ type
     FLimit : Integer;
     FOffset: Integer;
     FShowSystemTables: boolean;
-    FHasOIDs: boolean;
     FTableID: cardinal;
     FComment: string;
     FOwner: string;
@@ -936,7 +935,6 @@ type
     procedure SetShowSystemTables(const Value: boolean);
     function GetOffset: Integer;
     procedure SetOffset(const Value: Integer);
-    procedure SetDummyBool(const Value: boolean);
     procedure SetDummyInt(const Value: cardinal);
     procedure SetDummyStr(const Value: string);
     function GetTableSpace: string;
@@ -1028,7 +1026,6 @@ type
     property Limit : Integer read GetLimit write SetLimit default 0;
     property Offset : Integer read GetOffset write SetOffset default 0;
     property Owner: string read FOwner write SetDummyStr stored False;
-    property HasOIDs: boolean read FHasOIDs write SetDummyBool stored False;
     property Tablespace: string read GetTableSpace write SetDummyStr stored False;
     property TableID: cardinal read FTableID write SetDummyInt stored False;
     property Comment: string read FComment write SetDummyStr stored False;
@@ -5872,7 +5869,7 @@ var
   procedure FillAddonProps;
   begin
    Check(Engine,Engine.GetTableProps(DBHandle, FTableName, FOwner,
-        FComment, FTablespace, FHasOIDs, FTableID));
+        FComment, FTablespace, FTableID));
   end;
 
 begin
@@ -7385,11 +7382,6 @@ end;
 procedure TPSQLTable.SetOffset(const Value: Integer);
 begin
  FOffset := Value;
-end;
-
-procedure TPSQLTable.SetDummyBool(const Value: boolean);
-begin
-//dummy method for published
 end;
 
 procedure TPSQLTable.SetDummyInt(const Value: cardinal);

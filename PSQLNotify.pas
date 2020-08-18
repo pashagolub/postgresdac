@@ -321,12 +321,12 @@ begin
   end;
 end;
 
-function TPSQLNotify.Engine : TPSQLEngine;
+function TPSQLNotify.Engine: TPSQLEngine;
 begin
    Result := FDataBase.Engine;
 end;
 
-function TPSQLNotify.CreateHandle:hDBIObj;
+function TPSQLNotify.CreateHandle: hDBIObj;
 var
   PObj: phDBIObj;
 begin

@@ -158,7 +158,6 @@ type
                         var DBOid: cardinal; var Comment: string);
     procedure GetTableProps(const TableName: string;
                         var Owner, Comment, Tablespace: string;
-                        var HasOIDs: boolean;
                         var TableOid: cardinal);
     procedure EmptyTable(hCursor : hDBICur; pszTableName : string);
     procedure AddIndex(hCursor: hDBICur; pszTableName: string; pszDriverType: string; var IdxDesc: IDXDesc; pszKeyviolName: string);
@@ -315,8 +314,7 @@ type
                         var IsTemplate: boolean;
                         var DBOid: cardinal; var Comment: string):DBIResult;
       function GetTableProps(hDB: DAChDBIDb; const TableName: string; var Owner,
-                        Comment, Tablespace: string; var HasOIDs: boolean;
-                        var TableOid: cardinal):DBIResult;
+                        Comment, Tablespace: string; var TableOid: cardinal):DBIResult;
       function GetFieldOldValue(hCursor: hDBICur; AFieldName: string; AParam: TParam): DBIResult;
       function GetFieldValueFromBuffer(hCursor: hDBICur; PRecord: Pointer; AFieldName: string; AParam: TParam; const UnchangedAsNull: boolean): DBIResult;
       function GetLastInsertId(hCursor: hDBICur; const FieldNum: integer; var ID: integer): DBIResult;
@@ -9011,8 +9009,7 @@ end;
 
 
 procedure TNativeConnect.GetTableProps(const TableName: string; var Owner,
-  Comment, Tablespace: string; var HasOIDs: boolean;
-  var TableOid: cardinal);
+  Comment, Tablespace: string; var TableOid: cardinal);
 var
    sql, Tbl, Schema : String;
    I : integer;
@@ -9021,10 +9018,9 @@ begin
   Owner := '';
   Comment := '';
   Tablespace := '';
-  HasOIDs := False;
   TableOid := 0;
 
-  Sql :=  'SELECT pg_class.oid, relhasoids, usename, '#13#10 +
+  Sql :=  'SELECT pg_class.oid, usename, '#13#10 +
       ' COALESCE(pg_description.description,''''), COALESCE(pg_tablespace.spcname,''<DEFAULT>'')'#13#10 +
       ' FROM pg_class'#13#10 +
       ' INNER JOIN pg_namespace ON (pg_class.relnamespace = pg_namespace.oid)'#13#10 +
@@ -9047,11 +9043,10 @@ begin
   try
     if (PQresultStatus(RES) = PGRES_TUPLES_OK) and (PQntuples(RES) > 0) then
     begin
-      TableOid := StrToInt64(RawToString(PQgetvalue(RES,0,0)));
-      HasOIDs := PQgetvalue(RES, 0, 1) = 't';
-      Owner := RawToString(PQgetvalue(RES, 0, 2));
-      Tablespace := RawToString(PQgetvalue(RES,0,4));
-      Comment := RawToString(PQgetvalue(RES,0,3));
+      TableOid := StrToInt64(RawToString(PQgetvalue(RES, 0, 0)));
+      Owner := RawToString(PQgetvalue(RES, 0, 1));
+      Comment := RawToString(PQgetvalue(RES, 0, 2));
+      Tablespace := RawToString(PQgetvalue(RES, 0, 3));
     end;
   finally
     PQclear(RES);
@@ -9059,13 +9054,12 @@ begin
 end;
 
 function TPSQLEngine.GetTableProps(hDB: DAChDBIDb; const TableName: string;
-  var Owner, Comment, Tablespace: string; var HasOIDs: boolean;
-  var TableOid: cardinal): DBIResult;
+  var Owner, Comment, Tablespace: string; var TableOid: cardinal): DBIResult;
 begin
   try
     Database := hDb;
     TNativeConnect(hDb).GetTableProps(TableName, Owner, Comment,
-                                Tablespace, HasOIDs, TableOid);
+                                Tablespace, TableOid);
     Result := DBIERR_NONE;
   except
     Result := CheckError;
