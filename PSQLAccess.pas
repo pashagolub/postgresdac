@@ -3838,10 +3838,10 @@ begin
    if varIsNull(Op1) Or varIsEmpty(Op1) Then Op1 := '';
    if varIsNull(Op2) Or varIsEmpty(Op2) Then Op2 := '';
    if ANode.canOp = canLike then
-      Result := PerformLikeCompare(Op1,Op2, ANode^.bCaseInsensitive) else
+      Result := PerformLikeCompare(Op1, Op2, not ANode^.bCaseInsensitive) else
    begin
-      Result := Search(Op1,Op2, OEMConv, Anode^.bCaseInsensitive, Anode^.iPartialLen);
-      if Anode^.canOp = canNE Then  Result := Not Result;
+      Result := Search(Op1, Op2, OEMConv, not Anode^.bCaseInsensitive, Anode^.iPartialLen);
+      if Anode^.canOp = canNE then Result := not Result;
    end;
 
 end;
