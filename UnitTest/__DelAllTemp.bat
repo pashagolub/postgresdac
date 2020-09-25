@@ -29,5 +29,7 @@ del /Q /S *.ilf > nul
 del /Q /S *.ils > nul
 del /Q /S *.identcache > nul
 del /Q /S *.local > nul
+del /Q /S *.otares > nul
+del /Q /S *.rsm > nul
 del /Q /S __history > nul
 rmdir __history > nul
