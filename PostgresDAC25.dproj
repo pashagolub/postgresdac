@@ -129,6 +129,12 @@
             <Platforms>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">True</Platform>
+                <Platform value="Linux64">True</Platform>
+                <Platform value="Linux32">True</Platform>
+                <Platform value="Android64">True</Platform>
+                <Platform value="Android32">True</Platform>
+                <Platform value="OSX64">True</Platform>
+                <Platform value="OSX32">True</Platform>
             </Platforms>
             <Deployment Version="3">
                 <DeployFile LocalName="$(BDS)\Redist\osx32\libcgunwind.1.0.dylib" Class="DependencyModule">
