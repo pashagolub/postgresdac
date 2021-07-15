@@ -314,11 +314,10 @@ end;
 
 procedure TestTPSQLQuery.TestAsTime;
 var
-  ClientTime, ServerTime: TTime;
+  ServerTime: TTime;
 begin
   FPSQLQuery.SQL.Text := 'SELECT ''16:23''::time';
   FPSQLQuery.Open;
-  ClientTime := StrToTime('16:23');
   ServerTime := TimeOf(FPSQLQuery.Fields[0].AsDateTime);
   Check(StrToTime('16:23') = ServerTime, 'Field value AsTime is incorrect');
   FPSQLQuery.Close

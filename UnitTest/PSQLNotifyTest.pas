@@ -32,8 +32,10 @@ type
   TestTPSQLNotify = class({$IFNDEF DUNITX}TTestCase{$ELSE}TTestXCase{$ENDIF})
   private
     FPSQLNotify: TPSQLNotify;
+    {$IFDEF DUNITX}
     procedure InternalSetUp;
     procedure InternalTearDown;
+    {$ENDIF}
   public
     {$IFNDEF DUNITX}
     procedure SetUp; override;
@@ -66,6 +68,7 @@ var
 
 implementation
 
+{$IFDEF DUNITX}
 procedure TestTPSQLNotify.InternalSetUp;
 begin
   TestNotify := TPSQLNotify.Create(nil);
@@ -87,6 +90,7 @@ begin
   if not MsgReceived then Status('Simple notify message lost');
   if not MsgReceivedEx then Status('Payload notify message lost');
 end;
+{$ENDIF}
 
 procedure TestTPSQLNotify.SetUp;
 begin
