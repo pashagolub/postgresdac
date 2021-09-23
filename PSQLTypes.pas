@@ -129,12 +129,12 @@ const
 //          COMPATIBILITY TYPES                                            //
 /////////////////////////////////////////////////////////////////////////////
 type
-  PAnsiDACChar = {$IFDEF MOBILE}MarshaledAString{$ELSE}PAnsiChar{$ENDIF};
-  PAnsiDACBytesChar = {$IFDEF MOBILE}PByte{$ELSE}PAnsiChar{$ENDIF};
-  AnsiDACChar = {$IFDEF MOBILE}Char{$ELSE}AnsiChar{$ENDIF};
-  DACAString = {$IFDEF MOBILE}String{$ELSE}AnsiString{$ENDIF};
-  DACABytesString = {$IFDEF MOBILE}TBytes{$ELSE}AnsiString{$ENDIF};
-  AnsiDACByteChar = {$IFDEF MOBILE}Byte{$ELSE}AnsiChar{$ENDIF};
+  PAnsiDACChar = {$IFDEF NEXTGEN}MarshaledAString{$ELSE}PAnsiChar{$ENDIF};
+  PAnsiDACBytesChar = {$IFDEF NEXTGEN}PByte{$ELSE}PAnsiChar{$ENDIF};
+  AnsiDACChar = {$IFDEF NEXTGEN}Char{$ELSE}AnsiChar{$ENDIF};
+  DACAString = {$IFDEF NEXTGEN}String{$ELSE}AnsiString{$ENDIF};
+  DACABytesString = {$IFDEF NEXTGEN}TBytes{$ELSE}AnsiString{$ENDIF};
+  AnsiDACByteChar = {$IFDEF NEXTGEN}Byte{$ELSE}AnsiChar{$ENDIF};
 {$IFDEF DELPHI_16}
   DACPointerInt = NativeInt;
 {$ELSE}
@@ -1985,9 +1985,11 @@ function Sign(const AValue: Double): integer;
 
 
 //function for compatibility with FreePascal and MacOS
-{$IFDEF MACOS}
+{$IFNDEF WINDOWS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
+{$ENDIF WINDOWS}
+{$IFDEF MACOS}
 function GetTickCount: LongWord; //thanks to Indy project
 {$ELSE}
 function GetTickDiff(const AOldTickCount, ANewTickCount: LongWord): LongWord;
@@ -2242,7 +2244,7 @@ begin
   Result := TryStrToIPv4(S, IP4) or TryStrToIPv6(S, IP6);
 end;
 
-{$IFDEF MACOS}
+{$IFNDEF WINDOWS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 begin
   FillChar(Destination^, Length, 0);
@@ -2252,7 +2254,9 @@ procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
 begin
   Move(Source^, Destination^, Length);
 end;
+{$ENDIF}
 
+{$IFDEF MACOS}
 function GetTickCount: LongWord; inline;
 begin
   Result := AbsoluteToNanoseconds(UpTime) div 1000000;

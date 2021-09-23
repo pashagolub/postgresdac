@@ -261,14 +261,14 @@ end;
 
 procedure TPSQLMacroQuery.ExecDirect;
 var
-   AffectedRows : LongInt;
+   AffectedRows : Integer;
 begin
   CheckInactive;
   SetDBFlag(dbfExecSQL, True);
   try
     if SQL.Count > 0 then
     begin
-      PSQLDBTables.Check(Engine,Engine.QExecDirect(DBHandle, PChar(inherited SQL.Text), nil, AffectedRows));
+      PSQLDBTables.Check(Engine,Engine.QExecDirect(DBHandle, inherited SQL.Text, nil, AffectedRows));
     end
     else DatabaseError(SEmptySQLStatement);
   finally

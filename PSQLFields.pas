@@ -268,7 +268,7 @@ var
 
 procedure InitHexUpperCase();
 begin
-{$IFNDEF MOBILE}
+{$IFNDEF NEXTGEN}
   HexUpperCase['a'] := 'A';
   HexUpperCase['b'] := 'B';
   HexUpperCase['c'] := 'C';
@@ -323,7 +323,7 @@ end;
 
 procedure InitHexLowerCase();
 begin
-{$IFNDEF MOBILE}
+{$IFNDEF NEXTGEN}
   HexLowerCase['a'] := 'a';
   HexLowerCase['b'] := 'b';
   HexLowerCase['c'] := 'c';
@@ -392,7 +392,7 @@ begin
   C := PAnsiDACChar(AStr);
   {$ENDIF}
 
-  {$IFNDEF MOBILE}
+  {$IFNDEF NEXTGEN}
   Result[2] := HexUpperCase[C^]; Inc(C);
   Result[3] := HexUpperCase[C^]; Inc(C);
   Result[4] := HexUpperCase[C^]; Inc(C);

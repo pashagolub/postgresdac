@@ -1268,7 +1268,7 @@ begin
       pdmbvm_SetLogCallBackProc(@LogCallBackProc);
      end;
     if LogFile > '' then
-      {$IFNDEF MOBILE}
+      {$IFNDEF NEXTGEN}
       PLog := PAnsiDACChar(UTF8Encode(LogFile))
       {$ELSE}
       PLog := PAnsiDACChar(M.AsAnsi(LogFile))

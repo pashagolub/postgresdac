@@ -564,7 +564,7 @@ type
     FAllowSequenced: boolean;
     FSortFieldNames: string;
     FOptions: TPSQLDatasetOptions;
-    {$IFDEF NEXTGEN}
+    {$IFDEF MOBILE}
     FSetToRecBookm: TBookmark;
     {$ENDIF}
 
