@@ -43,7 +43,8 @@ type
 {$ENDIF}
   published
     // parameters
-    procedure CheckCorruptedParams;
+    procedure TestCorruptedParams;
+    procedure TestDoubledColons;
     // dataset options
     procedure TestEmptyCharAsNullOption;
     // TField.AsXXX
@@ -217,7 +218,7 @@ begin
 end;
 {$ENDIF}
 
-procedure TestTPSQLQuery.CheckCorruptedParams;
+procedure TestTPSQLQuery.TestCorruptedParams;
 begin
   FPSQLQuery.ParamCheck := True;
   FPSQLQuery.SQL.Text := 'SELECT now()::::TIMESTAMP(0) where AField = :AParam';
@@ -386,6 +387,13 @@ begin
   aCount := FPSQLQuery.RecordCount;
   FPSQLQuery.Delete;
   Check(FPSQLQuery.RecordCount = aCount - 1, 'TPSQLQuery.Delete failed');
+end;
+
+procedure TestTPSQLQuery.TestDoubledColons;
+begin
+  FPSQLQuery.ParamCheck := True;
+  FPSQLQuery.SQL.Text := 'SELECT ''"'' || ''"'' || ''"''::text';
+  FPSQLQuery.Open;
 end;
 
 procedure TestTPSQLQuery.TestEmptyCharAsNullOption;
