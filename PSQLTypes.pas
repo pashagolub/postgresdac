@@ -489,7 +489,7 @@ type
 //  NOTE: in Postgres 6.4 and later, the be_pid is the notifying backend's,
 //  whereas in earlier versions it was always your own backend's PID.
   PPGnotify = ^PGnotify;
-  PGnotify = packed record
+  PGnotify = record
     relname: PAnsiDACChar; // name of relation containing data
     be_pid:  Integer;	   // process id of backend
     extra:   PAnsiDACChar;        // extra notification
@@ -1985,10 +1985,10 @@ function Sign(const AValue: Double): integer;
 
 
 //function for compatibility with FreePascal and MacOS
-{$IFNDEF WINDOWS}
+{$IFNDEF MSWINDOWS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
-{$ENDIF WINDOWS}
+{$ENDIF MSWINDOWS}
 {$IFDEF MACOS}
 function GetTickCount: LongWord; //thanks to Indy project
 {$ELSE}
@@ -2244,7 +2244,7 @@ begin
   Result := TryStrToIPv4(S, IP4) or TryStrToIPv6(S, IP6);
 end;
 
-{$IFNDEF WINDOWS}
+{$IFNDEF MSWINDOWS}
 procedure ZeroMemory(Destination: Pointer; Length: integer);
 begin
   FillChar(Destination^, Length, 0);
@@ -2254,7 +2254,7 @@ procedure CopyMemory(Destination: Pointer; Source: Pointer; Length: integer);
 begin
   Move(Source^, Destination^, Length);
 end;
-{$ENDIF}
+{$ENDIF MSWINDOWS}
 
 {$IFDEF MACOS}
 function GetTickCount: LongWord; inline;
