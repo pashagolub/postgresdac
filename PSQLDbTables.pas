@@ -17,31 +17,6 @@ uses  SysUtils, Classes, Db,
 
 const
     VERSION : string = '3.12';
-    {$IFDEF MICROOLAP_BUSINESS_LICENSE}
-    LICENSETYPE : string = 'Business License';
-    {$ELSE}
-      {$IFDEF MICROOLAP_COMMERCIAL_LICENSE}
-      LICENSETYPE : string = 'Commercial License';
-      {$ELSE}
-        {$IFDEF MICROOLAP_EDU_CLASSROOM_LICENSE}
-        LICENSETYPE : string = 'Educational classroom License';
-        {$ELSE}
-          {$IFDEF MICROOLAP_EDU_INSTITUTION_LICENSE}
-          LICENSETYPE : string = 'Educational institution License';
-          {$ELSE}
-            {$IFDEF MICROOLAP_PERSONAL_LICENSE}
-            LICENSETYPE : string = 'Personal License';
-            {$ELSE}
-              {$IFDEF TRIAL}
-              LICENSETYPE : string = 'Trial License';
-              {$ELSE}
-              LICENSETYPE : string = 'Edited license string => Trial license';
-              {$ENDIF}
-            {$ENDIF}
-          {$ENDIF}
-        {$ENDIF}
-      {$ENDIF}
-    {$ENDIF}
 
 { TDBDataSet flags }
   dbfOpened     = 0;

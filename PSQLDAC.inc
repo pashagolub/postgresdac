@@ -10,11 +10,6 @@
 {$ENDIF}
 
 //---------------------------
-// License definition
-//---------------------------
-{$DEFINE MICROOLAP_BUSINESS_LICENSE}
-
-//---------------------------
 // FreePascal/Lazarus
 //---------------------------
 //

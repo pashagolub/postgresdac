@@ -58,7 +58,7 @@ begin
     Caption := 'Thank you for trying PostgresDAC';
     VersionLabel.Caption := 'v.' + PSQLDBTables.VERSION;
     Label1.Caption := aComponentName;
-    RegLabel.Caption := PSQLDBTables.LICENSETYPE;
+    RegLabel.Caption := 'PostgreSQL License';
     ShowModal();
   finally
     Free();
@@ -70,24 +70,24 @@ begin
   FVersion := '';
   FCompName := '';
   FRegister:='';
-  Label2.Caption := FormatDateTime('"(c) 1999-"yyyy" microOLAP Technologies LTD"', Now());
+  Label2.Caption := '(c) Pavlo Golub';
 end;
 
 procedure TPSQLAboutComp.SpeedButton1Click(Sender: TObject);
 begin
   {Send e-mail}
-	ShellExecute(0,'Open','http://www.microolap.com/support/ticket_edit.php',nil,nil,SW_SHOW);
+	ShellExecute(0,'Open','https://github.com/pashagolub/postgresdac/issues',nil,nil,SW_SHOW);
 end;
 
 procedure TPSQLAboutComp.SpeedButton2Click(Sender: TObject);
 begin
    {Go to web}
-   ShellExecute(0,'Open','http://microolap.com/products/connectivity/postgresdac/',nil,nil,SW_SHOW);
+   ShellExecute(0,'Open','https://github.com/pashagolub/postgresdac/',nil,nil,SW_SHOW);
 end;
 
 procedure TPSQLAboutComp.SpeedButton3Click(Sender: TObject);
 begin
-   ShellExecute(0,'Open','http://microolap.com/products/connectivity/postgresdac/order/',nil,nil,SW_SHOW);
+   ShellExecute(0,'Open','https://github.com/sponsors/pashagolub/',nil,nil,SW_SHOW);
 end;
 
 initialization

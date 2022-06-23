@@ -1493,7 +1493,7 @@ object PSQLAboutComp: TPSQLAboutComp
     Top = 173
     Width = 213
     Height = 13
-    Caption = '(c) 1999-2007 microOLAP Technologies LTD'
+    Caption = '(c) Pavlo Golub'
   end
   object VersionLabel: TLabel
     Left = 130
