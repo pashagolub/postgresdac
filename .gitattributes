@@ -1,0 +1,2 @@
+# Ignore modified PostgreSQL sources
+pg_dump_dll/ linguist-vendored
