@@ -475,7 +475,7 @@ begin
       SplashScreenServices.AddPluginBitmap(Format('MicroOLAP PostgresDAC Component Suite %s', [PSQLDBTables.VERSION]),
                 LoadBitmap(FindResourceHInstance(HInstance), 'PSQLLOGO'),
                 False,
-                PSQLDBTables.LICENSETYPE);
+                'MIT License');
     end;
   {$ENDIF}
 
