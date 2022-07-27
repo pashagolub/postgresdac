@@ -161,7 +161,6 @@
 			<VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys>
 			<VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys>
 		</VersionInfoKeys>  <Excluded_Packages>
-      <Excluded_Packages Name="C:\Program Files\MicroOLAP PostgresDAC\Packages\Delphi 2005\PostgresDAC9.bpl">MicroOLAP PostgresDAC</Excluded_Packages>
     </Excluded_Packages>
   </Delphi.Personality>
 </BorlandProject>

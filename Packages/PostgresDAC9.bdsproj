@@ -164,7 +164,6 @@
     
     
     <Excluded_Packages>
-      <Excluded_Packages Name="C:\Program Files\MicroOLAP PostgresDAC\Packages\Delphi 2005\PostgresDAC9.bpl">MicroOLAP PostgresDAC</Excluded_Packages>
     </Excluded_Packages>
   </Delphi.Personality>
 </BorlandProject>

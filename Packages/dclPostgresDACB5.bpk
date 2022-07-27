@@ -74,9 +74,6 @@ ProductName=
 ProductVersion=1.0.0.0
 Comments=
 
-[Excluded Packages]
-C:\Program Files\MicroOLAP PostgresDAC\Packages\C++ Builder 5\PostgresDACB5.bpl=MicroOLAP PostgresDAC
-
 [HistoryLists\hlIncludePath]
 Count=2
 Item0=$(BCB)\include;$(BCB)\include\vcl;$(BCB)\source\toolsapi

@@ -4,7 +4,7 @@
     <PathDelim Value="\"/>
     <Name Value="PostgresDACL"/>
     <AddToProjectUsesSection Value="True"/>
-    <Author Value="MicroOLAP Technologies LTD."/>
+    <Author Value="Pavlo Golub"/>
     <CompilerOptions>
       <Version Value="11"/>
       <PathDelim Value="\"/>

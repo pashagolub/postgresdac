@@ -472,7 +472,7 @@ begin
     if Assigned(SplashScreenServices) then
     begin
       ForceDemandLoadState(dlDisable);
-      SplashScreenServices.AddPluginBitmap(Format('MicroOLAP PostgresDAC Component Suite %s', [PSQLDBTables.VERSION]),
+      SplashScreenServices.AddPluginBitmap(Format('PostgresDAC Component Suite %s', [PSQLDBTables.VERSION]),
                 LoadBitmap(FindResourceHInstance(HInstance), 'PSQLLOGO'),
                 False,
                 'MIT License');
