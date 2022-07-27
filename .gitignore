@@ -29,3 +29,9 @@ __*
 *.compiled
 *.o
 *.obj
+PDACTest.conf
+
+UnitTest/*.html
+UnitTest/dunit.ini
+UnitTest/TestOutput
+UnitTest/TestData

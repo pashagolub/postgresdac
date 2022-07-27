@@ -14,10 +14,10 @@ BEGIN
  BEGIN
   BLOCK "000004b0"
   BEGIN
-   VALUE "CompanyName",      "Microolap Technologies LTD."
+   VALUE "CompanyName",      "Pavlo Golub"
    VALUE "FileDescription",  "pg_dump/pg_restore - libraries for backup and restore PostgreSQL databases"
    VALUE "FileVersion",      PG_VERSION
-   VALUE "LegalCopyright", "Portions Copyright (c) 2006-2018, MicroOLAP Technologies LTD. Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group. Portions Copyright (c) 1994, Regents of the University of California."
+   VALUE "LegalCopyright",  "Portions Copyright (c) 1996-2018, PostgreSQL Global Development Group. Portions Copyright (c) 1994, Regents of the University of California."
    VALUE "ProductName",      "PostgresDAC"
    VALUE "ProductVersion",   PG_VERSION
   END
