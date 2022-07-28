@@ -36,19 +36,19 @@ requires
   dbrtl;
 
 contains
-  PSQLTypes in '..\PSQLTypes.pas',
-  PSQLAccess in '..\PSQLAccess.pas',
-  PSQLDbTables in '..\PSQLDbTables.pas',
-  psqlBatch in '..\psqlBatch.pas',
-  PSQLMacroQuery in '..\PSQLMacroQuery.pas',
-  PSQLMonitor in '..\PSQLMonitor.pas',
-  PSQLTools in '..\PSQLTools.pas',
-  PSQLDump in '..\PSQLDump.pas',
-  PSQLCommon in '..\PSQLCommon.pas',
-  PSQLCopy in '..\PSQLCopy.pas',
-  PSQLDirectQuery in '..\PSQLDirectQuery.pas',
-  PSQLExtMask in '..\PSQLExtMask.pas',
-  PSQLFields in '..\PSQLFields.pas',
-  PSQLNotify in '..\PSQLNotify.pas';
+  PSQLTypes in '..\Source\PSQLTypes.pas',
+  PSQLAccess in '..\Source\PSQLAccess.pas',
+  PSQLDbTables in '..\Source\PSQLDbTables.pas',
+  psqlBatch in '..\Source\psqlBatch.pas',
+  PSQLMacroQuery in '..\Source\PSQLMacroQuery.pas',
+  PSQLMonitor in '..\Source\PSQLMonitor.pas',
+  PSQLTools in '..\Source\PSQLTools.pas',
+  PSQLDump in '..\Source\PSQLDump.pas',
+  PSQLCommon in '..\Source\PSQLCommon.pas',
+  PSQLCopy in '..\Source\PSQLCopy.pas',
+  PSQLDirectQuery in '..\Source\PSQLDirectQuery.pas',
+  PSQLExtMask in '..\Source\PSQLExtMask.pas',
+  PSQLFields in '..\Source\PSQLFields.pas',
+  PSQLNotify in '..\Source\PSQLNotify.pas';
 
 end.
