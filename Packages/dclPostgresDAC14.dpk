@@ -31,13 +31,13 @@ requires
   PostgresDAC14;
 
 contains
-  PSQLupdsqled in '..\PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
-  psqlAboutFrm in '..\psqlAboutFrm.pas' {PSQLAboutComp},
-  PSQLCOMP in '..\PSQLCOMP.pas',
-  PSQLConnFrm in '..\PSQLConnFrm.pas' {PSQLConnForm},
-  PSQLfldlinks in '..\PSQLfldlinks.pas' {PSQLLinkFields},
-  PSQLMigrator in '..\PSQLMigrator.pas',
-  PSQLStoredProcFrm in '..\PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
-  PSQLQueryEdit in '..\PSQLQueryEdit.pas' {SQLEditForm};
+  PSQLupdsqled in '..\Source\PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
+  psqlAboutFrm in '..\Source\psqlAboutFrm.pas' {PSQLAboutComp},
+  PSQLCOMP in '..\Source\PSQLCOMP.pas',
+  PSQLConnFrm in '..\Source\PSQLConnFrm.pas' {PSQLConnForm},
+  PSQLfldlinks in '..\Source\PSQLfldlinks.pas' {PSQLLinkFields},
+  PSQLMigrator in '..\Source\PSQLMigrator.pas',
+  PSQLStoredProcFrm in '..\Source\PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
+  PSQLQueryEdit in '..\Source\PSQLQueryEdit.pas' {SQLEditForm};
 
 end.
