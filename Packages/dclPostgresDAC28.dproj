@@ -37,6 +37,7 @@
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <GenDll>true</GenDll>
         <GenPackage>true</GenPackage>
+        <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
         <SanitizedProjectName>dclPostgresDAC28</SanitizedProjectName>
         <DCC_Description>PostgreSQL Direct Access Components</DCC_Description>
         <DesignOnlyPackage>true</DesignOnlyPackage>
@@ -71,24 +72,24 @@
         </DelphiCompile>
         <DCCReference Include="dcldb.dcp"/>
         <DCCReference Include="PostgresDAC28.dcp"/>
-        <DCCReference Include="PSQLupdsqled.pas">
+        <DCCReference Include="..\Source\PSQLupdsqled.pas">
             <Form>PSQLUpdateSQLEditForm</Form>
         </DCCReference>
-        <DCCReference Include="PSQLCOMP.pas"/>
-        <DCCReference Include="PSQLConnFrm.pas">
+        <DCCReference Include="..\Source\PSQLCOMP.pas"/>
+        <DCCReference Include="..\Source\PSQLConnFrm.pas">
             <Form>PSQLConnForm</Form>
         </DCCReference>
-        <DCCReference Include="PSQLfldlinks.pas">
+        <DCCReference Include="..\Source\PSQLfldlinks.pas">
             <Form>PSQLLinkFields</Form>
         </DCCReference>
-        <DCCReference Include="PSQLMigrator.pas"/>
-        <DCCReference Include="PSQLStoredProcFrm.pas">
+        <DCCReference Include="..\Source\PSQLMigrator.pas"/>
+        <DCCReference Include="..\Source\PSQLStoredProcFrm.pas">
             <Form>PSQLStoredProcProp</Form>
         </DCCReference>
-        <DCCReference Include="PSQLQueryEdit.pas">
+        <DCCReference Include="..\Source\PSQLQueryEdit.pas">
             <Form>SQLEditForm</Form>
         </DCCReference>
-        <DCCReference Include="psqlAboutFrm.pas">
+        <DCCReference Include="..\Source\psqlAboutFrm.pas">
             <Form>PSQLAboutComp</Form>
         </DCCReference>
         <BuildConfiguration Include="Base">
