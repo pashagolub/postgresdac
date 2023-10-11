@@ -37,6 +37,7 @@
         <DCC_ImageBase>00400000</DCC_ImageBase>
         <GenDll>true</GenDll>
         <GenPackage>true</GenPackage>
+        <DCC_CBuilderOutput>All</DCC_CBuilderOutput>
         <SanitizedProjectName>PostgresDAC28</SanitizedProjectName>
         <RuntimeOnlyPackage>true</RuntimeOnlyPackage>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -44,7 +45,7 @@
         <DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win32)'!=''">
-        <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
+        <DCC_Namespace>System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;$(DCC_Namespace)</DCC_Namespace>
         <BT_BuildType>Debug</BT_BuildType>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Keys>CompanyName=;FileDescription=$(MSBuildProjectName);FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=$(MSBuildProjectName);ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName)</VerInfo_Keys>
@@ -70,20 +71,20 @@
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="dsnap.dcp"/>
         <DCCReference Include="dbrtl.dcp"/>
-        <DCCReference Include="PSQLTypes.pas"/>
-        <DCCReference Include="PSQLAccess.pas"/>
-        <DCCReference Include="PSQLDbTables.pas"/>
-        <DCCReference Include="PSQLBatch.pas"/>
-        <DCCReference Include="PSQLMacroQuery.pas"/>
-        <DCCReference Include="PSQLMonitor.pas"/>
-        <DCCReference Include="PSQLTools.pas"/>
-        <DCCReference Include="PSQLDump.pas"/>
-        <DCCReference Include="PSQLCopy.pas"/>
-        <DCCReference Include="PSQLDirectQuery.pas"/>
-        <DCCReference Include="PSQLExtMask.pas"/>
-        <DCCReference Include="PSQLFields.pas"/>
-        <DCCReference Include="PSQLNotify.pas"/>
-        <DCCReference Include="PSQLGeomTypes.pas"/>
+        <DCCReference Include="..\Source\PSQLTypes.pas"/>
+        <DCCReference Include="..\Source\PSQLAccess.pas"/>
+        <DCCReference Include="..\Source\PSQLDbTables.pas"/>
+        <DCCReference Include="..\Source\PSQLBatch.pas"/>
+        <DCCReference Include="..\Source\PSQLMacroQuery.pas"/>
+        <DCCReference Include="..\Source\PSQLMonitor.pas"/>
+        <DCCReference Include="..\Source\PSQLTools.pas"/>
+        <DCCReference Include="..\Source\PSQLDump.pas"/>
+        <DCCReference Include="..\Source\PSQLCopy.pas"/>
+        <DCCReference Include="..\Source\PSQLDirectQuery.pas"/>
+        <DCCReference Include="..\Source\PSQLExtMask.pas"/>
+        <DCCReference Include="..\Source\PSQLFields.pas"/>
+        <DCCReference Include="..\Source\PSQLNotify.pas"/>
+        <DCCReference Include="..\Source\PSQLGeomTypes.pas"/>
         <BuildConfiguration Include="Base">
             <Key>Base</Key>
         </BuildConfiguration>
