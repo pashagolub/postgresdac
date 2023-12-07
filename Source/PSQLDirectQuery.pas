@@ -2,8 +2,6 @@
 
 unit PSQLDirectQuery;
 
-{SVN revision: $Id$}
-
 interface
 
 uses

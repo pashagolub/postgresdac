@@ -1,0 +1,55 @@
+package PostgresDAC29;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION OFF}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES ON}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE DEBUG}
+{$ENDIF IMPLICITBUILDING}
+{$RUNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  dsnap,
+  dbrtl;
+
+contains
+  PSQLTypes in '..\Source\PSQLTypes.pas',
+  PSQLAccess in '..\Source\PSQLAccess.pas',
+  PSQLDbTables in '..\Source\PSQLDbTables.pas',
+  PSQLBatch in '..\Source\PSQLBatch.pas',
+  PSQLMacroQuery in '..\Source\PSQLMacroQuery.pas',
+  PSQLMonitor in '..\Source\PSQLMonitor.pas',
+  PSQLTools in '..\Source\PSQLTools.pas',
+  PSQLDump in '..\Source\PSQLDump.pas',
+  PSQLCopy in '..\Source\PSQLCopy.pas',
+  PSQLDirectQuery in '..\Source\PSQLDirectQuery.pas',
+  PSQLExtMask in '..\Source\PSQLExtMask.pas',
+  PSQLFields in '..\Source\PSQLFields.pas',
+  PSQLNotify in '..\Source\PSQLNotify.pas',
+  PSQLGeomTypes in '..\Source\PSQLGeomTypes.pas';
+
+{$NOINCLUDE PSQLGeomTypes}
+
+end.
+

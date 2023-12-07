@@ -1,8 +1,6 @@
 {$I pSQLDAC.inc}
 unit PSQLMonitor;
 
-{SVN revision: $Id$}
-
 interface
 
 uses

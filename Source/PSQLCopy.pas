@@ -2,8 +2,6 @@
 
 unit PSQLCopy;
 
-{SVN revision: $Id$}
-
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF} SysUtils, Classes, PSQLTypes,

@@ -1,8 +1,6 @@
 {$I pSQLDAC.inc}
 unit PSQLTypes;
 
-{SVN revision: $Id$}
-
 {$Z+,T-} //taken from MySQLDAC
 interface
 

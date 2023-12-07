@@ -1,8 +1,6 @@
 {$I pSQLDAC.inc}
 unit PSQLTools;
 
-{SVN revision: $Id$}
-
 interface
 
 uses {$IFDEF FPC}LCLIntf,{$ENDIF} SysUtils, Classes, PSQLDbTables, PSQLAccess, PSQLTypes;

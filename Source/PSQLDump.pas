@@ -1,8 +1,6 @@
 {$I PSQLDAC.inc}
 unit PSQLDump;
 
-{SVN revision: $Id$}
-
 interface
 
 Uses Classes, SysUtils, Db, PSQLTypes, Math, PSQLDbTables;
