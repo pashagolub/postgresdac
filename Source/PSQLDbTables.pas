@@ -1,8 +1,6 @@
 {$I PSQLDAC.inc}
 unit PSQLDbTables;
 
-{SVN revision: $Id$}
-
 {$R-,T-,H+,X+}
 {$C+}
 interface
@@ -5006,7 +5004,6 @@ function TPSQLDataSet.PSExecuteStatement(const ASQL: string; AParams: TParams;
 var
   InProvider: Boolean;
 begin
-  Result := -1;
   InProvider := SetDBFlag(dbfProvider, TRUE);
   try
     ResultSet := TPSQLQuery.Create(nil);

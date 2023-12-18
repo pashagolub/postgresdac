@@ -1,8 +1,6 @@
 {$I PSQLDAC.inc}
 unit PSQLNotify;
 
-{SVN revision: $Id$}
-
 interface
 
 {$DEFINE USE_THREAD_POLLING} //coment this directive to use TTimer instead of TThread

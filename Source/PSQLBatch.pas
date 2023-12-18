@@ -2,8 +2,6 @@ unit PSQLBatch;
 
 interface
 
-{SVN revision: $Id$}
-
 Uses  {$IFDEF FPC}LCLIntf,{$ENDIF}{$IFDEF MSWINDOWS}Windows,{$ENDIF} SysUtils, Classes, Db,
       {$IFDEF DELPHI_6}Variants,{$ENDIF}{StdVCL,} PSQLDbTables, PSQLTypes;
 

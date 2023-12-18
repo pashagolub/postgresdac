@@ -1,0 +1,47 @@
+package dclPostgresDAC29;
+
+{$R *.res}
+{$IFDEF IMPLICITBUILDING This IFDEF should not be used by users}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO OFF}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS OFF}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO OFF}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DEFINE RELEASE}
+{$ENDIF IMPLICITBUILDING}
+{$DESCRIPTION 'PostgreSQL Direct Access Components'}
+{$DESIGNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  dcldb,
+  PostgresDAC29;
+
+contains
+  PSQLupdsqled in '..\Source\PSQLupdsqled.pas' {PSQLUpdateSQLEditForm},
+  PSQLCOMP in '..\Source\PSQLCOMP.pas',
+  PSQLConnFrm in '..\Source\PSQLConnFrm.pas' {PSQLConnForm},
+  PSQLfldlinks in '..\Source\PSQLfldlinks.pas' {PSQLLinkFields},
+  PSQLMigrator in '..\Source\PSQLMigrator.pas',
+  PSQLStoredProcFrm in '..\Source\PSQLStoredProcFrm.pas' {PSQLStoredProcProp},
+  PSQLQueryEdit in '..\Source\PSQLQueryEdit.pas' {SQLEditForm},
+  psqlAboutFrm in '..\Source\psqlAboutFrm.pas' {PSQLAboutComp};
+
+end.
+

@@ -1,8 +1,6 @@
 {$I pSQLDAC.inc}
 unit PSQLMacroQuery;
 
-{SVN revision: $Id$}
-
 {$P+,W-,R-}
 
 interface

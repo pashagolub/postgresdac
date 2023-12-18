@@ -2,8 +2,6 @@
 
 unit PSQLAccess;
 
-{SVN revision: $Id$}
-
 {$T-}
 
 interface

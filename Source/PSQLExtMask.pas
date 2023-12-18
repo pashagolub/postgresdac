@@ -2,8 +2,6 @@
 
 unit PSQLExtMask;
 
-{SVN revision: $Id$}
-
 {$T-}
 
 interface
