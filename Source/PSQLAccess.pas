@@ -2575,7 +2575,7 @@ begin
                     end;
 
       ftFloat,
-      ftBCD     : Result := Format('%s NUMERIC(%s,%s)',[ColName,IntToStr(Field.Size),IntToStr(Field.Precision)]);
+      ftBCD     : Result := Format('%s NUMERIC(%s, %s)',[ColName,IntToStr(Field.Precision),IntToStr(Field.Size)]);
 
       ftTime    : Result := Format('%s TIME',[ColName]);
 
