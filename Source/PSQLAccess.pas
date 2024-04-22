@@ -2582,7 +2582,7 @@ begin
       {$IFDEF DELPHI_15}
       ftTimeStamp,
       {$ENDIF}
-      ftDateTime: Result := Format('%s DATETIME',[ColName]);
+      ftDateTime: Result := Format('%s TIMESTAMPTZ',[ColName]);
     end;
     if Field.Required then
        Result := Result + ' NOT NULL';
