@@ -1,7 +1,7 @@
 # PostgresDAC
 
 Powerful direct access components for PostgreSQL (and derivatives) and Delphi/C++Builder. 
-It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL and and its derivatives without BDE and ODBC. 
+It allows you to create Delphi/C++Builder applications with direct access to PostgreSQL and its derivatives without BDE and ODBC. 
 
 ### Top 5 reasons to use PostgresDAC:
 
